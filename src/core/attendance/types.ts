@@ -33,4 +33,15 @@ export type PinCheckError =
 /** 조직 출결 모듈 설정 */
 export interface AttendanceModuleSettings {
   enabled: boolean;
+  /** PWA/키오스크 전용 기기 설정 */
+  kiosk?: {
+    /** 입력 없을 때 idle 복귀 (초, 기본 30) */
+    idleTimeoutSeconds?: number;
+    /** 이름 포함 결과 표시 시간 (초, 기본 1.5) */
+    resultWithNameSeconds?: number;
+    /** 출결 후 idle 복귀까지 (초, 기본 2) */
+    resultDisplaySeconds?: number;
+    /** PWA Screen Wake Lock (기본 true) */
+    wakeLockEnabled?: boolean;
+  };
 }

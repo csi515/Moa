@@ -475,6 +475,12 @@ export interface AcademySettings {
   features?: {
     attendance?: {
       enabled?: boolean;
+      kiosk?: {
+        idleTimeoutSeconds?: number;
+        resultWithNameSeconds?: number;
+        resultDisplaySeconds?: number;
+        wakeLockEnabled?: boolean;
+      };
     };
   };
 }

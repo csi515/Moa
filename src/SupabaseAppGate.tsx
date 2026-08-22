@@ -6,10 +6,13 @@ import { OrganizationSelector } from './core/organizations/OrganizationSelector'
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
+import { isKioskRoute } from './core/attendance/kiosk/kioskConfig';
+import { AttendanceKioskPage } from './core/attendance/kiosk/AttendanceKioskPage';
 
 export const SupabaseAppGate: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
   const { currentOrganization, loading: orgLoading } = useOrganization();
+  const kioskMode = isKioskRoute();
 
   if (authLoading || (session && orgLoading)) {
     return <LoadingScreen />;
@@ -28,7 +31,7 @@ export const SupabaseAppGate: React.FC = () => {
       organizationId={currentOrganization.id}
       industryType={currentOrganization.industry_type}
     >
-      <IndustryAppRouter />
+      {kioskMode ? <AttendanceKioskPage /> : <IndustryAppRouter />}
     </StorageHydrator>
   );
 };
