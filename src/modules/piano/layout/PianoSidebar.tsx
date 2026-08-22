@@ -24,7 +24,6 @@ import {
   Award,
   BarChart3,
   TrendingUp,
-  BookOpenCheck,
   FileText,
 } from 'lucide-react';
 

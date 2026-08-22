@@ -1,6 +1,6 @@
 import React from 'react';
 
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+export const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
   return (
     <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
       <h3 className="font-bold text-sm text-slate-900 mb-3">{title}</h3>

@@ -90,6 +90,7 @@ export interface Database {
           user_id: string;
           role: MemberRole;
           staff_id: string | null;
+          parent_customer_id: string | null;
           is_active: boolean;
           joined_at: string;
           created_at: string;
@@ -101,6 +102,7 @@ export interface Database {
           user_id: string;
           role?: MemberRole;
           staff_id?: string | null;
+          parent_customer_id?: string | null;
           is_active?: boolean;
           joined_at?: string;
           created_at?: string;
@@ -112,6 +114,7 @@ export interface Database {
           user_id?: string;
           role?: MemberRole;
           staff_id?: string | null;
+          parent_customer_id?: string | null;
           is_active?: boolean;
           joined_at?: string;
           created_at?: string;
@@ -708,6 +711,67 @@ export interface Database {
       is_org_owner_or_admin: {
         Args: { org_id: string };
         Returns: boolean;
+      };
+      connect_staff_on_login: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      invite_staff_member: {
+        Args: { p_org_id: string; p_staff_id: string; p_email: string };
+        Returns: Json;
+      };
+      revoke_staff_invitation: {
+        Args: { p_org_id: string; p_staff_id: string };
+        Returns: undefined;
+      };
+      get_staff_account_statuses: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
+      connect_parent_on_login: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      invite_parent_member: {
+        Args: { p_org_id: string; p_parent_customer_id: string; p_email: string };
+        Returns: Json;
+      };
+      revoke_parent_invitation: {
+        Args: { p_org_id: string; p_parent_customer_id: string };
+        Returns: undefined;
+      };
+      get_parent_account_statuses: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
+      ensure_global_parent_profile: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      get_my_parent_portal_tree: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      create_guardian_link_token: {
+        Args: {
+          p_org_id: string;
+          p_customer_id: string;
+          p_expires_days?: number;
+          p_max_uses?: number;
+        };
+        Returns: Json;
+      };
+      list_guardian_link_tokens: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
+      revoke_guardian_link_token: {
+        Args: { p_org_id: string; p_token_id: string };
+        Returns: undefined;
+      };
+      redeem_guardian_link_token: {
+        Args: { p_token: string };
+        Returns: Json;
       };
     };
     Enums: {

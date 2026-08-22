@@ -86,7 +86,7 @@ export async function fetchParentAccountStatuses(
   });
   if (error) throw error;
 
-  const rows = (data as ParentAccountStatusItem[] | null) ?? [];
+  const rows = (data as unknown as ParentAccountStatusItem[] | null) ?? [];
   return rows.map((r) => ({
     parentCustomerId: (r as any).parent_customer_id ?? r.parentCustomerId,
     status: r.status,

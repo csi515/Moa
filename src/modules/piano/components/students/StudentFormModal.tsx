@@ -271,7 +271,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   } => {
     const targetTeacher = teachers.find((t) => t.id === formData.teacherId);
     return {
-      ...(student?.id ? { id: student.id, studentNumber: student.studentNumber } : {}),
+      ...(student?.id ? { id: student.id, studentNumber: student.studentNumber } : { studentNumber: '' }),
       name: formData.name.trim(),
       gender: formData.gender,
       birthDate: formData.birthDate,

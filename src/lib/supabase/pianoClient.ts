@@ -9,5 +9,5 @@ export function getPianoClient(): SupabaseClient<Database, 'piano'> {
       'Supabase is not configured. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env'
     );
   }
-  return supabase.schema('piano') as SupabaseClient<Database, 'piano'>;
+  return supabase.schema('piano') as unknown as SupabaseClient<Database, 'piano'>;
 }

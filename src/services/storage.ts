@@ -54,6 +54,7 @@ import {
   toggleCheckInByPinLocal,
 } from '../core/attendance/services/attendanceService';
 import type { GuardianRelationship, ParentStudentLink } from '../core/parent/types';
+import type { IncomeEntry, FinanceSummary } from '../core/finance/types';
 
 type Listener = () => void;
 
@@ -800,7 +801,8 @@ const storageCore = {
   // Consultations
   getConsultations(): Consultation[] {
     const list = getItem<Consultation[]>(STORAGE_KEYS.CONSULTATIONS, []);
-    const studentMap = new Map(this.getStudents().map((s) => [s.id, s]));
+    const students = this.getStudents() as Student[];
+    const studentMap = new Map(students.map((s) => [s.id, s]));
     return list.map((c) => {
       const st = studentMap.get(c.studentId);
       if (!st?.parentName) return c;
@@ -1613,7 +1615,7 @@ const storageCore = {
   },
 
   getMakeupItems(): MakeupItem[] {
-    const students = this.getStudents();
+    const students = this.getStudents() as Student[];
     const studentMap = new Map(students.map((s) => [s.id, s]));
 
     return this.getAttendance()

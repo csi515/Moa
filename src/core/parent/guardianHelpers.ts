@@ -18,10 +18,10 @@ export function getGuardiansForStudent(studentId: string): GuardianInfo[] {
         parentId: parent.id,
         parentName: parent.name,
         parentPhone: parent.phone,
-        parentEmail: parent.email,
+        ...(parent.email ? { parentEmail: parent.email } : {}),
         relationship: link.relationship,
         isPrimary: link.isPrimary,
-      };
+      } satisfies GuardianInfo;
     })
     .filter((g): g is GuardianInfo => g !== null)
     .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));

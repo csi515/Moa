@@ -1,4 +1,4 @@
-import type { GuardianRelationship, ParentStudentLink } from '../types';
+import type { GuardianRelationship, ParentStudentLink } from '@/core/parent/types';
 
 type DbRelationship = GuardianRelationship;
 

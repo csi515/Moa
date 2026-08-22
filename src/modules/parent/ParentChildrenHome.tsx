@@ -28,7 +28,7 @@ export const ParentChildrenHome: React.FC = () => {
   );
 };
 
-function ChildCard({ child, onSelect }: { child: GlobalStudent; onSelect: () => void }) {
+const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ child, onSelect }) => {
   const academyCount = child.enrollments.length;
   const activeCount = child.enrollments.filter((e) => e.status === 'active' || e.status === 'leave').length;
 

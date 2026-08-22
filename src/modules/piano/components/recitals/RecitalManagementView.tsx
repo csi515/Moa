@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { RecitalService } from '@/modules/piano/services/recitalService';
 import { ACADEMY_EVENT_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { AcademyEvent } from '@/types';

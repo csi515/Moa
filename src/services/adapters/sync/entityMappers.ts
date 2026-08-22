@@ -70,7 +70,7 @@ export function parseOrganizationSettings(
   if (!settings || typeof settings !== 'object' || Array.isArray(settings)) {
     return fallback;
   }
-  return { ...fallback, ...(settings as AcademySettings) };
+  return { ...fallback, ...(settings as unknown as AcademySettings) };
 }
 
 // ─── Customers (Students / Parents) ───────────────────────────────
@@ -316,7 +316,7 @@ export function serviceRowToClass(row: {
   metadata: Json;
   description: string | null;
 }): ClassItem {
-  const meta = (row.metadata || {}) as ServiceMetadata;
+  const meta = (row.metadata || {}) as unknown as ServiceMetadata;
   return {
     id: row.id,
     name: row.name,
@@ -414,7 +414,7 @@ export function paymentRowToInvoice(row: {
   memo: string | null;
   metadata: Json;
 }): TuitionInvoice {
-  const meta = (row.metadata || {}) as PaymentMetadata;
+  const meta = (row.metadata || {}) as unknown as PaymentMetadata;
   const yearMonth = meta.yearMonth || row.title.replace(' 수강료', '');
   const unpaidAmount = meta.unpaidAmount ?? Math.max(0, row.billed_amount - row.paid_amount);
 
@@ -629,7 +629,7 @@ export function scheduleRowToAttendance(row: {
   metadata: Json;
   created_at: string;
 }): AttendanceRecord {
-  const meta = (row.metadata || {}) as ScheduleMetadata;
+  const meta = (row.metadata || {}) as unknown as ScheduleMetadata;
   const statusReverse: Record<string, AttendanceRecord['status']> = {
     completed: meta.attendanceStatus || 'present',
     no_show: 'absent',
@@ -763,7 +763,7 @@ export function scheduleRowToBooking(row: {
   metadata: Json;
   created_at: string;
 }): Booking {
-  const meta = (row.metadata || {}) as BookingMetadata;
+  const meta = (row.metadata || {}) as unknown as BookingMetadata;
   return {
     id: row.id,
     customerId: row.customer_id || '',
