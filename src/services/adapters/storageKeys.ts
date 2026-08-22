@@ -23,22 +23,22 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
-/** Supabase에서 직접 동기화하는 Core 엔티티 (Phase 3) */
-export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
+/** Core 스키마 동기화 (Phase 3) */
+export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SETTINGS,
   STORAGE_KEYS.TEACHERS,
   STORAGE_KEYS.STUDENTS,
   STORAGE_KEYS.PARENTS,
   STORAGE_KEYS.CLASSES,
-  STORAGE_KEYS.ATTENDANCE,
   STORAGE_KEYS.INVOICES,
   STORAGE_KEYS.CONSULTATIONS,
   STORAGE_KEYS.NOTIFICATIONS,
 ]);
 
-/** Piano 모듈 — org-scoped localStorage 유지 (Phase 4) */
-export const PIANO_LOCAL_KEYS: ReadonlySet<StorageKey> = new Set([
-  STORAGE_KEYS.EXPENSES,
+/** Piano 모듈 Supabase 동기화 (Phase 4) */
+export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.STUDENTS,
+  STORAGE_KEYS.ATTENDANCE,
   STORAGE_KEYS.PRACTICE_RECORDS,
   STORAGE_KEYS.LESSON_RECORDS,
   STORAGE_KEYS.TEXTBOOKS,
@@ -46,4 +46,17 @@ export const PIANO_LOCAL_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.TEXTBOOK_PAYMENTS,
   STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
   STORAGE_KEYS.SONGS,
+]);
+
+/** 전체 Supabase sync 키 (Core + Piano) */
+export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
+  ...CORE_SYNC_KEYS,
+  ...PIANO_SYNC_KEYS,
+]);
+
+/** localStorage only (Phase 6에서 제거 예정) */
+export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.EXPENSES,
+  STORAGE_KEYS.ACTIVE_USER,
+  STORAGE_KEYS.INITIALIZED,
 ]);

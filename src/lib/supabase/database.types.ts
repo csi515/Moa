@@ -589,7 +589,373 @@ export interface Database {
     };
     CompositeTypes: Record<string, never>;
   };
+  piano: {
+    Tables: {
+      customers: {
+        Row: {
+          customer_id: string;
+          organization_id: string;
+          student_number: string;
+          gender: string;
+          birth_date: string | null;
+          school: string | null;
+          grade: string | null;
+          level: string;
+          tuition_fee: number;
+          payment_day: number;
+          teacher_id: string | null;
+          join_date: string | null;
+          leave_date: string | null;
+          special_notes: string | null;
+          avatar_color: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          customer_id: string;
+          organization_id: string;
+          student_number?: string;
+          gender?: string;
+          birth_date?: string | null;
+          school?: string | null;
+          grade?: string | null;
+          level?: string;
+          tuition_fee?: number;
+          payment_day?: number;
+          teacher_id?: string | null;
+          join_date?: string | null;
+          leave_date?: string | null;
+          special_notes?: string | null;
+          avatar_color?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['customers']['Insert']>;
+        Relationships: [];
+      };
+      class_members: {
+        Row: {
+          organization_id: string;
+          service_id: string;
+          customer_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          service_id: string;
+          customer_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['class_members']['Insert']>;
+        Relationships: [];
+      };
+      attendance: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          service_id: string | null;
+          attendance_date: string;
+          status: PianoAttendanceStatus;
+          absent_reason: string | null;
+          make_up_required: boolean;
+          make_up_date: string | null;
+          memo: string | null;
+          created_by: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          service_id?: string | null;
+          attendance_date: string;
+          status?: PianoAttendanceStatus;
+          absent_reason?: string | null;
+          make_up_required?: boolean;
+          make_up_date?: string | null;
+          memo?: string | null;
+          created_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['attendance']['Insert']>;
+        Relationships: [];
+      };
+      lesson_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id: string | null;
+          service_id: string | null;
+          lesson_date: string;
+          song_title: string;
+          progress: string | null;
+          lesson_content: string | null;
+          strengths: string | null;
+          weaknesses: string | null;
+          homework: string | null;
+          next_plan: string | null;
+          teacher_notes: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id?: string | null;
+          service_id?: string | null;
+          lesson_date: string;
+          song_title?: string;
+          progress?: string | null;
+          lesson_content?: string | null;
+          strengths?: string | null;
+          weaknesses?: string | null;
+          homework?: string | null;
+          next_plan?: string | null;
+          teacher_notes?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['lesson_records']['Insert']>;
+        Relationships: [];
+      };
+      practice_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          practice_date: string;
+          minutes: number;
+          song_title: string;
+          textbook: string | null;
+          page: string | null;
+          homework: string | null;
+          teacher_evaluation: string | null;
+          difficulty_part: string | null;
+          next_assignment: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          practice_date: string;
+          minutes?: number;
+          song_title?: string;
+          textbook?: string | null;
+          page?: string | null;
+          homework?: string | null;
+          teacher_evaluation?: string | null;
+          difficulty_part?: string | null;
+          next_assignment?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['practice_records']['Insert']>;
+        Relationships: [];
+      };
+      textbooks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          publisher: string;
+          author: string | null;
+          isbn: string | null;
+          level: string;
+          sale_price: number;
+          cost_price: number;
+          stock: number;
+          min_stock: number;
+          is_for_sale: boolean;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          publisher?: string;
+          author?: string | null;
+          isbn?: string | null;
+          level?: string;
+          sale_price?: number;
+          cost_price?: number;
+          stock?: number;
+          min_stock?: number;
+          is_for_sale?: boolean;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['textbooks']['Insert']>;
+        Relationships: [];
+      };
+      textbook_sales: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          textbook_id: string;
+          sale_date: string;
+          quantity: number;
+          unit_price: number;
+          discount: number;
+          total_amount: number;
+          paid_amount: number;
+          status: PianoTextbookPaymentStatus;
+          payment_method: PaymentMethod | null;
+          memo: string | null;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          textbook_id: string;
+          sale_date?: string;
+          quantity?: number;
+          unit_price?: number;
+          discount?: number;
+          total_amount?: number;
+          paid_amount?: number;
+          status?: PianoTextbookPaymentStatus;
+          payment_method?: PaymentMethod | null;
+          memo?: string | null;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['textbook_sales']['Insert']>;
+        Relationships: [];
+      };
+      textbook_payments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          textbook_sale_id: string;
+          payment_date: string;
+          amount: number;
+          payment_method: PaymentMethod;
+          memo: string | null;
+          receipt_number: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          textbook_sale_id: string;
+          payment_date?: string;
+          amount: number;
+          payment_method?: PaymentMethod;
+          memo?: string | null;
+          receipt_number?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['textbook_payments']['Insert']>;
+        Relationships: [];
+      };
+      textbook_inventory_transactions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          textbook_id: string;
+          transaction_type: PianoInventoryTransactionType;
+          quantity: number;
+          previous_stock: number;
+          current_stock: number;
+          reference_id: string | null;
+          transaction_date: string;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          textbook_id: string;
+          transaction_type: PianoInventoryTransactionType;
+          quantity: number;
+          previous_stock?: number;
+          current_stock?: number;
+          reference_id?: string | null;
+          transaction_date?: string;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['textbook_inventory_transactions']['Insert']>;
+        Relationships: [];
+      };
+      songs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          composer: string;
+          difficulty: string;
+          genre: string;
+          related_textbook: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          composer?: string;
+          difficulty?: string;
+          genre?: string;
+          related_textbook?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['songs']['Insert']>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: {
+      attendance_status: PianoAttendanceStatus;
+      inventory_transaction_type: PianoInventoryTransactionType;
+      textbook_payment_status: PianoTextbookPaymentStatus;
+    };
+    CompositeTypes: Record<string, never>;
+  };
 }
+
+export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'make_up';
+export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
+export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';
 
 /** Core 테이블 Row 타입 헬퍼 */
 export type CoreTables<T extends keyof Database['core']['Tables']> =

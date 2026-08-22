@@ -2,7 +2,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type {
   AcademySettings,
   AppNotification,
-  AttendanceRecord,
   ClassItem,
   Consultation,
   Parent,
@@ -15,8 +14,6 @@ import { getCoreClient } from '../../../lib/supabase';
 import { readLocal, writeLocal } from '../localStorageEngine';
 import { STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import {
-  attendanceToScheduleRow,
-  buildScheduleTimes,
   classToServiceRow,
   consultationRowToApp,
   consultationToRow,
@@ -30,7 +27,6 @@ import {
   parentToCustomerRow,
   parseOrganizationSettings,
   paymentRowToInvoice,
-  scheduleRowToAttendance,
   serviceRowToClass,
   staffRowToTeacher,
   studentContactRow,
@@ -63,7 +59,6 @@ export async function hydrateCoreEntities(
     paymentsResult,
     consultationsResult,
     notificationsResult,
-    schedulesResult,
   ] = await Promise.all([
     client.from('organizations').select('settings, name').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
@@ -73,7 +68,6 @@ export async function hydrateCoreEntities(
     client.from('payments').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
-    client.from('schedules').select('*').eq('organization_id', organizationId),
   ]);
 
   logErrors({
@@ -85,7 +79,6 @@ export async function hydrateCoreEntities(
     payments: paymentsResult.error,
     consultations: consultationsResult.error,
     notifications: notificationsResult.error,
-    schedules: schedulesResult.error,
   });
 
   const defaultSettings = readLocal<AcademySettings>(STORAGE_KEYS.SETTINGS, {
@@ -128,7 +121,6 @@ export async function hydrateCoreEntities(
   );
 
   const notifications = (notificationsResult.data || []).map(notificationRowToApp);
-  const attendance = (schedulesResult.data || []).map(scheduleRowToAttendance);
 
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.SETTINGS, settings],
@@ -139,7 +131,6 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.INVOICES, invoices],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
-    [STORAGE_KEYS.ATTENDANCE, attendance],
   ];
 
   for (const [key, value] of entities) {
@@ -172,8 +163,6 @@ export async function persistCoreEntity(
       return persistConsultations(client, organizationId, cache);
     case STORAGE_KEYS.NOTIFICATIONS:
       return persistNotifications(client, organizationId, cache);
-    case STORAGE_KEYS.ATTENDANCE:
-      return persistSchedules(client, organizationId, cache);
     default:
       return;
   }
@@ -338,32 +327,9 @@ async function persistNotifications(
   writeLocal(STORAGE_KEYS.NOTIFICATIONS, notifications);
 }
 
-async function persistSchedules(
-  client: CoreClient,
-  orgId: string,
-  cache: SyncCache
-): Promise<void> {
-  const attendance = cache.get<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE) || [];
-  const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
-  const classMap = new Map(classes.map((c) => [c.id, c]));
-
-  await syncTable(client, 'schedules', orgId, attendance.map((a) => a.id), async () => {
-    for (const record of attendance) {
-      const cls = classMap.get(record.classId);
-      const { startsAt, endsAt } = buildScheduleTimes(record, cls);
-      const { error } = await client
-        .from('schedules')
-        .upsert(attendanceToScheduleRow(record, orgId, startsAt, endsAt));
-      if (error) console.error('Failed to upsert schedule:', error);
-    }
-  });
-
-  writeLocal(STORAGE_KEYS.ATTENDANCE, attendance);
-}
-
 async function syncTable(
   client: CoreClient,
-  table: 'staff' | 'customers' | 'services' | 'payments' | 'consultations' | 'notifications' | 'schedules',
+  table: 'staff' | 'customers' | 'services' | 'payments' | 'consultations' | 'notifications',
   orgId: string,
   currentIds: string[],
   upsertAll: () => Promise<void>

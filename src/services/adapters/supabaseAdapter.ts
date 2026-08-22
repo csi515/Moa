@@ -1,10 +1,17 @@
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
 import { getOrganizationId, setOrganizationId } from './storageContext';
-import { STORAGE_KEYS, SUPABASE_SYNC_KEYS, type StorageKey } from './storageKeys';
+import {
+  CORE_SYNC_KEYS,
+  PIANO_SYNC_KEYS,
+  STORAGE_KEYS,
+  SUPABASE_SYNC_KEYS,
+  type StorageKey,
+} from './storageKeys';
 import { hydrateCoreEntities, persistCoreEntity } from './sync/coreEntitySync';
+import { hydratePianoEntities, persistPianoEntity } from './sync/pianoEntitySync';
 import type { IStorageAdapter, StorageListener } from './types';
 
-/** Supabase 하이브리드 어댑터 — Core 엔티티는 Supabase, Piano 모듈은 org-scoped localStorage */
+/** Supabase 하이브리드 어댑터 — Core + Piano 모듈 Supabase sync */
 export class SupabaseAdapter implements IStorageAdapter {
   readonly backend = 'supabase' as const;
 
@@ -53,12 +60,11 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.hydrating = true;
     this.hydrated = false;
 
+    const cacheAdapter = this.createCacheAdapter();
+
     try {
-      await hydrateCoreEntities(organizationId, {
-        get: <T>(key: StorageKey) => this.cache.get(key) as T | undefined,
-        set: <T>(key: StorageKey, value: T) => this.cache.set(key, value),
-        delete: (key: StorageKey) => this.cache.delete(key),
-      });
+      await hydrateCoreEntities(organizationId, cacheAdapter);
+      await hydratePianoEntities(organizationId, cacheAdapter);
       this.hydrated = true;
       this.notify();
     } finally {
@@ -82,6 +88,14 @@ export class SupabaseAdapter implements IStorageAdapter {
     return this.hydrating;
   }
 
+  private createCacheAdapter() {
+    return {
+      get: <T>(key: StorageKey) => this.cache.get(key) as T | undefined,
+      set: <T>(key: StorageKey, value: T) => this.cache.set(key, value),
+      delete: (key: StorageKey) => this.cache.delete(key),
+    };
+  }
+
   private schedulePersist(key: StorageKey): void {
     const existing = this.persistTimers.get(key);
     if (existing) clearTimeout(existing);
@@ -96,13 +110,17 @@ export class SupabaseAdapter implements IStorageAdapter {
 
   private async persistKey(key: StorageKey): Promise<void> {
     const orgId = getOrganizationId();
-    if (!orgId || !SUPABASE_SYNC_KEYS.has(key)) return;
+    if (!orgId) return;
 
-    await persistCoreEntity(key, orgId, {
-      get: <T>(k: StorageKey) => this.cache.get(k) as T | undefined,
-      set: <T>(k: StorageKey, value: T) => this.cache.set(k, value),
-      delete: (k: StorageKey) => this.cache.delete(k),
-    });
+    const cacheAdapter = this.createCacheAdapter();
+
+    if (CORE_SYNC_KEYS.has(key)) {
+      await persistCoreEntity(key, orgId, cacheAdapter);
+    }
+
+    if (PIANO_SYNC_KEYS.has(key)) {
+      await persistPianoEntity(key, orgId, cacheAdapter);
+    }
   }
 
   private notify(): void {

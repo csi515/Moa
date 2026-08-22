@@ -1,4 +1,5 @@
 export { supabase, isSupabaseConfigured, getCoreClient } from './client';
+export { getPianoClient } from './pianoClient';
 export type {
   Database,
   Organization,
@@ -19,4 +20,7 @@ export type {
   PaymentMethod,
   NotificationStatus,
   NotificationChannel,
+  PianoAttendanceStatus,
+  PianoInventoryTransactionType,
+  PianoTextbookPaymentStatus,
 } from './database.types';
