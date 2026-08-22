@@ -819,7 +819,13 @@ export const StorageService = {
 
   // Consultations
   getConsultations(): Consultation[] {
-    return getItem<Consultation[]>(STORAGE_KEYS.CONSULTATIONS, []);
+    const list = getItem<Consultation[]>(STORAGE_KEYS.CONSULTATIONS, []);
+    const studentMap = new Map(this.getStudents().map((s) => [s.id, s]));
+    return list.map((c) => {
+      const st = studentMap.get(c.studentId);
+      if (!st?.parentName) return c;
+      return { ...c, parentName: st.parentName };
+    });
   },
 
   saveConsultation(cst: Omit<Consultation, 'id' | 'createdAt'> & { id?: string }): Consultation {
@@ -1082,7 +1088,20 @@ export const StorageService = {
   // 🛒 2. Textbook Sales & Automatic Stock Deduction
   // ==========================================
   getTextbookSales(): TextbookSale[] {
-    return getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+    return getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []).map((s) =>
+      this.enrichSaleGuardian(s)
+    );
+  },
+
+  enrichSaleGuardian(sale: TextbookSale): TextbookSale {
+    const student = this.getStudents().find((s) => s.id === sale.studentId);
+    if (!student?.parentName && !student?.parentPhone) return sale;
+    return {
+      ...sale,
+      parentId: student.parentId ?? sale.parentId,
+      parentName: student.parentName || sale.parentName,
+      parentPhone: student.parentPhone || sale.parentPhone,
+    };
   },
 
   getTextbookSaleById(id: string): TextbookSale | undefined {

@@ -45,6 +45,33 @@ export function deriveStudentGuardianFields(student: Student): Student {
   };
 }
 
+export function studentMatchesGuardianQuery(studentId: string, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return getGuardiansForStudent(studentId).some(
+    (g) => g.parentName.toLowerCase().includes(q) || g.parentPhone.includes(q)
+  );
+}
+
+/** 주 보호자 연락처 (admin UI 표시용) */
+export function getGuardianContactDisplay(studentId: string): {
+  parentId?: string;
+  parentName: string;
+  parentPhone: string;
+} {
+  const primary = getPrimaryGuardian(studentId);
+  return {
+    parentId: primary?.parentId,
+    parentName: primary?.parentName || '',
+    parentPhone: primary?.parentPhone || '',
+  };
+}
+
+/** 상담/교재 등 studentId 기준 보호자 이름 */
+export function resolveGuardianNameForStudent(studentId: string, fallback = ''): string {
+  return getPrimaryGuardian(studentId)?.parentName || fallback || '학부모';
+}
+
 /** 학생 목록 enrich (기존 UI 호환) */
 export function enrichStudentsWithGuardians(students: Student[]): Student[] {
   return students.map(deriveStudentGuardianFields);

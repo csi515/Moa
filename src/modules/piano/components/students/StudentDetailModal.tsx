@@ -7,7 +7,7 @@ import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord
 import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
 import { CustomerPinPanel } from '@/core/attendance';
-import { getGuardiansForStudent, formatGuardianRelationship } from '@/core/parent';
+import { getGuardiansForStudent, formatGuardianRelationship, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '../textbooks/TextbookReceiptModal';
@@ -185,7 +185,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     StorageService.saveConsultation({
       studentId: student.id,
       studentName: student.name,
-      parentName: student.parentName,
+      parentName: getPrimaryGuardian(student.id)?.parentName || student.parentName || '학부모',
       date: new Date().toISOString().slice(0, 10),
       type: newCstType,
       content: newCstContent.trim(),

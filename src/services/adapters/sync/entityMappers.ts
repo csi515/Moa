@@ -110,8 +110,6 @@ export function studentToCustomerRow(student: Student, organizationId: string) {
     birthDate: student.birthDate,
     school: student.school,
     grade: student.grade,
-    parentId: student.parentId,
-    parentName: student.parentName,
     joinDate: student.joinDate,
     leaveDate: student.leaveDate,
     level: student.level,

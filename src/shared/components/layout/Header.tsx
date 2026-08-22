@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
@@ -36,7 +37,7 @@ export const Header: React.FC = () => {
           (s) =>
             (!isStaff || !staffId || s.teacherId === staffId) &&
             (s.name.includes(globalSearchQuery) ||
-            s.parentPhone.includes(globalSearchQuery) ||
+            studentMatchesGuardianQuery(s.id, globalSearchQuery) ||
             s.school.includes(globalSearchQuery) ||
             s.level.includes(globalSearchQuery))
         )
