@@ -123,7 +123,7 @@ export const DashboardView: React.FC = () => {
           학원 핵심 운영 지표
         </h3>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 sm:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-5 gap-3.5 sm:gap-4">
           <StatCard
             title="전체 원생"
             value={`${stats.totalStudents}명`}
@@ -228,7 +228,7 @@ export const DashboardView: React.FC = () => {
       </div>
 
       {/* 4 Analytics Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-2 gap-6">
         {/* Chart 1: Revenue vs Expense Trend (6 Months) */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex items-center justify-between mb-6">
@@ -245,7 +245,7 @@ export const DashboardView: React.FC = () => {
               상세 <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="h-64 sm:h-72 w-full">
+          <div className="h-64 sm:h-72 xl:h-80 w-full">
             {hasRevenueData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -298,7 +298,7 @@ export const DashboardView: React.FC = () => {
               원생목록 <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="h-64 sm:h-72 w-full">
+          <div className="h-64 sm:h-72 xl:h-80 w-full">
             {hasStudentTrendData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={stats.studentTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
@@ -400,7 +400,7 @@ export const DashboardView: React.FC = () => {
               반 관리 <ChevronRight className="w-3.5 h-3.5" />
             </button>
           </div>
-          <div className="h-64 sm:h-72 w-full">
+          <div className="h-64 sm:h-72 xl:h-80 w-full">
             {hasClassData ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={stats.classDistribution} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>

@@ -8,6 +8,7 @@ import {
 import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
 import { BookOpen, ShoppingBag, Plus } from 'lucide-react';
+import { PageHeader } from '@/shared/components';
 
 import { TextbookFormModal } from './TextbookFormModal';
 import { NewSaleModal } from './NewSaleModal';
@@ -124,44 +125,32 @@ export const TextbookManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
-                교재 판매 및 교재비 관리
-              </h1>
-              <p className="text-xs text-slate-500 mt-0.5">
-                피아노 교재 등록, 재고 실시간 관리, 원생 판매 및 분할 납부 수납을 통합 관리합니다.
-              </p>
-            </div>
+      <PageHeader
+        icon={<BookOpen className="w-6 h-6" />}
+        title="교재 판매 및 교재비 관리"
+        description="피아노 교재 등록, 재고 실시간 관리, 원생 판매 및 분할 납부 수납을 통합 관리합니다."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => openSaleModal()}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              교재 판매 등록
+            </button>
+            <button
+              onClick={() => {
+                setEditingTextbook(null);
+                setIsFormModalOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            >
+              <Plus className="w-4 h-4 text-indigo-600" />
+              새 교재 등록
+            </button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => openSaleModal()}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
-          >
-            <ShoppingBag className="w-4 h-4" />
-            교재 판매 등록
-          </button>
-          <button
-            onClick={() => {
-              setEditingTextbook(null);
-              setIsFormModalOpen(true);
-            }}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
-          >
-            <Plus className="w-4 h-4 text-indigo-600" />
-            새 교재 등록
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       <TextbookSummaryCards
         stats={stats}

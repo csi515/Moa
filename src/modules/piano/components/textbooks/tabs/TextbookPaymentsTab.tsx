@@ -97,7 +97,7 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
           <span className="text-xs font-medium text-slate-500">총 {payments.length}건 수납 기록</span>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs text-left">
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
@@ -156,6 +156,46 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        <div className="md:hidden space-y-3">
+          {payments.length === 0 ? (
+            <p className="py-8 text-center text-slate-400 text-sm">수납 내역이 없습니다.</p>
+          ) : (
+            payments.map((p) => {
+              const relatedSale = sales.find((s) => s.id === p.textbookSaleId);
+              const methodLabel =
+                p.paymentMethod === 'card'
+                  ? '카드'
+                  : p.paymentMethod === 'transfer'
+                  ? '계좌이체'
+                  : p.paymentMethod === 'cash'
+                  ? '현금'
+                  : '기타';
+
+              return (
+                <div key={p.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50/50 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-bold text-slate-900 text-sm">{p.studentName}</p>
+                      <p className="text-[11px] text-slate-500">{p.paymentDate} · {methodLabel}</p>
+                    </div>
+                    <p className="font-black text-emerald-600 text-sm">₩{p.amount.toLocaleString()}</p>
+                  </div>
+                  <p className="text-xs text-slate-600">{p.textbookTitle}</p>
+                  {p.memo && <p className="text-[11px] text-slate-400">{p.memo}</p>}
+                  {relatedSale && (
+                    <button
+                      onClick={() => onOpenReceiptModal(relatedSale, p)}
+                      className="w-full py-2.5 min-h-[44px] text-xs font-bold rounded-xl bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                    >
+                      영수증 인쇄
+                    </button>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
     </div>

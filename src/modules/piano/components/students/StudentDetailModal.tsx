@@ -293,7 +293,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden my-4 flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden my-4 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-4">
             <div
@@ -358,27 +358,51 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 px-6 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none">
-          {tabConfig.map((tab) => {
-            const isActive = currentTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setCurrentTab(tab.id)}
-                className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
-                  isActive
-                    ? 'border-indigo-600 text-indigo-600'
-                    : 'border-transparent text-slate-500 hover:text-slate-900'
-                }`}
-              >
-                {tab.icon}
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        <div className="flex flex-1 min-h-0 overflow-hidden">
+          {/* 데스크톱 세로 탭 */}
+          <nav className="hidden lg:flex flex-col w-52 shrink-0 border-r border-slate-200 bg-slate-50/60 overflow-y-auto py-2">
+            {tabConfig.map((tab) => {
+              const isActive = currentTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setCurrentTab(tab.id)}
+                  className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left ${
+                    isActive
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-slate-600 hover:bg-white hover:text-slate-900'
+                  }`}
+                >
+                  {tab.icon}
+                  <span className="truncate">{tab.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
-        <div className="flex-1 p-6 overflow-y-auto space-y-6">
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* 모바일 가로 탭 */}
+            <div className="lg:hidden flex items-center gap-1 px-4 sm:px-6 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none">
+              {tabConfig.map((tab) => {
+                const isActive = currentTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setCurrentTab(tab.id)}
+                    className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                      isActive
+                        ? 'border-indigo-600 text-indigo-600'
+                        : 'border-transparent text-slate-500 hover:text-slate-900'
+                    }`}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
           {currentTab === 'info' && (
             <StudentDetailInfoTab
               student={student}
@@ -515,6 +539,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           {currentTab === 'memo' && (
             <StudentDetailMemoTab student={student} />
           )}
+            </div>
+          </div>
         </div>
       </div>
 
