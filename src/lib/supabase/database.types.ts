@@ -977,6 +977,36 @@ export interface Database {
         Update: Partial<Database['piano']['Tables']['expenses']['Insert']>;
         Relationships: [];
       };
+      events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          title: string;
+          start_date: string;
+          end_date: string | null;
+          event_type: string;
+          description: string | null;
+          color: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          title: string;
+          start_date: string;
+          end_date?: string | null;
+          event_type?: string;
+          description?: string | null;
+          color?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['events']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

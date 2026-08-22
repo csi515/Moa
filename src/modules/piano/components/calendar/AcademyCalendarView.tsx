@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { AcademyEvent } from '@/types';
@@ -8,78 +8,37 @@ import {
   ChevronRight,
   Plus,
   Trash2,
-  Trophy,
-  Sparkles,
-  Music,
   Clock,
   Cake,
   X,
-  Save
 } from 'lucide-react';
 
 export const AcademyCalendarView: React.FC = () => {
-  const { showToast, openConfirmDialog } = useApp();
+  const { showToast } = useApp();
+  const now = new Date();
 
-  const [currentYear, setCurrentYear] = useState(2025);
-  const [currentMonth, setCurrentMonth] = useState(8); // 8 = August
+  const [currentYear, setCurrentYear] = useState(now.getFullYear());
+  const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-
-  const [events, setEvents] = useState<AcademyEvent[]>(() => {
-    const saved = localStorage.getItem('piano_app_events');
-    return saved
-      ? JSON.parse(saved)
-      : [
-          {
-            id: 'ev-1',
-            title: '제12회 쇼팽 피아노 전국 콩쿠르 예선',
-            startDate: '2025-08-23',
-            type: 'competition',
-            description: '초등부 5명 출전 (성남아트센터)',
-            color: '#ef4444'
-          },
-          {
-            id: 'ev-2',
-            title: '여름방학 피아노 집중 특강 & 이론 골든벨',
-            startDate: '2025-08-14',
-            endDate: '2025-08-16',
-            type: 'special_lesson',
-            description: '음악 이론 및 청음 마스터 클래스',
-            color: '#8b5cf6'
-          },
-          {
-            id: 'ev-3',
-            title: '전체 그랜드/업라이트 피아노 정기 조율',
-            startDate: '2025-08-10',
-            type: 'tuning',
-            description: '서울조율사협회 마이스터 방문 조율',
-            color: '#06b6d4'
-          },
-          {
-            id: 'ev-4',
-            title: '2025 가을 정기 연주회 (예술의전당 인근 홀)',
-            startDate: '2025-10-25',
-            type: 'concert',
-            description: '전 원생 피아노 솔로 및 듀엣 연주회',
-            color: '#4f46e5'
-          }
-        ];
-  });
-
-  const students = StorageService.getStudents();
+  const [events, setEvents] = useState<AcademyEvent[]>([]);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
-    startDate: '2025-08-20',
+    startDate: now.toISOString().slice(0, 10),
     type: 'concert' as AcademyEvent['type'],
     description: '',
-    color: '#4f46e5'
+    color: '#4f46e5',
   });
 
-  const saveEvents = (updated: AcademyEvent[]) => {
-    setEvents(updated);
-    localStorage.setItem('piano_app_events', JSON.stringify(updated));
-  };
+  useEffect(() => {
+    const loadEvents = () => setEvents(StorageService.getEvents());
+    loadEvents();
+    const unsubscribe = StorageService.subscribe(loadEvents);
+    return () => unsubscribe();
+  }, []);
+
+  const students = StorageService.getStudents();
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
@@ -99,9 +58,8 @@ export const AcademyCalendarView: React.FC = () => {
     }
   };
 
-  // Days calculation
   const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
-  const firstDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay(); // 0 is Sunday
+  const firstDayOfWeek = new Date(currentYear, currentMonth - 1, 1).getDay();
 
   const currentYearMonthStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
 
@@ -109,7 +67,6 @@ export const AcademyCalendarView: React.FC = () => {
     return events.filter((e) => e.startDate.startsWith(currentYearMonthStr));
   }, [events, currentYearMonthStr]);
 
-  // Student birthdays in this month
   const birthdayStudents = useMemo(() => {
     return students.filter((s) => {
       if (!s.birthDate) return false;
@@ -122,28 +79,25 @@ export const AcademyCalendarView: React.FC = () => {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
 
-    const item: AcademyEvent = {
-      id: `ev-${Date.now()}`,
+    StorageService.saveEvent({
       title: newEvent.title.trim(),
       startDate: newEvent.startDate,
       type: newEvent.type,
-      description: newEvent.description.trim(),
-      color: newEvent.color
-    };
+      description: newEvent.description.trim() || undefined,
+      color: newEvent.color,
+    });
 
-    saveEvents([...events, item]);
-    showToast(`'${item.title}' 일정이 등록되었습니다.`, 'success');
+    showToast(`'${newEvent.title.trim()}' 일정이 등록되었습니다.`, 'success');
     setIsModalOpen(false);
   };
 
   const handleDeleteEvent = (id: string) => {
-    saveEvents(events.filter((e) => e.id !== id));
+    StorageService.deleteEvent(id);
     showToast('일정이 삭제되었습니다.', 'info');
   };
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -162,7 +116,7 @@ export const AcademyCalendarView: React.FC = () => {
               startDate: `${currentYearMonthStr}-15`,
               type: 'concert',
               description: '',
-              color: '#4f46e5'
+              color: '#4f46e5',
             });
             setIsModalOpen(true);
           }}
@@ -173,7 +127,6 @@ export const AcademyCalendarView: React.FC = () => {
         </button>
       </div>
 
-      {/* Calendar Navigation & Month Bar */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
         <button
           onClick={handlePrevMonth}
@@ -194,9 +147,7 @@ export const AcademyCalendarView: React.FC = () => {
         </button>
       </div>
 
-      {/* Calendar Grid */}
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        {/* Day of Week Header */}
         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-3">
           <span className="text-rose-500">일</span>
           <span>월</span>
@@ -207,18 +158,15 @@ export const AcademyCalendarView: React.FC = () => {
           <span className="text-indigo-600">토</span>
         </div>
 
-        {/* Day Cells */}
         <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 text-xs">
-          {/* Empty cells before month start */}
           {Array.from({ length: firstDayOfWeek }).map((_, i) => (
             <div key={`empty-${i}`} className="min-h-[100px] p-2 bg-slate-50/40" />
           ))}
 
-          {/* Actual days */}
           {Array.from({ length: daysInMonth }).map((_, i) => {
             const dayNum = i + 1;
             const dateStr = `${currentYearMonthStr}-${String(dayNum).padStart(2, '0')}`;
-            const dayEvents = events.filter((e) => e.startDate === dateStr);
+            const dayEvents = events.filter((ev) => ev.startDate === dateStr);
             const dayBdays = birthdayStudents.filter((s) => {
               const bDay = parseInt(s.birthDate.split('-')[2], 10);
               return bDay === dayNum;
@@ -234,7 +182,6 @@ export const AcademyCalendarView: React.FC = () => {
               >
                 <span className="font-bold text-slate-700">{dayNum}</span>
 
-                {/* Event Pills */}
                 {dayEvents.map((ev) => (
                   <div
                     key={ev.id}
@@ -246,7 +193,6 @@ export const AcademyCalendarView: React.FC = () => {
                   </div>
                 ))}
 
-                {/* Birthdays */}
                 {dayBdays.map((s) => (
                   <div
                     key={s.id}
@@ -262,7 +208,6 @@ export const AcademyCalendarView: React.FC = () => {
         </div>
       </div>
 
-      {/* Month Events Detail List */}
       <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
         <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
           <Clock className="w-4 h-4 text-indigo-600" />
@@ -306,7 +251,6 @@ export const AcademyCalendarView: React.FC = () => {
         </div>
       </div>
 
-      {/* Event Create Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
@@ -328,7 +272,7 @@ export const AcademyCalendarView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="예: 2025 가을 정기 연주회"
+                  placeholder="예: 가을 정기 연주회"
                   value={newEvent.title}
                   onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
@@ -350,7 +294,7 @@ export const AcademyCalendarView: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">분류 유형</label>
                   <select
                     value={newEvent.type}
-                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as any })}
+                    onChange={(e) => setNewEvent({ ...newEvent, type: e.target.value as AcademyEvent['type'] })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
                   >
                     <option value="concert">정기 연주회</option>

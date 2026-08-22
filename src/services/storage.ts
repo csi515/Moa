@@ -16,6 +16,7 @@ import {
   CombinedPaymentRequest,
   PaymentMethod,
   Song,
+  AcademyEvent,
   Expense,
   AppNotification,
   AcademySettings,
@@ -88,6 +89,7 @@ export const StorageService = {
       lessonRecords: this.getLessonRecords(),
       textbooks: this.getTextbooks(),
       songs: this.getSongs(),
+      events: this.getEvents(),
       notifications: this.getNotifications(),
       settings: this.getSettings(),
       exportedAt: new Date().toISOString()
@@ -110,6 +112,7 @@ export const StorageService = {
       if (data.lessonRecords) setItem(STORAGE_KEYS.LESSON_RECORDS, data.lessonRecords);
       if (data.textbooks) setItem(STORAGE_KEYS.TEXTBOOKS, data.textbooks);
       if (data.songs) setItem(STORAGE_KEYS.SONGS, data.songs);
+      if (data.events) setItem(STORAGE_KEYS.EVENTS, data.events);
       if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
       if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
       return true;
@@ -1334,6 +1337,44 @@ export const StorageService = {
     const filtered = list.filter((s) => s.id !== id);
     if (filtered.length !== list.length) {
       setItem(STORAGE_KEYS.SONGS, filtered);
+      return true;
+    }
+    return false;
+  },
+
+  // Events
+  getEvents(): AcademyEvent[] {
+    return getItem<AcademyEvent[]>(STORAGE_KEYS.EVENTS, []);
+  },
+
+  saveEvent(event: Omit<AcademyEvent, 'id'> & { id?: string }): AcademyEvent {
+    const list = this.getEvents();
+    let saved: AcademyEvent;
+    if (event.id) {
+      const idx = list.findIndex((e) => e.id === event.id);
+      if (idx >= 0) {
+        saved = { ...list[idx], ...event, id: event.id };
+        list[idx] = saved;
+      } else {
+        saved = { ...event, id: event.id };
+        list.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...event,
+        id: generateEntityId('ev'),
+      };
+      list.unshift(saved);
+    }
+    setItem(STORAGE_KEYS.EVENTS, list);
+    return saved;
+  },
+
+  deleteEvent(id: string): boolean {
+    const list = this.getEvents();
+    const filtered = list.filter((e) => e.id !== id);
+    if (filtered.length !== list.length) {
+      setItem(STORAGE_KEYS.EVENTS, filtered);
       return true;
     }
     return false;

@@ -1,5 +1,6 @@
 import type {
   AttendanceRecord,
+  AcademyEvent,
   Expense,
   LessonRecord,
   PracticeRecord,
@@ -574,6 +575,25 @@ export function pianoRowToInventory(row: {
 
 // ─── Songs ────────────────────────────────────────────────────────
 
+interface SongMetadata {
+  publisher?: string;
+  level?: string;
+  resourceType?: Song['resourceType'];
+  description?: string;
+  difficultyStars?: number;
+}
+
+function songMetadata(song: Song): Json {
+  const meta: SongMetadata = {
+    publisher: song.publisher,
+    level: song.level,
+    resourceType: song.resourceType,
+    description: song.description,
+    difficultyStars: song.difficultyStars,
+  };
+  return meta as Json;
+}
+
 export function songToPianoRow(song: Song, organizationId: string) {
   return {
     id: song.id,
@@ -584,7 +604,7 @@ export function songToPianoRow(song: Song, organizationId: string) {
     genre: song.genre,
     related_textbook: song.relatedTextbook || null,
     memo: song.memo || null,
-    metadata: {} as Json,
+    metadata: songMetadata(song),
   };
 }
 
@@ -596,7 +616,9 @@ export function pianoRowToSong(row: {
   genre: string;
   related_textbook: string | null;
   memo: string | null;
+  metadata: Json;
 }): Song {
+  const meta = (row.metadata || {}) as SongMetadata;
   return {
     id: row.id,
     title: row.title,
@@ -605,6 +627,47 @@ export function pianoRowToSong(row: {
     genre: row.genre as Song['genre'],
     relatedTextbook: row.related_textbook || undefined,
     memo: row.memo || undefined,
+    publisher: meta.publisher,
+    level: meta.level as Song['level'],
+    resourceType: meta.resourceType,
+    description: meta.description,
+    difficultyStars: meta.difficultyStars,
+  };
+}
+
+// ─── Events ───────────────────────────────────────────────────────
+
+export function eventToPianoRow(event: AcademyEvent, organizationId: string) {
+  return {
+    id: event.id,
+    organization_id: organizationId,
+    title: event.title,
+    start_date: event.startDate,
+    end_date: event.endDate || null,
+    event_type: event.type,
+    description: event.description || null,
+    color: event.color || null,
+    metadata: {} as Json,
+  };
+}
+
+export function pianoRowToEvent(row: {
+  id: string;
+  title: string;
+  start_date: string;
+  end_date: string | null;
+  event_type: string;
+  description: string | null;
+  color: string | null;
+}): AcademyEvent {
+  return {
+    id: row.id,
+    title: row.title,
+    startDate: row.start_date,
+    endDate: row.end_date || undefined,
+    type: row.event_type as AcademyEvent['type'],
+    description: row.description || undefined,
+    color: row.color || undefined,
   };
 }
 

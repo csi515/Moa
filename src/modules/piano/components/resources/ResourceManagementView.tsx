@@ -1,21 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
-import { StudentLevel } from '@/types';
+import { Song, StudentLevel } from '@/types';
 import { getLevelColor } from '@/utils/formatters';
 import {
   Music2,
   Plus,
   Search,
-  BookOpen,
-  Trophy,
-  Sparkles,
-  ExternalLink,
   Trash2,
   X,
-  Save,
-  CheckCircle2
 } from 'lucide-react';
+
+type ResourceType = NonNullable<Song['resourceType']>;
 
 interface PianoResource {
   id: string;
@@ -23,111 +19,91 @@ interface PianoResource {
   composer?: string;
   publisher?: string;
   level: StudentLevel;
-  type: 'textbook' | 'repertoire' | 'competition' | 'theory';
+  type: ResourceType;
   description?: string;
   difficultyStars: number;
 }
 
-const DEFAULT_RESOURCES: PianoResource[] = [
-  {
-    id: 'res-1',
-    title: '어린이 바이엘 상/하권',
-    composer: 'Ferdinand Beyer',
-    publisher: '세광음악출판사',
-    level: '바이엘 상',
-    type: 'textbook',
-    description: '초보 피아노 입문자를 위한 양손 기초 교재',
-    difficultyStars: 1
-  },
-  {
-    id: 'res-2',
-    title: '체르니 100번 연습곡 (Op.599)',
-    composer: 'Carl Czerny',
-    publisher: '삼호뮤직',
-    level: '체르니 100',
-    type: 'textbook',
-    description: '기초 테크닉과 손가락 독립을 위한 100개의 연습곡',
-    difficultyStars: 2
-  },
-  {
-    id: 'res-3',
-    title: '체르니 30번 (Op.849)',
-    composer: 'Carl Czerny',
-    publisher: '음악춘추',
-    level: '체르니 30',
-    type: 'textbook',
-    description: '중급 피아노 기교와 속도 연습을 위한 30곡',
-    difficultyStars: 3
-  },
-  {
-    id: 'res-4',
-    title: '소나티네 앨범 1권',
-    composer: 'Kuhlau, Clementi 외',
-    publisher: '세광음악',
-    level: '소나티네/명곡',
-    type: 'repertoire',
-    description: '클래식 소나타 형식 입문 및 리듬감 훈련',
-    difficultyStars: 3
-  },
-  {
-    id: 'res-5',
-    title: '엘리제를 위하여 (Für Elise)',
-    composer: 'L. v. Beethoven',
-    publisher: '명곡집',
-    level: '소나티네/명곡',
-    type: 'repertoire',
-    description: '학예회 및 정기연주회 인기 레퍼토리',
-    difficultyStars: 2
-  },
-  {
-    id: 'res-6',
-    title: '쇼팽 즉흥환상곡 Op.66',
-    composer: 'Frédéric Chopin',
-    publisher: 'Paderewski Edition',
-    level: '작품집/쇼팽',
-    type: 'competition',
-    description: '폴리리듬 4:3 훈련 및 콩쿠르 자유곡',
-    difficultyStars: 5
-  },
-  {
-    id: 'res-7',
-    title: '부르크뮐러 25개 연습곡 (Op.100)',
-    composer: 'J. F. Burgmüller',
-    publisher: '음악세계',
-    level: '체르니 100',
-    type: 'textbook',
-    description: '아라베스크, 목가, 귀부인의 승마 등 표제 음악 연습',
-    difficultyStars: 2
-  }
-];
+function starsToDifficulty(stars: number): Song['difficulty'] {
+  if (stars <= 2) return '초급';
+  if (stars === 3) return '중급';
+  if (stars === 4) return '고급';
+  return '최고급';
+}
+
+function difficultyToStars(difficulty: Song['difficulty']): number {
+  const map: Record<Song['difficulty'], number> = {
+    초급: 2,
+    중급: 3,
+    고급: 4,
+    최고급: 5,
+  };
+  return map[difficulty] ?? 3;
+}
+
+function typeToGenre(type: ResourceType): Song['genre'] {
+  return type === 'competition' ? '입시곡' : '클래식';
+}
+
+function songToResource(song: Song): PianoResource {
+  return {
+    id: song.id,
+    title: song.title,
+    composer: song.composer !== '미상' ? song.composer : undefined,
+    publisher: song.publisher,
+    level: song.level || '체르니 100',
+    type: song.resourceType || 'textbook',
+    description: song.description,
+    difficultyStars: song.difficultyStars ?? difficultyToStars(song.difficulty),
+  };
+}
+
+function resourceToSong(resource: Omit<PianoResource, 'id'> & { id?: string }): Omit<Song, 'id'> & { id?: string } {
+  return {
+    id: resource.id,
+    title: resource.title,
+    composer: resource.composer?.trim() || '미상',
+    difficulty: starsToDifficulty(resource.difficultyStars),
+    genre: typeToGenre(resource.type),
+    publisher: resource.publisher,
+    level: resource.level,
+    resourceType: resource.type,
+    description: resource.description,
+    difficultyStars: resource.difficultyStars,
+  };
+}
+
+const EMPTY_FORM: Omit<PianoResource, 'id'> = {
+  title: '',
+  composer: '',
+  publisher: '',
+  level: '체르니 100',
+  type: 'textbook',
+  description: '',
+  difficultyStars: 3,
+};
 
 export const ResourceManagementView: React.FC = () => {
   const { showToast } = useApp();
 
-  const [resources, setResources] = useState<PianoResource[]>(() => {
-    const saved = localStorage.getItem('piano_app_resources');
-    return saved ? JSON.parse(saved) : DEFAULT_RESOURCES;
-  });
-
+  const [resources, setResources] = useState<PianoResource[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState('ALL');
   const [levelFilter, setLevelFilter] = useState('ALL');
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [formData, setFormData] = useState<Omit<PianoResource, 'id'>>({
-    title: '',
-    composer: '',
-    publisher: '',
-    level: '체르니 100',
-    type: 'textbook',
-    description: '',
-    difficultyStars: 3
-  });
+  const [formData, setFormData] = useState<Omit<PianoResource, 'id'>>(EMPTY_FORM);
 
-  const saveToStorage = (updated: PianoResource[]) => {
-    setResources(updated);
-    localStorage.setItem('piano_app_resources', JSON.stringify(updated));
-  };
+  useEffect(() => {
+    const loadResources = () => {
+      const items = StorageService.getSongs()
+        .filter((s) => s.resourceType)
+        .map(songToResource);
+      setResources(items);
+    };
+    loadResources();
+    const unsubscribe = StorageService.subscribe(loadResources);
+    return () => unsubscribe();
+  }, []);
 
   const filtered = resources.filter((r) => {
     if (typeFilter !== 'ALL' && r.type !== typeFilter) return false;
@@ -145,23 +121,19 @@ export const ResourceManagementView: React.FC = () => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
-    const newRes: PianoResource = {
-      id: `res-${Date.now()}`,
-      ...formData
-    };
-    saveToStorage([newRes, ...resources]);
+    StorageService.saveSong(resourceToSong(formData));
     showToast(`'${formData.title}' 교재/곡이 등록되었습니다.`, 'success');
     setIsModalOpen(false);
+    setFormData(EMPTY_FORM);
   };
 
   const handleDelete = (id: string) => {
-    saveToStorage(resources.filter((r) => r.id !== id));
+    StorageService.deleteSong(id);
     showToast('삭제되었습니다.', 'info');
   };
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -174,7 +146,10 @@ export const ResourceManagementView: React.FC = () => {
         </div>
 
         <button
-          onClick={() => setIsModalOpen(true)}
+          onClick={() => {
+            setFormData(EMPTY_FORM);
+            setIsModalOpen(true);
+          }}
           className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
@@ -182,7 +157,6 @@ export const ResourceManagementView: React.FC = () => {
         </button>
       </div>
 
-      {/* Filter and Search */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           <select
@@ -228,53 +202,58 @@ export const ResourceManagementView: React.FC = () => {
         </span>
       </div>
 
-      {/* Grid List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map((item) => (
-          <div
-            key={item.id}
-            className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:border-indigo-200 transition-all flex flex-col justify-between space-y-4"
-          >
-            <div>
-              <div className="flex items-center justify-between">
-                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${getLevelColor(item.level)}`}>
-                  {item.level}
+      {filtered.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 border border-slate-200/80 shadow-xs text-center">
+          <p className="text-sm text-slate-400">등록된 교재/곡이 없습니다.</p>
+          <p className="text-xs text-slate-400 mt-1">상단 버튼으로 첫 자료를 추가해 보세요.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filtered.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white rounded-3xl p-5 sm:p-6 border border-slate-200/80 shadow-xs hover:border-indigo-200 transition-all flex flex-col justify-between space-y-4"
+            >
+              <div>
+                <div className="flex items-center justify-between">
+                  <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${getLevelColor(item.level)}`}>
+                    {item.level}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(item.id)}
+                    className="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <div className="mt-3">
+                  <h3 className="font-bold text-base text-slate-900 leading-snug">{item.title}</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    작곡: <strong>{item.composer || '미상'}</strong> {item.publisher && `| 출판: ${item.publisher}`}
+                  </p>
+                </div>
+
+                {item.description && (
+                  <p className="text-xs text-slate-600 mt-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 leading-relaxed">
+                    {item.description}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-500">
+                  난이도: {'⭐'.repeat(item.difficultyStars)}
                 </span>
-                <button
-                  onClick={() => handleDelete(item.id)}
-                  className="p-1 text-slate-300 hover:text-rose-600 rounded-lg transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+                <span className="text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
+                  {item.type === 'textbook' ? '정규교재' : item.type === 'competition' ? '콩쿠르곡' : '명곡'}
+                </span>
               </div>
-
-              <div className="mt-3">
-                <h3 className="font-bold text-base text-slate-900 leading-snug">{item.title}</h3>
-                <p className="text-xs text-slate-500 mt-1">
-                  작곡: <strong>{item.composer || '미상'}</strong> {item.publisher && `| 출판: ${item.publisher}`}
-                </p>
-              </div>
-
-              {item.description && (
-                <p className="text-xs text-slate-600 mt-3 bg-slate-50 p-3 rounded-2xl border border-slate-100 leading-relaxed">
-                  {item.description}
-                </p>
-              )}
             </div>
+          ))}
+        </div>
+      )}
 
-            <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span className="font-semibold text-slate-500">
-                난이도: {'⭐'.repeat(item.difficultyStars)}
-              </span>
-              <span className="text-indigo-600 font-bold bg-indigo-50 px-2 py-0.5 rounded-md">
-                {item.type === 'textbook' ? '정규교재' : item.type === 'competition' ? '콩쿠르곡' : '명곡'}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
@@ -331,7 +310,7 @@ export const ResourceManagementView: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">권장 레벨</label>
                   <select
                     value={formData.level}
-                    onChange={(e) => setFormData({ ...formData, level: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, level: e.target.value as StudentLevel })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
                   >
                     <option value="바이엘 상">바이엘 상</option>
@@ -347,7 +326,7 @@ export const ResourceManagementView: React.FC = () => {
                   <label className="block text-xs font-semibold text-slate-700 mb-1">자료 분류</label>
                   <select
                     value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value as any })}
+                    onChange={(e) => setFormData({ ...formData, type: e.target.value as ResourceType })}
                     className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
                   >
                     <option value="textbook">정규 교재</option>

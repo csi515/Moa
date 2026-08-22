@@ -15,6 +15,7 @@ export const STORAGE_KEYS = {
   TEXTBOOK_PAYMENTS: 'piano_app_textbook_payments',
   TEXTBOOK_INVENTORY_TRANSACTIONS: 'piano_app_textbook_inventory_transactions',
   SONGS: 'piano_app_songs',
+  EVENTS: 'piano_app_events',
   NOTIFICATIONS: 'piano_app_notifications',
   SETTINGS: 'piano_app_settings',
   ACTIVE_USER: 'piano_app_active_user',
@@ -46,6 +47,7 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.TEXTBOOK_PAYMENTS,
   STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
   STORAGE_KEYS.SONGS,
+  STORAGE_KEYS.EVENTS,
   STORAGE_KEYS.EXPENSES,
 ]);
 

@@ -316,6 +316,12 @@ export interface Song {
   genre: '클래식' | '재즈/뉴에이지' | 'OST/가요' | '동요/소곡' | '입시곡';
   relatedTextbook?: string;
   memo?: string;
+  /** 교재·곡 자료실 확장 필드 (metadata 저장) */
+  publisher?: string;
+  level?: StudentLevel;
+  resourceType?: 'textbook' | 'repertoire' | 'competition' | 'theory';
+  description?: string;
+  difficultyStars?: number;
 }
 
 export type ExpenseCategory = 

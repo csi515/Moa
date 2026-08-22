@@ -5,7 +5,6 @@ import {
   LayoutDashboard,
   Users,
   UserSquare2,
-  CalendarDays,
   Clock,
   CheckSquare,
   CreditCard,
