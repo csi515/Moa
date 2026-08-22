@@ -18,6 +18,12 @@ export const STORAGE_KEYS = {
   SONGS: 'piano_app_songs',
   EVENTS: 'piano_app_events',
   PERFORMANCE_VIDEOS: 'piano_app_performance_videos',
+  CURRICULUM_LEVELS: 'piano_curriculum_levels',
+  CURRICULUM_ITEMS: 'piano_curriculum_items',
+  CURRICULUM_PROGRESS: 'piano_curriculum_progress',
+  WEEKLY_ASSIGNMENTS: 'piano_weekly_assignments',
+  ACHIEVEMENTS: 'piano_achievements',
+  LEARNING_REPORTS: 'piano_learning_reports',
   NOTIFICATIONS: 'piano_app_notifications',
   SETTINGS: 'piano_app_settings',
   SCHEDULES: 'core_schedules',
@@ -57,6 +63,12 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SONGS,
   STORAGE_KEYS.EVENTS,
   STORAGE_KEYS.PERFORMANCE_VIDEOS,
+  STORAGE_KEYS.CURRICULUM_LEVELS,
+  STORAGE_KEYS.CURRICULUM_ITEMS,
+  STORAGE_KEYS.CURRICULUM_PROGRESS,
+  STORAGE_KEYS.WEEKLY_ASSIGNMENTS,
+  STORAGE_KEYS.ACHIEVEMENTS,
+  STORAGE_KEYS.LEARNING_REPORTS,
 ]);
 
 /** 클라이언트 전용 localStorage 키 (Supabase sync 제외) */

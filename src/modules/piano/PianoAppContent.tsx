@@ -39,6 +39,10 @@ import {
   TeacherManagementView,
   AcademyCalendarView,
   AcademySettingsView,
+  CurriculumManagementView,
+  AssignmentsManagementView,
+  AchievementsManagementView,
+  ReportsManagementView,
 } from './index';
 
 export const PianoAppContent: React.FC = () => {
@@ -96,6 +100,14 @@ export const PianoAppContent: React.FC = () => {
         return <AcademyCalendarView />;
       case 'recitals':
         return <RecitalManagementView />;
+      case 'curriculum':
+        return <CurriculumManagementView />;
+      case 'assignments':
+        return <AssignmentsManagementView />;
+      case 'achievements':
+        return <AchievementsManagementView />;
+      case 'reports':
+        return <ReportsManagementView />;
       case 'settings':
         return <AcademySettingsView />;
       default:

@@ -1,11 +1,12 @@
 /** 조직 멤버 역할 (Supabase member_role과 동일) */
-export type UserRole = 'owner' | 'admin' | 'manager' | 'staff';
+export type UserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'parent';
 
 export interface User {
   id: string;
   name: string;
   role: UserRole;
   staffId?: string | null;
+  parentCustomerId?: string | null;
   email: string;
 }
 

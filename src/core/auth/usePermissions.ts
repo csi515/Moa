@@ -12,6 +12,7 @@ import {
   isOrgAdmin,
   isOrgOwner,
   isStaffRole,
+  isParentRole,
 } from './permissions';
 
 export function usePermissions() {
@@ -20,6 +21,7 @@ export function usePermissions() {
 
   const role = currentUser.role;
   const staffId = currentUser.staffId ?? org?.currentStaffId ?? null;
+  const parentCustomerId = currentUser.parentCustomerId ?? org?.currentParentCustomerId ?? null;
   const industry = (org?.currentOrganization?.industry_type ?? 'piano') as IndustryType;
 
   const allowedTabs = useMemo(() => getAllowedTabs(role, industry), [role, industry]);
@@ -27,10 +29,12 @@ export function usePermissions() {
   return {
     role,
     staffId,
+    parentCustomerId,
     industry,
     isAdmin: isOrgAdmin(role),
     isOwner: isOrgOwner(role),
     isStaff: isStaffRole(role),
+    isParent: isParentRole(role),
     allowedTabs,
     canAccess: (tab: NavTab) => canAccessTab(role, industry, tab),
     defaultTab: getDefaultTab(role, industry),

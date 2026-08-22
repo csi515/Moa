@@ -8,6 +8,7 @@ export interface OrganizationMembership {
   organizationId: string;
   role: MemberRole;
   staffId: string | null;
+  parentCustomerId: string | null;
   organization: Organization;
 }
 
@@ -32,6 +33,7 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
         role,
         organization_id,
         staff_id,
+        parent_customer_id,
         organizations (
           id,
           name,
@@ -56,6 +58,7 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
       organizationId: row.organization_id,
       role: row.role as MemberRole,
       staffId: row.staff_id ?? null,
+      parentCustomerId: row.parent_customer_id ?? null,
       organization: row.organizations as Organization,
     }));
 }
@@ -89,6 +92,7 @@ export function getRoleLabel(role: MemberRole): string {
     admin: '관리자',
     manager: '매니저',
     staff: '강사',
+    parent: '학부모',
   };
   return labels[role];
 }

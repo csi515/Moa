@@ -21,6 +21,12 @@ export { ExpenseManagementView } from './components/expenses/ExpenseManagementVi
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';
 export { AcademyCalendarView } from './components/calendar/AcademyCalendarView';
 export { AcademySettingsView } from './components/settings/AcademySettingsView';
+export {
+  CurriculumManagementView,
+  AssignmentsManagementView,
+  AchievementsManagementView,
+  ReportsManagementView,
+} from './components/education/EducationManagementView';
 export { PianoAppContent } from './PianoAppContent';
 
 // Module config

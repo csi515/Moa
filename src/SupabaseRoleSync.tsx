@@ -19,15 +19,17 @@ export const SupabaseRoleSync: React.FC = () => {
 
     const role: UserRole = org?.currentRole ?? 'owner';
     const staffId = org?.currentStaffId ?? null;
+    const parentCustomerId = org?.currentParentCustomerId ?? null;
 
     StorageService.setActiveUser({
       id: auth.user.id,
       name: fullName,
       role,
       staffId,
+      parentCustomerId,
       email: auth.user.email || '',
     });
-  }, [auth?.user, org?.currentRole, org?.currentStaffId]);
+  }, [auth?.user, org?.currentRole, org?.currentStaffId, org?.currentParentCustomerId]);
 
   return null;
 };

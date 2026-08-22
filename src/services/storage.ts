@@ -1,4 +1,11 @@
-import type { FinanceSummary, IncomeEntry } from '../core/finance/types';
+import type {
+  Achievement,
+  CurriculumItem,
+  CurriculumLevel,
+  LearningReport,
+  StudentCurriculumProgress,
+  WeeklyAssignment,
+} from '../types/education';
 import {
   Student,
   Parent,
@@ -2118,5 +2125,234 @@ export const StorageService = {
       return true;
     }
     return false;
+  },
+
+  // ─── Parent helpers ─────────────────────────────────────────
+  getStudentsForParent(parentCustomerId: string): Student[] {
+    const parent = this.getParents().find((p) => p.id === parentCustomerId);
+    if (!parent) return [];
+    const idSet = new Set(parent.studentIds);
+    return this.getStudents().filter((s) => idSet.has(s.id));
+  },
+
+  ensureParentFromStudent(student: Student): Parent {
+    const parents = this.getParents();
+    let parent = parents.find((p) => p.id === student.parentId || p.phone === student.parentPhone);
+    if (!parent) {
+      parent = this.saveParent({
+        name: student.parentName || '학부모',
+        phone: student.parentPhone,
+        studentIds: [student.id],
+      });
+    } else if (!parent.studentIds.includes(student.id)) {
+      parent = this.saveParent({ ...parent, studentIds: [...parent.studentIds, student.id] });
+    }
+    if (!student.parentId) {
+      this.saveStudent({ ...student, parentId: parent.id });
+    }
+    return parent;
+  },
+
+  syncParentsFromStudents(): Parent[] {
+    const students = this.getStudents();
+    students.forEach((s) => this.ensureParentFromStudent(s));
+    return this.getParents();
+  },
+
+  // ─── Curriculum ─────────────────────────────────────────────
+  getCurriculumLevels(): CurriculumLevel[] {
+    return getItem<CurriculumLevel[]>(STORAGE_KEYS.CURRICULUM_LEVELS, []);
+  },
+
+  saveCurriculumLevel(level: Omit<CurriculumLevel, 'id'> & { id?: string }): CurriculumLevel {
+    const list = this.getCurriculumLevels();
+    const saved = level.id
+      ? { ...list.find((l) => l.id === level.id)!, ...level, id: level.id }
+      : { ...level, id: generateEntityId('clv') };
+    const idx = list.findIndex((l) => l.id === saved.id);
+    if (idx >= 0) list[idx] = saved;
+    else list.push(saved);
+    list.sort((a, b) => a.sortOrder - b.sortOrder);
+    setItem(STORAGE_KEYS.CURRICULUM_LEVELS, list);
+    return saved;
+  },
+
+  getCurriculumItems(levelId?: string): CurriculumItem[] {
+    const items = getItem<CurriculumItem[]>(STORAGE_KEYS.CURRICULUM_ITEMS, []);
+    return levelId ? items.filter((i) => i.levelId === levelId) : items;
+  },
+
+  saveCurriculumItem(item: Omit<CurriculumItem, 'id'> & { id?: string }): CurriculumItem {
+    const list = this.getCurriculumItems();
+    const saved = item.id
+      ? { ...list.find((i) => i.id === item.id)!, ...item, id: item.id }
+      : { ...item, id: generateEntityId('cit') };
+    const idx = list.findIndex((i) => i.id === saved.id);
+    if (idx >= 0) list[idx] = saved;
+    else list.push(saved);
+    setItem(STORAGE_KEYS.CURRICULUM_ITEMS, list);
+    return saved;
+  },
+
+  getCurriculumProgress(studentId?: string): StudentCurriculumProgress[] {
+    const list = getItem<StudentCurriculumProgress[]>(STORAGE_KEYS.CURRICULUM_PROGRESS, []);
+    return studentId ? list.filter((p) => p.studentId === studentId) : list;
+  },
+
+  saveCurriculumProgress(
+    prog: Omit<StudentCurriculumProgress, 'id'> & { id?: string }
+  ): StudentCurriculumProgress {
+    const list = this.getCurriculumProgress();
+    const saved = prog.id
+      ? { ...list.find((p) => p.id === prog.id)!, ...prog, id: prog.id }
+      : { ...prog, id: generateEntityId('cpr') };
+    const idx = list.findIndex(
+      (p) => p.studentId === saved.studentId && p.curriculumItemId === saved.curriculumItemId
+    );
+    if (idx >= 0) list[idx] = saved;
+    else list.push(saved);
+    setItem(STORAGE_KEYS.CURRICULUM_PROGRESS, list);
+    return saved;
+  },
+
+  seedDefaultCurriculum(): void {
+    if (this.getCurriculumLevels().length > 0) return;
+    const levels: { name: string; songs: string[] }[] = [
+      { name: '바이엘 상', songs: ['바이엘 1-10', '바이엘 11-20', '바이엘 21-30'] },
+      { name: '체르니 100', songs: ['체르니 100 No.1', '체르니 100 No.5', '체르니 100 No.10'] },
+      { name: '체르니 30', songs: ['체르니 30 No.1', '체르니 30 No.6', '체르니 30 No.11'] },
+    ];
+    levels.forEach((lv, li) => {
+      const level = this.saveCurriculumLevel({ name: lv.name, sortOrder: li, description: `${lv.name} 표준 곡목` });
+      lv.songs.forEach((title, si) => {
+        this.saveCurriculumItem({ levelId: level.id, title, sortOrder: si, required: true });
+      });
+    });
+  },
+
+  // ─── Weekly assignments ───────────────────────────────────
+  getWeeklyAssignments(studentId?: string): WeeklyAssignment[] {
+    const list = getItem<WeeklyAssignment[]>(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, []);
+    return studentId ? list.filter((a) => a.studentId === studentId) : list;
+  },
+
+  getCurrentWeekStart(): string {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff)).toISOString().slice(0, 10);
+  },
+
+  saveWeeklyAssignment(
+    assignment: Omit<WeeklyAssignment, 'id' | 'items'> & { id?: string; items?: WeeklyAssignment['items'] }
+  ): WeeklyAssignment {
+    const list = this.getWeeklyAssignments();
+    const items = assignment.items || [];
+    const saved: WeeklyAssignment = assignment.id
+      ? { ...list.find((a) => a.id === assignment.id)!, ...assignment, id: assignment.id, items }
+      : { ...assignment, id: generateEntityId('wasg'), items, status: assignment.status || 'assigned' };
+    const idx = list.findIndex((a) => a.id === saved.id);
+    if (idx >= 0) list[idx] = saved;
+    else list.unshift(saved);
+    setItem(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, list);
+    return saved;
+  },
+
+  confirmAssignmentItem(assignmentId: string, itemId: string): boolean {
+    const list = this.getWeeklyAssignments();
+    const aIdx = list.findIndex((a) => a.id === assignmentId);
+    if (aIdx < 0) return false;
+    const items = list[aIdx].items.map((it) =>
+      it.id === itemId
+        ? { ...it, parentConfirmed: true, parentConfirmedAt: new Date().toISOString(), completed: true, completedAt: new Date().toISOString() }
+        : it
+    );
+    list[aIdx] = { ...list[aIdx], items, status: 'submitted' };
+    setItem(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, list);
+    return true;
+  },
+
+  // ─── Achievements ─────────────────────────────────────────
+  getAchievements(studentId?: string): Achievement[] {
+    const list = getItem<Achievement[]>(STORAGE_KEYS.ACHIEVEMENTS, []);
+    return studentId ? list.filter((a) => a.studentId === studentId) : list;
+  },
+
+  saveAchievement(ach: Omit<Achievement, 'id'> & { id?: string }): Achievement {
+    const list = this.getAchievements();
+    const saved = ach.id
+      ? { ...list.find((a) => a.id === ach.id)!, ...ach, id: ach.id }
+      : { ...ach, id: generateEntityId('ach') };
+    const idx = list.findIndex((a) => a.id === saved.id);
+    if (idx >= 0) list[idx] = saved;
+    else list.unshift(saved);
+    setItem(STORAGE_KEYS.ACHIEVEMENTS, list);
+    return saved;
+  },
+
+  deleteAchievement(id: string): boolean {
+    const filtered = this.getAchievements().filter((a) => a.id !== id);
+    if (filtered.length === this.getAchievements().length) return false;
+    setItem(STORAGE_KEYS.ACHIEVEMENTS, filtered);
+    return true;
+  },
+
+  // ─── Learning reports ─────────────────────────────────────
+  getLearningReports(studentId?: string, publishedOnly = false): LearningReport[] {
+    let list = getItem<LearningReport[]>(STORAGE_KEYS.LEARNING_REPORTS, []);
+    if (studentId) list = list.filter((r) => r.studentId === studentId);
+    if (publishedOnly) list = list.filter((r) => r.status === 'published');
+    return list.sort((a, b) => b.yearMonth.localeCompare(a.yearMonth));
+  },
+
+  generateLearningReport(studentId: string, yearMonth: string, staffId?: string): LearningReport {
+    const student = this.getStudents().find((s) => s.id === studentId);
+    const attendance = this.getAttendance().filter(
+      (a) => a.studentId === studentId && a.date.startsWith(yearMonth)
+    );
+    const present = attendance.filter((a) => a.status === 'present' || a.status === 'make_up').length;
+    const attendanceRate = attendance.length > 0 ? Math.round((present / attendance.length) * 100) : 0;
+    const practiceMinutes = this.getPracticeRecords()
+      .filter((p) => p.studentId === studentId && p.date.startsWith(yearMonth))
+      .reduce((s, p) => s + p.minutes, 0);
+    const lessonsCount = this.getLessonRecords().filter(
+      (l) => l.studentId === studentId && l.date.startsWith(yearMonth)
+    ).length;
+    const songsCompleted = this.getCurriculumProgress(studentId).filter(
+      (p) => p.status === 'completed' && (p.completedAt || '').startsWith(yearMonth)
+    ).length;
+
+    return this.saveLearningReport({
+      studentId,
+      staffId,
+      yearMonth,
+      status: 'draft',
+      summary: `${student?.name || '원생'} ${yearMonth} 학습 리포트`,
+      attendanceRate,
+      practiceMinutes,
+      lessonsCount,
+      songsCompleted,
+    });
+  },
+
+  saveLearningReport(report: Omit<LearningReport, 'id'> & { id?: string }): LearningReport {
+    const list = getItem<LearningReport[]>(STORAGE_KEYS.LEARNING_REPORTS, []);
+    const saved = report.id
+      ? { ...list.find((r) => r.id === report.id)!, ...report, id: report.id }
+      : { ...report, id: generateEntityId('lrp') };
+    const idx = list.findIndex((r) => r.studentId === saved.studentId && r.yearMonth === saved.yearMonth);
+    if (idx >= 0) list[idx] = saved;
+    else list.unshift(saved);
+    setItem(STORAGE_KEYS.LEARNING_REPORTS, list);
+    return saved;
+  },
+
+  publishLearningReport(id: string): LearningReport | null {
+    const list = this.getLearningReports();
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx < 0) return null;
+    list[idx] = { ...list[idx], status: 'published', publishedAt: new Date().toISOString() };
+    setItem(STORAGE_KEYS.LEARNING_REPORTS, list);
+    return list[idx];
   },
 };

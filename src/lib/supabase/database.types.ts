@@ -11,7 +11,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
-export type MemberRole = 'owner' | 'admin' | 'manager' | 'staff';
+export type MemberRole = 'owner' | 'admin' | 'manager' | 'staff' | 'parent';
 export type ScheduleStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded' | 'cancelled';
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'online' | 'other';

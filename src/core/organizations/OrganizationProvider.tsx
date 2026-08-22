@@ -10,6 +10,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { connectStaffOnLogin } from '../staff/services/staffAccountService';
+import { connectParentOnLogin } from '../parent/services/parentAccountService';
 import * as orgService from './services/organizationService';
 
 interface OrganizationContextType {
@@ -17,6 +18,7 @@ interface OrganizationContextType {
   currentOrganization: Organization | null;
   currentRole: MemberRole | null;
   currentStaffId: string | null;
+  currentParentCustomerId: string | null;
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
   clearOrganization: () => void;
@@ -32,6 +34,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [currentRole, setCurrentRole] = useState<MemberRole | null>(null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
+  const [currentParentCustomerId, setCurrentParentCustomerId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const applySelection = useCallback(
@@ -40,6 +43,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setCurrentOrganization(null);
         setCurrentRole(null);
         setCurrentStaffId(null);
+        setCurrentParentCustomerId(null);
         return;
       }
 
@@ -48,6 +52,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setCurrentOrganization(membership.organization);
         setCurrentRole(membership.role);
         setCurrentStaffId(membership.staffId);
+        setCurrentParentCustomerId(membership.parentCustomerId);
         orgService.storeOrganizationId(organizationId);
         return;
       }
@@ -56,6 +61,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setCurrentOrganization(null);
       setCurrentRole(null);
       setCurrentStaffId(null);
+      setCurrentParentCustomerId(null);
     },
     []
   );
@@ -66,6 +72,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setCurrentOrganization(null);
       setCurrentRole(null);
       setCurrentStaffId(null);
+      setCurrentParentCustomerId(null);
       setLoading(false);
       return;
     }
@@ -74,6 +81,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     try {
       // pending 초대를 로그인 계정에 연결
       await connectStaffOnLogin();
+      await connectParentOnLogin();
 
       const memberships = await orgService.fetchUserOrganizations(user.id);
       setOrganizations(memberships);
@@ -108,6 +116,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setCurrentOrganization(null);
     setCurrentRole(null);
     setCurrentStaffId(null);
+    setCurrentParentCustomerId(null);
     StorageService.clearOrganization();
   }, []);
 
@@ -127,6 +136,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         currentOrganization,
         currentRole,
         currentStaffId,
+        currentParentCustomerId,
         loading,
         selectOrganization,
         clearOrganization,

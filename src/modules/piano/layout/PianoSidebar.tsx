@@ -24,6 +24,8 @@ import {
   Award,
   BarChart3,
   TrendingUp,
+  BookOpenCheck,
+  FileText,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -82,6 +84,15 @@ export const PianoSidebar: React.FC = () => {
         { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-4 h-4" /> },
         { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-4 h-4" /> },
         { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: '교육 품질',
+      items: [
+        { tab: 'curriculum', label: '커리큘럼·진도', icon: <BookOpen className="w-4 h-4" /> },
+        { tab: 'assignments', label: '주간 과제', icon: <BookOpenCheck className="w-4 h-4" /> },
+        { tab: 'achievements', label: '시험·콩쿠르', icon: <Award className="w-4 h-4" /> },
+        { tab: 'reports', label: '학습 리포트', icon: <FileText className="w-4 h-4" /> },
       ],
     },
     {
