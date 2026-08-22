@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh } from '@/hooks';
+import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
 import type { Booking, BookingStatus } from '@/core/types/schedule';
@@ -25,20 +25,36 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
 export const BookingCalendarView: React.FC = () => {
   const { showToast } = useApp();
   const refreshKey = useStorageRefresh();
+  const { isScoped, staffId, scopeBookings, scopeMembersForPilates } = useStaffScope();
   const [filter, setFilter] = useState<BookingFilter>('today');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [memberId, setMemberId] = useState('');
   const [serviceId, setServiceId] = useState('');
-  const [staffId, setStaffId] = useState('');
+  const [formStaffId, setFormStaffId] = useState('');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [time, setTime] = useState('10:00');
 
+  useEffect(() => {
+    if (isScoped && staffId) setFormStaffId(staffId);
+  }, [isScoped, staffId]);
+
   const today = new Date().toISOString().slice(0, 10);
-  const members = StorageService.getStudents().filter((s) => s.status === 'active');
+  const allBookingsRaw = ScheduleService.getBookings();
+  const allBookings = useMemo(
+    () => scopeBookings(allBookingsRaw),
+    [allBookingsRaw, scopeBookings, refreshKey]
+  );
+  const members = useMemo(
+    () =>
+      scopeMembersForPilates(
+        StorageService.getStudents().filter((s) => s.status === 'active'),
+        allBookingsRaw
+      ),
+    [allBookingsRaw, scopeMembersForPilates, refreshKey]
+  );
   const instructors = StorageService.getTeachers().filter((t) => t.status === 'active');
   const services = ScheduleService.getActiveServiceOfferings();
-  const allBookings = ScheduleService.getBookings();
 
   const filtered = useMemo(() => {
     const sorted = [...allBookings].sort((a, b) => a.startsAt.localeCompare(b.startsAt));
@@ -51,7 +67,7 @@ export const BookingCalendarView: React.FC = () => {
     e.preventDefault();
     const member = members.find((m) => m.id === memberId);
     const service = services.find((s) => s.id === serviceId);
-    const instructor = instructors.find((i) => i.id === staffId);
+    const instructor = instructors.find((i) => i.id === (formStaffId || staffId));
     if (!member || !service) {
       showToast('회원과 수업 종류를 선택해 주세요.', 'warning');
       return;
@@ -184,9 +200,14 @@ export const BookingCalendarView: React.FC = () => {
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">강사</label>
+            {isScoped ? (
+              <p className="text-sm text-slate-700 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+                {instructors.find((i) => i.id === formStaffId)?.name || '본인'}
+              </p>
+            ) : (
             <select
-              value={staffId}
-              onChange={(e) => setStaffId(e.target.value)}
+              value={formStaffId}
+              onChange={(e) => setFormStaffId(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl"
             >
               <option value="">미지정</option>
@@ -194,6 +215,7 @@ export const BookingCalendarView: React.FC = () => {
                 <option key={i.id} value={i.id}>{i.name}</option>
               ))}
             </select>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

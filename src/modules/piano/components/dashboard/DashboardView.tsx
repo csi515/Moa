@@ -1,6 +1,8 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
+import { StaffDashboardView } from './StaffDashboardView';
 import { StatCard } from '@/shared/components/StatCard';
 import { formatCurrency, formatKoreanDate } from '@/utils/formatters';
 import {
@@ -46,6 +48,11 @@ import {
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
+  const { isStaff } = usePermissions();
+
+  if (isStaff) {
+    return <StaffDashboardView />;
+  }
 
   const stats = StorageService.getDashboardStats();
   const tbStats = StorageService.getTextbookStats();

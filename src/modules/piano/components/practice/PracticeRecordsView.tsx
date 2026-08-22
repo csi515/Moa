@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PracticeRecord } from '@/types';
 import {
@@ -19,9 +20,14 @@ import {
 
 export const PracticeRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const { scopeStudents, scopeByStudentIds } = useStaffScope();
 
-  const practiceList = StorageService.getPracticeRecords();
-  const students = StorageService.getStudents();
+  const allStudents = StorageService.getStudents();
+  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
+  const practiceList = useMemo(
+    () => scopeByStudentIds(StorageService.getPracticeRecords(), allStudents),
+    [allStudents, scopeByStudentIds]
+  );
 
   const [studentFilter, setStudentFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');

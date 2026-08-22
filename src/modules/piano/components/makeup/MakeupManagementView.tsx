@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh, useStudentNavigation } from '@/hooks';
+import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { MakeupItem, MakeupStatus } from '@/types';
 import {
@@ -31,12 +31,17 @@ export const MakeupManagementView: React.FC = () => {
   const { showToast } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
+  const { scopeMakeupItems } = useStaffScope();
 
   const [statusFilter, setStatusFilter] = useState<MakeupStatus | 'all'>('pending');
   const [scheduleTarget, setScheduleTarget] = useState<MakeupItem | null>(null);
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
 
-  const allItems = StorageService.getMakeupItems();
+  const allStudents = StorageService.getStudents();
+  const allItems = useMemo(
+    () => scopeMakeupItems(StorageService.getMakeupItems(), allStudents),
+    [allStudents, scopeMakeupItems, refreshKey]
+  );
 
   const filtered = useMemo(() => {
     if (statusFilter === 'all') return allItems;

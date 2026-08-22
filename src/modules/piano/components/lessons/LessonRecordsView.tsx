@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { LessonRecord } from '@/types';
 import {
@@ -21,9 +22,10 @@ import {
 
 export const LessonRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
+  const { isScoped, staffId, scopeStudents, scopeLessons } = useStaffScope();
 
-  const lessons = StorageService.getLessonRecords();
-  const students = StorageService.getStudents();
+  const lessons = useMemo(() => scopeLessons(StorageService.getLessonRecords()), [scopeLessons]);
+  const students = useMemo(() => scopeStudents(StorageService.getStudents()), [scopeStudents]);
   const teachers = StorageService.getTeachers();
 
   const [searchQuery, setSearchQuery] = useState('');

@@ -1,13 +1,121 @@
 import React, { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh } from '@/hooks';
+import { useStorageRefresh, useStaffScope } from '@/hooks';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
 import { Activity, Calendar, Users, Dumbbell } from 'lucide-react';
 
-export const PilatesDashboardView: React.FC = () => {
+/** 필라테스 강사 전용 축소 대시보드 */
+const PilatesStaffDashboard: React.FC = () => {
+  const { setActiveTab } = useApp();
+  const refreshKey = useStorageRefresh();
+  const { scopeBookings, scopeMembersForPilates } = useStaffScope();
+
+  const today = new Date().toISOString().slice(0, 10);
+  const allBookingsRaw = ScheduleService.getBookings();
+  const todayBookings = useMemo(
+    () => scopeBookings(ScheduleService.getBookingsByDate(today)),
+    [today, scopeBookings, refreshKey]
+  );
+  const upcoming = useMemo(
+    () => scopeBookings(ScheduleService.getUpcomingBookings(5)),
+    [scopeBookings, refreshKey]
+  );
+  const members = useMemo(
+    () =>
+      scopeMembersForPilates(
+        StorageService.getStudents().filter((s) => s.status === 'active'),
+        allBookingsRaw
+      ),
+    [allBookingsRaw, scopeMembersForPilates, refreshKey]
+  );
+
+  const confirmedToday = todayBookings.filter(
+    (b) => b.status === 'confirmed' || b.status === 'scheduled'
+  ).length;
+
+  return (
+    <div className="space-y-6 pb-12">
+      <PageHeader
+        icon={<Activity className="w-6 h-6" />}
+        iconClassName="text-teal-600"
+        title="강사 대시보드"
+        description={`${formatKoreanDate(today)} · 내 예약과 담당 회원`}
+      />
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <SummaryMetricCard label="오늘 예약" value={`${todayBookings.length}건`} variant="teal" />
+        <SummaryMetricCard label="확정/예약" value={`${confirmedToday}건`} variant="emerald" />
+        <SummaryMetricCard label="담당 회원" value={`${members.length}명`} />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-teal-600" />
+              오늘 예약
+            </h3>
+            <button onClick={() => setActiveTab('bookings')} className="text-xs font-bold text-teal-600 hover:underline">
+              전체 보기
+            </button>
+          </div>
+          {todayBookings.length === 0 ? (
+            <p className="text-sm text-slate-400 py-6 text-center">오늘 예약이 없습니다</p>
+          ) : (
+            <div className="space-y-2">
+              {todayBookings.map((b) => (
+                <div key={b.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+                  <p className="font-bold text-slate-900">{b.customerName}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {b.startsAt.slice(11, 16)} · {b.serviceName || '수업'}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-teal-600" />
+            담당 회원
+          </h3>
+          {members.length === 0 ? (
+            <p className="text-sm text-slate-400 py-6 text-center">담당 회원이 없습니다</p>
+          ) : (
+            <div className="space-y-2">
+              {members.slice(0, 6).map((m) => (
+                <div key={m.id} className="p-3 rounded-xl bg-teal-50/50 border border-teal-100 text-sm font-bold text-slate-900">
+                  {m.name}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {upcoming.length > 0 && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-5">
+          <h3 className="font-bold text-slate-900 mb-3">다가오는 예약</h3>
+          <div className="space-y-2">
+            {upcoming.map((b) => (
+              <div key={b.id} className="flex justify-between p-3 rounded-xl bg-slate-50 text-sm">
+                <span className="font-bold">{b.customerName}</span>
+                <span className="text-xs text-teal-700">{b.startsAt.slice(0, 16).replace('T', ' ')}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PilatesAdminDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
   const refreshKey = useStorageRefresh();
 
@@ -112,4 +220,9 @@ export const PilatesDashboardView: React.FC = () => {
       </div>
     </div>
   );
+};
+
+export const PilatesDashboardView: React.FC = () => {
+  const { isStaff } = usePermissions();
+  return isStaff ? <PilatesStaffDashboard /> : <PilatesAdminDashboard />;
 };

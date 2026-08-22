@@ -1,6 +1,7 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/piano';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { Student, StudentStatus } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
@@ -29,10 +30,15 @@ import {
 export const StudentListView: React.FC = () => {
   const { selectedStudentId, setSelectedStudentId, selectedStudentDetailTab, setSelectedStudentDetailTab, refreshKey } = useApp();
   const labels = useModuleLabels();
+  const { isScoped, staffId, scopeStudents } = useStaffScope();
 
-  const students = StorageService.getStudents();
+  const allStudents = StorageService.getStudents();
+  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
   const teachers = StorageService.getTeachers();
-  const classes = StorageService.getClasses();
+  const classes = useMemo(
+    () => (isScoped && staffId ? StorageService.getClasses().filter((c) => c.teacherId === staffId) : StorageService.getClasses()),
+    [isScoped, staffId, refreshKey]
+  );
 
   // Search & Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,6 +51,13 @@ export const StudentListView: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [detailStudent, setDetailStudent] = useState<Student | null>(null);
+
+  // 강사는 담당 필터 고정
+  useEffect(() => {
+    if (isScoped && staffId) {
+      setTeacherFilter(staffId);
+    }
+  }, [isScoped, staffId]);
 
   // If selectedStudentId was set from header or dashboard, auto-open detail modal
   React.useEffect(() => {
@@ -127,6 +140,7 @@ export const StudentListView: React.FC = () => {
           </p>
         </div>
 
+        {!isScoped && (
         <button
           onClick={() => {
             setEditingStudent(null);
@@ -137,6 +151,7 @@ export const StudentListView: React.FC = () => {
           <UserPlus className="w-4 h-4" />
           {labels.customer.add}
         </button>
+        )}
       </div>
 
       {/* Filter and Search Bar */}
@@ -162,7 +177,8 @@ export const StudentListView: React.FC = () => {
             )}
           </div>
 
-          {/* Teacher Filter */}
+          {/* Teacher Filter — 강사는 담당 고정 */}
+          {!isScoped && (
           <div>
             <select
               value={teacherFilter}
@@ -177,6 +193,7 @@ export const StudentListView: React.FC = () => {
               ))}
             </select>
           </div>
+          )}
 
           {/* Class Filter */}
           <div>

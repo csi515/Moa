@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh, useStudentNavigation } from '@/hooks';
+import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { ACADEMY_EVENT_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { RecitalService } from '@/modules/piano/services/recitalService';
 import { AcademyEvent } from '@/types';
@@ -42,6 +43,8 @@ export const RecitalManagementView: React.FC = () => {
   const { showToast, openConfirmDialog } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
+  const { isAdmin } = usePermissions();
+  const { scopeRecitalEvents, scopeStudents, getMyStudentIds, isScoped } = useStaffScope();
 
   const [filter, setFilter] = useState<EventFilter>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
@@ -55,8 +58,12 @@ export const RecitalManagementView: React.FC = () => {
   const [formDescription, setFormDescription] = useState('');
 
   const today = new Date().toISOString().slice(0, 10);
-  const events = RecitalService.getRecitalEvents();
-  const students = RecitalService.getActiveStudents();
+  const allStudents = RecitalService.getActiveStudents();
+  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
+  const events = useMemo(
+    () => scopeRecitalEvents(RecitalService.getRecitalEvents(), allStudents),
+    [allStudents, scopeRecitalEvents, refreshKey]
+  );
 
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
@@ -71,7 +78,12 @@ export const RecitalManagementView: React.FC = () => {
   }, [events, filter, searchQuery, today, refreshKey]);
 
   const selectedEvent = selectedEventId ? RecitalService.getEventById(selectedEventId) : null;
-  const participants = selectedEvent ? RecitalService.getParticipantSummaries(selectedEvent.id) : [];
+  const participants = useMemo(() => {
+    const raw = selectedEvent ? RecitalService.getParticipantSummaries(selectedEvent.id) : [];
+    if (!isScoped) return raw;
+    const ids = getMyStudentIds(allStudents);
+    return raw.filter((p) => ids.has(p.studentId));
+  }, [selectedEvent, isScoped, getMyStudentIds, allStudents, refreshKey]);
   const eventVideos = selectedEvent ? RecitalService.getVideosByEventId(selectedEvent.id) : [];
 
   const stats = useMemo(() => {
@@ -162,6 +174,7 @@ export const RecitalManagementView: React.FC = () => {
         title="연주회·콩쿠르 관리"
         description="행사 일정, 참가 원생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다"
         actions={
+          isAdmin ? (
           <button
             onClick={() => setIsCreateOpen(true)}
             className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
@@ -169,6 +182,7 @@ export const RecitalManagementView: React.FC = () => {
             <Plus className="w-4 h-4" />
             행사 등록
           </button>
+          ) : undefined
         }
       />
 

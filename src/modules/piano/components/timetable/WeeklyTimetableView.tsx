@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { ClassItem, DayOfWeek } from '@/types';
 import {
@@ -30,9 +31,14 @@ const TIME_SLOTS = [
 
 export const WeeklyTimetableView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab, currentUser } = useApp();
-  const classes = StorageService.getClasses();
+  const { isScoped, staffId, scopeClasses, scopeStudents } = useStaffScope();
+
+  const classes = useMemo(() => scopeClasses(StorageService.getClasses()), [scopeClasses]);
   const teachers = StorageService.getTeachers();
-  const students = StorageService.getStudents();
+  const students = useMemo(
+    () => scopeStudents(StorageService.getStudents()),
+    [scopeStudents]
+  );
 
   // Get current Korean day of week
   const dayIndex = new Date().getDay(); // 0 is Sun, 1 is Mon...
@@ -44,6 +50,10 @@ export const WeeklyTimetableView: React.FC = () => {
   const [teacherFilter, setTeacherFilter] = useState('ALL');
   const [roomFilter, setRoomFilter] = useState('ALL');
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+
+  useEffect(() => {
+    if (isScoped && staffId) setTeacherFilter(staffId);
+  }, [isScoped, staffId]);
 
   const rooms = Array.from(new Set(classes.map((c) => c.room)));
 
@@ -130,6 +140,7 @@ export const WeeklyTimetableView: React.FC = () => {
           </div>
 
           {/* Teacher filter */}
+          {!isScoped && (
           <select
             value={teacherFilter}
             onChange={(e) => setTeacherFilter(e.target.value)}
@@ -142,6 +153,7 @@ export const WeeklyTimetableView: React.FC = () => {
               </option>
             ))}
           </select>
+          )}
 
           {/* Room filter */}
           <select

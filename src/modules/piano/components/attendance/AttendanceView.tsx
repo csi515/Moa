@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { AttendanceRecord, AttendanceStatus, Student } from '@/types';
 import {
@@ -28,16 +29,16 @@ import { AbsentReasonModal } from './AbsentReasonModal';
 
 export const AttendanceView: React.FC = () => {
   const { showToast, currentUser, setSelectedStudentId, setActiveTab } = useApp();
+  const { isScoped, scopeStudents, scopeClasses } = useStaffScope();
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedClassId, setSelectedClassId] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Modal states
   const [absentModalStudent, setAbsentModalStudent] = useState<Student | null>(null);
 
-  const students = StorageService.getStudents();
-  const classes = StorageService.getClasses();
+  const students = useMemo(() => scopeStudents(StorageService.getStudents()), [scopeStudents]);
+  const classes = useMemo(() => scopeClasses(StorageService.getClasses()), [scopeClasses]);
   const allAttendance = StorageService.getAttendance();
 
   // Handle previous / next day
