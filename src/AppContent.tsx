@@ -1,33 +1,36 @@
 import React from 'react';
-import { useApp } from './context/AppContext';
-import { Header } from './components/layout/Header';
+import { useApp } from '@/context/AppContext';
+import {
+  Header,
+  Sidebar,
+  BottomNav,
+  PwaInstallPrompt,
+  DirectorFloatingFab,
+  ToastContainer,
+  ConfirmDialog,
+} from '@/shared/components';
 import { SupabaseRoleSync } from './SupabaseRoleSync';
 import { isSupabaseConfigured } from './lib/supabase';
-import { Sidebar } from './components/layout/Sidebar';
-import { BottomNav } from './components/layout/BottomNav';
-import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
-import { DirectorFloatingFab } from './components/common/DirectorFloatingFab';
-import { ToastContainer } from './components/common/Toast';
-import { ConfirmDialog } from './components/common/ConfirmDialog';
-
-import { DashboardView } from './components/dashboard/DashboardView';
-import { StudentListView } from './components/students/StudentListView';
-import { AttendanceView } from './components/attendance/AttendanceView';
-import { WeeklyTimetableView } from './components/timetable/WeeklyTimetableView';
-import { TuitionManagementView } from './components/tuition/TuitionManagementView';
-import { TextbookManagementView } from './components/textbooks/TextbookManagementView';
-import { ExpenseManagementView } from './components/expenses/ExpenseManagementView';
-import { ClassManagementView } from './components/classes/ClassManagementView';
-import { ParentManagementView } from './components/parents/ParentManagementView';
-import { LessonRecordsView } from './components/lessons/LessonRecordsView';
-import { PracticeRecordsView } from './components/practice/PracticeRecordsView';
-import { ConsultationRecordsView } from './components/consultations/ConsultationRecordsView';
-import { ResourceManagementView } from './components/resources/ResourceManagementView';
-import { TeacherManagementView } from './components/teachers/TeacherManagementView';
-import { AcademyCalendarView } from './components/calendar/AcademyCalendarView';
-import { NotificationManagementView } from './components/notifications/NotificationManagementView';
-import { AcademySettingsView } from './components/settings/AcademySettingsView';
-import { StudentDetailModal } from './components/students/StudentDetailModal';
+import {
+  DashboardView,
+  StudentListView,
+  StudentDetailModal,
+  AttendanceView,
+  WeeklyTimetableView,
+  TuitionManagementView,
+  TextbookManagementView,
+  ExpenseManagementView,
+  ClassManagementView,
+  ParentManagementView,
+  LessonRecordsView,
+  PracticeRecordsView,
+  ConsultationRecordsView,
+  ResourceManagementView,
+  TeacherManagementView,
+  AcademyCalendarView,
+  NotificationManagementView,
+  AcademySettingsView,
+} from './modules/piano';
 
 export const AppContent: React.FC = () => {
   const { activeTab, selectedStudentId, setSelectedStudentId } = useApp();
