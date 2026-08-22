@@ -3,6 +3,8 @@ import { useApp, NavTab } from '../../context/AppContext';
 import { StorageService } from '../../services/storage';
 import { formatKoreanDate } from '../../utils/formatters';
 import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
+import { OrganizationSwitcher } from '../../core/organizations/OrganizationSwitcher';
+import { useOptionalOrganization } from '../../core/organizations/OrganizationProvider';
 import {
   Bell,
   Search,
@@ -34,6 +36,8 @@ export const Header: React.FC = () => {
   const teachers = StorageService.getTeachers();
   const notifications = StorageService.getNotifications();
   const pendingNotifs = notifications.filter((n) => n.status === 'pending');
+  const supabaseOrg = useOptionalOrganization();
+  const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 
@@ -64,7 +68,7 @@ export const Header: React.FC = () => {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg text-indigo-950 tracking-tight">
-                {settings.name}
+                {displayName}
               </h1>
               <span className="hidden sm:inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
                 PRO
@@ -129,6 +133,7 @@ export const Header: React.FC = () => {
 
         {/* Right: Role Switcher & Notifications & PWA */}
         <div className="flex items-center gap-2 sm:gap-3">
+          <OrganizationSwitcher />
           <PwaInstallPrompt />
 
           {/* Notifications bell */}

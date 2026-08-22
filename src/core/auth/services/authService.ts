@@ -1,0 +1,64 @@
+import { Session, User } from '@supabase/supabase-js';
+import { getCoreClient } from '../../../lib/supabase';
+
+export interface SignUpParams {
+  email: string;
+  password: string;
+  fullName: string;
+}
+
+export interface SignInParams {
+  email: string;
+  password: string;
+}
+
+export async function getSession(): Promise<Session | null> {
+  const { data, error } = await getCoreClient().auth.getSession();
+  if (error) throw error;
+  return data.session;
+}
+
+export async function signUp({ email, password, fullName }: SignUpParams): Promise<{
+  user: User;
+  session: Session | null;
+}> {
+  const { data, error } = await getCoreClient().auth.signUp({
+    email,
+    password,
+    options: {
+      data: { full_name: fullName },
+    },
+  });
+
+  if (error) throw error;
+  if (!data.user) throw new Error('회원가입에 실패했습니다.');
+  return { user: data.user, session: data.session };
+}
+
+export async function signIn({ email, password }: SignInParams): Promise<Session> {
+  const { data, error } = await getCoreClient().auth.signInWithPassword({
+    email,
+    password,
+  });
+
+  if (error) throw error;
+  if (!data.session) throw new Error('로그인에 실패했습니다.');
+  return data.session;
+}
+
+export async function signOut(): Promise<void> {
+  const { error } = await getCoreClient().auth.signOut();
+  if (error) throw error;
+}
+
+export function onAuthStateChange(
+  callback: (session: Session | null) => void
+): () => void {
+  const {
+    data: { subscription },
+  } = getCoreClient().auth.onAuthStateChange((_event, session) => {
+    callback(session);
+  });
+
+  return () => subscription.unsubscribe();
+}
