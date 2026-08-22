@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Sparkles,
   Piano,
+  GraduationCap,
   ChevronRight,
   BookOpen,
   ShoppingBag,
@@ -44,15 +45,20 @@ import {
 } from 'recharts';
 
 export const DashboardView: React.FC = () => {
-  const { setActiveTab, setSelectedStudentId, currentUser, refreshKey } = useApp();
+  const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
 
   const stats = StorageService.getDashboardStats();
   const tbStats = StorageService.getTextbookStats();
   const lowStockBooks = StorageService.getLowStockTextbooks();
   const recentSales = StorageService.getTextbookSales().slice(0, 4);
   const students = StorageService.getStudents();
-  const recentLessons = StorageService.getLessonRecords().slice(0, 3);
   const recentInvoices = StorageService.getInvoices().filter(i => i.status === 'unpaid').slice(0, 3);
+
+  const currentMonthLabel = `${parseInt(stats.currentYearMonth.slice(5, 7), 10)}월`;
+  const hasRevenueData = stats.revenueTrend.some((r) => r.매출 > 0 || r.지출 > 0);
+  const hasStudentTrendData = stats.studentTrend.some((s) => s.원생수 > 0);
+  const hasTuitionData = stats.totalBilledThisMonth > 0;
+  const hasClassData = stats.classDistribution.length > 0;
 
   const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#8b5cf6'];
 
@@ -128,7 +134,7 @@ export const DashboardView: React.FC = () => {
           <StatCard
             title="신규 등록 (이번달)"
             value={`${stats.newStudentsThisMonth}명`}
-            subtitle="8월 신규 입학"
+            subtitle={`${currentMonthLabel} 신규 입학`}
             icon={<UserPlus className="w-5 h-5 text-teal-600" />}
             iconBg="bg-teal-50"
             onClick={() => setActiveTab('students')}
@@ -231,25 +237,39 @@ export const DashboardView: React.FC = () => {
             </button>
           </div>
           <div className="h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis
-                  stroke="#94a3b8"
-                  fontSize={11}
-                  tickFormatter={(val) => `${val / 10000}만`}
-                  tickLine={false}
-                />
-                <Tooltip
-                  formatter={(val: any) => formatCurrency(Number(val))}
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Bar dataKey="매출" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="지출" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasRevenueData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis
+                    stroke="#94a3b8"
+                    fontSize={11}
+                    tickFormatter={(val) => `${val / 10000}만`}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    formatter={(val: any) => formatCurrency(Number(val))}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Bar dataKey="매출" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="지출" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                <TrendingUp className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="font-bold text-slate-600 text-sm">아직 매출 데이터가 없습니다</p>
+                <p className="text-xs text-slate-400 mt-1">원생 등록 후 수강료 청구·수납을 시작하면 추이가 표시됩니다.</p>
+                <button
+                  onClick={() => setActiveTab('tuition')}
+                  className="mt-3 text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  수강료 관리로 이동
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -270,26 +290,40 @@ export const DashboardView: React.FC = () => {
             </button>
           </div>
           <div className="h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={stats.studentTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} domain={['dataMin - 2', 'dataMax + 2']} />
-                <Tooltip
-                  formatter={(val: any) => [`${val}명`, '원생수']}
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-                <Line
-                  type="monotone"
-                  dataKey="원생수"
-                  stroke="#10b981"
-                  strokeWidth={2.5}
-                  dot={{ r: 4, fill: '#10b981' }}
-                  activeDot={{ r: 6 }}
-                />
-              </LineChart>
-            </ResponsiveContainer>
+            {hasStudentTrendData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={stats.studentTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} domain={['dataMin - 2', 'dataMax + 2']} />
+                  <Tooltip
+                    formatter={(val: any) => [`${val}명`, '원생수']}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                  <Line
+                    type="monotone"
+                    dataKey="원생수"
+                    stroke="#10b981"
+                    strokeWidth={2.5}
+                    dot={{ r: 4, fill: '#10b981' }}
+                    activeDot={{ r: 6 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                <Users className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="font-bold text-slate-600 text-sm">아직 등록된 원생이 없습니다</p>
+                <p className="text-xs text-slate-400 mt-1">첫 원생을 등록하면 성장 추이가 표시됩니다.</p>
+                <button
+                  onClick={() => setActiveTab('students')}
+                  className="mt-3 text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  원생 등록하러 가기
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
@@ -307,29 +341,37 @@ export const DashboardView: React.FC = () => {
             </span>
           </div>
           <div className="h-64 sm:h-72 w-full flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={stats.unpaidBreakdown}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={4}
-                  dataKey="value"
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                >
-                  {stats.unpaidBreakdown.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(val: any) => formatCurrency(Number(val))}
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                />
-                <Legend wrapperStyle={{ fontSize: '12px' }} />
-              </PieChart>
-            </ResponsiveContainer>
+            {hasTuitionData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={stats.unpaidBreakdown}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={4}
+                    dataKey="value"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {stats.unpaidBreakdown.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    formatter={(val: any) => formatCurrency(Number(val))}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '12px' }} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="text-center px-4">
+                <CreditCard className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                <p className="font-bold text-slate-600 text-sm">이번 달 청구 내역이 없습니다</p>
+                <p className="text-xs text-slate-400 mt-1">원생 등록 후 월별 수강료를 생성해 보세요.</p>
+              </div>
+            )}
           </div>
         </div>
 
@@ -350,24 +392,38 @@ export const DashboardView: React.FC = () => {
             </button>
           </div>
           <div className="h-64 sm:h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={stats.classDistribution} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
-                <Tooltip
-                  formatter={(val: any, name: string) => [`${val}명`, name === 'studentsCount' ? '현재원생' : '정원']}
-                  labelFormatter={(_, payload) => (payload[0]?.payload as any)?.fullName || ''}
-                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                />
-                <Legend
-                  formatter={(value) => (value === 'studentsCount' ? '현재원생' : '최대정원')}
-                  wrapperStyle={{ fontSize: '12px' }}
-                />
-                <Bar dataKey="studentsCount" fill="#4f46e5" name="studentsCount" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="capacity" fill="#cbd5e1" name="capacity" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {hasClassData ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={stats.classDistribution} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} />
+                  <Tooltip
+                    formatter={(val: any, name: string) => [`${val}명`, name === 'studentsCount' ? '현재원생' : '정원']}
+                    labelFormatter={(_, payload) => (payload[0]?.payload as any)?.fullName || ''}
+                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                  />
+                  <Legend
+                    formatter={(value) => (value === 'studentsCount' ? '현재원생' : '최대정원')}
+                    wrapperStyle={{ fontSize: '12px' }}
+                  />
+                  <Bar dataKey="studentsCount" fill="#4f46e5" name="studentsCount" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="capacity" fill="#cbd5e1" name="capacity" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                <GraduationCap className="w-10 h-10 text-slate-300 mb-3" />
+                <p className="font-bold text-slate-600 text-sm">개설된 반이 없습니다</p>
+                <p className="text-xs text-slate-400 mt-1">반을 개설하고 원생을 배정해 보세요.</p>
+                <button
+                  onClick={() => setActiveTab('classes')}
+                  className="mt-3 text-xs font-bold text-indigo-600 hover:underline"
+                >
+                  반 관리로 이동
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -541,7 +597,7 @@ export const DashboardView: React.FC = () => {
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-3 gap-3 p-3 bg-slate-50 rounded-xl mb-4 text-xs">
             <div>
-              <span className="text-slate-400 block text-[11px]">8월 판매 총액</span>
+              <span className="text-slate-400 block text-[11px]">{currentMonthLabel} 판매 총액</span>
               <span className="font-bold text-slate-900 text-sm">
                 {formatCurrency(tbStats.totalSalesAmount)}
               </span>

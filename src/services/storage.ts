@@ -1494,20 +1494,26 @@ export const StorageService = {
       return {
         yearMonth: ym,
         month: label,
-        매출: paid || (billed > 0 ? billed : 2200000 + Math.floor(Math.random() * 600000)),
-        지출: exps || 1800000,
-        청구액: billed || 2500000
+        매출: paid,
+        지출: exps,
+        청구액: billed,
       };
     });
 
-    const studentTrend = months.map((ym, index) => {
+    const studentTrend = months.map((ym) => {
       const label = ym.slice(5) + '월';
-      // calculate active count up to that month
-      const count = Math.max(10, 12 + index);
+      const [year, month] = ym.split('-').map(Number);
+      const monthEnd = `${ym}-${String(new Date(year, month, 0).getDate()).padStart(2, '0')}`;
+      const activeAtMonth = students.filter((s) => {
+        if (s.joinDate > monthEnd) return false;
+        if (s.status === 'withdrawn' && s.leaveDate && s.leaveDate <= monthEnd) return false;
+        return true;
+      }).length;
+      const newCount = students.filter((s) => s.joinDate.startsWith(ym)).length;
       return {
         month: label,
-        원생수: count,
-        신규: index === 5 ? newStudentsThisMonth : Math.floor(Math.random() * 3) + 1
+        원생수: activeAtMonth,
+        신규: newCount,
       };
     });
 
@@ -1601,5 +1607,26 @@ export const StorageService = {
 
   importAllData(jsonStr: string): boolean {
     return this.importDatabaseJSON(jsonStr);
+  },
+
+  // Onboarding
+  isOnboardingComplete(): boolean {
+    return getItem<boolean>(STORAGE_KEYS.INITIALIZED, false);
+  },
+
+  setOnboardingComplete(complete = true): void {
+    setItem(STORAGE_KEYS.INITIALIZED, complete);
+  },
+
+  isNewOrganization(): boolean {
+    return (
+      this.getStudents().length === 0 &&
+      this.getClasses().length === 0 &&
+      !this.getSettings().name?.trim()
+    );
+  },
+
+  shouldShowOnboarding(): boolean {
+    return !this.isOnboardingComplete() && this.isNewOrganization();
   },
 };

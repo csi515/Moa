@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import {
   Header,
@@ -8,9 +8,11 @@ import {
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
+  OnboardingWizard,
 } from '@/shared/components';
 import { SupabaseRoleSync } from './SupabaseRoleSync';
 import { isSupabaseConfigured } from './lib/supabase';
+import { StorageService } from '@/services/storage';
 import {
   DashboardView,
   StudentListView,
@@ -34,6 +36,15 @@ import {
 
 export const AppContent: React.FC = () => {
   const { activeTab, selectedStudentId, setSelectedStudentId } = useApp();
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    setShowOnboarding(StorageService.shouldShowOnboarding());
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -100,6 +111,7 @@ export const AppContent: React.FC = () => {
       )}
 
       <PwaInstallPrompt />
+      {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
       <ConfirmDialog />
       <ToastContainer />
     </div>
