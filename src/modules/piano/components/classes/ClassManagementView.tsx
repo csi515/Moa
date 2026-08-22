@@ -19,8 +19,7 @@ import {
 const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 export const ClassManagementView: React.FC = () => {
-  const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
-  const isDirector = currentUser.role === 'director';
+  const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
 
   const classes = StorageService.getClasses();
   const teachers = StorageService.getTeachers();
@@ -153,15 +152,13 @@ export const ClassManagementView: React.FC = () => {
           </p>
         </div>
 
-        {isDirector && (
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            신규 반 개설
-          </button>
-        )}
+        <button
+          onClick={handleOpenCreate}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          신규 반 개설
+        </button>
       </div>
 
       {/* Class Cards Grid */}
@@ -247,22 +244,20 @@ export const ClassManagementView: React.FC = () => {
                 )}
               </div>
 
-              {isDirector && (
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                  <button
-                    onClick={() => handleOpenEdit(cls)}
-                    className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <Edit className="w-3.5 h-3.5" /> 수정
-                  </button>
-                  <button
-                    onClick={() => handleDelete(cls)}
-                    className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" /> 삭제
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleOpenEdit(cls)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit className="w-3.5 h-3.5" /> 수정
+                </button>
+                <button
+                  onClick={() => handleDelete(cls)}
+                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" /> 삭제
+                </button>
+              </div>
             </div>
           );
         })}

@@ -1,39 +1,24 @@
 import React, { useState } from 'react';
-import { useApp, NavTab } from '@/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import {
-  Bell,
-  Search,
-  Shield,
-  UserCheck,
-  Music,
-  ChevronDown,
-  Sparkles,
-  School,
-  CheckCircle2,
-  Lock
-} from 'lucide-react';
+import { Bell, Search, Music, Shield } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
     currentUser,
-    switchRole,
-    activeTab,
     setActiveTab,
     globalSearchQuery,
     setGlobalSearchQuery,
-    setSelectedStudentId
+    setSelectedStudentId,
   } = useApp();
 
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
 
   const settings = StorageService.getSettings();
-  const teachers = StorageService.getTeachers();
   const notifications = StorageService.getNotifications();
   const pendingNotifs = notifications.filter((n) => n.status === 'pending');
   const supabaseOrg = useOptionalOrganization();
@@ -48,39 +33,35 @@ export const Header: React.FC = () => {
   };
 
   const filteredStudents = globalSearchQuery.trim()
-    ? StorageService.getStudents().filter(
-        (s) =>
-          s.name.includes(globalSearchQuery) ||
-          s.parentPhone.includes(globalSearchQuery) ||
-          s.school.includes(globalSearchQuery) ||
-          s.level.includes(globalSearchQuery)
-      ).slice(0, 5)
+    ? StorageService.getStudents()
+        .filter(
+          (s) =>
+            s.name.includes(globalSearchQuery) ||
+            s.parentPhone.includes(globalSearchQuery) ||
+            s.school.includes(globalSearchQuery) ||
+            s.level.includes(globalSearchQuery)
+        )
+        .slice(0, 5)
     : [];
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 transition-all">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-        {/* Left: Academy branding */}
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-xs">
             <Music className="w-5 h-5" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg text-indigo-950 tracking-tight">
-                {displayName}
-              </h1>
+              <h1 className="font-bold text-lg text-indigo-950 tracking-tight">{displayName}</h1>
               <span className="hidden sm:inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
                 PRO
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-normal hidden md:block">
-              {todayStr}
-            </p>
+            <p className="text-xs text-slate-400 font-normal hidden md:block">{todayStr}</p>
           </div>
         </div>
 
-        {/* Center: Global Instant Search */}
         <div className="flex-1 max-w-md relative hidden sm:block">
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -101,7 +82,6 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Search dropdown results */}
           {globalSearchQuery.trim() && (
             <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
               <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
@@ -131,18 +111,13 @@ export const Header: React.FC = () => {
           )}
         </div>
 
-        {/* Right: Role Switcher & Notifications & PWA */}
         <div className="flex items-center gap-2 sm:gap-3">
           <OrganizationSwitcher />
           <PwaInstallPrompt />
 
-          {/* Notifications bell */}
           <div className="relative">
             <button
-              onClick={() => {
-                setNotifDropdownOpen(!notifDropdownOpen);
-                setRoleDropdownOpen(false);
-              }}
+              onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
               className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
               title="알림 센터"
             >
@@ -173,7 +148,13 @@ export const Header: React.FC = () => {
                       <p className="text-slate-600 mt-1 line-clamp-2">{n.message}</p>
                       <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
                         <span>{n.scheduledDate}</span>
-                        <span className={n.status === 'sent' ? 'text-emerald-600 font-semibold' : 'text-amber-600 font-semibold'}>
+                        <span
+                          className={
+                            n.status === 'sent'
+                              ? 'text-emerald-600 font-semibold'
+                              : 'text-amber-600 font-semibold'
+                          }
+                        >
                           {n.status === 'sent' ? '발송완료' : '대기중'}
                         </span>
                       </div>
@@ -184,107 +165,14 @@ export const Header: React.FC = () => {
             )}
           </div>
 
-          {/* User Role Switcher Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => {
-                setRoleDropdownOpen(!roleDropdownOpen);
-                setNotifDropdownOpen(false);
-              }}
-              className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer text-left"
-            >
-              <div
-                className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold ${
-                  currentUser.role === 'director'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-emerald-600 text-white'
-                }`}
-              >
-                {currentUser.role === 'director' ? <Shield className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
-              </div>
-              <div className="hidden sm:block">
-                <p className="text-xs font-bold text-slate-900 leading-tight flex items-center gap-1">
-                  {currentUser.name}
-                  {currentUser.role === 'director' ? (
-                    <span className="text-[10px] bg-indigo-100 text-indigo-800 font-bold px-1.5 py-0.2 rounded">
-                      원장
-                    </span>
-                  ) : (
-                    <span className="text-[10px] bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded">
-                      강사
-                    </span>
-                  )}
-                </p>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            {roleDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
-                <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
-                  사용자 권한 전환
-                </p>
-                <div className="p-2 text-[11px] bg-slate-50 rounded-xl text-slate-600 mb-2 leading-relaxed">
-                  {currentUser.role === 'director' ? (
-                    <span>⭐ <strong>원장님(관리자)</strong>: 모든 수납/지출/회계, 전 원생, 설정 관리 가능</span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-amber-700">
-                      <Lock className="w-3.5 h-3.5 shrink-0" />
-                      <strong>선생님 권한</strong>: 출결/일지/시간표 전용 (수납/지출 회계 접근 차단됨)
-                    </span>
-                  )}
-                </div>
-
-                {/* Director Option */}
-                <button
-                  onClick={() => {
-                    switchRole('director');
-                    setRoleDropdownOpen(false);
-                  }}
-                  className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer mb-1 ${
-                    currentUser.role === 'director'
-                      ? 'bg-indigo-50 text-indigo-900 font-bold border border-indigo-200'
-                      : 'hover:bg-slate-100 text-slate-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-indigo-600" />
-                    <div>
-                      <p className="font-bold">이세진 원장님 (전체 관리자)</p>
-                      <p className="text-[10px] text-slate-500">회계, 원생, 인사, 통계 전체 접근</p>
-                    </div>
-                  </div>
-                  {currentUser.role === 'director' && <CheckCircle2 className="w-4 h-4 text-indigo-600" />}
-                </button>
-
-                {/* Teachers Options */}
-                {teachers.map((t) => (
-                  <button
-                    key={t.id}
-                    onClick={() => {
-                      switchRole('teacher', t.id);
-                      setRoleDropdownOpen(false);
-                    }}
-                    className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer mb-1 ${
-                      currentUser.role === 'teacher' && currentUser.teacherId === t.id
-                        ? 'bg-emerald-50 text-emerald-900 font-bold border border-emerald-200'
-                        : 'hover:bg-slate-100 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <UserCheck className="w-4 h-4 text-emerald-600" />
-                      <div>
-                        <p className="font-bold">{t.name}</p>
-                        <p className="text-[10px] text-slate-500">출결, 레슨일지, 연습, 상담 작성</p>
-                      </div>
-                    </div>
-                    {currentUser.role === 'teacher' && currentUser.teacherId === t.id && (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    )}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">
+            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-600 text-white">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-xs font-bold text-slate-900 leading-tight">{currentUser.name}</p>
+              <p className="text-[10px] text-indigo-600 font-semibold">원장</p>
+            </div>
           </div>
         </div>
       </div>

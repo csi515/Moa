@@ -21,7 +21,6 @@ import {
   X,
   Save,
   ChevronRight,
-  ShieldAlert,
   BookOpen,
   ShoppingBag,
   Users
@@ -32,9 +31,7 @@ import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { MessageSquare } from 'lucide-react';
 
 export const TuitionManagementView: React.FC = () => {
-  const { showToast, currentUser, setSelectedStudentId, setActiveTab } = useApp();
-
-  const isDirector = currentUser.role === 'director';
+  const { showToast, setSelectedStudentId, setActiveTab } = useApp();
 
   const [selectedMonth, setSelectedMonth] = useState('2025-08');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -68,22 +65,6 @@ export const TuitionManagementView: React.FC = () => {
   const students = StorageService.getStudents();
   const settings = StorageService.getSettings();
   const tbStats = StorageService.getTextbookStats(selectedMonth);
-
-  // If teacher, show access denied
-  if (!isDirector) {
-    return (
-      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-4 max-w-lg mx-auto my-12 shadow-sm">
-        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-8 h-8" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900">접근 권한이 제한되었습니다</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          수강료 수납 및 매출 회계 내역은 원장님(관리자) 전용 메뉴입니다.<br />
-          상단 우측 권한 전환 메뉴에서 원장님 권한으로 전환하세요.
-        </p>
-      </div>
-    );
-  }
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter((inv) => {

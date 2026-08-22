@@ -92,7 +92,6 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
   if (!isOpen || !student) return null;
 
-  const isDirector = currentUser.role === 'director';
   const allClasses = StorageService.getClasses();
   const enrolledClasses = allClasses.filter((c) => student.classIds?.includes(c.id));
   const allAttendance = StorageService.getAttendance().filter((a) => a.studentId === student.id);
@@ -158,7 +157,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       content: newCstContent.trim(),
       result: newCstResult.trim(),
       nextDate: newCstNextDate || undefined,
-      counselorId: currentUser.teacherId || 't-1',
+      counselorId: StorageService.getTeachers()[0]?.id || '',
       counselorName: currentUser.name
     });
     showToast('상담 기록이 저장되었습니다.', 'success');
@@ -248,24 +247,22 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               <Phone className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">학부모</span> 전화
             </a>
-            {isDirector && (
-              <>
-                <button
-                  onClick={() => onEdit(student)}
-                  className="p-2 text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                  title="원생 정보 수정"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="p-2 text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
-                  title="원생 삭제"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </>
-            )}
+            <>
+              <button
+                onClick={() => onEdit(student)}
+                className="p-2 text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                title="원생 정보 수정"
+              >
+                <Edit className="w-4 h-4" />
+              </button>
+              <button
+                onClick={handleDelete}
+                className="p-2 text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
+                title="원생 삭제"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </>
             <button
               onClick={onClose}
               className="p-2 text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
@@ -281,12 +278,12 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             { id: 'info', label: '기본정보', icon: <User className="w-3.5 h-3.5" /> },
             { id: 'classes', label: `수업 (${enrolledClasses.length})`, icon: <BookOpen className="w-3.5 h-3.5" /> },
             { id: 'attendance', label: `출결 (${attRate}%)`, icon: <CheckCircle2 className="w-3.5 h-3.5" /> },
-            { id: 'tuition', label: `수강료 (${allInvoices.length})`, icon: <CreditCard className="w-3.5 h-3.5" />, hide: !isDirector },
+            { id: 'tuition', label: `수강료 (${allInvoices.length})`, icon: <CreditCard className="w-3.5 h-3.5" /> },
             { id: 'textbooks', label: `교재 구매 (${studentSales.length})`, icon: <BookOpen className="w-3.5 h-3.5" /> },
             { id: 'consultations', label: `상담 (${allConsultations.length})`, icon: <MessageSquare className="w-3.5 h-3.5" /> },
             { id: 'practice', label: `연습/레슨 (${allPractice.length})`, icon: <Piano className="w-3.5 h-3.5" /> },
             { id: 'memo', label: '메모/특이사항', icon: <FileText className="w-3.5 h-3.5" /> }
-          ].filter(t => !t.hide).map((tab) => {
+          ].map((tab) => {
             const isActive = currentTab === tab.id;
             return (
               <button
@@ -534,7 +531,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           )}
 
           {/* TAB 4: 수강료 */}
-          {currentTab === 'tuition' && isDirector && (
+          {currentTab === 'tuition' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -752,7 +749,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-2 self-end sm:self-center">
-                        {sale.unpaidAmount > 0 && isDirector && (
+                        {sale.unpaidAmount > 0 && (
                           <button
                             onClick={() => {
                               setSelectedStudentSaleForPay(sale);

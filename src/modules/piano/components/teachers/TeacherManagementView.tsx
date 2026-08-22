@@ -18,9 +18,8 @@ import {
 } from 'lucide-react';
 
 export const TeacherManagementView: React.FC = () => {
-  const { showToast, openConfirmDialog, currentUser } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
   const labels = useModuleLabels();
-  const isDirector = currentUser.role === 'director';
 
   const teachers = StorageService.getTeachers();
   const classes = StorageService.getClasses();
@@ -116,15 +115,13 @@ export const TeacherManagementView: React.FC = () => {
           </p>
         </div>
 
-        {isDirector && (
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-          >
-            <Plus className="w-4 h-4" />
-            신규 강사 등록
-          </button>
-        )}
+        <button
+          onClick={handleOpenCreate}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+        >
+          <Plus className="w-4 h-4" />
+          신규 강사 등록
+        </button>
       </div>
 
       {/* Teachers Grid */}
@@ -162,22 +159,20 @@ export const TeacherManagementView: React.FC = () => {
                     </div>
                   </div>
 
-                  {isDirector && (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleOpenEdit(t)}
-                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
-                      >
-                        <Edit className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(t)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleOpenEdit(t)}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(t)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-slate-100 space-y-2 text-xs text-slate-600">

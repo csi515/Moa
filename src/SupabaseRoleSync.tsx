@@ -1,29 +1,26 @@
 import React, { useEffect } from 'react';
 import { useOptionalAuth } from './core/auth/AuthProvider';
-import { useOptionalOrganization } from './core/organizations/OrganizationProvider';
-import { mapMemberRoleToAppRole } from './core/organizations/services/organizationService';
 import { StorageService } from './services/storage';
 
-/** Supabase Organization 역할을 기존 AppContext 권한(director/teacher)과 동기화 */
+/** Supabase 로그인 사용자 → 사장(owner) activeUser 동기화 */
 export const SupabaseRoleSync: React.FC = () => {
   const auth = useOptionalAuth();
-  const org = useOptionalOrganization();
 
   useEffect(() => {
-    if (!auth?.user || !org?.currentRole) return;
+    if (!auth?.user) return;
 
     const fullName =
       (auth.user.user_metadata?.full_name as string | undefined) ||
       auth.user.email?.split('@')[0] ||
-      '사용자';
+      '원장님';
 
     StorageService.setActiveUser({
       id: auth.user.id,
       name: fullName,
-      role: mapMemberRoleToAppRole(org.currentRole),
+      role: 'owner',
       email: auth.user.email || '',
     });
-  }, [auth?.user, org?.currentRole, org?.currentOrganization?.id]);
+  }, [auth?.user]);
 
   return null;
 };

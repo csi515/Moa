@@ -27,9 +27,8 @@ import {
 } from 'lucide-react';
 
 export const StudentListView: React.FC = () => {
-  const { selectedStudentId, setSelectedStudentId, currentUser, refreshKey } = useApp();
+  const { selectedStudentId, setSelectedStudentId, refreshKey } = useApp();
   const labels = useModuleLabels();
-  const isDirector = currentUser.role === 'director';
 
   const students = StorageService.getStudents();
   const teachers = StorageService.getTeachers();
@@ -60,12 +59,7 @@ export const StudentListView: React.FC = () => {
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) => {
-        // Teacher role check: if current user is teacher, option to filter their own students
-        if (currentUser.role === 'teacher' && teacherFilter === 'MY' && currentUser.teacherId) {
-          if (s.teacherId !== currentUser.teacherId) return false;
-        }
-
-        if (teacherFilter !== 'ALL' && teacherFilter !== 'MY' && s.teacherId !== teacherFilter) {
+        if (teacherFilter !== 'ALL' && s.teacherId !== teacherFilter) {
           return false;
         }
 
@@ -98,7 +92,7 @@ export const StudentListView: React.FC = () => {
         if (sortBy === 'paymentDay') return (a.paymentDay || 0) - (b.paymentDay || 0);
         return 0;
       });
-  }, [students, searchQuery, teacherFilter, classFilter, statusFilter, sortBy, currentUser]);
+  }, [students, searchQuery, teacherFilter, classFilter, statusFilter, sortBy]);
 
   const activeCount = students.filter((s) => s.status === 'active').length;
   const leaveCount = students.filter((s) => s.status === 'leave').length;
@@ -133,18 +127,16 @@ export const StudentListView: React.FC = () => {
           </p>
         </div>
 
-        {isDirector && (
-          <button
-            onClick={() => {
-              setEditingStudent(null);
-              setIsFormModalOpen(true);
-            }}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
-          >
-            <UserPlus className="w-4 h-4" />
-            {labels.customer.add}
-          </button>
-        )}
+        <button
+          onClick={() => {
+            setEditingStudent(null);
+            setIsFormModalOpen(true);
+          }}
+          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
+        >
+          <UserPlus className="w-4 h-4" />
+          {labels.customer.add}
+        </button>
       </div>
 
       {/* Filter and Search Bar */}
@@ -178,7 +170,6 @@ export const StudentListView: React.FC = () => {
               className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
             >
               <option value="ALL">선생님 전체</option>
-              {currentUser.role === 'teacher' && <option value="MY">⭐ 내 담당 원생만</option>}
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
@@ -258,7 +249,7 @@ export const StudentListView: React.FC = () => {
                     <th className="py-3.5 px-4">레벨 / 과정</th>
                     <th className="py-3.5 px-4">담당 선생님</th>
                     <th className="py-3.5 px-4">학부모 연락처</th>
-                    {isDirector && <th className="py-3.5 px-4">수강료 / 수납일</th>}
+                    <th className="py-3.5 px-4">수강료 / 수납일</th>
                     <th className="py-3.5 px-4">상태</th>
                     <th className="py-3.5 px-4 text-right">관리</th>
                   </tr>
@@ -314,12 +305,10 @@ export const StudentListView: React.FC = () => {
                             <span className="text-slate-400 text-[10px]">({st.parentName})</span>
                           </div>
                         </td>
-                        {isDirector && (
-                          <td className="py-3.5 px-4">
-                            <span className="font-bold text-slate-900">{formatCurrency(st.tuitionFee)}</span>
-                            <span className="text-slate-400 text-[11px] ml-1">/ 매월 {st.paymentDay}일</span>
-                          </td>
-                        )}
+                        <td className="py-3.5 px-4">
+                          <span className="font-bold text-slate-900">{formatCurrency(st.tuitionFee)}</span>
+                          <span className="text-slate-400 text-[11px] ml-1">/ 매월 {st.paymentDay}일</span>
+                        </td>
                         <td className="py-3.5 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
                             {badge.label}
@@ -392,11 +381,9 @@ export const StudentListView: React.FC = () => {
                         {formatPhone(st.parentPhone)}
                       </a>
                     </div>
-                    {isDirector && (
-                      <span className="font-bold text-slate-800">
-                        {formatCurrency(st.tuitionFee)}
-                      </span>
-                    )}
+                    <span className="font-bold text-slate-800">
+                      {formatCurrency(st.tuitionFee)}
+                    </span>
                   </div>
                 </div>
               );

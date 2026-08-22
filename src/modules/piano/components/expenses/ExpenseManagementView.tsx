@@ -14,14 +14,12 @@ import {
   PieChart as PieIcon,
   X,
   Save,
-  ShieldAlert
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const ExpenseManagementView: React.FC = () => {
-  const { showToast, openConfirmDialog, currentUser } = useApp();
-  const isDirector = currentUser.role === 'director';
+  const { showToast, openConfirmDialog } = useApp();
 
   const [selectedMonth, setSelectedMonth] = useState('2025-08');
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -40,20 +38,6 @@ export const ExpenseManagementView: React.FC = () => {
   });
 
   const expenses = StorageService.getExpenses();
-
-  if (!isDirector) {
-    return (
-      <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 space-y-4 max-w-lg mx-auto my-12 shadow-sm">
-        <div className="w-16 h-16 bg-rose-50 text-rose-600 rounded-3xl flex items-center justify-center mx-auto">
-          <ShieldAlert className="w-8 h-8" />
-        </div>
-        <h3 className="text-lg font-bold text-slate-900">접근 권한이 제한되었습니다</h3>
-        <p className="text-xs text-slate-500 leading-relaxed">
-          학원 지출 및 회계 관리는 원장님 전용 메뉴입니다.
-        </p>
-      </div>
-    );
-  }
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((e) => {

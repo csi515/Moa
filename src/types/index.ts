@@ -1,11 +1,11 @@
-export type UserRole = 'director' | 'teacher';
+/** 사장 1인 전용 앱 — 단일 owner 역할 */
+export type UserRole = 'owner';
 
 export interface User {
   id: string;
   name: string;
   role: UserRole;
   email: string;
-  teacherId?: string; // If role is teacher, maps to Teacher.id
 }
 
 export type StudentStatus = 'active' | 'leave' | 'withdrawn'; // 재원, 휴원, 퇴원

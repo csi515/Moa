@@ -97,7 +97,7 @@ export const ConsultationRecordsView: React.FC = () => {
       content: formData.content.trim(),
       result: formData.result.trim(),
       nextDate: formData.nextDate || undefined,
-      counselorId: currentUser.teacherId || 't-1',
+      counselorId: StorageService.getTeachers()[0]?.id || '',
       counselorName: currentUser.name
     });
 

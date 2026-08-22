@@ -121,7 +121,7 @@ export const LessonRecordsView: React.FC = () => {
       ...(editingLesson ? { id: editingLesson.id } : {}),
       studentId: st.id,
       studentName: st.name,
-      teacherId: currentUser.teacherId || 't-1',
+      teacherId: StorageService.getTeachers()[0]?.id || '',
       teacherName: currentUser.name,
       date: formData.date,
       songTitle: formData.songTitle.trim(),

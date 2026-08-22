@@ -20,7 +20,6 @@ import {
   AppNotification,
   AcademySettings,
   User,
-  UserRole
 } from '../types';
 
 import {
@@ -123,36 +122,15 @@ export const StorageService = {
   // Active User / Role
   getActiveUser(): User {
     return getItem<User>(STORAGE_KEYS.ACTIVE_USER, {
-      id: 'u-director',
-      name: '이세진 원장님',
-      role: 'director',
-      email: 'director.lee@harmonypiano.kr'
+      id: 'owner',
+      name: '원장님',
+      role: 'owner',
+      email: '',
     });
   },
 
   setActiveUser(user: User): void {
     setItem(STORAGE_KEYS.ACTIVE_USER, user);
-  },
-
-  switchRole(role: UserRole, teacherId?: string): void {
-    if (role === 'director') {
-      this.setActiveUser({
-        id: 'u-director',
-        name: '이세진 원장님',
-        role: 'director',
-        email: 'director.lee@harmonypiano.kr'
-      });
-    } else {
-      const teachers = this.getTeachers();
-      const targetTeacher = teachers.find(t => t.id === teacherId) || teachers[1] || teachers[0];
-      this.setActiveUser({
-        id: `u-${targetTeacher.id}`,
-        name: targetTeacher.name,
-        role: 'teacher',
-        email: targetTeacher.email,
-        teacherId: targetTeacher.id
-      });
-    }
   },
 
   // Settings

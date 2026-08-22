@@ -24,10 +24,9 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 export const BottomNav: React.FC = () => {
-  const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
+  const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
-  const isDirector = currentUser.role === 'director';
 
   const mainTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'dashboard', label: '대시보드', icon: <LayoutDashboard className="w-5 h-5" /> },
@@ -36,20 +35,20 @@ export const BottomNav: React.FC = () => {
     { tab: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> }
   ];
 
-  const moreTabs: { tab: NavTab; label: string; icon: React.ReactNode; requiresDirector?: boolean }[] = [
-    { tab: 'tuition', label: '수강료/수납', icon: <CreditCard className="w-5 h-5" />, requiresDirector: true },
+  const moreTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+    { tab: 'tuition', label: '수강료/수납', icon: <CreditCard className="w-5 h-5" /> },
     { tab: 'textbooks', label: '교재/재고 관리', icon: <BookOpen className="w-5 h-5" /> },
-    { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-5 h-5" />, requiresDirector: true },
+    { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-5 h-5" /> },
     { tab: 'parents', label: labels.contact.management, icon: <UserSquare2 className="w-5 h-5" /> },
     { tab: 'classes', label: labels.service.management, icon: <GraduationCap className="w-5 h-5" /> },
     { tab: 'lessons', label: '레슨 기록', icon: <Piano className="w-5 h-5" /> },
     { tab: 'practice', label: '연습 기록', icon: <BookOpenCheck className="w-5 h-5" /> },
     { tab: 'consultations', label: '상담 이력', icon: <MessageSquareText className="w-5 h-5" /> },
     { tab: 'resources', label: '교재/곡 자료실', icon: <Music2 className="w-5 h-5" /> },
-    { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-5 h-5" />, requiresDirector: true },
+    { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-5 h-5" /> },
     { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-5 h-5" /> },
     { tab: 'notifications', label: '알림 센터', icon: <Bell className="w-5 h-5" /> },
-    { tab: 'settings', label: '학원 설정', icon: <Settings className="w-5 h-5" />, requiresDirector: true }
+    { tab: 'settings', label: '학원 설정', icon: <Settings className="w-5 h-5" /> },
   ];
 
   const handleTabClick = (tab: NavTab) => {
@@ -117,9 +116,6 @@ export const BottomNav: React.FC = () => {
 
               <div className="grid grid-cols-3 gap-3 mt-4 pb-6">
                 {moreTabs.map((item) => {
-                  const isLocked = item.requiresDirector && !isDirector;
-                  if (isLocked) return null;
-
                   const isActive = activeTab === item.tab;
 
                   return (

@@ -2,39 +2,28 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import {
   Plus,
-  X,
   UserPlus,
   CreditCard,
   CheckSquare,
   Receipt,
   BookOpen,
-  PhoneCall,
-  BellRing
 } from 'lucide-react';
 
-interface DirectorFloatingFabProps {
-  onOpenNewStudent?: () => void;
-  onOpenQuickPayment?: () => void;
-}
-
-export const DirectorFloatingFab: React.FC<DirectorFloatingFabProps> = () => {
-  const { setActiveTab, currentUser } = useApp();
+export const DirectorFloatingFab: React.FC = () => {
+  const { setActiveTab } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
-  const isDirector = currentUser.role === 'director';
-
-  const handleAction = (tab: any) => {
+  const handleAction = (tab: Parameters<typeof setActiveTab>[0]) => {
     setActiveTab(tab);
     setIsOpen(false);
   };
 
   return (
     <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-40 flex flex-col items-end pointer-events-auto">
-      {/* Expanded Quick Action Menu */}
       {isOpen && (
         <div className="mb-3 flex flex-col items-end gap-2 transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg mb-1">
-            ⚡ 원장님 빠른 실행 메뉴
+            ⚡ 빠른 실행 메뉴
           </div>
 
           <button
@@ -48,18 +37,16 @@ export const DirectorFloatingFab: React.FC<DirectorFloatingFabProps> = () => {
             </div>
           </button>
 
-          {isDirector && (
-            <button
-              type="button"
-              onClick={() => handleAction('tuition')}
-              className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-emerald-50 hover:text-emerald-600 transition-all active:scale-95"
-            >
-              <span>수강료/교재 수납</span>
-              <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                <CreditCard className="w-4 h-4" />
-              </div>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleAction('tuition')}
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-emerald-50 hover:text-emerald-600 transition-all active:scale-95"
+          >
+            <span>수강료/교재 수납</span>
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <CreditCard className="w-4 h-4" />
+            </div>
+          </button>
 
           <button
             type="button"
@@ -83,22 +70,19 @@ export const DirectorFloatingFab: React.FC<DirectorFloatingFabProps> = () => {
             </div>
           </button>
 
-          {isDirector && (
-            <button
-              type="button"
-              onClick={() => handleAction('expenses')}
-              className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-rose-50 hover:text-rose-600 transition-all active:scale-95"
-            >
-              <span>학원 지출 등록</span>
-              <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
-                <Receipt className="w-4 h-4" />
-              </div>
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => handleAction('expenses')}
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-rose-50 hover:text-rose-600 transition-all active:scale-95"
+          >
+            <span>학원 지출 등록</span>
+            <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
+              <Receipt className="w-4 h-4" />
+            </div>
+          </button>
         </div>
       )}
 
-      {/* Main Floating Trigger Button */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { StorageService } from '../services/storage';
-import { User, UserRole, Student } from '../types';
+import { User } from '../types';
 
 export type NavTab = 
   | 'dashboard' 
@@ -44,7 +44,6 @@ interface AppContextType {
   selectedStudentId: string | null;
   setSelectedStudentId: (id: string | null) => void;
   currentUser: User;
-  switchRole: (role: UserRole, teacherId?: string) => void;
   toasts: ToastMessage[];
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning', title?: string) => void;
   dismissToast: (id: string) => void;
@@ -80,15 +79,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return unsubscribe;
   }, []);
 
-  const switchRole = (role: UserRole, teacherId?: string) => {
-    StorageService.switchRole(role, teacherId);
-    setCurrentUser(StorageService.getActiveUser());
-    showToast(
-      role === 'director' ? '원장님(관리자) 권한으로 전환되었습니다.' : '선생님 권한으로 전환되었습니다.',
-      'info'
-    );
-  };
-
   const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'success', title?: string) => {
     const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
     setToasts((prev) => [...prev, { id, message, type, title }]);
@@ -117,7 +107,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         selectedStudentId,
         setSelectedStudentId,
         currentUser,
-        switchRole,
         toasts,
         showToast,
         dismissToast,

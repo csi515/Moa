@@ -79,11 +79,7 @@ export async function createOrganization(
   return data as string;
 }
 
-/** owner/admin/manager → director, staff → teacher (기존 UI 권한 호환) */
-export function mapMemberRoleToAppRole(role: MemberRole): 'director' | 'teacher' {
-  return role === 'staff' ? 'teacher' : 'director';
-}
-
+/** org 멤버 role 라벨 */
 export function getRoleLabel(role: MemberRole): string {
   const labels: Record<MemberRole, string> = {
     owner: '원장',

@@ -45,7 +45,6 @@ import {
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser, refreshKey } = useApp();
-  const isDirector = currentUser.role === 'director';
 
   const stats = StorageService.getDashboardStats();
   const tbStats = StorageService.getTextbookStats();
@@ -135,27 +134,23 @@ export const DashboardView: React.FC = () => {
             onClick={() => setActiveTab('students')}
           />
 
-          {isDirector && (
-            <>
-              <StatCard
-                title="수강료 매출"
-                value={formatCurrency(stats.totalPaidThisMonth)}
-                subtitle={`수납률 ${stats.collectionRate}% (청구 ${formatCurrency(stats.totalBilledThisMonth)})`}
-                icon={<CreditCard className="w-5 h-5 text-blue-600" />}
-                iconBg="bg-blue-50"
-                onClick={() => setActiveTab('tuition')}
-                highlight
-              />
-              <StatCard
-                title="미납 수강료"
-                value={formatCurrency(stats.totalUnpaidThisMonth)}
-                subtitle={`미납 원생 ${stats.unpaidStudentsCount}명`}
-                icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
-                iconBg="bg-rose-50"
-                onClick={() => setActiveTab('tuition')}
-              />
-            </>
-          )}
+          <StatCard
+            title="수강료 매출"
+            value={formatCurrency(stats.totalPaidThisMonth)}
+            subtitle={`수납률 ${stats.collectionRate}% (청구 ${formatCurrency(stats.totalBilledThisMonth)})`}
+            icon={<CreditCard className="w-5 h-5 text-blue-600" />}
+            iconBg="bg-blue-50"
+            onClick={() => setActiveTab('tuition')}
+            highlight
+          />
+          <StatCard
+            title="미납 수강료"
+            value={formatCurrency(stats.totalUnpaidThisMonth)}
+            subtitle={`미납 원생 ${stats.unpaidStudentsCount}명`}
+            icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
+            iconBg="bg-rose-50"
+            onClick={() => setActiveTab('tuition')}
+          />
 
           <StatCard
             title="오늘 수업"
@@ -182,112 +177,81 @@ export const DashboardView: React.FC = () => {
             onClick={() => setActiveTab('attendance')}
           />
 
-          {isDirector && (
-            <>
-              <StatCard
-                title="교재 판매액 (이번달)"
-                value={formatCurrency(tbStats.totalSalesAmount)}
-                subtitle={`수납 ${formatCurrency(tbStats.totalPaidAmount)} / 미납 ${formatCurrency(tbStats.totalUnpaidAmount)}`}
-                icon={<BookOpen className="w-5 h-5 text-amber-600" />}
-                iconBg="bg-amber-50"
-                onClick={() => setActiveTab('textbooks')}
-              />
-              <StatCard
-                title="재고 부족 교재"
-                value={`${lowStockBooks.length}종`}
-                subtitle={lowStockBooks.length > 0 ? "최소 재고 미달 발주 필요" : "모든 교재 재고 안정"}
-                icon={<Package className="w-5 h-5 text-rose-600" />}
-                iconBg="bg-rose-50"
-                onClick={() => setActiveTab('textbooks')}
-              />
-              <StatCard
-                title="이번 달 지출"
-                value={formatCurrency(stats.totalExpensesThisMonth)}
-                subtitle="임대료, 관리비, 조율비 등"
-                icon={<Receipt className="w-5 h-5 text-orange-600" />}
-                iconBg="bg-orange-50"
-                onClick={() => setActiveTab('expenses')}
-              />
-              <StatCard
-                title="이번 달 순수익"
-                value={formatCurrency(stats.netProfitThisMonth)}
-                subtitle="수강료+교재매출 - 지출"
-                icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
-                iconBg="bg-emerald-50"
-                onClick={() => setActiveTab('tuition')}
-              />
-            </>
-          )}
+          <StatCard
+            title="교재 판매액 (이번달)"
+            value={formatCurrency(tbStats.totalSalesAmount)}
+            subtitle={`수납 ${formatCurrency(tbStats.totalPaidAmount)} / 미납 ${formatCurrency(tbStats.totalUnpaidAmount)}`}
+            icon={<BookOpen className="w-5 h-5 text-amber-600" />}
+            iconBg="bg-amber-50"
+            onClick={() => setActiveTab('textbooks')}
+          />
+          <StatCard
+            title="재고 부족 교재"
+            value={`${lowStockBooks.length}종`}
+            subtitle={lowStockBooks.length > 0 ? '최소 재고 미달 발주 필요' : '모든 교재 재고 안정'}
+            icon={<Package className="w-5 h-5 text-rose-600" />}
+            iconBg="bg-rose-50"
+            onClick={() => setActiveTab('textbooks')}
+          />
+          <StatCard
+            title="이번 달 지출"
+            value={formatCurrency(stats.totalExpensesThisMonth)}
+            subtitle="임대료, 관리비, 조율비 등"
+            icon={<Receipt className="w-5 h-5 text-orange-600" />}
+            iconBg="bg-orange-50"
+            onClick={() => setActiveTab('expenses')}
+          />
+          <StatCard
+            title="이번 달 순수익"
+            value={formatCurrency(stats.netProfitThisMonth)}
+            subtitle="수강료+교재매출 - 지출"
+            icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
+            iconBg="bg-emerald-50"
+            onClick={() => setActiveTab('tuition')}
+          />
         </div>
       </div>
 
       {/* 4 Analytics Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Chart 1: Revenue vs Expense Trend (6 Months) */}
-        {isDirector ? (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <h4 className="font-bold text-slate-800 text-base">
-                  최근 6개월 매출 및 지출 추이
-                </h4>
-                <p className="text-xs text-slate-400">수강료 수납액과 운영 지출 비교</p>
-              </div>
-              <button
-                onClick={() => setActiveTab('tuition')}
-                className="text-xs text-indigo-600 font-semibold flex items-center hover:underline"
-              >
-                상세 <ChevronRight className="w-3.5 h-3.5" />
-              </button>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h4 className="font-bold text-slate-800 text-base">
+                최근 6개월 매출 및 지출 추이
+              </h4>
+              <p className="text-xs text-slate-400">수강료 수납액과 운영 지출 비교</p>
             </div>
-            <div className="h-64 sm:h-72 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
-                  <YAxis
-                    stroke="#94a3b8"
-                    fontSize={11}
-                    tickFormatter={(val) => `${val / 10000}만`}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    formatter={(val: any) => formatCurrency(Number(val))}
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                  <Bar dataKey="매출" fill="#4f46e5" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="지출" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <button
+              onClick={() => setActiveTab('tuition')}
+              className="text-xs text-indigo-600 font-semibold flex items-center hover:underline"
+            >
+              상세 <ChevronRight className="w-3.5 h-3.5" />
+            </button>
           </div>
-        ) : (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <h4 className="font-bold text-slate-800 text-base mb-1">
-              오늘의 수업 안내
-            </h4>
-            <p className="text-xs text-slate-400 mb-4">강사 배정 수업 타임테이블</p>
-            <div className="space-y-3">
-              {stats.todayClasses.map((c) => (
-                <div key={c.id} className="p-4 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between">
-                  <div>
-                    <h5 className="font-bold text-sm text-slate-800">{c.name}</h5>
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {c.startTime} ~ {c.endTime} | {c.room} | {c.teacherName}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setActiveTab('attendance')}
-                    className="px-3.5 py-2 bg-indigo-600 text-white text-xs font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-xs"
-                  >
-                    출결 입력
-                  </button>
-                </div>
-              ))}
-            </div>
+          <div className="h-64 sm:h-72 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stats.revenueTrend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} />
+                <YAxis
+                  stroke="#94a3b8"
+                  fontSize={11}
+                  tickFormatter={(val) => `${val / 10000}만`}
+                  tickLine={false}
+                />
+                <Tooltip
+                  formatter={(val: any) => formatCurrency(Number(val))}
+                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+                <Bar dataKey="매출" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="지출" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
-        )}
+        </div>
 
         {/* Chart 2: Student Count Growth Trend */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
@@ -330,46 +294,44 @@ export const DashboardView: React.FC = () => {
         </div>
 
         {/* Chart 3: Unpaid vs Paid Tuition Breakdown */}
-        {isDirector && (
-          <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h4 className="font-bold text-slate-800 text-base">
-                  이번 달 수강료 수납 현황
-                </h4>
-                <p className="text-xs text-slate-400">총 청구액 대비 수납 완료 및 미납 현황</p>
-              </div>
-              <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
-                수납률 {stats.collectionRate}%
-              </span>
+        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h4 className="font-bold text-slate-800 text-base">
+                이번 달 수강료 수납 현황
+              </h4>
+              <p className="text-xs text-slate-400">총 청구액 대비 수납 완료 및 미납 현황</p>
             </div>
-            <div className="h-64 sm:h-72 w-full flex items-center justify-center">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.unpaidBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={90}
-                    paddingAngle={4}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {stats.unpaidBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    formatter={(val: any) => formatCurrency(Number(val))}
-                    contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
-                  />
-                  <Legend wrapperStyle={{ fontSize: '12px' }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-md border border-indigo-100">
+              수납률 {stats.collectionRate}%
+            </span>
           </div>
-        )}
+          <div className="h-64 sm:h-72 w-full flex items-center justify-center">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={stats.unpaidBreakdown}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={4}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {stats.unpaidBreakdown.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(val: any) => formatCurrency(Number(val))}
+                  contentStyle={{ backgroundColor: '#0f172a', borderRadius: '8px', color: '#fff', border: 'none', fontSize: '12px' }}
+                />
+                <Legend wrapperStyle={{ fontSize: '12px' }} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
         {/* Chart 4: Students per Class distribution */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
