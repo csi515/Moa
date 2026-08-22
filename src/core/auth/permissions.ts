@@ -7,10 +7,18 @@ export function isOrgAdmin(role: UserRole | string | null | undefined): boolean 
   return role === 'owner' || role === 'admin' || role === 'manager';
 }
 
+/** 원장(owner) 역할 여부 */
+export function isOrgOwner(role: UserRole | string | null | undefined): boolean {
+  return role === 'owner';
+}
+
 /** staff(강사) 역할 여부 */
 export function isStaffRole(role: UserRole | string | null | undefined): boolean {
   return role === 'staff';
 }
+
+/** 원장 전용 재무 탭 (모든 업종 공통) */
+const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses'];
 
 /** 피아노 — 강사 접근 가능 탭 */
 const PIANO_STAFF_TABS: NavTab[] = [
@@ -29,7 +37,7 @@ const PIANO_STAFF_TABS: NavTab[] = [
 /** 필라테스 — 강사 접근 가능 탭 */
 const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members'];
 
-/** 피아노 — 관리자 전체 탭 */
+/** 피아노 — 관리자 탭 (재무 제외) */
 const PIANO_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'students',
@@ -45,14 +53,13 @@ const PIANO_ADMIN_TABS: NavTab[] = [
   'tuition',
   'unpaid',
   'textbooks',
-  'expenses',
   'teachers',
   'calendar',
   'recitals',
   'settings',
 ];
 
-/** 필라테스 — 관리자 전체 탭 */
+/** 필라테스 — 관리자 탭 (재무 제외) */
 const PILATES_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'bookings',
@@ -62,6 +69,15 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'settings',
 ];
 
+function withFinanceTabs(base: NavTab[], role: UserRole | string | null | undefined): NavTab[] {
+  if (!isOrgOwner(role)) return base;
+  const merged = [...base];
+  for (const tab of OWNER_FINANCE_TABS) {
+    if (!merged.includes(tab)) merged.push(tab);
+  }
+  return merged;
+}
+
 export function getAllowedTabs(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined
@@ -69,7 +85,8 @@ export function getAllowedTabs(
   const industryType = industry === 'pilates' ? 'pilates' : 'piano';
 
   if (isOrgAdmin(role)) {
-    return industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+    const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+    return withFinanceTabs(base, role);
   }
 
   if (isStaffRole(role)) {
@@ -77,7 +94,8 @@ export function getAllowedTabs(
   }
 
   // role 미확정 시 기본 전체 접근 (localStorage 단독 모드)
-  return industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+  const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+  return withFinanceTabs(base, role);
 }
 
 export function canAccessTab(

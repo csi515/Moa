@@ -16,6 +16,11 @@ import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import {
+  ExpenseManagementView,
+  FinanceOverviewView,
+  IncomeManagementView,
+} from '@/core/finance';
+import {
   DashboardView,
   StudentListView,
   AttendanceView,
@@ -25,7 +30,6 @@ import {
   MakeupManagementView,
   RecitalManagementView,
   TextbookManagementView,
-  ExpenseManagementView,
   ClassManagementView,
   ParentManagementView,
   LessonRecordsView,
@@ -39,7 +43,7 @@ import {
 
 export const PianoAppContent: React.FC = () => {
   const { activeTab } = useApp();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, isOwner } = usePermissions();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useTabGuard();
@@ -68,6 +72,10 @@ export const PianoAppContent: React.FC = () => {
         return <MakeupManagementView />;
       case 'textbooks':
         return <TextbookManagementView />;
+      case 'finance':
+        return <FinanceOverviewView />;
+      case 'income':
+        return <IncomeManagementView />;
       case 'expenses':
         return <ExpenseManagementView />;
       case 'classes':
@@ -108,7 +116,7 @@ export const PianoAppContent: React.FC = () => {
       </div>
 
       <PianoBottomNav />
-      {isAdmin && <DirectorFloatingFab />}
+      {isOwner && <DirectorFloatingFab />}
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       <ConfirmDialog />

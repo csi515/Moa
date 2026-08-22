@@ -23,7 +23,9 @@ import {
   AlertCircle,
   Sparkles,
   Award,
-  X
+  X,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -49,6 +51,8 @@ export const PianoBottomNav: React.FC = () => {
     { tab: 'unpaid', label: '미납 통합', icon: <AlertCircle className="w-5 h-5" /> },
     { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-5 h-5" /> },
     { tab: 'textbooks', label: '교재/재고 관리', icon: <BookOpen className="w-5 h-5" /> },
+    { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-5 h-5" /> },
+    { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-5 h-5" /> },
     { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-5 h-5" /> },
     { tab: 'parents', label: labels.contact.management, icon: <UserSquare2 className="w-5 h-5" /> },
     { tab: 'classes', label: labels.service.management, icon: <GraduationCap className="w-5 h-5" /> },

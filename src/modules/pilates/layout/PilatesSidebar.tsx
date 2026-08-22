@@ -10,6 +10,9 @@ import {
   Dumbbell,
   Activity,
   Settings,
+  BarChart3,
+  TrendingUp,
+  Receipt,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -41,6 +44,14 @@ export const PilatesSidebar: React.FC = () => {
       items: [
         { tab: 'members', label: labels.customer.management, icon: <Users className="w-4 h-4" /> },
         { tab: 'instructors', label: labels.staff.management, icon: <Activity className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: '재무 관리',
+      items: [
+        { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-4 h-4" /> },
+        { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-4 h-4" /> },
+        { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-4 h-4" /> },
       ],
     },
     {

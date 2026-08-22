@@ -20,11 +20,16 @@ import {
   MemberListView,
   InstructorListView,
 } from './index';
+import {
+  FinanceOverviewView,
+  ExpenseManagementView,
+  IncomeManagementView,
+} from '@/core/finance';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 export const PilatesAppContent: React.FC = () => {
   const { activeTab } = useApp();
-  const { isAdmin } = usePermissions();
+  const { isOwner } = usePermissions();
 
   useTabGuard();
 
@@ -38,6 +43,12 @@ export const PilatesAppContent: React.FC = () => {
         return <MemberListView />;
       case 'instructors':
         return <InstructorListView />;
+      case 'finance':
+        return <FinanceOverviewView />;
+      case 'income':
+        return <IncomeManagementView />;
+      case 'expenses':
+        return <ExpenseManagementView />;
       case 'settings':
         return <AcademySettingsView />;
       case 'dashboard':
@@ -55,7 +66,7 @@ export const PilatesAppContent: React.FC = () => {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">{renderView()}</main>
       </div>
       <PilatesBottomNav />
-      {isAdmin && <DirectorFloatingFab />}
+      {isOwner && <DirectorFloatingFab />}
       <PwaInstallPrompt />
       <ConfirmDialog />
       <ToastContainer />

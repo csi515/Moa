@@ -7,6 +7,7 @@ import {
   CheckSquare,
   Receipt,
   BookOpen,
+  TrendingUp,
 } from 'lucide-react';
 
 export const DirectorFloatingFab: React.FC = () => {
@@ -72,10 +73,21 @@ export const DirectorFloatingFab: React.FC = () => {
 
           <button
             type="button"
+            onClick={() => handleAction('income')}
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-emerald-50 hover:text-emerald-600 transition-all active:scale-95"
+          >
+            <span>수입 등록</span>
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+              <TrendingUp className="w-4 h-4" />
+            </div>
+          </button>
+
+          <button
+            type="button"
             onClick={() => handleAction('expenses')}
             className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-rose-50 hover:text-rose-600 transition-all active:scale-95"
           >
-            <span>학원 지출 등록</span>
+            <span>지출 등록</span>
             <div className="w-7 h-7 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
               <Receipt className="w-4 h-4" />
             </div>

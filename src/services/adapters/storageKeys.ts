@@ -6,7 +6,8 @@ export const STORAGE_KEYS = {
   CLASSES: 'piano_app_classes',
   ATTENDANCE: 'piano_app_attendance',
   INVOICES: 'piano_app_invoices',
-  EXPENSES: 'piano_app_expenses',
+  EXPENSES: 'core_expenses',
+  INCOME_ENTRIES: 'core_income_entries',
   CONSULTATIONS: 'piano_app_consultations',
   PRACTICE_RECORDS: 'piano_app_practice_records',
   LESSON_RECORDS: 'piano_app_lesson_records',
@@ -39,6 +40,8 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.NOTIFICATIONS,
   STORAGE_KEYS.SCHEDULES,
   STORAGE_KEYS.SERVICE_OFFERINGS,
+  STORAGE_KEYS.EXPENSES,
+  STORAGE_KEYS.INCOME_ENTRIES,
 ]);
 
 /** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */
@@ -54,7 +57,6 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SONGS,
   STORAGE_KEYS.EVENTS,
   STORAGE_KEYS.PERFORMANCE_VIDEOS,
-  STORAGE_KEYS.EXPENSES,
 ]);
 
 /** 클라이언트 전용 localStorage 키 (Supabase sync 제외) */

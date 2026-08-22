@@ -10,6 +10,7 @@ import {
   getUserRoleBadge,
   getUserRoleLabel,
   isOrgAdmin,
+  isOrgOwner,
   isStaffRole,
 } from './permissions';
 
@@ -28,6 +29,7 @@ export function usePermissions() {
     staffId,
     industry,
     isAdmin: isOrgAdmin(role),
+    isOwner: isOrgOwner(role),
     isStaff: isStaffRole(role),
     allowedTabs,
     canAccess: (tab: NavTab) => canAccessTab(role, industry, tab),

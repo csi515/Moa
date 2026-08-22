@@ -40,7 +40,13 @@ import {
 } from './entityMappers';
 import type { Booking, ServiceOffering } from '../../../core/types/schedule';
 import { normalizeIndustryType } from '../../../core/industry/types';
-import { diffIds } from './utils';
+import {
+  expenseToCoreRow,
+  coreRowToExpense,
+  incomeToCoreRow,
+  coreRowToIncome,
+} from './financeEntityMappers';
+import type { FinanceExpense, IncomeEntry } from '../../../core/finance/types';
 
 type CoreClient = SupabaseClient<Database, 'core'>;
 
@@ -67,6 +73,8 @@ export async function hydrateCoreEntities(
     servicesResult,
     schedulesResult,
     paymentsResult,
+    expensesResult,
+    incomeResult,
     consultationsResult,
     notificationsResult,
   ] = await Promise.all([
@@ -77,6 +85,8 @@ export async function hydrateCoreEntities(
     client.from('services').select('*').eq('organization_id', organizationId),
     client.from('schedules').select('*').eq('organization_id', organizationId),
     client.from('payments').select('*').eq('organization_id', organizationId),
+    client.from('expenses').select('*').eq('organization_id', organizationId),
+    client.from('income_entries').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
   ]);
@@ -89,6 +99,8 @@ export async function hydrateCoreEntities(
     services: servicesResult.error,
     schedules: schedulesResult.error,
     payments: paymentsResult.error,
+    expenses: expensesResult.error,
+    income: incomeResult.error,
     consultations: consultationsResult.error,
     notifications: notificationsResult.error,
   });
@@ -153,6 +165,8 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.SERVICE_OFFERINGS, serviceOfferings],
     [STORAGE_KEYS.SCHEDULES, bookings],
     [STORAGE_KEYS.INVOICES, invoices],
+    [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(coreRowToExpense)],
+    [STORAGE_KEYS.INCOME_ENTRIES, (incomeResult.data || []).map(coreRowToIncome)],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
   ];
@@ -187,6 +201,10 @@ export async function persistCoreEntity(
       return persistSchedules(client, organizationId, cache);
     case STORAGE_KEYS.INVOICES:
       return persistPayments(client, organizationId, cache);
+    case STORAGE_KEYS.EXPENSES:
+      return persistExpenses(client, organizationId, cache);
+    case STORAGE_KEYS.INCOME_ENTRIES:
+      return persistIncomeEntries(client, organizationId, cache);
     case STORAGE_KEYS.CONSULTATIONS:
       return persistConsultations(client, organizationId, cache);
     case STORAGE_KEYS.NOTIFICATIONS:
@@ -337,6 +355,40 @@ async function persistPayments(
   writeLocal(STORAGE_KEYS.INVOICES, invoices);
 }
 
+async function persistExpenses(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const expenses = cache.get<FinanceExpense[]>(STORAGE_KEYS.EXPENSES) || [];
+
+  await syncTable(client, 'expenses', orgId, expenses.map((e) => e.id), async () => {
+    for (const expense of expenses) {
+      const { error } = await client.from('expenses').upsert(expenseToCoreRow(expense, orgId));
+      if (error) console.error('Failed to upsert expense:', error);
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.EXPENSES, expenses);
+}
+
+async function persistIncomeEntries(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const entries = cache.get<IncomeEntry[]>(STORAGE_KEYS.INCOME_ENTRIES) || [];
+
+  await syncTable(client, 'income_entries', orgId, entries.map((e) => e.id), async () => {
+    for (const entry of entries) {
+      const { error } = await client.from('income_entries').upsert(incomeToCoreRow(entry, orgId));
+      if (error) console.error('Failed to upsert income entry:', error);
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.INCOME_ENTRIES, entries);
+}
+
 async function persistConsultations(
   client: CoreClient,
   orgId: string,
@@ -385,7 +437,7 @@ async function persistNotifications(
 
 async function syncTable(
   client: CoreClient,
-  table: 'staff' | 'customers' | 'services' | 'schedules' | 'payments' | 'consultations' | 'notifications',
+  table: 'staff' | 'customers' | 'services' | 'schedules' | 'payments' | 'expenses' | 'income_entries' | 'consultations' | 'notifications',
   orgId: string,
   currentIds: string[],
   upsertAll: () => Promise<void>

@@ -1,3 +1,4 @@
+import type { FinanceSummary, IncomeEntry } from '../core/finance/types';
 import {
   Student,
   Parent,
@@ -94,6 +95,7 @@ export const StorageService = {
       attendance: this.getAttendance(),
       invoices: this.getInvoices(),
       expenses: this.getExpenses(),
+      incomeEntries: this.getIncomeEntries(),
       consultations: this.getConsultations(),
       practiceRecords: this.getPracticeRecords(),
       lessonRecords: this.getLessonRecords(),
@@ -118,6 +120,7 @@ export const StorageService = {
       if (data.attendance) setItem(STORAGE_KEYS.ATTENDANCE, data.attendance);
       if (data.invoices) setItem(STORAGE_KEYS.INVOICES, data.invoices);
       if (data.expenses) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
+      if (data.incomeEntries) setItem(STORAGE_KEYS.INCOME_ENTRIES, data.incomeEntries);
       if (data.consultations) setItem(STORAGE_KEYS.CONSULTATIONS, data.consultations);
       if (data.practiceRecords) setItem(STORAGE_KEYS.PRACTICE_RECORDS, data.practiceRecords);
       if (data.lessonRecords) setItem(STORAGE_KEYS.LESSON_RECORDS, data.lessonRecords);
@@ -563,6 +566,105 @@ export const StorageService = {
       return true;
     }
     return false;
+  },
+
+  // Income entries (core finance)
+  getIncomeEntries(): IncomeEntry[] {
+    return getItem<IncomeEntry[]>(STORAGE_KEYS.INCOME_ENTRIES, []);
+  },
+
+  saveIncomeEntry(entry: Omit<IncomeEntry, 'id'> & { id?: string }): IncomeEntry {
+    const list = this.getIncomeEntries();
+    let saved: IncomeEntry;
+    if (entry.id) {
+      const idx = list.findIndex((e) => e.id === entry.id);
+      if (idx >= 0) {
+        saved = { ...list[idx], ...entry, id: entry.id };
+        list[idx] = saved;
+      } else {
+        saved = { ...entry, id: entry.id };
+        list.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...entry,
+        id: generateEntityId('inc'),
+        sourceType: entry.sourceType || 'manual',
+      };
+      list.unshift(saved);
+    }
+    setItem(STORAGE_KEYS.INCOME_ENTRIES, list);
+    return saved;
+  },
+
+  deleteIncomeEntry(id: string): boolean {
+    const list = this.getIncomeEntries();
+    const filtered = list.filter((e) => e.id !== id);
+    if (filtered.length !== list.length) {
+      setItem(STORAGE_KEYS.INCOME_ENTRIES, filtered);
+      return true;
+    }
+    return false;
+  },
+
+  /** 업종별 재무 요약 (수입·지출·순수익) */
+  getFinanceSummary(industry: string = 'piano'): FinanceSummary {
+    const expenses = this.getExpenses();
+    const incomeEntries = this.getIncomeEntries();
+    const currentYearMonth = new Date().toISOString().slice(0, 7);
+
+    const getLinkedIncomeForMonth = (ym: string): number => {
+      if (industry !== 'piano') return 0;
+      const tuitionPaid = this.getInvoices()
+        .filter((i) => i.yearMonth === ym)
+        .reduce((sum, i) => sum + i.paidAmount, 0);
+      const textbookPaid = this.getTextbookSales()
+        .filter((s) => s.saleDate.startsWith(ym))
+        .reduce((sum, s) => sum + (s.paidAmount || 0), 0);
+      return tuitionPaid + textbookPaid;
+    };
+
+    const getManualIncomeForMonth = (ym: string): number =>
+      incomeEntries
+        .filter((e) => e.date.startsWith(ym))
+        .reduce((sum, e) => sum + e.amount, 0);
+
+    const getExpenseForMonth = (ym: string): number =>
+      expenses.filter((e) => e.date.startsWith(ym)).reduce((sum, e) => sum + e.amount, 0);
+
+    const manualIncomeThisMonth = getManualIncomeForMonth(currentYearMonth);
+    const linkedIncomeThisMonth = getLinkedIncomeForMonth(currentYearMonth);
+    const totalIncomeThisMonth = manualIncomeThisMonth + linkedIncomeThisMonth;
+    const totalExpenseThisMonth = getExpenseForMonth(currentYearMonth);
+
+    const months: string[] = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.toISOString().slice(0, 7));
+    }
+
+    const monthlyTrend = months.map((ym) => {
+      const income = getManualIncomeForMonth(ym) + getLinkedIncomeForMonth(ym);
+      const expense = getExpenseForMonth(ym);
+      return {
+        yearMonth: ym,
+        monthLabel: `${parseInt(ym.slice(5, 7), 10)}월`,
+        income,
+        expense,
+        net: income - expense,
+      };
+    });
+
+    return {
+      currentYearMonth,
+      totalIncomeThisMonth,
+      totalExpenseThisMonth,
+      netProfitThisMonth: totalIncomeThisMonth - totalExpenseThisMonth,
+      linkedIncomeThisMonth,
+      manualIncomeThisMonth,
+      monthlyTrend,
+    };
   },
 
   // Consultations

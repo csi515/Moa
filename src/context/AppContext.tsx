@@ -12,6 +12,8 @@ export type NavTab =
   | 'tuition' 
   | 'unpaid'
   | 'textbooks'
+  | 'finance'
+  | 'income'
   | 'expenses'
   | 'makeups' 
   | 'consultations' 

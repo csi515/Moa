@@ -1,7 +1,6 @@
 import type {
   AcademyEvent,
   AttendanceRecord,
-  Expense,
   LessonRecord,
   PerformanceVideo,
   PracticeRecord,
@@ -19,14 +18,12 @@ import type { SyncCache } from './coreEntitySync';
 import {
   attendanceToPianoRow,
   eventToPianoRow,
-  expenseToPianoRow,
   inventoryToPianoRow,
   lessonToPianoRow,
   mergeStudentWithPiano,
   paymentToPianoRow,
   pianoRowToAttendance,
   pianoRowToEvent,
-  pianoRowToExpense,
   pianoRowToInventory,
   pianoRowToLesson,
   pianoRowToPayment,
@@ -62,7 +59,6 @@ export async function hydratePianoEntities(
     paymentsResult,
     inventoryResult,
     songsResult,
-    expensesResult,
     eventsResult,
     performanceVideosResult,
   ] = await Promise.all([
@@ -76,7 +72,6 @@ export async function hydratePianoEntities(
     client.from('textbook_payments').select('*').eq('organization_id', organizationId),
     client.from('textbook_inventory_transactions').select('*').eq('organization_id', organizationId),
     client.from('songs').select('*').eq('organization_id', organizationId),
-    client.from('expenses').select('*').eq('organization_id', organizationId),
     client.from('events').select('*').eq('organization_id', organizationId),
     client.from('performance_videos').select('*').eq('organization_id', organizationId),
   ]);
@@ -92,7 +87,6 @@ export async function hydratePianoEntities(
     payments: paymentsResult.error,
     inventory: inventoryResult.error,
     songs: songsResult.error,
-    expenses: expensesResult.error,
     events: eventsResult.error,
     performanceVideos: performanceVideosResult.error,
   });
@@ -131,7 +125,6 @@ export async function hydratePianoEntities(
       (inventoryResult.data || []).map(pianoRowToInventory),
     ],
     [STORAGE_KEYS.SONGS, (songsResult.data || []).map(pianoRowToSong)],
-    [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(pianoRowToExpense)],
     [STORAGE_KEYS.EVENTS, (eventsResult.data || []).map(pianoRowToEvent)],
     [STORAGE_KEYS.PERFORMANCE_VIDEOS, (performanceVideosResult.data || []).map(pianoRowToPerformanceVideo)],
   ];
@@ -187,10 +180,6 @@ export async function persistPianoEntity(
     case STORAGE_KEYS.SONGS:
       return persistPianoTable('songs', organizationId, cache, STORAGE_KEYS.SONGS, (items) =>
         (items as Song[]).map((s) => songToPianoRow(s, organizationId))
-      );
-    case STORAGE_KEYS.EXPENSES:
-      return persistPianoTable('expenses', organizationId, cache, STORAGE_KEYS.EXPENSES, (items) =>
-        (items as Expense[]).map((e) => expenseToPianoRow(e, organizationId))
       );
     case STORAGE_KEYS.EVENTS:
       return persistPianoTable('events', organizationId, cache, STORAGE_KEYS.EVENTS, (items) =>
