@@ -48,6 +48,7 @@ export interface Student {
   specialNotes?: string; // 특이사항 (손가락 유연성, 성향, 알레르기 등)
   memo?: string;
   avatarColor?: string;
+  checkInPinSet?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -470,4 +471,10 @@ export interface AcademySettings {
     holder: string;
   };
   announcement?: string;
+  /** Industry Module 기능 플래그 */
+  features?: {
+    attendance?: {
+      enabled?: boolean;
+    };
+  };
 }

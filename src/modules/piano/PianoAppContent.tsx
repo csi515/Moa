@@ -20,10 +20,10 @@ import {
   FinanceOverviewView,
   IncomeManagementView,
 } from '@/core/finance';
+import { AttendanceManagementView } from '@/core/attendance';
 import {
   DashboardView,
   StudentListView,
-  AttendanceView,
   WeeklyTimetableView,
   TuitionManagementView,
   UnpaidManagementView,
@@ -65,7 +65,7 @@ export const PianoAppContent: React.FC = () => {
       case 'students':
         return <StudentListView />;
       case 'attendance':
-        return <AttendanceView />;
+        return <AttendanceManagementView />;
       case 'timetable':
         return <WeeklyTimetableView />;
       case 'tuition':

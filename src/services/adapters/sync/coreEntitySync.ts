@@ -47,6 +47,13 @@ import {
   coreRowToIncome,
 } from './financeEntityMappers';
 import type { FinanceExpense, IncomeEntry } from '../../../core/finance/types';
+import {
+  coreRowToSession,
+  pinRowsFromCustomers,
+  sessionToCoreRow,
+} from './attendanceEntityMappers';
+import type { AttendanceSession } from '../../../core/attendance/types';
+import { diffIds } from './utils';
 
 type CoreClient = SupabaseClient<Database, 'core'>;
 
@@ -77,6 +84,7 @@ export async function hydrateCoreEntities(
     incomeResult,
     consultationsResult,
     notificationsResult,
+    attendanceSessionsResult,
   ] = await Promise.all([
     client.from('organizations').select('settings, name, industry_type').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
@@ -89,6 +97,7 @@ export async function hydrateCoreEntities(
     client.from('income_entries').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
+    client.from('attendance_sessions').select('*').eq('organization_id', organizationId),
   ]);
 
   logErrors({
@@ -103,6 +112,7 @@ export async function hydrateCoreEntities(
     income: incomeResult.error,
     consultations: consultationsResult.error,
     notifications: notificationsResult.error,
+    attendanceSessions: attendanceSessionsResult.error,
   });
 
   const defaultSettings = readLocal<AcademySettings>(STORAGE_KEYS.SETTINGS, {
@@ -155,6 +165,13 @@ export async function hydrateCoreEntities(
   );
 
   const notifications = (notificationsResult.data || []).map(notificationRowToApp);
+  const attendanceSessions = (attendanceSessionsResult.data || []).map(coreRowToSession);
+  const customerPins = pinRowsFromCustomers(
+    (customersResult.data || []).map((c) => ({
+      id: c.id,
+      check_in_pin_hash: (c as { check_in_pin_hash?: string | null }).check_in_pin_hash ?? null,
+    }))
+  );
 
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.SETTINGS, settings],
@@ -169,6 +186,8 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.INCOME_ENTRIES, (incomeResult.data || []).map(coreRowToIncome)],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
+    [STORAGE_KEYS.ATTENDANCE_SESSIONS, attendanceSessions],
+    [STORAGE_KEYS.CUSTOMER_PINS, customerPins],
   ];
 
   for (const [key, value] of entities) {
@@ -209,6 +228,10 @@ export async function persistCoreEntity(
       return persistConsultations(client, organizationId, cache);
     case STORAGE_KEYS.NOTIFICATIONS:
       return persistNotifications(client, organizationId, cache);
+    case STORAGE_KEYS.ATTENDANCE_SESSIONS:
+      return persistAttendanceSessions(client, organizationId, cache);
+    case STORAGE_KEYS.CUSTOMER_PINS:
+      return persistCustomerPins(client, organizationId, cache);
     default:
       return;
   }
@@ -256,8 +279,18 @@ async function persistCustomers(
   const allIds = [...students.map((s) => s.id), ...parents.map((p) => p.id)];
 
   await syncTable(client, 'customers', orgId, allIds, async () => {
+    const pinMap = new Map(
+      (cache.get<{ customerId: string; pinHash: string }[]>(STORAGE_KEYS.CUSTOMER_PINS) || []).map(
+        (p) => [p.customerId, p.pinHash]
+      )
+    );
+
     for (const student of students) {
-      const { error } = await client.from('customers').upsert(studentToCustomerRow(student, orgId));
+      const row = {
+        ...studentToCustomerRow(student, orgId),
+        check_in_pin_hash: pinMap.get(student.id) ?? null,
+      };
+      const { error } = await client.from('customers').upsert(row);
       if (error) console.error('Failed to upsert student:', error);
 
       const contact = studentContactRow(student, orgId);
@@ -435,9 +468,64 @@ async function persistNotifications(
   writeLocal(STORAGE_KEYS.NOTIFICATIONS, notifications);
 }
 
+async function persistAttendanceSessions(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const sessions = cache.get<AttendanceSession[]>(STORAGE_KEYS.ATTENDANCE_SESSIONS) || [];
+
+  await syncTable(
+    client,
+    'attendance_sessions',
+    orgId,
+    sessions.map((s) => s.id),
+    async () => {
+      for (const session of sessions) {
+        const { error } = await client
+          .from('attendance_sessions')
+          .upsert(sessionToCoreRow(session, orgId));
+        if (error) console.error('Failed to upsert attendance session:', error);
+      }
+    }
+  );
+
+  writeLocal(STORAGE_KEYS.ATTENDANCE_SESSIONS, sessions);
+}
+
+async function persistCustomerPins(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const pins = cache.get<{ customerId: string; pinHash: string }[]>(STORAGE_KEYS.CUSTOMER_PINS) || [];
+  const pinMap = new Map(pins.map((p) => [p.customerId, p.pinHash]));
+
+  for (const [customerId, pinHash] of pinMap) {
+    const { error } = await client
+      .from('customers')
+      .update({ check_in_pin_hash: pinHash })
+      .eq('id', customerId)
+      .eq('organization_id', orgId);
+    if (error) console.error('Failed to update customer PIN:', error);
+  }
+
+  writeLocal(STORAGE_KEYS.CUSTOMER_PINS, pins);
+}
+
 async function syncTable(
   client: CoreClient,
-  table: 'staff' | 'customers' | 'services' | 'schedules' | 'payments' | 'expenses' | 'income_entries' | 'consultations' | 'notifications',
+  table:
+    | 'staff'
+    | 'customers'
+    | 'services'
+    | 'schedules'
+    | 'payments'
+    | 'expenses'
+    | 'income_entries'
+    | 'consultations'
+    | 'notifications'
+    | 'attendance_sessions',
   orgId: string,
   currentIds: string[],
   upsertAll: () => Promise<void>

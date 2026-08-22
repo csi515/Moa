@@ -1,4 +1,5 @@
 import { getCoreClient } from '../../../lib/supabase';
+import { StorageService } from '../../../services/storage';
 
 export type ParentAccountStatus = 'none' | 'invited' | 'connected';
 
@@ -121,7 +122,6 @@ export async function syncParentStudentLinks(
 
 /** 전체 학부모-자녀 링크를 Parent.studentIds에서 재구성 */
 export async function rebuildAllParentStudentLinks(organizationId: string): Promise<void> {
-  const { StorageService } = await import('../../../services/storage');
   const parents = StorageService.getParents();
   for (const p of parents) {
     if (p.studentIds.length > 0) {

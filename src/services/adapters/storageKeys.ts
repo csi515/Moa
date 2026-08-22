@@ -5,6 +5,8 @@ export const STORAGE_KEYS = {
   TEACHERS: 'piano_app_teachers',
   CLASSES: 'piano_app_classes',
   ATTENDANCE: 'piano_app_attendance',
+  ATTENDANCE_SESSIONS: 'core_attendance_sessions',
+  CUSTOMER_PINS: 'core_customer_pins',
   INVOICES: 'piano_app_invoices',
   EXPENSES: 'core_expenses',
   INCOME_ENTRIES: 'core_income_entries',
@@ -48,6 +50,8 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SERVICE_OFFERINGS,
   STORAGE_KEYS.EXPENSES,
   STORAGE_KEYS.INCOME_ENTRIES,
+  STORAGE_KEYS.ATTENDANCE_SESSIONS,
+  STORAGE_KEYS.CUSTOMER_PINS,
 ]);
 
 /** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */

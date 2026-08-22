@@ -17,6 +17,7 @@ export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded' | 'cancel
 export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'online' | 'other';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type NotificationChannel = 'app' | 'email' | 'sms' | 'kakao';
+export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
 
 export interface Database {
   core: {
@@ -140,6 +141,7 @@ export interface Database {
           status: string;
           metadata: Json;
           memo: string | null;
+          check_in_pin_hash: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -152,6 +154,7 @@ export interface Database {
           status?: string;
           metadata?: Json;
           memo?: string | null;
+          check_in_pin_hash?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -164,6 +167,7 @@ export interface Database {
           status?: string;
           metadata?: Json;
           memo?: string | null;
+          check_in_pin_hash?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -175,6 +179,38 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      attendance_sessions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          session_date: string;
+          check_in_at: string | null;
+          check_out_at: string | null;
+          check_in_method: CheckInMethod | null;
+          check_out_method: CheckInMethod | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          session_date: string;
+          check_in_at?: string | null;
+          check_out_at?: string | null;
+          check_in_method?: CheckInMethod | null;
+          check_out_method?: CheckInMethod | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['attendance_sessions']['Insert']>;
+        Relationships: [];
       };
       customer_contacts: {
         Row: {

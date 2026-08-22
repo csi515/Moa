@@ -6,6 +6,8 @@ import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels
 import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord, LessonRecord, TextbookSale, PerformanceVideo } from '@/types';
 import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
+import { CustomerPinPanel } from '@/core/attendance';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '../textbooks/TextbookReceiptModal';
 import {
@@ -65,6 +67,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   onInitialTabApplied,
 }) => {
   const { showToast, openConfirmDialog, currentUser, setActiveTab, triggerRefresh } = useApp();
+  const { attendanceEnabled } = usePermissions();
   const [currentTab, setCurrentTab] = useState<DetailTab>('info');
 
   React.useEffect(() => {
@@ -466,6 +469,12 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                 </div>
               </div>
+
+              {attendanceEnabled && (
+                <div className="md:col-span-2">
+                  <CustomerPinPanel student={student} />
+                </div>
+              )}
 
               {/* Special notes highlight */}
               {student.specialNotes && (

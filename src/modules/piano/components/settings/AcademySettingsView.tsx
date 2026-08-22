@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { AcademySettings } from '@/types';
+import { getDefaultAttendanceSettings } from '@/core/attendance/features';
 import {
   Settings,
   Building,
@@ -14,8 +16,11 @@ import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const AcademySettingsView: React.FC = () => {
   const { showToast } = useApp();
+  const { industry } = usePermissions();
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
+  const attendanceDefaults = getDefaultAttendanceSettings(industry);
+  const attendanceEnabled = settings.features?.attendance?.enabled ?? attendanceDefaults.enabled;
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -194,6 +199,40 @@ export const AcademySettingsView: React.FC = () => {
                 onChange={(e) => setSettings({ ...settings, bankAccount: e.target.value })}
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
               />
+            </div>
+
+            <div className="pt-4 border-t border-slate-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700">출결 Industry Module</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    PIN 입·퇴실 기능 (학원·태권도장 등). 필라테스·피부관리샵 등은 비활성화 권장
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={attendanceEnabled}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      features: {
+                        ...settings.features,
+                        attendance: { enabled: !attendanceEnabled },
+                      },
+                    })
+                  }
+                  className={`relative w-12 h-7 rounded-full transition-colors ${
+                    attendanceEnabled ? 'bg-indigo-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                      attendanceEnabled ? 'translate-x-5' : ''
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             <div className="flex justify-end pt-4">

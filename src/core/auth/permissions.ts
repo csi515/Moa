@@ -1,6 +1,8 @@
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
 import type { UserRole } from '@/types';
+import { isAttendanceModuleEnabled } from '@/core/attendance/features';
+import type { AcademySettings } from '@/types';
 
 /** owner/admin/manager — 학원 운영 전체 메뉴 */
 export function isOrgAdmin(role: UserRole | string | null | undefined): boolean {
@@ -88,37 +90,48 @@ function withFinanceTabs(base: NavTab[], role: UserRole | string | null | undefi
   return merged;
 }
 
+function filterAttendanceTabs(tabs: NavTab[], attendanceEnabled: boolean): NavTab[] {
+  if (attendanceEnabled) return tabs;
+  return tabs.filter((t) => t !== 'attendance' && t !== 'makeups');
+}
+
 export function getAllowedTabs(
   role: UserRole | string | null | undefined,
-  industry: IndustryType | string | null | undefined
+  industry: IndustryType | string | null | undefined,
+  settings?: AcademySettings | null
 ): NavTab[] {
   const industryType = industry === 'pilates' ? 'pilates' : 'piano';
+  const attendanceEnabled = isAttendanceModuleEnabled(settings, industryType);
 
   if (isOrgAdmin(role)) {
     const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
-    return withFinanceTabs(base, role);
+    return filterAttendanceTabs(withFinanceTabs(base, role), attendanceEnabled);
   }
 
   if (isStaffRole(role)) {
     const staffTabs = industryType === 'pilates' ? PILATES_STAFF_TABS : PIANO_STAFF_TABS;
-    return industryType === 'piano' ? [...staffTabs, ...PIANO_EDUCATION_TABS.filter((t) => !staffTabs.includes(t))] : staffTabs;
+    const merged =
+      industryType === 'piano'
+        ? [...staffTabs, ...PIANO_EDUCATION_TABS.filter((t) => !staffTabs.includes(t))]
+        : staffTabs;
+    return filterAttendanceTabs(merged, attendanceEnabled);
   }
 
   if (isParentRole(role)) {
     return [];
   }
 
-  // role 미확정 시 기본 전체 접근 (localStorage 단독 모드)
   const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
-  return withFinanceTabs(base, role);
+  return filterAttendanceTabs(withFinanceTabs(base, role), attendanceEnabled);
 }
 
 export function canAccessTab(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined,
-  tab: NavTab
+  tab: NavTab,
+  settings?: AcademySettings | null
 ): boolean {
-  return getAllowedTabs(role, industry).includes(tab);
+  return getAllowedTabs(role, industry, settings).includes(tab);
 }
 
 export function getDefaultTab(

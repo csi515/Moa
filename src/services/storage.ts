@@ -45,6 +45,13 @@ import {
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
 import { setIndustryType, getIndustryType } from './adapters/storageContext';
+import type { AttendanceSession, CheckInMethod, PinCheckResult } from '../core/attendance/types';
+import { isAttendanceModuleEnabled } from '../core/attendance/features';
+import {
+  assignCustomerPin,
+  generateUniquePin,
+  toggleCheckInByPinLocal,
+} from '../core/attendance/services/attendanceService';
 
 type Listener = () => void;
 
@@ -100,6 +107,8 @@ export const StorageService = {
       teachers: this.getTeachers(),
       classes: this.getClasses(),
       attendance: this.getAttendance(),
+      attendanceSessions: this.getAttendanceSessions(),
+      customerPins: this.getCustomerPins(),
       invoices: this.getInvoices(),
       expenses: this.getExpenses(),
       incomeEntries: this.getIncomeEntries(),
@@ -125,6 +134,8 @@ export const StorageService = {
       if (data.teachers) setItem(STORAGE_KEYS.TEACHERS, data.teachers);
       if (data.classes) setItem(STORAGE_KEYS.CLASSES, data.classes);
       if (data.attendance) setItem(STORAGE_KEYS.ATTENDANCE, data.attendance);
+      if (data.attendanceSessions) setItem(STORAGE_KEYS.ATTENDANCE_SESSIONS, data.attendanceSessions);
+      if (data.customerPins) setItem(STORAGE_KEYS.CUSTOMER_PINS, data.customerPins);
       if (data.invoices) setItem(STORAGE_KEYS.INVOICES, data.invoices);
       if (data.expenses) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
       if (data.incomeEntries) setItem(STORAGE_KEYS.INCOME_ENTRIES, data.incomeEntries);
@@ -417,6 +428,115 @@ export const StorageService = {
       return true;
     }
     return false;
+  },
+
+  // Attendance sessions (PIN check-in/out)
+  getAttendanceSessions(): AttendanceSession[] {
+    return getItem<AttendanceSession[]>(STORAGE_KEYS.ATTENDANCE_SESSIONS, []);
+  },
+
+  saveAttendanceSessions(sessions: AttendanceSession[]): void {
+    setItem(STORAGE_KEYS.ATTENDANCE_SESSIONS, sessions);
+  },
+
+  saveAttendanceSession(session: AttendanceSession): AttendanceSession {
+    const list = this.getAttendanceSessions();
+    const idx = list.findIndex((s) => s.id === session.id);
+    if (idx >= 0) {
+      list[idx] = session;
+    } else {
+      list.unshift(session);
+    }
+    setItem(STORAGE_KEYS.ATTENDANCE_SESSIONS, list);
+    return session;
+  },
+
+  getCustomerPins(): { customerId: string; pinHash: string }[] {
+    return getItem(STORAGE_KEYS.CUSTOMER_PINS, []);
+  },
+
+  hasCustomerPin(customerId: string): boolean {
+    return this.getCustomerPins().some((p) => p.customerId === customerId);
+  },
+
+  setCustomerPinHash(customerId: string, pinHash: string): void {
+    const list = this.getCustomerPins().filter((p) => p.customerId !== customerId);
+    list.push({ customerId, pinHash });
+    setItem(STORAGE_KEYS.CUSTOMER_PINS, list);
+
+    const students = this.getStudents();
+    const idx = students.findIndex((s) => s.id === customerId);
+    if (idx >= 0) {
+      students[idx] = { ...students[idx], checkInPinSet: true };
+      setItem(STORAGE_KEYS.STUDENTS, students);
+    }
+  },
+
+  clearCustomerPin(customerId: string): void {
+    const list = this.getCustomerPins().filter((p) => p.customerId !== customerId);
+    setItem(STORAGE_KEYS.CUSTOMER_PINS, list);
+
+    const students = this.getStudents();
+    const idx = students.findIndex((s) => s.id === customerId);
+    if (idx >= 0) {
+      students[idx] = { ...students[idx], checkInPinSet: false };
+      setItem(STORAGE_KEYS.STUDENTS, students);
+    }
+  },
+
+  async setCustomerPin(
+    customerId: string,
+    pin: string,
+    organizationId: string
+  ): Promise<{ ok: true } | { ok: false; error: 'invalid_pin_format' | 'pin_already_used' }> {
+    const result = await assignCustomerPin({
+      organizationId,
+      customerId,
+      pin,
+      pinRecords: this.getCustomerPins(),
+    });
+    if (!result.ok) return result;
+    this.setCustomerPinHash(customerId, result.pinHash);
+    return { ok: true };
+  },
+
+  async generateCustomerPin(
+    customerId: string,
+    organizationId: string
+  ): Promise<{ pin: string }> {
+    const { pin, pinHash } = await generateUniquePin({
+      organizationId,
+      customerId,
+      pinRecords: this.getCustomerPins(),
+    });
+    this.setCustomerPinHash(customerId, pinHash);
+    return { pin };
+  },
+
+  async toggleCheckInByPin(
+    pin: string,
+    method: CheckInMethod,
+    organizationId: string
+  ): Promise<PinCheckResult> {
+    const settings = this.getSettings();
+    const industry = getIndustryType() || 'piano';
+    const moduleEnabled = isAttendanceModuleEnabled(settings, industry);
+
+    const { result, sessions } = await toggleCheckInByPinLocal({
+      organizationId,
+      pin,
+      method,
+      pinRecords: this.getCustomerPins(),
+      sessions: this.getAttendanceSessions(),
+      students: this.getStudents(),
+      moduleEnabled,
+    });
+
+    if (result.success) {
+      this.saveAttendanceSessions(sessions);
+    }
+
+    return result;
   },
 
   // Tuition Invoices & Payments
