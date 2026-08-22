@@ -104,7 +104,7 @@ export const TuitionPaymentModal: React.FC<TuitionPaymentModalProps> = ({
           </button>
           <button
             type="submit"
-            className="px-5 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md"
+            className="px-5 py-2.5 min-h-[44px] text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md"
           >
             수납 완료 저장
           </button>

@@ -2,11 +2,17 @@ import React from 'react';
 import { CreditCard, Search, Users } from 'lucide-react';
 import { ViewMode } from './tuitionViewTypes';
 
+interface MonthOption {
+  value: string;
+  label: string;
+}
+
 interface TuitionFilterBarProps {
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   selectedMonth: string;
   onSelectedMonthChange: (month: string) => void;
+  monthOptions: MonthOption[];
   statusFilter: string;
   onStatusFilterChange: (status: string) => void;
   searchQuery: string;
@@ -20,6 +26,7 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
   onViewModeChange,
   selectedMonth,
   onSelectedMonthChange,
+  monthOptions,
   statusFilter,
   onStatusFilterChange,
   searchQuery,
@@ -58,12 +65,13 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
         <select
           value={selectedMonth}
           onChange={(e) => onSelectedMonthChange(e.target.value)}
-          className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
         >
-          <option value="2025-08">2025년 8월</option>
-          <option value="2025-07">2025년 7월</option>
-          <option value="2025-06">2025년 6월</option>
-          <option value="2025-05">2025년 5월</option>
+          {monthOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
         </select>
 
         {viewMode === 'invoices' && (
@@ -75,6 +83,7 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
             <option value="ALL">전체 상태</option>
             <option value="paid">수납 완료</option>
             <option value="unpaid">미납</option>
+            <option value="partial">일부 납부</option>
             <option value="overdue">연체/기한초과</option>
           </select>
         )}

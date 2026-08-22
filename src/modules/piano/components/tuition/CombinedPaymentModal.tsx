@@ -7,18 +7,22 @@ import { formatCurrency } from '@/utils/formatters';
 
 interface CombinedPaymentModalProps {
   student: Student;
+  /** 미지정 시 전체 미납 항목 조회, 수납 시에는 해당 월 기준 */
+  yearMonth?: string;
   onSuccess: () => void;
   onClose: () => void;
 }
 
 export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   student,
+  yearMonth,
   onSuccess,
   onClose
 }) => {
   const { showToast, triggerRefresh } = useApp();
+  const effectiveYearMonth = yearMonth ?? new Date().toISOString().slice(0, 7);
 
-  const billingSummary = StorageService.getStudentBillingSummary(student.id);
+  const billingSummary = StorageService.getStudentBillingSummary(student.id, yearMonth);
   const unpaidInvoices = (billingSummary.invoices || []).filter((i) => i.unpaidAmount > 0);
   const unpaidSales = (billingSummary.textbookSales || []).filter((s) => s.unpaidAmount > 0);
 
@@ -58,7 +62,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
     e.preventDefault();
 
     if (grandSelectedTotal <= 0) {
-      alert('납부할 항목을 1개 이상 선택해주세요.');
+      showToast('납부할 항목을 1개 이상 선택해주세요.', 'warning');
       return;
     }
 
@@ -69,7 +73,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
 
       const res = StorageService.recordCombinedPayment({
         studentId: student.id,
-        yearMonth: new Date().toISOString().slice(0, 7),
+        yearMonth: effectiveYearMonth,
         tuitionAmount: selectedInvoiceTotal,
         textbookPayments,
         paymentMethod,

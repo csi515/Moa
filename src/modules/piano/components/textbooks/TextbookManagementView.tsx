@@ -145,7 +145,7 @@ export const TextbookManagementView: React.FC = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={() => openSaleModal()}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
           >
             <ShoppingBag className="w-4 h-4" />
             교재 판매 등록
@@ -155,7 +155,7 @@ export const TextbookManagementView: React.FC = () => {
               setEditingTextbook(null);
               setIsFormModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-xs"
           >
             <Plus className="w-4 h-4 text-indigo-600" />
             새 교재 등록

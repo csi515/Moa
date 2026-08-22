@@ -6,6 +6,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface TuitionCombinedBillingViewProps {
   students: Student[];
+  selectedMonth: string;
   searchQuery: string;
   onSelectStudent: (studentId: string) => void;
   onCombinedPay: (student: Student) => void;
@@ -13,6 +14,7 @@ interface TuitionCombinedBillingViewProps {
 
 export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProps> = ({
   students,
+  selectedMonth,
   searchQuery,
   onSelectStudent,
   onCombinedPay
@@ -41,10 +43,17 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 font-medium">
-          {students
+          {students.filter((s) => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 ? (
+            <tr>
+              <td colSpan={7} className="px-6 py-12 text-center text-slate-400">
+                검색 조건에 맞는 원생이 없습니다.
+              </td>
+            </tr>
+          ) : (
+          students
             .filter((s) => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase()))
             .map((student) => {
-              const summary = StorageService.getStudentBillingSummary(student.id);
+              const summary = StorageService.getStudentBillingSummary(student.id, selectedMonth);
               const hasUnpaid = (summary.totalUnpaid || 0) > 0;
 
               return (
@@ -119,7 +128,8 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
                   </td>
                 </tr>
               );
-            })}
+            })
+          )}
         </tbody>
       </table>
     </div>

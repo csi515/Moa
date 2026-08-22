@@ -59,10 +59,12 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                       </button>
                     </td>
                     <td className="py-3.5 px-4 text-slate-600">
-                      {formatCurrency(inv.baseTuition)}
+                      {formatCurrency(inv.baseTuition ?? inv.baseFee ?? 0)}
                     </td>
                     <td className="py-3.5 px-4 text-rose-500 font-medium">
-                      {inv.discountAmount > 0 ? `-${formatCurrency(inv.discountAmount)}` : '-'}
+                      {(inv.discountAmount ?? inv.discount ?? 0) > 0
+                        ? `-${formatCurrency(inv.discountAmount ?? inv.discount ?? 0)}`
+                        : '-'}
                     </td>
                     <td className="py-3.5 px-4 font-extrabold text-slate-900">
                       {formatCurrency(inv.totalAmount)}
@@ -90,7 +92,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         {inv.status !== 'paid' ? (
                           <button
                             onClick={() => onOpenPayModal(inv)}
-                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer"
+                            className="px-3 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer"
                           >
                             수납 결제
                           </button>
@@ -176,7 +178,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                   {inv.status !== 'paid' ? (
                     <button
                       onClick={() => onOpenPayModal(inv)}
-                      className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
+                      className="px-3 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
                     >
                       수납 결제
                     </button>

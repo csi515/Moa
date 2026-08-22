@@ -68,7 +68,7 @@ export const TuitionReceiptModal: React.FC<TuitionReceiptModalProps> = ({
           </div>
           <div className="flex justify-between py-1 border-b border-slate-100">
             <span className="text-slate-500">수 납 일 자</span>
-            <span className="font-mono text-slate-800">{invoice.paidDate || invoice.dueDate}</span>
+            <span className="font-mono text-slate-800">{invoice.paidAt || invoice.paidDate || invoice.dueDate}</span>
           </div>
         </div>
 
