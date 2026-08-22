@@ -62,6 +62,11 @@ function setItem<T>(key: StorageKey, value: T): void {
   getStorageAdapter().setItem(key, value);
 }
 
+/** Supabase 모드에서는 UUID, local 모드에서는 prefix-timestamp ID */
+function generateEntityId(prefix: string): string {
+  return getStorageBackend() === 'supabase' ? crypto.randomUUID() : `${prefix}-${Date.now()}`;
+}
+
 export const StorageService = {
   /** 현재 저장소 백엔드 (local | supabase) */
   getBackend() {
@@ -276,7 +281,7 @@ export const StorageService = {
       const autoNum = `P-${new Date().getFullYear()}-${String(list.length + 1).padStart(3, '0')}`;
       saved = {
         ...student,
-        id: `s-${Date.now()}`,
+        id: generateEntityId('s'),
         studentNumber: student.studentNumber || autoNum,
         createdAt: now,
         updatedAt: now
@@ -323,7 +328,7 @@ export const StorageService = {
     } else {
       saved = {
         ...parent,
-        id: `p-${Date.now()}`,
+        id: generateEntityId('p'),
         createdAt: new Date().toISOString().slice(0, 10)
       };
       list.unshift(saved);
@@ -362,7 +367,7 @@ export const StorageService = {
     } else {
       saved = {
         ...teacher,
-        id: getStorageBackend() === 'supabase' ? crypto.randomUUID() : `t-${Date.now()}`,
+        id: generateEntityId('t'),
       };
       list.push(saved);
     }
@@ -400,7 +405,7 @@ export const StorageService = {
     } else {
       saved = {
         ...cls,
-        id: `c-${Date.now()}`
+        id: generateEntityId('c')
       };
       list.push(saved);
     }
@@ -439,7 +444,7 @@ export const StorageService = {
     } else {
       saved = {
         ...record,
-        id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+        id: generateEntityId('att'),
         createdAt: now
       };
       list.unshift(saved);
@@ -463,7 +468,7 @@ export const StorageService = {
       } else {
         list.unshift({
           ...record,
-          id: `att-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+          id: generateEntityId('att'),
           createdAt: now
         });
       }
@@ -502,7 +507,7 @@ export const StorageService = {
     } else {
       saved = {
         ...inv,
-        id: `inv-${Date.now()}`
+        id: generateEntityId('inv')
       };
       list.unshift(saved);
     }
@@ -554,7 +559,7 @@ export const StorageService = {
     const dueDate = `${ym}-${dueDay}`;
 
     const newInv: TuitionInvoice = {
-      id: `inv-${ym}-${student.id}-${Date.now().toString(36).slice(-4)}`,
+      id: generateEntityId('inv'),
       studentId: student.id,
       studentName: student.name,
       yearMonth: ym,
@@ -609,7 +614,7 @@ export const StorageService = {
     } else {
       saved = {
         ...exp,
-        id: `exp-${Date.now()}`
+        id: generateEntityId('exp')
       };
       list.unshift(saved);
     }
@@ -648,7 +653,7 @@ export const StorageService = {
     } else {
       saved = {
         ...cst,
-        id: `cst-${Date.now()}`,
+        id: generateEntityId('cst'),
         createdAt: now
       };
       list.unshift(saved);
@@ -688,7 +693,7 @@ export const StorageService = {
     } else {
       saved = {
         ...rec,
-        id: `pr-${Date.now()}`,
+        id: generateEntityId('pr'),
         createdAt: now
       };
       list.unshift(saved);
@@ -728,7 +733,7 @@ export const StorageService = {
     } else {
       saved = {
         ...rec,
-        id: `lr-${Date.now()}`,
+        id: generateEntityId('lr'),
         createdAt: now
       };
       list.unshift(saved);
@@ -1086,7 +1091,7 @@ export const StorageService = {
 
     const newPayment: TextbookPayment = {
       ...data,
-      id: `tp-${Date.now()}-${randNum}`,
+      id: generateEntityId('tp'),
       receiptNumber,
       createdAt: now.toISOString()
     };
@@ -1167,7 +1172,7 @@ export const StorageService = {
     const list = this.getTextbookInventoryTransactions();
     const newTx: TextbookInventoryTransaction = {
       ...tx,
-      id: `tit-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+      id: generateEntityId('tit'),
       createdAt: new Date().toISOString()
     };
     list.unshift(newTx);
@@ -1415,7 +1420,7 @@ export const StorageService = {
     } else {
       saved = {
         ...song,
-        id: `song-${Date.now()}`
+        id: generateEntityId('song')
       };
       list.push(saved);
     }
@@ -1454,7 +1459,7 @@ export const StorageService = {
     } else {
       saved = {
         ...notif,
-        id: `notif-${Date.now()}`,
+        id: generateEntityId('notif'),
         createdAt: now
       };
       list.unshift(saved);

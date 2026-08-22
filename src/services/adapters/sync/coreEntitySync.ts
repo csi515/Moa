@@ -1,0 +1,394 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type {
+  AcademySettings,
+  AppNotification,
+  AttendanceRecord,
+  ClassItem,
+  Consultation,
+  Parent,
+  Student,
+  Teacher,
+  TuitionInvoice,
+} from '../../../types';
+import type { Database } from '../../../lib/supabase/database.types';
+import { getCoreClient } from '../../../lib/supabase';
+import { readLocal, writeLocal } from '../localStorageEngine';
+import { STORAGE_KEYS, type StorageKey } from '../storageKeys';
+import {
+  attendanceToScheduleRow,
+  buildScheduleTimes,
+  classToServiceRow,
+  consultationRowToApp,
+  consultationToRow,
+  customerRowToParent,
+  customerRowToStudent,
+  invoiceToPaymentRow,
+  isParentCustomer,
+  isStudentCustomer,
+  notificationRowToApp,
+  notificationToRow,
+  parentToCustomerRow,
+  parseOrganizationSettings,
+  paymentRowToInvoice,
+  scheduleRowToAttendance,
+  serviceRowToClass,
+  staffRowToTeacher,
+  studentContactRow,
+  studentToCustomerRow,
+  teacherToStaffRow,
+} from './entityMappers';
+import { diffIds } from './utils';
+
+type CoreClient = SupabaseClient<Database, 'core'>;
+
+export interface SyncCache {
+  get<T>(key: StorageKey): T | undefined;
+  set<T>(key: StorageKey, value: T): void;
+  delete(key: StorageKey): void;
+}
+
+/** Core 엔티티 전체 hydrate */
+export async function hydrateCoreEntities(
+  organizationId: string,
+  cache: SyncCache
+): Promise<void> {
+  const client = getCoreClient();
+
+  const [
+    orgResult,
+    staffResult,
+    customersResult,
+    contactsResult,
+    servicesResult,
+    paymentsResult,
+    consultationsResult,
+    notificationsResult,
+    schedulesResult,
+  ] = await Promise.all([
+    client.from('organizations').select('settings, name').eq('id', organizationId).single(),
+    client.from('staff').select('*').eq('organization_id', organizationId),
+    client.from('customers').select('*').eq('organization_id', organizationId),
+    client.from('customer_contacts').select('*').eq('organization_id', organizationId),
+    client.from('services').select('*').eq('organization_id', organizationId),
+    client.from('payments').select('*').eq('organization_id', organizationId),
+    client.from('consultations').select('*').eq('organization_id', organizationId),
+    client.from('notifications').select('*').eq('organization_id', organizationId),
+    client.from('schedules').select('*').eq('organization_id', organizationId),
+  ]);
+
+  logErrors({
+    org: orgResult.error,
+    staff: staffResult.error,
+    customers: customersResult.error,
+    contacts: contactsResult.error,
+    services: servicesResult.error,
+    payments: paymentsResult.error,
+    consultations: consultationsResult.error,
+    notifications: notificationsResult.error,
+    schedules: schedulesResult.error,
+  });
+
+  const defaultSettings = readLocal<AcademySettings>(STORAGE_KEYS.SETTINGS, {
+    name: orgResult.data?.name || '',
+    address: '',
+    phone: '',
+    defaultTuitionFee: 180000,
+  });
+  const settings = parseOrganizationSettings(orgResult.data?.settings, defaultSettings);
+  if (!settings.name && orgResult.data?.name) settings.name = orgResult.data.name;
+
+  const teachers = (staffResult.data || []).map(staffRowToTeacher);
+
+  const contactByCustomer = new Map(
+    (contactsResult.data || [])
+      .filter((c) => c.is_primary)
+      .map((c) => [c.customer_id, c.name])
+  );
+
+  const customers = customersResult.data || [];
+  const students: Student[] = customers
+    .filter((c) => isStudentCustomer(c.metadata))
+    .map((c) => customerRowToStudent(c, contactByCustomer.get(c.id)));
+
+  const parents: Parent[] = customers
+    .filter((c) => isParentCustomer(c.metadata))
+    .map(customerRowToParent);
+
+  const classes = (servicesResult.data || []).map(serviceRowToClass);
+  const invoices = (paymentsResult.data || []).map(paymentRowToInvoice);
+
+  const studentMap = new Map(students.map((s) => [s.id, s.name]));
+  const teacherMap = new Map(teachers.map((t) => [t.id, t.name]));
+  const consultations = (consultationsResult.data || []).map((row) =>
+    consultationRowToApp(
+      row,
+      studentMap.get(row.customer_id) || '',
+      row.staff_id ? teacherMap.get(row.staff_id) || '' : ''
+    )
+  );
+
+  const notifications = (notificationsResult.data || []).map(notificationRowToApp);
+  const attendance = (schedulesResult.data || []).map(scheduleRowToAttendance);
+
+  const entities: [StorageKey, unknown][] = [
+    [STORAGE_KEYS.SETTINGS, settings],
+    [STORAGE_KEYS.TEACHERS, teachers],
+    [STORAGE_KEYS.STUDENTS, students],
+    [STORAGE_KEYS.PARENTS, parents],
+    [STORAGE_KEYS.CLASSES, classes],
+    [STORAGE_KEYS.INVOICES, invoices],
+    [STORAGE_KEYS.CONSULTATIONS, consultations],
+    [STORAGE_KEYS.NOTIFICATIONS, notifications],
+    [STORAGE_KEYS.ATTENDANCE, attendance],
+  ];
+
+  for (const [key, value] of entities) {
+    cache.set(key, value);
+    writeLocal(key, value);
+  }
+}
+
+/** Core 엔티티 persist */
+export async function persistCoreEntity(
+  key: StorageKey,
+  organizationId: string,
+  cache: SyncCache
+): Promise<void> {
+  const client = getCoreClient();
+
+  switch (key) {
+    case STORAGE_KEYS.SETTINGS:
+      return persistSettings(client, organizationId, cache);
+    case STORAGE_KEYS.TEACHERS:
+      return persistStaff(client, organizationId, cache);
+    case STORAGE_KEYS.STUDENTS:
+    case STORAGE_KEYS.PARENTS:
+      return persistCustomers(client, organizationId, cache);
+    case STORAGE_KEYS.CLASSES:
+      return persistServices(client, organizationId, cache);
+    case STORAGE_KEYS.INVOICES:
+      return persistPayments(client, organizationId, cache);
+    case STORAGE_KEYS.CONSULTATIONS:
+      return persistConsultations(client, organizationId, cache);
+    case STORAGE_KEYS.NOTIFICATIONS:
+      return persistNotifications(client, organizationId, cache);
+    case STORAGE_KEYS.ATTENDANCE:
+      return persistSchedules(client, organizationId, cache);
+    default:
+      return;
+  }
+}
+
+async function persistSettings(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const settings = cache.get<AcademySettings>(STORAGE_KEYS.SETTINGS);
+  if (!settings) return;
+
+  const { error } = await client
+    .from('organizations')
+    .update({ settings: settings as never })
+    .eq('id', orgId);
+
+  if (error) console.error('Failed to persist settings:', error);
+  writeLocal(STORAGE_KEYS.SETTINGS, settings);
+}
+
+async function persistStaff(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const teachers = cache.get<Teacher[]>(STORAGE_KEYS.TEACHERS) || [];
+  await syncTable(client, 'staff', orgId, teachers.map((t) => t.id), async () => {
+    for (const teacher of teachers) {
+      const { error } = await client.from('staff').upsert(teacherToStaffRow(teacher, orgId));
+      if (error) console.error('Failed to upsert staff:', error);
+    }
+  });
+  writeLocal(STORAGE_KEYS.TEACHERS, teachers);
+}
+
+async function persistCustomers(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const students = cache.get<Student[]>(STORAGE_KEYS.STUDENTS) || [];
+  const parents = cache.get<Parent[]>(STORAGE_KEYS.PARENTS) || [];
+  const allIds = [...students.map((s) => s.id), ...parents.map((p) => p.id)];
+
+  await syncTable(client, 'customers', orgId, allIds, async () => {
+    for (const student of students) {
+      const { error } = await client.from('customers').upsert(studentToCustomerRow(student, orgId));
+      if (error) console.error('Failed to upsert student:', error);
+
+      const contact = studentContactRow(student, orgId);
+      if (contact) {
+        const { data: existing } = await client
+          .from('customer_contacts')
+          .select('id')
+          .eq('customer_id', student.id)
+          .eq('is_primary', true)
+          .maybeSingle();
+
+        const contactRow = { ...contact, id: existing?.id || contact.id };
+        const { error: contactError } = await client.from('customer_contacts').upsert(contactRow);
+        if (contactError) console.error('Failed to upsert contact:', contactError);
+      }
+    }
+
+    for (const parent of parents) {
+      const { error } = await client.from('customers').upsert(parentToCustomerRow(parent, orgId));
+      if (error) console.error('Failed to upsert parent:', error);
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.STUDENTS, students);
+  writeLocal(STORAGE_KEYS.PARENTS, parents);
+}
+
+async function persistServices(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
+
+  await syncTable(client, 'services', orgId, classes.map((c) => c.id), async () => {
+    for (const cls of classes) {
+      const row = classToServiceRow(cls, orgId);
+      const { error } = await client.from('services').upsert(row);
+      if (error) console.error('Failed to upsert service:', error);
+
+      if (cls.teacherId) {
+        await client.from('service_staff').upsert({
+          service_id: cls.id,
+          staff_id: cls.teacherId,
+        });
+      }
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.CLASSES, classes);
+}
+
+async function persistPayments(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const invoices = cache.get<TuitionInvoice[]>(STORAGE_KEYS.INVOICES) || [];
+
+  await syncTable(client, 'payments', orgId, invoices.map((i) => i.id), async () => {
+    for (const inv of invoices) {
+      const { error } = await client.from('payments').upsert(invoiceToPaymentRow(inv, orgId));
+      if (error) console.error('Failed to upsert payment:', error);
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.INVOICES, invoices);
+}
+
+async function persistConsultations(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const consultations = cache.get<Consultation[]>(STORAGE_KEYS.CONSULTATIONS) || [];
+
+  await syncTable(
+    client,
+    'consultations',
+    orgId,
+    consultations.map((c) => c.id),
+    async () => {
+      for (const cst of consultations) {
+        const { error } = await client.from('consultations').upsert(consultationToRow(cst, orgId));
+        if (error) console.error('Failed to upsert consultation:', error);
+      }
+    }
+  );
+
+  writeLocal(STORAGE_KEYS.CONSULTATIONS, consultations);
+}
+
+async function persistNotifications(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const notifications = cache.get<AppNotification[]>(STORAGE_KEYS.NOTIFICATIONS) || [];
+
+  await syncTable(
+    client,
+    'notifications',
+    orgId,
+    notifications.map((n) => n.id),
+    async () => {
+      for (const notif of notifications) {
+        const { error } = await client.from('notifications').upsert(notificationToRow(notif, orgId));
+        if (error) console.error('Failed to upsert notification:', error);
+      }
+    }
+  );
+
+  writeLocal(STORAGE_KEYS.NOTIFICATIONS, notifications);
+}
+
+async function persistSchedules(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const attendance = cache.get<AttendanceRecord[]>(STORAGE_KEYS.ATTENDANCE) || [];
+  const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
+  const classMap = new Map(classes.map((c) => [c.id, c]));
+
+  await syncTable(client, 'schedules', orgId, attendance.map((a) => a.id), async () => {
+    for (const record of attendance) {
+      const cls = classMap.get(record.classId);
+      const { startsAt, endsAt } = buildScheduleTimes(record, cls);
+      const { error } = await client
+        .from('schedules')
+        .upsert(attendanceToScheduleRow(record, orgId, startsAt, endsAt));
+      if (error) console.error('Failed to upsert schedule:', error);
+    }
+  });
+
+  writeLocal(STORAGE_KEYS.ATTENDANCE, attendance);
+}
+
+async function syncTable(
+  client: CoreClient,
+  table: 'staff' | 'customers' | 'services' | 'payments' | 'consultations' | 'notifications' | 'schedules',
+  orgId: string,
+  currentIds: string[],
+  upsertAll: () => Promise<void>
+): Promise<void> {
+  const { data: existing, error } = await client
+    .from(table)
+    .select('id')
+    .eq('organization_id', orgId);
+
+  if (error) {
+    console.error(`Failed to fetch ${table} for sync:`, error);
+    return;
+  }
+
+  const toDelete = diffIds((existing || []).map((r) => r.id), currentIds);
+  if (toDelete.length > 0) {
+    const { error: deleteError } = await client.from(table).delete().in('id', toDelete);
+    if (deleteError) console.error(`Failed to delete from ${table}:`, deleteError);
+  }
+
+  await upsertAll();
+}
+
+function logErrors(errors: Record<string, unknown>): void {
+  for (const [key, err] of Object.entries(errors)) {
+    if (err) console.error(`Failed to load ${key}:`, err);
+  }
+}
