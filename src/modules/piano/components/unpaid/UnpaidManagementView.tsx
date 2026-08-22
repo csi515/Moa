@@ -1,33 +1,48 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStorageRefresh, useStudentNavigation } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { Student } from '@/types';
+import {
+  EmptyState,
+  FilterTabs,
+  PageHeader,
+  SearchField,
+  SummaryMetricCard,
+  type FilterTabItem,
+} from '@/shared/components';
 import { formatCurrency, formatPhone } from '@/utils/formatters';
 import { CombinedPaymentModal } from '../tuition/CombinedPaymentModal';
 import {
   AlertCircle,
   CreditCard,
   BookOpen,
-  Search,
   Download,
   Phone,
-  ChevronRight,
 } from 'lucide-react';
 
-export const UnpaidManagementView: React.FC = () => {
-  const { setSelectedStudentId, setActiveTab, showToast } = useApp();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [filterMode, setFilterMode] = useState<'all' | 'overdue'>('all');
-  const [payStudent, setPayStudent] = useState<Student | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
+type UnpaidFilter = 'all' | 'overdue';
 
-  useEffect(() => {
-    const unsub = StorageService.subscribe(() => setRefreshKey((k) => k + 1));
-    return unsub;
-  }, []);
+const FILTER_TABS: FilterTabItem<UnpaidFilter>[] = [
+  { id: 'all', label: '전체 미납' },
+  { id: 'overdue', label: '연체' },
+];
+
+export const UnpaidManagementView: React.FC = () => {
+  const { showToast } = useApp();
+  const { openStudent } = useStudentNavigation();
+  const refreshKey = useStorageRefresh();
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterMode, setFilterMode] = useState<UnpaidFilter>('all');
+  const [payStudent, setPayStudent] = useState<Student | null>(null);
 
   const stats = StorageService.getUnifiedUnpaidStats();
   const summaries = StorageService.getUnifiedUnpaidSummaries();
+
+  const filterTabs = FILTER_TABS.map((tab) =>
+    tab.id === 'overdue' ? { ...tab, count: stats.overdueStudents } : tab
+  );
 
   const filtered = useMemo(() => {
     return summaries.filter((s) => {
@@ -69,75 +84,41 @@ export const UnpaidManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <AlertCircle className="w-6 h-6 text-rose-600" />
-            미납 통합 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            수강료·교재비 미납을 원생별로 한눈에 확인하고 수납 처리합니다
-          </p>
-        </div>
-        <button
-          onClick={handleExportCsv}
-          className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
-        >
-          <Download className="w-4 h-4" />
-          CSV 내보내기
-        </button>
-      </div>
+      <PageHeader
+        icon={<AlertCircle className="w-6 h-6" />}
+        iconClassName="text-rose-600"
+        title="미납 통합 관리"
+        description="수강료·교재비 미납을 원생별로 한눈에 확인하고 수납 처리합니다"
+        actions={
+          <button
+            onClick={handleExportCsv}
+            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+          >
+            <Download className="w-4 h-4" />
+            CSV 내보내기
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500">미납 원생</p>
-          <p className="text-xl font-black text-slate-900 mt-1">{stats.studentCount}명</p>
-        </div>
-        <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200 shadow-xs">
-          <p className="text-xs text-rose-700 font-semibold">총 미납액</p>
-          <p className="text-xl font-black text-rose-900 mt-1">{formatCurrency(stats.grandTotal)}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500">수강료 미납</p>
-          <p className="text-lg font-black text-indigo-700 mt-1">{formatCurrency(stats.tuitionTotal)}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
-          <p className="text-xs text-slate-500">교재비 미납</p>
-          <p className="text-lg font-black text-amber-700 mt-1">{formatCurrency(stats.textbookTotal)}</p>
-        </div>
+        <SummaryMetricCard label="미납 원생" value={`${stats.studentCount}명`} />
+        <SummaryMetricCard label="총 미납액" value={formatCurrency(stats.grandTotal)} variant="rose" />
+        <SummaryMetricCard label="수강료 미납" value={formatCurrency(stats.tuitionTotal)} variant="indigo" />
+        <SummaryMetricCard label="교재비 미납" value={formatCurrency(stats.textbookTotal)} variant="amber" />
       </div>
 
       <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-3">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setFilterMode('all')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg ${filterMode === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-          >
-            전체 미납
-          </button>
-          <button
-            onClick={() => setFilterMode('overdue')}
-            className={`px-3 py-1.5 text-xs font-bold rounded-lg ${filterMode === 'overdue' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600'}`}
-          >
-            연체 ({stats.overdueStudents}명)
-          </button>
-        </div>
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="원생명, 학부모, 연락처 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-          />
-        </div>
+        <FilterTabs tabs={filterTabs} active={filterMode} onChange={setFilterMode} />
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="원생명, 학부모, 연락처 검색..."
+          className="flex-1 min-w-[200px]"
+        />
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
-          <p className="font-bold text-emerald-600">🎉 미납 내역이 없습니다!</p>
-        </div>
+        <EmptyState icon={<span className="text-3xl">🎉</span>} title="미납 내역이 없습니다!" />
       ) : (
         <div className="space-y-3">
           {filtered.map((s) => (
@@ -149,10 +130,7 @@ export const UnpaidManagementView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
-                      onClick={() => {
-                        setSelectedStudentId(s.studentId);
-                        setActiveTab('students');
-                      }}
+                      onClick={() => openStudent(s.studentId)}
                       className="font-bold text-slate-900 hover:text-indigo-600 text-sm"
                     >
                       {s.studentName}

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
+import { RecitalService } from '@/modules/piano/services/recitalService';
+import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord, LessonRecord, TextbookSale, PerformanceVideo } from '@/types';
 import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
@@ -48,6 +50,8 @@ interface StudentDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit: (student: Student) => void;
+  initialTab?: DetailTab;
+  onInitialTabApplied?: () => void;
 }
 
 type DetailTab = 'info' | 'classes' | 'attendance' | 'tuition' | 'textbooks' | 'consultations' | 'practice' | 'videos' | 'memo';
@@ -56,10 +60,19 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   student,
   isOpen,
   onClose,
-  onEdit
+  onEdit,
+  initialTab,
+  onInitialTabApplied,
 }) => {
   const { showToast, openConfirmDialog, currentUser, setActiveTab, triggerRefresh } = useApp();
   const [currentTab, setCurrentTab] = useState<DetailTab>('info');
+
+  React.useEffect(() => {
+    if (isOpen && initialTab) {
+      setCurrentTab(initialTab);
+      onInitialTabApplied?.();
+    }
+  }, [isOpen, initialTab, onInitialTabApplied]);
 
   // Sub-modal states for adding records directly inside student modal
   const [isAddAttOpen, setIsAddAttOpen] = useState(false);
@@ -85,6 +98,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const [newVideoUrl, setNewVideoUrl] = useState('');
   const [newVideoDate, setNewVideoDate] = useState(new Date().toISOString().slice(0, 10));
   const [newVideoType, setNewVideoType] = useState<PerformanceVideo['eventType']>('recital');
+  const [newVideoEventId, setNewVideoEventId] = useState('');
   const [newVideoSong, setNewVideoSong] = useState('');
   const [newVideoMemo, setNewVideoMemo] = useState('');
   const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
@@ -112,6 +126,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
   const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
+  const recitalEvents = RecitalService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(student.id);
 
@@ -212,6 +227,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       showToast('올바른 YouTube 링크를 입력해주세요.', 'warning');
       return;
     }
+    const linkedEvent = newVideoEventId
+      ? recitalEvents.find((ev) => ev.id === newVideoEventId)
+      : undefined;
+
     StorageService.savePerformanceVideo({
       studentId: student.id,
       studentName: student.name,
@@ -221,13 +240,28 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
       eventType: newVideoType,
       songTitle: newVideoSong.trim() || undefined,
       memo: newVideoMemo.trim() || undefined,
+      eventId: linkedEvent?.id,
+      eventTitle: linkedEvent?.title,
     });
     showToast('연주 영상이 등록되었습니다.', 'success');
     setIsAddVideoOpen(false);
     setNewVideoTitle('');
     setNewVideoUrl('');
+    setNewVideoEventId('');
     setNewVideoSong('');
     setNewVideoMemo('');
+  };
+
+  const handleVideoEventChange = (eventId: string) => {
+    setNewVideoEventId(eventId);
+    if (!eventId) return;
+    const ev = recitalEvents.find((item) => item.id === eventId);
+    if (!ev) return;
+    setNewVideoDate(ev.startDate);
+    setNewVideoType(RecitalService.eventTypeToVideoType(ev.type));
+    if (!newVideoTitle.trim()) {
+      setNewVideoTitle(`${ev.title} - ${student.name}`);
+    }
   };
 
   const handleDeleteVideo = (video: PerformanceVideo) => {
@@ -244,13 +278,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     });
   };
 
-  const videoTypeLabel: Record<PerformanceVideo['eventType'], string> = {
-    recital: '연주회',
-    competition: '콩쿠르',
-    lesson: '레슨',
-    practice: '연습',
-    other: '기타',
-  };
+  const videoTypeLabel = PERFORMANCE_VIDEO_TYPE_LABEL;
 
   const handleOpenPayModal = (inv: TuitionInvoice) => {
     setPayInvoiceId(inv.id);
@@ -1135,6 +1163,21 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                         className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
                       />
                     </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">연주회·콩쿠르 일정 (선택)</label>
+                      <select
+                        value={newVideoEventId}
+                        onChange={(e) => handleVideoEventChange(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      >
+                        <option value="">일정 없음 / 직접 입력</option>
+                        {recitalEvents.map((ev) => (
+                          <option key={ev.id} value={ev.id}>
+                            {ev.startDate} · {ev.title} ({ev.type === 'concert' ? '연주회' : '콩쿠르'})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div>
                       <label className="text-[11px] font-semibold text-slate-700 block mb-1">연주일</label>
                       <input
@@ -1249,6 +1292,9 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                         </button>
                         <div className="p-3 space-y-1">
                           <h5 className="text-sm font-bold text-slate-900 leading-snug">{video.title}</h5>
+                          {video.eventTitle && (
+                            <p className="text-[11px] text-purple-700 font-semibold">📅 {video.eventTitle}</p>
+                          )}
                           {video.songTitle && (
                             <p className="text-xs text-indigo-700 font-semibold">🎵 {video.songTitle}</p>
                           )}

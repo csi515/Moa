@@ -20,6 +20,7 @@ import {
   Settings,
   AlertCircle,
   Sparkles,
+  Award,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -50,6 +51,7 @@ export const BottomNav: React.FC = () => {
     { tab: 'resources', label: '교재/곡 자료실', icon: <Music2 className="w-5 h-5" /> },
     { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-5 h-5" /> },
     { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-5 h-5" /> },
+    { tab: 'recitals', label: '연주회·콩쿠르', icon: <Award className="w-5 h-5" /> },
     { tab: 'settings', label: '학원 설정', icon: <Settings className="w-5 h-5" /> },
   ];
 

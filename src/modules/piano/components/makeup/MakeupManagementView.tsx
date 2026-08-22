@@ -1,7 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStorageRefresh, useStudentNavigation } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { MakeupItem, MakeupStatus } from '@/types';
+import {
+  EmptyState,
+  FilterTabs,
+  Modal,
+  PageHeader,
+  SummaryMetricCard,
+  type FilterTabItem,
+} from '@/shared/components';
 import { formatPhone } from '@/utils/formatters';
 import {
   Sparkles,
@@ -9,10 +18,9 @@ import {
   CheckCircle2,
   Clock,
   Phone,
-  X,
 } from 'lucide-react';
 
-const STATUS_TABS: { id: MakeupStatus | 'all'; label: string }[] = [
+const STATUS_TABS: FilterTabItem<MakeupStatus | 'all'>[] = [
   { id: 'pending', label: '미보강' },
   { id: 'scheduled', label: '예약됨' },
   { id: 'completed', label: '완료' },
@@ -20,16 +28,13 @@ const STATUS_TABS: { id: MakeupStatus | 'all'; label: string }[] = [
 ];
 
 export const MakeupManagementView: React.FC = () => {
-  const { showToast, setSelectedStudentId, setActiveTab } = useApp();
+  const { showToast } = useApp();
+  const { openStudent } = useStudentNavigation();
+  const refreshKey = useStorageRefresh();
+
   const [statusFilter, setStatusFilter] = useState<MakeupStatus | 'all'>('pending');
   const [scheduleTarget, setScheduleTarget] = useState<MakeupItem | null>(null);
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    const unsub = StorageService.subscribe(() => setRefreshKey((k) => k + 1));
-    return unsub;
-  }, []);
 
   const allItems = StorageService.getMakeupItems();
 
@@ -38,11 +43,18 @@ export const MakeupManagementView: React.FC = () => {
     return allItems.filter((m) => m.status === statusFilter);
   }, [allItems, statusFilter, refreshKey]);
 
-  const counts = useMemo(() => ({
-    pending: allItems.filter((m) => m.status === 'pending').length,
-    scheduled: allItems.filter((m) => m.status === 'scheduled').length,
-    completed: allItems.filter((m) => m.status === 'completed').length,
-  }), [allItems, refreshKey]);
+  const counts = useMemo(
+    () => ({
+      pending: allItems.filter((m) => m.status === 'pending').length,
+      scheduled: allItems.filter((m) => m.status === 'scheduled').length,
+      completed: allItems.filter((m) => m.status === 'completed').length,
+    }),
+    [allItems, refreshKey]
+  );
+
+  const statusTabsWithCounts = STATUS_TABS.map((tab) =>
+    tab.id !== 'all' ? { ...tab, count: counts[tab.id as MakeupStatus] } : tab
+  );
 
   const handleSchedule = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,55 +83,32 @@ export const MakeupManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <Sparkles className="w-6 h-6 text-purple-600" />
-          보강 수업 관리
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          결석 원생의 보강 일정을 등록하고 완료 처리합니다
-        </p>
-      </div>
+      <PageHeader
+        icon={<Sparkles className="w-6 h-6" />}
+        iconClassName="text-purple-600"
+        title="보강 수업 관리"
+        description="결석 원생의 보강 일정을 등록하고 완료 처리합니다"
+      />
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-rose-50 p-4 rounded-2xl border border-rose-200">
-          <p className="text-xs text-rose-700 font-semibold">미보강</p>
-          <p className="text-2xl font-black text-rose-900">{counts.pending}건</p>
-        </div>
-        <div className="bg-amber-50 p-4 rounded-2xl border border-amber-200">
-          <p className="text-xs text-amber-700 font-semibold">예약됨</p>
-          <p className="text-2xl font-black text-amber-900">{counts.scheduled}건</p>
-        </div>
-        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
-          <p className="text-xs text-emerald-700 font-semibold">완료</p>
-          <p className="text-2xl font-black text-emerald-900">{counts.completed}건</p>
-        </div>
+        <SummaryMetricCard label="미보강" value={`${counts.pending}건`} variant="rose" />
+        <SummaryMetricCard label="예약됨" value={`${counts.scheduled}건`} variant="amber" />
+        <SummaryMetricCard label="완료" value={`${counts.completed}건`} variant="emerald" />
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {STATUS_TABS.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setStatusFilter(tab.id)}
-            className={`px-4 py-2 text-xs font-bold rounded-xl transition-colors ${
-              statusFilter === tab.id
-                ? 'bg-purple-600 text-white'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50'
-            }`}
-          >
-            {tab.label}
-            {tab.id !== 'all' && ` (${counts[tab.id as MakeupStatus]})`}
-          </button>
-        ))}
-      </div>
+      <FilterTabs
+        tabs={statusTabsWithCounts}
+        active={statusFilter}
+        onChange={setStatusFilter}
+        activeClassName="bg-purple-600 text-white"
+        inactiveClassName="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+      />
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
-          <CheckCircle2 className="w-10 h-10 text-emerald-400 mx-auto mb-3" />
-          <p className="font-bold text-slate-600">
-            {statusFilter === 'pending' ? '미보강 건이 없습니다' : '해당 보강 내역이 없습니다'}
-          </p>
-        </div>
+        <EmptyState
+          icon={<CheckCircle2 className="w-10 h-10" />}
+          title={statusFilter === 'pending' ? '미보강 건이 없습니다' : '해당 보강 내역이 없습니다'}
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map((item) => (
@@ -131,10 +120,7 @@ export const MakeupManagementView: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
-                      onClick={() => {
-                        setSelectedStudentId(item.studentId);
-                        setActiveTab('students');
-                      }}
+                      onClick={() => openStudent(item.studentId)}
                       className="font-bold text-slate-900 hover:text-indigo-600 text-sm"
                     >
                       {item.studentName}
@@ -193,39 +179,34 @@ export const MakeupManagementView: React.FC = () => {
         </div>
       )}
 
-      {scheduleTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm">보강 일정 등록</h3>
-              <button onClick={() => setScheduleTarget(null)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleSchedule} className="p-6 space-y-4">
-              <p className="text-sm text-slate-600">
-                <strong>{scheduleTarget.studentName}</strong> · 결석일 {scheduleTarget.originalDate}
-              </p>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">보강 예정일</label>
-                <input
-                  type="date"
-                  required
-                  value={scheduleDate}
-                  onChange={(e) => setScheduleDate(e.target.value)}
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
-              >
-                등록
-              </button>
-            </form>
+      <Modal
+        isOpen={Boolean(scheduleTarget)}
+        onClose={() => setScheduleTarget(null)}
+        title="보강 일정 등록"
+        maxWidth="sm"
+      >
+        <form onSubmit={handleSchedule} className="p-6 space-y-4">
+          <p className="text-sm text-slate-600">
+            <strong>{scheduleTarget?.studentName}</strong> · 결석일 {scheduleTarget?.originalDate}
+          </p>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">보강 예정일</label>
+            <input
+              type="date"
+              required
+              value={scheduleDate}
+              onChange={(e) => setScheduleDate(e.target.value)}
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+            />
           </div>
-        </div>
-      )}
+          <button
+            type="submit"
+            className="w-full py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+          >
+            등록
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

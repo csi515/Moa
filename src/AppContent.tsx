@@ -16,12 +16,12 @@ import { StorageService } from '@/services/storage';
 import {
   DashboardView,
   StudentListView,
-  StudentDetailModal,
   AttendanceView,
   WeeklyTimetableView,
   TuitionManagementView,
   UnpaidManagementView,
   MakeupManagementView,
+  RecitalManagementView,
   TextbookManagementView,
   ExpenseManagementView,
   ClassManagementView,
@@ -36,7 +36,7 @@ import {
 } from './modules/piano';
 
 export const AppContent: React.FC = () => {
-  const { activeTab, selectedStudentId, setSelectedStudentId } = useApp();
+  const { activeTab } = useApp();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
@@ -83,6 +83,8 @@ export const AppContent: React.FC = () => {
         return <TeacherManagementView />;
       case 'calendar':
         return <AcademyCalendarView />;
+      case 'recitals':
+        return <RecitalManagementView />;
       case 'settings':
         return <AcademySettingsView />;
       default:
@@ -105,13 +107,6 @@ export const AppContent: React.FC = () => {
 
       <BottomNav />
       <DirectorFloatingFab />
-
-      {selectedStudentId && (
-        <StudentDetailModal
-          studentId={selectedStudentId}
-          onClose={() => setSelectedStudentId(null)}
-        />
-      )}
 
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
