@@ -1,0 +1,17 @@
+{
+  "name": "피아노학원 원생 및 학원 관리",
+  "short_name": "피아노학원",
+  "description": "실제 피아노학원을 위한 실사용 올인원 관리 시스템",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

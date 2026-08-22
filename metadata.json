@@ -1,0 +1,6 @@
+{
+  "name": "피아노학원 원생 및 학원 관리 시스템",
+  "description": "실제 피아노학원 원장님과 선생님을 위한 실사용 원생 관리, 시간표, 출결, 수강료 및 수납, 연습/레슨일지, 상담, 회계 지출 관리 웹앱",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

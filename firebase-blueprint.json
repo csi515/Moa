@@ -1,0 +1,166 @@
+{
+  "entities": {
+    "AcademySettings": {
+      "title": "AcademySettings",
+      "description": "피아노 학원 기본 설정 정보",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "directorName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "businessNumber": { "type": "string" },
+        "defaultTuitionFee": { "type": "number" },
+        "defaultPaymentDay": { "type": "number" },
+        "bankAccount": {
+          "type": "object",
+          "properties": {
+            "bankName": { "type": "string" },
+            "accountNumber": { "type": "string" },
+            "holder": { "type": "string" }
+          }
+        },
+        "kakaoPayUrl": { "type": "string" },
+        "zeropayUrl": { "type": "string" }
+      }
+    },
+    "Student": {
+      "title": "Student",
+      "description": "피아노 학원 원생 정보",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "gender": { "type": "string" },
+        "birthDate": { "type": "string" },
+        "school": { "type": "string" },
+        "grade": { "type": "string" },
+        "studentPhone": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "relationship": { "type": "string" },
+        "enrollmentDate": { "type": "string" },
+        "status": { "type": "string" },
+        "teacherId": { "type": "string" },
+        "teacherName": { "type": "string" },
+        "classIds": { "type": "array", "items": { "type": "string" } },
+        "level": { "type": "string" },
+        "tuitionFee": { "type": "number" },
+        "paymentDay": { "type": "number" },
+        "specialNotes": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "parentPhone", "tuitionFee", "paymentDay", "status"]
+    },
+    "Textbook": {
+      "title": "Textbook",
+      "description": "교재 마스터 및 재고",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "publisher": { "type": "string" },
+        "author": { "type": "string" },
+        "isbn": { "type": "string" },
+        "level": { "type": "string" },
+        "salePrice": { "type": "number" },
+        "costPrice": { "type": "number" },
+        "stock": { "type": "number" },
+        "minStock": { "type": "number" },
+        "isForSale": { "type": "boolean" },
+        "memo": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "salePrice", "stock"]
+    },
+    "TextbookSale": {
+      "title": "TextbookSale",
+      "description": "교재 판매 내역",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "textbookId": { "type": "string" },
+        "textbookTitle": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "parentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "quantity": { "type": "number" },
+        "unitPrice": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "unpaidAmount": { "type": "number" },
+        "saleDate": { "type": "string" },
+        "status": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "memo": { "type": "string" }
+      },
+      "required": ["id", "textbookId", "studentId", "totalAmount", "status"]
+    },
+    "TuitionInvoice": {
+      "title": "TuitionInvoice",
+      "description": "수강료 청구서",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "parentPhone": { "type": "string" },
+        "yearMonth": { "type": "string" },
+        "billedAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "unpaidAmount": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "paidDate": { "type": "string" },
+        "memo": { "type": "string" }
+      },
+      "required": ["id", "studentId", "yearMonth", "billedAmount", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "학원 지출 내역",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "payee": { "type": "string" },
+        "memo": { "type": "string" }
+      },
+      "required": ["id", "category", "title", "amount", "date"]
+    }
+  },
+  "firestore": {
+    "settings/default": {
+      "entity": "AcademySettings",
+      "description": "학원 기본 설정"
+    },
+    "students/{studentId}": {
+      "entity": "Student",
+      "description": "원생 목록"
+    },
+    "textbooks/{textbookId}": {
+      "entity": "Textbook",
+      "description": "교재 목록 및 재고"
+    },
+    "textbookSales/{saleId}": {
+      "entity": "TextbookSale",
+      "description": "교재 판매 및 청구 내역"
+    },
+    "invoices/{invoiceId}": {
+      "entity": "TuitionInvoice",
+      "description": "수강료 청구 및 수납 내역"
+    },
+    "expenses/{expenseId}": {
+      "entity": "Expense",
+      "description": "학원 지출 내역"
+    }
+  }
+}
