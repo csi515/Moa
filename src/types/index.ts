@@ -34,6 +34,8 @@ export interface Student {
   parentId?: string;
   parentName: string;
   parentPhone: string;
+  /** 원생 본인 연락처 (선택) */
+  phone?: string;
   emergencyContact?: string;
   address?: string;
   joinDate: string; // YYYY-MM-DD

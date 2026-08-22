@@ -293,7 +293,8 @@ async function persistCustomers(
       const { error } = await client.from('customers').upsert(row);
       if (error) console.error('Failed to upsert student:', error);
 
-      const contact = studentContactRow(student, orgId);
+      const parentRecord = parents.find((p) => p.id === student.parentId);
+      const contact = studentContactRow(student, orgId, undefined, parentRecord?.email);
       if (contact) {
         const { data: existing } = await client
           .from('customer_contacts')

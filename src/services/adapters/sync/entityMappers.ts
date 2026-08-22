@@ -96,6 +96,7 @@ interface CustomerMetadata {
   classIds?: string[];
   emergencyContact?: string;
   address?: string;
+  studentPhone?: string;
   studentIds?: string[];
   notes?: string;
 }
@@ -122,6 +123,7 @@ export function studentToCustomerRow(student: Student, organizationId: string) {
     classIds: student.classIds,
     emergencyContact: student.emergencyContact,
     address: student.address,
+    studentPhone: student.phone,
   };
 
   return {
@@ -161,6 +163,7 @@ export function customerRowToStudent(
     parentId: meta.parentId,
     parentName: meta.parentName || parentName || '',
     parentPhone: row.phone || '',
+    phone: meta.studentPhone || undefined,
     emergencyContact: meta.emergencyContact,
     address: meta.address,
     joinDate: meta.joinDate || row.created_at.slice(0, 10),
@@ -225,7 +228,8 @@ export function customerRowToParent(row: {
 export function studentContactRow(
   student: Student,
   organizationId: string,
-  contactId?: string
+  contactId?: string,
+  parentEmail?: string | null
 ) {
   if (!student.parentName && !student.parentPhone) return null;
 
@@ -236,7 +240,7 @@ export function studentContactRow(
     name: student.parentName || '보호자',
     relationship: 'parent',
     phone: student.parentPhone || null,
-    email: null,
+    email: parentEmail || null,
     is_primary: true,
   };
 }

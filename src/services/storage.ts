@@ -2255,19 +2255,38 @@ export const StorageService = {
     return this.getStudents().filter((s) => idSet.has(s.id));
   },
 
-  ensureParentFromStudent(student: Student): Parent {
+  ensureParentFromStudent(
+    student: Student,
+    options?: { parentEmail?: string }
+  ): Parent {
     const parents = this.getParents();
     let parent = parents.find((p) => p.id === student.parentId || p.phone === student.parentPhone);
+    const parentEmail = options?.parentEmail?.trim();
+
     if (!parent) {
       parent = this.saveParent({
         name: student.parentName || '학부모',
         phone: student.parentPhone,
+        email: parentEmail || undefined,
         studentIds: [student.id],
       });
-    } else if (!parent.studentIds.includes(student.id)) {
-      parent = this.saveParent({ ...parent, studentIds: [...parent.studentIds, student.id] });
+    } else {
+      const updates: Partial<Parent> = {};
+      if (!parent.studentIds.includes(student.id)) {
+        updates.studentIds = [...parent.studentIds, student.id];
+      }
+      if (parentEmail && parentEmail !== parent.email) {
+        updates.email = parentEmail;
+      }
+      if (student.parentName && student.parentName !== parent.name) {
+        updates.name = student.parentName;
+      }
+      if (Object.keys(updates).length > 0) {
+        parent = this.saveParent({ ...parent, ...updates });
+      }
     }
-    if (!student.parentId) {
+
+    if (!student.parentId || student.parentId !== parent.id) {
       this.saveStudent({ ...student, parentId: parent.id });
     }
     return parent;
