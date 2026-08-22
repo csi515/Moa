@@ -1,10 +1,13 @@
 import React, { useEffect } from 'react';
 import { useOptionalAuth } from './core/auth/AuthProvider';
+import { useOptionalOrganization } from './core/organizations/OrganizationProvider';
 import { StorageService } from './services/storage';
+import type { UserRole } from './types';
 
-/** Supabase 로그인 사용자 → 사장(owner) activeUser 동기화 */
+/** Supabase 로그인 사용자 → 조직 역할·staffId 기반 activeUser 동기화 */
 export const SupabaseRoleSync: React.FC = () => {
   const auth = useOptionalAuth();
+  const org = useOptionalOrganization();
 
   useEffect(() => {
     if (!auth?.user) return;
@@ -12,15 +15,19 @@ export const SupabaseRoleSync: React.FC = () => {
     const fullName =
       (auth.user.user_metadata?.full_name as string | undefined) ||
       auth.user.email?.split('@')[0] ||
-      '원장님';
+      '사용자';
+
+    const role: UserRole = org?.currentRole ?? 'owner';
+    const staffId = org?.currentStaffId ?? null;
 
     StorageService.setActiveUser({
       id: auth.user.id,
       name: fullName,
-      role: 'owner',
+      role,
+      staffId,
       email: auth.user.email || '',
     });
-  }, [auth?.user]);
+  }, [auth?.user, org?.currentRole, org?.currentStaffId]);
 
   return null;
 };

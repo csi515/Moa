@@ -40,6 +40,7 @@ export function staffRowToTeacher(row: {
   name: string;
   phone: string | null;
   email: string | null;
+  user_id?: string | null;
   status: string;
   metadata: Json;
 }): Teacher {
@@ -49,6 +50,7 @@ export function staffRowToTeacher(row: {
     name: row.name,
     phone: row.phone || '',
     email: row.email || undefined,
+    userId: row.user_id ?? null,
     hireDate: meta.hireDate || new Date().toISOString().slice(0, 10),
     status: (row.status as Teacher['status']) || 'active',
     specialty: meta.specialty,

@@ -1,10 +1,11 @@
-/** 사장 1인 전용 앱 — 단일 owner 역할 */
-export type UserRole = 'owner';
+/** 조직 멤버 역할 (Supabase member_role과 동일) */
+export type UserRole = 'owner' | 'admin' | 'manager' | 'staff';
 
 export interface User {
   id: string;
   name: string;
   role: UserRole;
+  staffId?: string | null;
   email: string;
 }
 
@@ -66,6 +67,7 @@ export interface Teacher {
   name: string;
   phone: string;
   email?: string;
+  userId?: string | null;
   hireDate: string;
   status: 'active' | 'inactive' | 'resigned';
   specialty?: string;
