@@ -11,7 +11,10 @@ import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { connectStaffOnLogin } from '../staff/services/staffAccountService';
 import { connectParentOnLogin } from '../parent/services/parentAccountService';
+import { ensureGlobalParentProfile } from '../parent/services/parentPortalService';
 import * as orgService from './services/organizationService';
+
+const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'staff']);
 
 interface OrganizationContextType {
   organizations: orgService.OrganizationMembership[];
@@ -19,6 +22,8 @@ interface OrganizationContextType {
   currentRole: MemberRole | null;
   currentStaffId: string | null;
   currentParentCustomerId: string | null;
+  globalParentId: string | null;
+  isParentOnly: boolean;
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
   clearOrganization: () => void;
@@ -35,6 +40,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [currentRole, setCurrentRole] = useState<MemberRole | null>(null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
   const [currentParentCustomerId, setCurrentParentCustomerId] = useState<string | null>(null);
+  const [globalParentId, setGlobalParentId] = useState<string | null>(null);
+  const [isParentOnly, setIsParentOnly] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const applySelection = useCallback(
@@ -73,18 +80,33 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setCurrentRole(null);
       setCurrentStaffId(null);
       setCurrentParentCustomerId(null);
+      setGlobalParentId(null);
+      setIsParentOnly(false);
       setLoading(false);
       return;
     }
 
     setLoading(true);
     try {
-      // pending 초대를 로그인 계정에 연결
       await connectStaffOnLogin();
       await connectParentOnLogin();
+      const parentId = await ensureGlobalParentProfile();
+      setGlobalParentId(parentId);
 
       const memberships = await orgService.fetchUserOrganizations(user.id);
       setOrganizations(memberships);
+
+      const staffMemberships = memberships.filter((m) => STAFF_ROLES.has(m.role));
+      const parentOnly =
+        staffMemberships.length === 0 &&
+        (memberships.some((m) => m.role === 'parent') || parentId !== null);
+      setIsParentOnly(parentOnly);
+
+      if (parentOnly) {
+        orgService.clearStoredOrganizationId();
+        applySelection(memberships, null);
+        return;
+      }
 
       const storedId = orgService.getStoredOrganizationId();
       const autoId =
@@ -137,6 +159,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         currentRole,
         currentStaffId,
         currentParentCustomerId,
+        globalParentId,
+        isParentOnly,
         loading,
         selectOrganization,
         clearOrganization,
