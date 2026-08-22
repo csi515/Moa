@@ -12,6 +12,8 @@ export { PracticeRecordsView } from './components/practice/PracticeRecordsView';
 export { ConsultationRecordsView } from './components/consultations/ConsultationRecordsView';
 export { ResourceManagementView } from './components/resources/ResourceManagementView';
 export { TuitionManagementView } from './components/tuition/TuitionManagementView';
+export { UnpaidManagementView } from './components/unpaid/UnpaidManagementView';
+export { MakeupManagementView } from './components/makeup/MakeupManagementView';
 export { TextbookManagementView } from './components/textbooks/TextbookManagementView';
 export { ExpenseManagementView } from './components/expenses/ExpenseManagementView';
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';

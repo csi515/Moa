@@ -52,7 +52,9 @@ export const DashboardView: React.FC = () => {
   const lowStockBooks = StorageService.getLowStockTextbooks();
   const recentSales = StorageService.getTextbookSales().slice(0, 4);
   const students = StorageService.getStudents();
-  const recentInvoices = StorageService.getInvoices().filter(i => i.status === 'unpaid').slice(0, 3);
+  const recentInvoices = StorageService.getUnpaidInvoices().slice(0, 3);
+  const unpaidStats = StorageService.getUnifiedUnpaidStats();
+  const makeupPendingCount = StorageService.getMakeupItems().filter((m) => m.status === 'pending').length;
 
   const currentMonthLabel = `${parseInt(stats.currentYearMonth.slice(5, 7), 10)}월`;
   const hasRevenueData = stats.revenueTrend.some((r) => r.매출 > 0 || r.지출 > 0);
@@ -152,10 +154,10 @@ export const DashboardView: React.FC = () => {
           <StatCard
             title="미납 수강료"
             value={formatCurrency(stats.totalUnpaidThisMonth)}
-            subtitle={`미납 원생 ${stats.unpaidStudentsCount}명`}
+            subtitle={`미납 원생 ${stats.unpaidStudentsCount}명 · 통합 ${formatCurrency(unpaidStats.grandTotal)}`}
             icon={<AlertCircle className="w-5 h-5 text-rose-600" />}
             iconBg="bg-rose-50"
-            onClick={() => setActiveTab('tuition')}
+            onClick={() => setActiveTab('unpaid')}
           />
 
           <StatCard
@@ -177,10 +179,10 @@ export const DashboardView: React.FC = () => {
           <StatCard
             title="오늘 결석"
             value={`${stats.todayAbsent}명`}
-            subtitle="보강 일정 확인 필요"
+            subtitle={makeupPendingCount > 0 ? `미보강 ${makeupPendingCount}건 확인 필요` : '보강 일정 확인 필요'}
             icon={<XCircle className="w-5 h-5 text-amber-600" />}
             iconBg="bg-amber-50"
-            onClick={() => setActiveTab('attendance')}
+            onClick={() => setActiveTab('makeups')}
           />
 
           <StatCard
@@ -509,7 +511,7 @@ export const DashboardView: React.FC = () => {
                 미납 수강료 현황
               </h4>
               <button
-                onClick={() => setActiveTab('tuition')}
+                onClick={() => setActiveTab('unpaid')}
                 className="text-xs text-indigo-600 font-semibold hover:underline"
               >
                 전체보기
@@ -549,10 +551,10 @@ export const DashboardView: React.FC = () => {
           </div>
 
           <button
-            onClick={() => setActiveTab('tuition')}
+            onClick={() => setActiveTab('unpaid')}
             className="w-full py-2.5 mt-4 text-xs font-semibold text-slate-500 bg-slate-50 rounded-lg hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200/80 transition-colors"
           >
-            미납 수강료 전체 보기
+            미납 통합 관리로 이동
           </button>
         </div>
       </div>

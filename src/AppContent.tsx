@@ -20,6 +20,8 @@ import {
   AttendanceView,
   WeeklyTimetableView,
   TuitionManagementView,
+  UnpaidManagementView,
+  MakeupManagementView,
   TextbookManagementView,
   ExpenseManagementView,
   ClassManagementView,
@@ -57,6 +59,10 @@ export const AppContent: React.FC = () => {
         return <WeeklyTimetableView />;
       case 'tuition':
         return <TuitionManagementView />;
+      case 'unpaid':
+        return <UnpaidManagementView />;
+      case 'makeups':
+        return <MakeupManagementView />;
       case 'textbooks':
         return <TextbookManagementView />;
       case 'expenses':

@@ -17,6 +17,8 @@ import {
   GraduationCap,
   Calendar,
   Settings,
+  AlertCircle,
+  Sparkles,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -47,6 +49,7 @@ export const Sidebar: React.FC = () => {
         { tab: 'classes', label: labels.service.management, icon: <GraduationCap className="w-4 h-4" /> },
         { tab: 'timetable', label: labels.schedule.management, icon: <Clock className="w-4 h-4" /> },
         { tab: 'attendance', label: '출결 관리', icon: <CheckSquare className="w-4 h-4" /> },
+        { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-4 h-4" /> },
       ],
     },
     {
@@ -62,6 +65,7 @@ export const Sidebar: React.FC = () => {
       title: '수납 및 회계',
       items: [
         { tab: 'tuition', label: '수강료 및 수납', icon: <CreditCard className="w-4 h-4" /> },
+        { tab: 'unpaid', label: '미납 통합 관리', icon: <AlertCircle className="w-4 h-4" /> },
         { tab: 'textbooks', label: '교재 판매 및 교재비', icon: <BookOpen className="w-4 h-4" /> },
         { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-4 h-4" /> },
       ],

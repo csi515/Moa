@@ -5,6 +5,10 @@ import {
   ClassItem,
   AttendanceRecord,
   TuitionInvoice,
+  TextbookSale,
+  UnpaidInvoiceItem,
+  StudentUnpaidSummary,
+  MakeupItem,
   Consultation,
   PracticeRecord,
   LessonRecord,
@@ -347,6 +351,9 @@ export const StorageService = {
 
     if (existingIdx >= 0) {
       saved = { ...list[existingIdx], ...record, id: list[existingIdx].id };
+      if (saved.status === 'absent') {
+        saved.makeUpRequired = true;
+      }
       list[existingIdx] = saved;
     } else {
       saved = {
@@ -354,6 +361,9 @@ export const StorageService = {
         id: generateEntityId('att'),
         createdAt: now
       };
+      if (record.status === 'absent') {
+        saved.makeUpRequired = true;
+      }
       list.unshift(saved);
     }
 
@@ -395,8 +405,19 @@ export const StorageService = {
   },
 
   // Tuition Invoices & Payments
+  normalizeInvoiceStatus(inv: TuitionInvoice): TuitionInvoice {
+    if (inv.status === 'paid') return inv;
+    const today = new Date().toISOString().slice(0, 10);
+    if (inv.unpaidAmount > 0 && inv.dueDate < today) {
+      return { ...inv, status: 'overdue' };
+    }
+    return inv;
+  },
+
   getInvoices(): TuitionInvoice[] {
-    return getItem<TuitionInvoice[]>(STORAGE_KEYS.INVOICES, []);
+    return getItem<TuitionInvoice[]>(STORAGE_KEYS.INVOICES, []).map((inv) =>
+      this.normalizeInvoiceStatus(inv)
+    );
   },
 
   saveInvoice(inv: Omit<TuitionInvoice, 'id'> & { id?: string }): TuitionInvoice {
@@ -1228,6 +1249,176 @@ export const StorageService = {
         };
       })
       .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  },
+
+  getUnpaidInvoices(): UnpaidInvoiceItem[] {
+    const today = new Date().toISOString().slice(0, 10);
+    return this.getInvoices()
+      .filter((inv) => inv.unpaidAmount > 0)
+      .map((inv) => {
+        const due = inv.dueDate;
+        const diffMs = new Date(today).getTime() - new Date(due).getTime();
+        const daysOverdue = diffMs > 0 ? Math.floor(diffMs / (1000 * 60 * 60 * 24)) : 0;
+        return { ...inv, daysOverdue };
+      })
+      .sort((a, b) => b.daysOverdue - a.daysOverdue);
+  },
+
+  getUnifiedUnpaidSummaries(): StudentUnpaidSummary[] {
+    const students = this.getStudents().filter((s) => s.status === 'active' || s.status === 'leave');
+    const unpaidInvoices = this.getUnpaidInvoices();
+    const unpaidSales = this.getUnpaidTextbookSales();
+
+    const map = new Map<string, StudentUnpaidSummary>();
+
+    for (const st of students) {
+      map.set(st.id, {
+        studentId: st.id,
+        studentName: st.name,
+        parentName: st.parentName,
+        parentPhone: st.parentPhone,
+        tuitionUnpaid: 0,
+        textbookUnpaid: 0,
+        totalUnpaid: 0,
+        overdueCount: 0,
+        oldestOverdueDays: 0,
+        tuitionItems: [],
+        textbookItems: [],
+      });
+    }
+
+    for (const inv of unpaidInvoices) {
+      let entry = map.get(inv.studentId);
+      if (!entry) {
+        entry = {
+          studentId: inv.studentId,
+          studentName: inv.studentName,
+          parentName: '',
+          parentPhone: '',
+          tuitionUnpaid: 0,
+          textbookUnpaid: 0,
+          totalUnpaid: 0,
+          overdueCount: 0,
+          oldestOverdueDays: 0,
+          tuitionItems: [],
+          textbookItems: [],
+        };
+        map.set(inv.studentId, entry);
+      }
+      entry.tuitionItems.push(inv);
+      entry.tuitionUnpaid += inv.unpaidAmount;
+      if (inv.daysOverdue > 0) entry.overdueCount += 1;
+      entry.oldestOverdueDays = Math.max(entry.oldestOverdueDays, inv.daysOverdue);
+    }
+
+    for (const sale of unpaidSales) {
+      let entry = map.get(sale.studentId);
+      if (!entry) {
+        entry = {
+          studentId: sale.studentId,
+          studentName: sale.studentName,
+          parentName: sale.parentName,
+          parentPhone: sale.parentPhone,
+          tuitionUnpaid: 0,
+          textbookUnpaid: 0,
+          totalUnpaid: 0,
+          overdueCount: 0,
+          oldestOverdueDays: 0,
+          tuitionItems: [],
+          textbookItems: [],
+        };
+        map.set(sale.studentId, entry);
+      }
+      entry.textbookItems.push(sale);
+      entry.textbookUnpaid += sale.unpaidAmount;
+      if (sale.daysOverdue > 30) entry.overdueCount += 1;
+      entry.oldestOverdueDays = Math.max(entry.oldestOverdueDays, sale.daysOverdue);
+    }
+
+    return Array.from(map.values())
+      .map((e) => ({ ...e, totalUnpaid: e.tuitionUnpaid + e.textbookUnpaid }))
+      .filter((e) => e.totalUnpaid > 0)
+      .sort((a, b) => b.totalUnpaid - a.totalUnpaid);
+  },
+
+  getUnifiedUnpaidStats() {
+    const summaries = this.getUnifiedUnpaidSummaries();
+    const tuitionTotal = summaries.reduce((s, e) => s + e.tuitionUnpaid, 0);
+    const textbookTotal = summaries.reduce((s, e) => s + e.textbookUnpaid, 0);
+    const overdueStudents = summaries.filter((e) => e.overdueCount > 0).length;
+    return {
+      studentCount: summaries.length,
+      tuitionTotal,
+      textbookTotal,
+      grandTotal: tuitionTotal + textbookTotal,
+      overdueStudents,
+      overdueInvoices: this.getUnpaidInvoices().filter((i) => i.daysOverdue > 0).length,
+    };
+  },
+
+  getMakeupItems(): MakeupItem[] {
+    const students = this.getStudents();
+    const studentMap = new Map(students.map((s) => [s.id, s]));
+
+    return this.getAttendance()
+      .filter((r) => r.status === 'absent' || r.status === 'make_up')
+      .map((r) => {
+        const st = studentMap.get(r.studentId);
+        let status: MakeupItem['status'] = 'pending';
+        if (r.status === 'make_up') {
+          status = 'completed';
+        } else if (r.makeUpDate) {
+          status = 'scheduled';
+        }
+
+        return {
+          attendanceId: r.id,
+          studentId: r.studentId,
+          studentName: r.studentName,
+          parentPhone: st?.parentPhone || '',
+          classId: r.classId,
+          className: r.className,
+          originalDate: r.date,
+          absentReason: r.absentReason,
+          makeUpDate: r.makeUpDate,
+          status,
+          memo: r.memo,
+        };
+      })
+      .sort((a, b) => {
+        const order = { pending: 0, scheduled: 1, completed: 2 };
+        if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+        return b.originalDate.localeCompare(a.originalDate);
+      });
+  },
+
+  scheduleMakeup(attendanceId: string, makeUpDate: string): AttendanceRecord | null {
+    const list = this.getAttendance();
+    const idx = list.findIndex((r) => r.id === attendanceId);
+    if (idx === -1) return null;
+    const updated: AttendanceRecord = {
+      ...list[idx],
+      makeUpDate,
+      makeUpRequired: true,
+    };
+    list[idx] = updated;
+    setItem(STORAGE_KEYS.ATTENDANCE, list);
+    return updated;
+  },
+
+  completeMakeup(attendanceId: string, memo?: string): AttendanceRecord | null {
+    const list = this.getAttendance();
+    const idx = list.findIndex((r) => r.id === attendanceId);
+    if (idx === -1) return null;
+    const updated: AttendanceRecord = {
+      ...list[idx],
+      status: 'make_up',
+      makeUpRequired: false,
+      memo: memo || list[idx].memo,
+    };
+    list[idx] = updated;
+    setItem(STORAGE_KEYS.ATTENDANCE, list);
+    return updated;
   },
 
   getTextbookStats(yearMonth?: string): {

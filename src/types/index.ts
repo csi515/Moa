@@ -388,6 +388,43 @@ export interface NotificationItem {
 }
 export type AppNotification = NotificationItem;
 
+/** 연체 포함 미납 청구서 */
+export interface UnpaidInvoiceItem extends TuitionInvoice {
+  daysOverdue: number;
+}
+
+/** 원생별 통합 미납 요약 */
+export interface StudentUnpaidSummary {
+  studentId: string;
+  studentName: string;
+  parentName: string;
+  parentPhone: string;
+  tuitionUnpaid: number;
+  textbookUnpaid: number;
+  totalUnpaid: number;
+  overdueCount: number;
+  oldestOverdueDays: number;
+  tuitionItems: UnpaidInvoiceItem[];
+  textbookItems: (TextbookSale & { daysOverdue: number })[];
+}
+
+/** 보강 수업 항목 */
+export type MakeupStatus = 'pending' | 'scheduled' | 'completed';
+
+export interface MakeupItem {
+  attendanceId: string;
+  studentId: string;
+  studentName: string;
+  parentPhone: string;
+  classId: string;
+  className: string;
+  originalDate: string;
+  absentReason?: string;
+  makeUpDate?: string;
+  status: MakeupStatus;
+  memo?: string;
+}
+
 export interface AcademyEvent {
   id: string;
   title: string;

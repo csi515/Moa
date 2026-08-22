@@ -18,6 +18,8 @@ import {
   Music2,
   Calendar,
   Settings,
+  AlertCircle,
+  Sparkles,
   X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -36,6 +38,8 @@ export const BottomNav: React.FC = () => {
 
   const moreTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
     { tab: 'tuition', label: '수강료/수납', icon: <CreditCard className="w-5 h-5" /> },
+    { tab: 'unpaid', label: '미납 통합', icon: <AlertCircle className="w-5 h-5" /> },
+    { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-5 h-5" /> },
     { tab: 'textbooks', label: '교재/재고 관리', icon: <BookOpen className="w-5 h-5" /> },
     { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-5 h-5" /> },
     { tab: 'parents', label: labels.contact.management, icon: <UserSquare2 className="w-5 h-5" /> },
