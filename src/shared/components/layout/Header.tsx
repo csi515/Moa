@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { Bell, Search, Music, Shield } from 'lucide-react';
+import { Search, Music, Shield } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -16,11 +16,7 @@ export const Header: React.FC = () => {
     setSelectedStudentId,
   } = useApp();
 
-  const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
-
   const settings = StorageService.getSettings();
-  const notifications = StorageService.getNotifications();
-  const pendingNotifs = notifications.filter((n) => n.status === 'pending');
   const supabaseOrg = useOptionalOrganization();
   const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
 
@@ -114,56 +110,6 @@ export const Header: React.FC = () => {
         <div className="flex items-center gap-2 sm:gap-3">
           <OrganizationSwitcher />
           <PwaInstallPrompt />
-
-          <div className="relative">
-            <button
-              onClick={() => setNotifDropdownOpen(!notifDropdownOpen)}
-              className="relative p-2 rounded-xl text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
-              title="알림 센터"
-            >
-              <Bell className="w-5 h-5" />
-              {pendingNotifs.length > 0 && (
-                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-rose-500 rounded-full ring-2 ring-white" />
-              )}
-            </button>
-
-            {notifDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-xl border border-slate-200 p-3 z-50 animate-in fade-in">
-                <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2">
-                  <h4 className="font-bold text-sm text-slate-900">알림 센터</h4>
-                  <button
-                    onClick={() => {
-                      setNotifDropdownOpen(false);
-                      setActiveTab('notifications');
-                    }}
-                    className="text-xs font-semibold text-indigo-600 hover:underline"
-                  >
-                    전체보기
-                  </button>
-                </div>
-                <div className="space-y-2 max-h-60 overflow-y-auto">
-                  {notifications.slice(0, 4).map((n) => (
-                    <div key={n.id} className="p-2 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                      <p className="font-bold text-slate-800">{n.title}</p>
-                      <p className="text-slate-600 mt-1 line-clamp-2">{n.message}</p>
-                      <div className="flex items-center justify-between mt-2 text-[10px] text-slate-400">
-                        <span>{n.scheduledDate}</span>
-                        <span
-                          className={
-                            n.status === 'sent'
-                              ? 'text-emerald-600 font-semibold'
-                              : 'text-amber-600 font-semibold'
-                          }
-                        >
-                          {n.status === 'sent' ? '발송완료' : '대기중'}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
 
           <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">
             <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-600 text-white">

@@ -18,7 +18,6 @@ export type NavTab =
   | 'resources' 
   | 'teachers' 
   | 'calendar' 
-  | 'notifications' 
   | 'settings';
 
 export interface ToastMessage {

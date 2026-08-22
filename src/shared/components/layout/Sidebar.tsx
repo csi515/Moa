@@ -16,7 +16,6 @@ import {
   Music2,
   GraduationCap,
   Calendar,
-  Bell,
   Settings,
 } from 'lucide-react';
 
@@ -72,7 +71,6 @@ export const Sidebar: React.FC = () => {
       items: [
         { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-4 h-4" /> },
         { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-4 h-4" /> },
-        { tab: 'notifications', label: '알림 관리', icon: <Bell className="w-4 h-4" /> },
         { tab: 'settings', label: '학원 설정', icon: <Settings className="w-4 h-4" /> },
       ],
     },

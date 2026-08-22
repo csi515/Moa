@@ -22,12 +22,9 @@ import {
   Search,
   Filter,
   FileCheck,
-  Phone,
-  BellRing,
-  Send
+  Phone
 } from 'lucide-react';
 import { AbsentReasonModal } from './AbsentReasonModal';
-import { SafeArrivalNotificationModal } from './SafeArrivalNotificationModal';
 
 export const AttendanceView: React.FC = () => {
   const { showToast, currentUser, setSelectedStudentId, setActiveTab } = useApp();
@@ -38,7 +35,6 @@ export const AttendanceView: React.FC = () => {
 
   // Modal states
   const [absentModalStudent, setAbsentModalStudent] = useState<Student | null>(null);
-  const [notifyModalStudent, setNotifyModalStudent] = useState<{ student: Student; type: 'arrival' | 'departure' } | null>(null);
 
   const students = StorageService.getStudents();
   const classes = StorageService.getClasses();
@@ -339,9 +335,8 @@ export const AttendanceView: React.FC = () => {
                 </div>
               </div>
 
-              {/* Status Action Buttons & Safe Notification */}
+              {/* Status Action Buttons */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 self-stretch md:self-auto shrink-0">
-                {/* 5 Status Action Buttons */}
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2 grow">
                   <button
                     type="button"
@@ -408,28 +403,6 @@ export const AttendanceView: React.FC = () => {
                     <span>보강</span>
                   </button>
                 </div>
-
-                {/* Safe Arrival / Departure Quick SMS */}
-                <div className="flex items-center gap-1 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setNotifyModalStudent({ student: st, type: 'arrival' })}
-                    title="학부모 안심 등원 알림 문자 발송"
-                    className="p-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <BellRing className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">등원문자</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNotifyModalStudent({ student: st, type: 'departure' })}
-                    title="학부모 안심 하원 알림 문자 발송"
-                    className="p-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                  >
-                    <Send className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">하원문자</span>
-                  </button>
-                </div>
               </div>
             </div>
           );
@@ -447,13 +420,6 @@ export const AttendanceView: React.FC = () => {
             setAbsentModalStudent(null);
           }
         }}
-      />
-
-      <SafeArrivalNotificationModal
-        isOpen={Boolean(notifyModalStudent)}
-        student={notifyModalStudent?.student || null}
-        type={notifyModalStudent?.type || 'arrival'}
-        onClose={() => setNotifyModalStudent(null)}
       />
     </div>
   );

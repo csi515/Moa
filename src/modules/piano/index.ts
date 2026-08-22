@@ -16,7 +16,6 @@ export { TextbookManagementView } from './components/textbooks/TextbookManagemen
 export { ExpenseManagementView } from './components/expenses/ExpenseManagementView';
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';
 export { AcademyCalendarView } from './components/calendar/AcademyCalendarView';
-export { NotificationManagementView } from './components/notifications/NotificationManagementView';
 export { AcademySettingsView } from './components/settings/AcademySettingsView';
 
 // Module config

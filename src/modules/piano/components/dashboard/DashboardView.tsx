@@ -541,16 +541,6 @@ export const DashboardView: React.FC = () => {
                       <p className={`text-sm font-bold font-mono ${i === 0 ? 'text-rose-900' : 'text-slate-800'}`}>
                         {formatCurrency(inv.unpaidAmount)}
                       </p>
-                      <button
-                        onClick={() => setActiveTab('notifications')}
-                        className={`text-[10px] px-2 py-0.5 rounded-md mt-1 font-bold ${
-                          i === 0
-                            ? 'bg-rose-600 text-white'
-                            : 'bg-slate-100 text-slate-600 hover:bg-indigo-50 hover:text-indigo-600'
-                        }`}
-                      >
-                        문자발송
-                      </button>
                     </div>
                   </div>
                 ))

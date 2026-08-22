@@ -30,7 +30,6 @@ import {
   ResourceManagementView,
   TeacherManagementView,
   AcademyCalendarView,
-  NotificationManagementView,
   AcademySettingsView,
 } from './modules/piano';
 
@@ -78,8 +77,6 @@ export const AppContent: React.FC = () => {
         return <TeacherManagementView />;
       case 'calendar':
         return <AcademyCalendarView />;
-      case 'notifications':
-        return <NotificationManagementView />;
       case 'settings':
         return <AcademySettingsView />;
       default:

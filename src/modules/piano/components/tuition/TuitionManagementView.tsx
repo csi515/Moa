@@ -26,9 +26,7 @@ import {
   Users
 } from 'lucide-react';
 import { CombinedPaymentModal } from './CombinedPaymentModal';
-import { BillingMessageModal } from './BillingMessageModal';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import { MessageSquare } from 'lucide-react';
 
 export const TuitionManagementView: React.FC = () => {
   const { showToast, setSelectedStudentId, setActiveTab } = useApp();
@@ -40,9 +38,6 @@ export const TuitionManagementView: React.FC = () => {
 
   // Combined payment modal
   const [combinedStudentForPay, setCombinedStudentForPay] = useState<any>(null);
-
-  // Billing message modal
-  const [billingModalInvoice, setBillingModalInvoice] = useState<TuitionInvoice | null>(null);
 
   // Payment processing modal
   const [payModalInvoice, setPayModalInvoice] = useState<TuitionInvoice | null>(null);
@@ -425,7 +420,7 @@ export const TuitionManagementView: React.FC = () => {
                     <th className="py-3.5 px-4">납부액 / 미납액</th>
                     <th className="py-3.5 px-4">납부기한</th>
                     <th className="py-3.5 px-4">상태</th>
-                    <th className="py-3.5 px-4 text-right">수납 / 문자 / 영수증</th>
+                    <th className="py-3.5 px-4 text-right">수납 / 영수증</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -484,22 +479,12 @@ export const TuitionManagementView: React.FC = () => {
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-1.5">
                               {inv.status !== 'paid' ? (
-                                <>
-                                  <button
-                                    onClick={() => handleOpenPayModal(inv)}
-                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer"
-                                  >
-                                    수납 결제
-                                  </button>
-                                  <button
-                                    onClick={() => setBillingModalInvoice(inv)}
-                                    title="학부모 청구 안내 문자/카톡 발송"
-                                    className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl transition-colors border border-indigo-100 flex items-center gap-1 cursor-pointer"
-                                  >
-                                    <MessageSquare className="w-3.5 h-3.5" />
-                                    <span>문자</span>
-                                  </button>
-                                </>
+                                <button
+                                  onClick={() => handleOpenPayModal(inv)}
+                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer"
+                                >
+                                  수납 결제
+                                </button>
                               ) : (
                                 <button
                                   onClick={() => setReceiptInvoice(inv)}
@@ -584,21 +569,12 @@ export const TuitionManagementView: React.FC = () => {
 
                       <div className="flex items-center gap-1.5">
                         {inv.status !== 'paid' ? (
-                          <>
-                            <button
-                              onClick={() => setBillingModalInvoice(inv)}
-                              className="px-2.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                            >
-                              <MessageSquare className="w-3.5 h-3.5" />
-                              <span>문자</span>
-                            </button>
-                            <button
-                              onClick={() => handleOpenPayModal(inv)}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
-                            >
-                              수납 결제
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleOpenPayModal(inv)}
+                            className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
+                          >
+                            수납 결제
+                          </button>
                         ) : (
                           <button
                             onClick={() => setReceiptInvoice(inv)}
@@ -616,15 +592,6 @@ export const TuitionManagementView: React.FC = () => {
             )}
           </div>
         </div>
-      )}
-
-      {/* Billing Message Modal */}
-      {billingModalInvoice && (
-        <BillingMessageModal
-          isOpen={Boolean(billingModalInvoice)}
-          invoice={billingModalInvoice}
-          onClose={() => setBillingModalInvoice(null)}
-        />
       )}
 
       {/* Combined Payment Modal */}
