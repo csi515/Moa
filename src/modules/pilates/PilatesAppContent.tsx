@@ -1,5 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
   Header,
   PwaInstallPrompt,
@@ -21,14 +23,10 @@ import {
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 export const PilatesAppContent: React.FC = () => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab } = useApp();
+  const { isAdmin } = usePermissions();
 
-  useEffect(() => {
-    const pilatesTabs = ['dashboard', 'bookings', 'services', 'members', 'instructors', 'settings'];
-    if (!pilatesTabs.includes(activeTab)) {
-      setActiveTab('dashboard');
-    }
-  }, [activeTab, setActiveTab]);
+  useTabGuard();
 
   const renderView = () => {
     switch (activeTab) {
@@ -57,7 +55,7 @@ export const PilatesAppContent: React.FC = () => {
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">{renderView()}</main>
       </div>
       <PilatesBottomNav />
-      <DirectorFloatingFab />
+      {isAdmin && <DirectorFloatingFab />}
       <PwaInstallPrompt />
       <ConfirmDialog />
       <ToastContainer />

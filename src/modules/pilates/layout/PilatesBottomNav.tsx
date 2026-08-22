@@ -1,25 +1,36 @@
 import React, { useState } from 'react';
 import { useApp, NavTab } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/pilates';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { filterNavTabs } from '@/core/auth/navUtils';
 import { LayoutDashboard, Calendar, Users, MoreHorizontal, Dumbbell, Activity, Settings, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const PilatesBottomNav: React.FC = () => {
   const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
+  const { allowedTabs } = usePermissions();
   const [moreOpen, setMoreOpen] = useState(false);
 
-  const mainTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+  const mainTabs = filterNavTabs(
+    [
     { tab: 'dashboard', label: '홈', icon: <LayoutDashboard className="w-5 h-5" /> },
     { tab: 'bookings', label: '예약', icon: <Calendar className="w-5 h-5" /> },
     { tab: 'members', label: labels.customer.singular, icon: <Users className="w-5 h-5" /> },
-  ];
+  ],
+    allowedTabs
+  );
 
-  const moreTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+  const moreTabs = filterNavTabs(
+    [
     { tab: 'services', label: '수업 종류', icon: <Dumbbell className="w-5 h-5" /> },
     { tab: 'instructors', label: '강사', icon: <Activity className="w-5 h-5" /> },
     { tab: 'settings', label: '설정', icon: <Settings className="w-5 h-5" /> },
-  ];
+  ],
+    allowedTabs
+  );
+
+  if (mainTabs.length === 0 && moreTabs.length === 0) return null;
 
   const handleTab = (tab: NavTab) => {
     if (tab === 'members') setSelectedStudentId(null);
@@ -40,6 +51,7 @@ export const PilatesBottomNav: React.FC = () => {
             {item.label}
           </button>
         ))}
+        {moreTabs.length > 0 && (
         <button
           onClick={() => setMoreOpen(!moreOpen)}
           className={`flex flex-col items-center py-1 px-3 text-[10px] ${moreOpen ? 'text-teal-600 font-bold' : 'text-slate-500'}`}
@@ -47,6 +59,7 @@ export const PilatesBottomNav: React.FC = () => {
           <MoreHorizontal className="w-5 h-5" />
           더보기
         </button>
+        )}
       </nav>
 
       <AnimatePresence>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
@@ -18,6 +19,7 @@ export const Header: React.FC = () => {
 
   const settings = StorageService.getSettings();
   const supabaseOrg = useOptionalOrganization();
+  const { roleLabel, isStaff, staffId } = usePermissions();
   const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
@@ -32,10 +34,11 @@ export const Header: React.FC = () => {
     ? StorageService.getStudents()
         .filter(
           (s) =>
-            s.name.includes(globalSearchQuery) ||
+            (!isStaff || !staffId || s.teacherId === staffId) &&
+            (s.name.includes(globalSearchQuery) ||
             s.parentPhone.includes(globalSearchQuery) ||
             s.school.includes(globalSearchQuery) ||
-            s.level.includes(globalSearchQuery)
+            s.level.includes(globalSearchQuery))
         )
         .slice(0, 5)
     : [];
@@ -117,7 +120,7 @@ export const Header: React.FC = () => {
             </div>
             <div className="hidden sm:block">
               <p className="text-xs font-bold text-slate-900 leading-tight">{currentUser.name}</p>
-              <p className="text-[10px] text-indigo-600 font-semibold">원장</p>
+              <p className="text-[10px] text-indigo-600 font-semibold">{roleLabel}</p>
             </div>
           </div>
         </div>

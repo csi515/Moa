@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
   Header,
   PwaInstallPrompt,
@@ -37,11 +39,16 @@ import {
 
 export const PianoAppContent: React.FC = () => {
   const { activeTab } = useApp();
+  const { isAdmin } = usePermissions();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
+  useTabGuard();
+
   useEffect(() => {
-    setShowOnboarding(StorageService.shouldShowOnboarding());
-  }, []);
+    if (isAdmin) {
+      setShowOnboarding(StorageService.shouldShowOnboarding());
+    }
+  }, [isAdmin]);
 
   const renderActiveView = () => {
     switch (activeTab) {
@@ -101,7 +108,7 @@ export const PianoAppContent: React.FC = () => {
       </div>
 
       <PianoBottomNav />
-      <DirectorFloatingFab />
+      {isAdmin && <DirectorFloatingFab />}
       <PwaInstallPrompt />
       {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
       <ConfirmDialog />

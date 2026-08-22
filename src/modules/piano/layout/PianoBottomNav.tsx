@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp, NavTab } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/piano';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { filterNavTabs } from '@/core/auth/navUtils';
 import {
   LayoutDashboard,
   Users,
@@ -28,16 +30,21 @@ import { motion, AnimatePresence } from 'motion/react';
 export const PianoBottomNav: React.FC = () => {
   const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
+  const { allowedTabs } = usePermissions();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
-  const mainTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+  const mainTabs = filterNavTabs(
+    [
     { tab: 'dashboard', label: '대시보드', icon: <LayoutDashboard className="w-5 h-5" /> },
     { tab: 'students', label: labels.customer.singular, icon: <Users className="w-5 h-5" /> },
     { tab: 'timetable', label: labels.schedule.singular, icon: <Clock className="w-5 h-5" /> },
-    { tab: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> }
-  ];
+    { tab: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> },
+  ],
+    allowedTabs
+  );
 
-  const moreTabs: { tab: NavTab; label: string; icon: React.ReactNode }[] = [
+  const moreTabs = filterNavTabs(
+    [
     { tab: 'tuition', label: '수강료/수납', icon: <CreditCard className="w-5 h-5" /> },
     { tab: 'unpaid', label: '미납 통합', icon: <AlertCircle className="w-5 h-5" /> },
     { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-5 h-5" /> },
@@ -53,7 +60,11 @@ export const PianoBottomNav: React.FC = () => {
     { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-5 h-5" /> },
     { tab: 'recitals', label: '연주회·콩쿠르', icon: <Award className="w-5 h-5" /> },
     { tab: 'settings', label: '학원 설정', icon: <Settings className="w-5 h-5" /> },
-  ];
+  ],
+    allowedTabs
+  );
+
+  if (mainTabs.length === 0 && moreTabs.length === 0) return null;
 
   const handleTabClick = (tab: NavTab) => {
     if (tab === 'students') setSelectedStudentId(null);
@@ -82,7 +93,8 @@ export const PianoBottomNav: React.FC = () => {
           );
         })}
 
-        {/* More Button */}
+        {/* More Button — 추가 메뉴가 있을 때만 */}
+        {moreTabs.length > 0 && (
         <button
           onClick={() => setMoreMenuOpen(!moreMenuOpen)}
           className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer ${
@@ -92,6 +104,7 @@ export const PianoBottomNav: React.FC = () => {
           <MoreHorizontal className="w-5 h-5" />
           <span className="text-[10px] mt-0.5">더보기</span>
         </button>
+        )}
       </nav>
 
       {/* More Bottom Sheet */}

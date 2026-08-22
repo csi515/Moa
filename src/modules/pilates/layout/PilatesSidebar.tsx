@@ -1,6 +1,8 @@
 import React from 'react';
 import { useApp, NavTab } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/pilates';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { filterNavSections } from '@/core/auth/navUtils';
 import {
   LayoutDashboard,
   Users,
@@ -19,8 +21,10 @@ interface MenuItem {
 export const PilatesSidebar: React.FC = () => {
   const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
+  const { allowedTabs, roleLabel, roleBadge } = usePermissions();
 
-  const menuSections: { title: string; items: MenuItem[] }[] = [
+  const menuSections = filterNavSections(
+    [
     {
       title: '메인',
       items: [{ tab: 'dashboard', label: '대시보드', icon: <LayoutDashboard className="w-4 h-4" /> }],
@@ -43,7 +47,9 @@ export const PilatesSidebar: React.FC = () => {
       title: '설정',
       items: [{ tab: 'settings', label: '스튜디오 설정', icon: <Settings className="w-4 h-4" /> }],
     },
-  ];
+  ],
+    allowedTabs
+  );
 
   const handleTabClick = (item: MenuItem) => {
     if (item.tab === 'members') setSelectedStudentId(null);
@@ -76,10 +82,10 @@ export const PilatesSidebar: React.FC = () => {
       </div>
       <div className="p-3.5 border-t border-slate-100">
         <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/80">
-          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-xs font-bold">원장</div>
+          <div className="w-8 h-8 rounded-lg bg-teal-600 text-white flex items-center justify-center text-xs font-bold">{roleBadge}</div>
           <div className="min-w-0">
             <p className="text-xs font-bold truncate">{currentUser.name}</p>
-            <p className="text-[10px] text-slate-400">스튜디오 운영자</p>
+            <p className="text-[10px] text-slate-400">{roleLabel}</p>
           </div>
         </div>
       </div>
