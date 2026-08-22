@@ -13,9 +13,9 @@ import { formatGuardianRelationship } from '@/core/parent';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
+import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import {
   UserSquare2,
-  Search,
   Phone,
   Users,
   Mail,
@@ -134,28 +134,20 @@ export const ParentManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-          <UserSquare2 className="w-6 h-6 text-indigo-600" />
-          학부모 관리
-        </h2>
-        <p className="text-xs sm:text-sm text-slate-500 mt-1">
-          학부모 계정을 초대하면 출결·과제·리포트를 학부모 앱에서 확인할 수 있습니다.
-        </p>
-      </div>
+      <PageHeader
+        icon={<UserSquare2 className="w-6 h-6" />}
+        title="학부모 관리"
+        description="학부모 계정을 초대하면 출결·과제·리포트를 학부모 앱에서 확인할 수 있습니다."
+      />
 
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs">
-        <div className="relative max-w-md">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="학부모 이름, 연락처, 원생 이름 검색..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-          />
-        </div>
-      </div>
+      <FilterBar>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="학부모 이름, 연락처, 원생 이름 검색..."
+          className="flex-1 min-w-[200px]"
+        />
+      </FilterBar>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredParents.map((parent) => {

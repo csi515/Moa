@@ -3,11 +3,11 @@ import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
+import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { Consultation, ConsultationType } from '@/types';
 import {
   MessageSquareText,
   Plus,
-  Search,
   Calendar,
   User,
   Clock,
@@ -114,58 +114,43 @@ export const ConsultationRecordsView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <MessageSquareText className="w-6 h-6 text-indigo-600" />
-            상담 이력 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            학부모 정기 상담, 진로/입시, 학습 진도 상담 이력 추적
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          상담 일지 작성
-        </button>
-      </div>
-
-      {/* Filter and Search */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+      <PageHeader
+        icon={<MessageSquareText className="w-6 h-6" />}
+        title="상담 이력 관리"
+        description="학부모 정기 상담, 진로/입시, 학습 진도 상담 이력 추적"
+        actions={
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <option value="ALL">전체 상담 유형</option>
-            <option value="parent">학부모 상담</option>
-            <option value="student">원생 상담</option>
-            <option value="career">진로/입시 상담</option>
-            <option value="learning">학습/진도 상담</option>
-          </select>
+            <Plus className="w-4 h-4" />
+            상담 일지 작성
+          </button>
+        }
+      />
 
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="원생, 학부모, 내용 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <span className="text-xs text-slate-500 font-medium">
-          총 <strong className="text-indigo-600">{filteredConsultations.length}건</strong>의 상담 기록
+      <FilterBar>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+        >
+          <option value="ALL">전체 상담 유형</option>
+          <option value="parent">학부모 상담</option>
+          <option value="student">원생 상담</option>
+          <option value="career">진로/입시 상담</option>
+          <option value="learning">학습/진도 상담</option>
+        </select>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="원생, 학부모, 내용 검색..."
+          className="flex-1 min-w-[200px]"
+        />
+        <span className="text-xs text-slate-500 font-medium shrink-0">
+          총 <strong className="text-indigo-600">{filteredConsultations.length}건</strong>
         </span>
-      </div>
+      </FilterBar>
 
       {/* Consultation Cards */}
       <div className="space-y-4">

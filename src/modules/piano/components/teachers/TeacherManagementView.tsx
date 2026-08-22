@@ -10,6 +10,7 @@ import {
   type StaffAccountStatusItem,
 } from '@/core/staff/services/staffAccountService';
 import { StorageService } from '@/services/storage';
+import { PageHeader } from '@/shared/components';
 import { Teacher } from '@/types';
 import {
   GraduationCap,
@@ -219,26 +220,20 @@ export const TeacherManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-indigo-600" />
-            {labels.staff.management}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            학원 전임 및 파트타임 강사 명단, 담당 클래스 배정
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          신규 강사 등록
-        </button>
-      </div>
+      <PageHeader
+        icon={<GraduationCap className="w-6 h-6" />}
+        title={labels.staff.management}
+        description="학원 전임 및 파트타임 강사 명단, 담당 클래스 배정"
+        actions={
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            신규 강사 등록
+          </button>
+        }
+      />
 
       {/* Teachers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

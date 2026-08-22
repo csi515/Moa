@@ -13,11 +13,10 @@ import {
   getLevelColor,
   getStudentStatusBadge
 } from '@/utils/formatters';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import {
   Users,
   UserPlus,
-  Search,
-  Filter,
   Phone,
   ArrowUpDown,
   BookOpen,
@@ -131,62 +130,46 @@ export const StudentListView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-600" />
-            {labels.customer.management}
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            재원{labels.customer.singular} <strong className="text-indigo-600 font-bold">{activeCount}명</strong> / 휴원 {leaveCount}명 / 총 {students.length}명
-          </p>
-        </div>
+      <PageHeader
+        icon={<Users className="w-6 h-6" />}
+        title={labels.customer.management}
+        description="원생 등록·수정, 학부모 연결, 수강료·출결 정보를 관리합니다"
+        actions={
+          !isScoped ? (
+            <button
+              onClick={() => {
+                setEditingStudent(null);
+                setIsFormModalOpen(true);
+              }}
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-4 h-4" />
+              {labels.customer.add}
+            </button>
+          ) : undefined
+        }
+      />
 
-        {!isScoped && (
-        <button
-          onClick={() => {
-            setEditingStudent(null);
-            setIsFormModalOpen(true);
-          }}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <UserPlus className="w-4 h-4" />
-          {labels.customer.add}
-        </button>
-        )}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <SummaryMetricCard label="재원" value={`${activeCount}명`} variant="emerald" />
+        <SummaryMetricCard label="휴원" value={`${leaveCount}명`} variant="amber" />
+        <SummaryMetricCard label="퇴원" value={`${withdrawnCount}명`} variant="default" />
+        <SummaryMetricCard label="전체" value={`${students.length}명`} variant="indigo" />
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs space-y-3">
+      <FilterBar className="flex-col items-stretch gap-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-          {/* Search Input */}
-          <div className="lg:col-span-2 relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="이름, 학부모 연락처, 학교, 번호 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600"
-              >
-                지우기
-              </button>
-            )}
-          </div>
-
-          {/* Teacher Filter — 강사는 담당 고정 */}
+          <SearchField
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="이름, 학부모 연락처, 학교, 번호 검색..."
+            className="lg:col-span-2"
+          />
           {!isScoped && (
-          <div>
             <select
               value={teacherFilter}
               onChange={(e) => setTeacherFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
             >
               <option value="ALL">선생님 전체</option>
               {teachers.map((t) => (
@@ -195,42 +178,34 @@ export const StudentListView: React.FC = () => {
                 </option>
               ))}
             </select>
-          </div>
           )}
 
-          {/* Class Filter */}
-          <div>
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            >
-              <option value="ALL">수업반 전체</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={classFilter}
+            onChange={(e) => setClassFilter(e.target.value)}
+            className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+          >
+            <option value="ALL">수업반 전체</option>
+            {classes.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
 
-          {/* Status Filter */}
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
-            >
-              <option value="ALL">상태 전체 ({students.length})</option>
-              <option value="active">재원 ({activeCount})</option>
-              <option value="leave">휴원 ({leaveCount})</option>
-              <option value="withdrawn">퇴원 ({withdrawnCount})</option>
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
+          >
+            <option value="ALL">상태 전체 ({students.length})</option>
+            <option value="active">재원 ({activeCount})</option>
+            <option value="leave">휴원 ({leaveCount})</option>
+            <option value="withdrawn">퇴원 ({withdrawnCount})</option>
+          </select>
         </div>
 
-        {/* Sort & Count strip */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 w-full">
           <span>검색된 원생: <strong className="text-slate-800">{filteredStudents.length}명</strong></span>
           <div className="flex items-center gap-1.5">
             <ArrowUpDown className="w-3.5 h-3.5" />
@@ -246,7 +221,7 @@ export const StudentListView: React.FC = () => {
             </select>
           </div>
         </div>
-      </div>
+      </FilterBar>
 
       {/* Student List View */}
       {filteredStudents.length === 0 ? (

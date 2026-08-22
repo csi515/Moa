@@ -5,6 +5,7 @@ import { StorageService } from '@/services/storage';
 import { MakeupItem, MakeupStatus } from '@/types';
 import {
   EmptyState,
+  FilterBar,
   FilterTabs,
   Modal,
   PageHeader,
@@ -101,13 +102,15 @@ export const MakeupManagementView: React.FC = () => {
         <SummaryMetricCard label="완료" value={`${counts.completed}건`} variant="emerald" />
       </div>
 
-      <FilterTabs
-        tabs={statusTabsWithCounts}
-        active={statusFilter}
-        onChange={setStatusFilter}
-        activeClassName="bg-purple-600 text-white"
-        inactiveClassName="bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
-      />
+      <FilterBar>
+        <FilterTabs
+          tabs={statusTabsWithCounts}
+          active={statusFilter}
+          onChange={setStatusFilter}
+          activeClassName="bg-purple-600 text-white"
+          inactiveClassName="bg-slate-100 text-slate-600"
+        />
+      </FilterBar>
 
       {filtered.length === 0 ? (
         <EmptyState

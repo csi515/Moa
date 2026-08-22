@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
+import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { Song, StudentLevel } from '@/types';
 import { getLevelColor } from '@/utils/formatters';
 import {
   Music2,
   Plus,
-  Search,
   Trash2,
   X,
 } from 'lucide-react';
@@ -134,73 +134,59 @@ export const ResourceManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Music2 className="w-6 h-6 text-indigo-600" />
-            교재 및 피아노 곡 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            레벨별 추천 교재, 연주회 레퍼토리, 콩쿠르 지정곡 아카이브
-          </p>
-        </div>
+      <PageHeader
+        icon={<Music2 className="w-6 h-6" />}
+        title="교재 및 피아노 곡 관리"
+        description="레벨별 추천 교재, 연주회 레퍼토리, 콩쿠르 지정곡 아카이브"
+        actions={
+          <button
+            onClick={() => {
+              setFormData(EMPTY_FORM);
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            교재/곡 추가
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => {
-            setFormData(EMPTY_FORM);
-            setIsModalOpen(true);
-          }}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+      <FilterBar>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value)}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
         >
-          <Plus className="w-4 h-4" />
-          교재/곡 추가
-        </button>
-      </div>
-
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
-          >
-            <option value="ALL">전체 구분</option>
-            <option value="textbook">정규 교재</option>
-            <option value="repertoire">명곡/레퍼토리</option>
-            <option value="competition">콩쿠르/연주곡</option>
-            <option value="theory">음악이론</option>
-          </select>
-
-          <select
-            value={levelFilter}
-            onChange={(e) => setLevelFilter(e.target.value)}
-            className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-          >
-            <option value="ALL">전체 레벨</option>
-            <option value="바이엘 상">바이엘 상</option>
-            <option value="바이엘 하">바이엘 하</option>
-            <option value="체르니 100">체르니 100</option>
-            <option value="체르니 30">체르니 30</option>
-            <option value="소나티네/명곡">소나티네/명곡</option>
-            <option value="작품집/쇼팽">작품집/쇼팽</option>
-          </select>
-
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="교재명, 작곡가, 출판사 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <span className="text-xs text-slate-500 font-medium">
-          등록된 자료: <strong className="text-indigo-600 font-bold">{filtered.length}개</strong>
+          <option value="ALL">전체 구분</option>
+          <option value="textbook">정규 교재</option>
+          <option value="repertoire">명곡/레퍼토리</option>
+          <option value="competition">콩쿠르/연주곡</option>
+          <option value="theory">음악이론</option>
+        </select>
+        <select
+          value={levelFilter}
+          onChange={(e) => setLevelFilter(e.target.value)}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+        >
+          <option value="ALL">전체 레벨</option>
+          <option value="바이엘 상">바이엘 상</option>
+          <option value="바이엘 하">바이엘 하</option>
+          <option value="체르니 100">체르니 100</option>
+          <option value="체르니 30">체르니 30</option>
+          <option value="소나티네/명곡">소나티네/명곡</option>
+          <option value="작품집/쇼팽">작품집/쇼팽</option>
+        </select>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="교재명, 작곡가, 출판사 검색..."
+          className="flex-1 min-w-[200px]"
+        />
+        <span className="text-xs text-slate-500 font-medium shrink-0">
+          <strong className="text-indigo-600">{filtered.length}개</strong>
         </span>
-      </div>
+      </FilterBar>
 
       {filtered.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 border border-slate-200/80 shadow-xs text-center">

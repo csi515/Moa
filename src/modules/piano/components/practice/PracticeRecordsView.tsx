@@ -2,12 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import { PracticeRecord } from '@/types';
 import {
   BookOpenCheck,
   Plus,
-  Search,
-  Filter,
   Clock,
   User,
   Star,
@@ -113,77 +112,55 @@ export const PracticeRecordsView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <BookOpenCheck className="w-6 h-6 text-indigo-600" />
-            원생 연습 기록
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            원생별 일일 연습 시간, 연습곡, 피드백 평가
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          연습 기록 추가
-        </button>
-      </div>
-
-      {/* Summary card & Filter */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-          <p className="text-xs text-slate-500 font-medium">총 누적 연습 시간</p>
-          <p className="text-2xl font-black text-slate-900 mt-1">
-            {totalMinutes}분 <span className="text-sm font-normal text-slate-500">({(totalMinutes / 60).toFixed(1)}시간)</span>
-          </p>
-        </div>
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-          <p className="text-xs text-slate-500 font-medium">기록된 연습 일지</p>
-          <p className="text-2xl font-black text-indigo-600 mt-1">
-            {filteredPractice.length}건
-          </p>
-        </div>
-        <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-          <p className="text-xs text-slate-500 font-medium">평균 연습 시간</p>
-          <p className="text-2xl font-black text-emerald-600 mt-1">
-            {filteredPractice.length > 0 ? Math.round(totalMinutes / filteredPractice.length) : 0}분
-          </p>
-        </div>
-      </div>
-
-      {/* Filter and Search */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={studentFilter}
-            onChange={(e) => setStudentFilter(e.target.value)}
-            className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+      <PageHeader
+        icon={<BookOpenCheck className="w-6 h-6" />}
+        title="원생 연습 기록"
+        description="원생별 일일 연습 시간, 연습곡, 피드백 평가"
+        actions={
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <option value="ALL">전체 원생</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.school})
-              </option>
-            ))}
-          </select>
+            <Plus className="w-4 h-4" />
+            연습 기록 추가
+          </button>
+        }
+      />
 
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="원생, 연습곡명 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <SummaryMetricCard
+          label="총 누적 연습 시간"
+          value={`${totalMinutes}분`}
+          subtitle={`${(totalMinutes / 60).toFixed(1)}시간`}
+        />
+        <SummaryMetricCard label="기록된 연습 일지" value={`${filteredPractice.length}건`} variant="indigo" />
+        <SummaryMetricCard
+          label="평균 연습 시간"
+          value={`${filteredPractice.length > 0 ? Math.round(totalMinutes / filteredPractice.length) : 0}분`}
+          variant="emerald"
+        />
       </div>
+
+      <FilterBar>
+        <select
+          value={studentFilter}
+          onChange={(e) => setStudentFilter(e.target.value)}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+        >
+          <option value="ALL">전체 원생</option>
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.school})
+            </option>
+          ))}
+        </select>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="원생, 연습곡명 검색..."
+          className="flex-1 min-w-[200px]"
+        />
+      </FilterBar>
 
       {/* Practice List */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

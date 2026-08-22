@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
+import { PageHeader } from '@/shared/components';
 import { AcademySettings } from '@/types';
 import { getDefaultAttendanceSettings } from '@/core/attendance/features';
 import {
@@ -68,18 +69,11 @@ export const AcademySettingsView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Settings className="w-6 h-6 text-indigo-600" />
-            학원 운영 및 환경 설정
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            학원명, 대표자 정보, 수납 계좌, 수강료 기본값 및 데이터 백업/복원
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Settings className="w-6 h-6" />}
+        title="학원 운영 및 환경 설정"
+        description="학원명, 대표자 정보, 수납 계좌, 수강료 기본값 및 데이터 백업/복원"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Settings Form */}

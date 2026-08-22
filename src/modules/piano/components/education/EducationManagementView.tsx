@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { PageHeader, FilterBar } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
 import type { AchievementType, AssignmentStatus, CurriculumProgressStatus } from '@/types/education';
 import {
@@ -50,23 +51,26 @@ function EducationSectionView({ section }: { section: EduSection }) {
     reports: '학습 리포트',
   };
 
+  const sectionIcons: Record<EduSection, React.ReactNode> = {
+    curriculum: <BookOpen className="w-6 h-6" />,
+    assignments: <BookOpenCheck className="w-6 h-6" />,
+    achievements: <Award className="w-6 h-6" />,
+    reports: <FileText className="w-6 h-6" />,
+  };
+
   return (
     <div className="space-y-6 pb-12">
-      <div>
-        <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
-          {section === 'curriculum' && <BookOpen className="w-6 h-6 text-indigo-600" />}
-          {section === 'assignments' && <BookOpenCheck className="w-6 h-6 text-indigo-600" />}
-          {section === 'achievements' && <Award className="w-6 h-6 text-indigo-600" />}
-          {section === 'reports' && <FileText className="w-6 h-6 text-indigo-600" />}
-          {titles[section]}
-        </h2>
-        <p className="text-xs text-slate-500 mt-1">학부모 포털에 연동되는 교육 품질 데이터를 관리합니다.</p>
-      </div>
+      <PageHeader
+        icon={sectionIcons[section]}
+        title={titles[section]}
+        description="학부모 포털에 연동되는 교육 품질 데이터를 관리합니다."
+      />
 
+      <FilterBar>
       <select
         value={selectedStudentId}
         onChange={(e) => setSelectedStudentId(e.target.value)}
-        className="px-4 py-2 text-sm bg-white border border-slate-200 rounded-xl font-bold"
+        className="px-4 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl font-bold focus:bg-white focus:outline-none"
       >
         {students.map((s) => (
           <option key={s.id} value={s.id}>
@@ -74,6 +78,7 @@ function EducationSectionView({ section }: { section: EduSection }) {
           </option>
         ))}
       </select>
+      </FilterBar>
 
       {selectedStudentId && section === 'curriculum' && (
         <CurriculumPanel studentId={selectedStudentId} showToast={showToast} onRefresh={triggerRefresh} />

@@ -2,12 +2,11 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import { LessonRecord } from '@/types';
 import {
   Piano,
   Plus,
-  Search,
-  Filter,
   Calendar,
   User,
   BookOpen,
@@ -144,59 +143,44 @@ export const LessonRecordsView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Piano className="w-6 h-6 text-indigo-600" />
-            레슨 일지 및 진도 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            원생별 피아노 레슨 진도, 강점 및 보완점, 과제 기록
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          레슨 일지 작성
-        </button>
-      </div>
-
-      {/* Filter and Search */}
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={selectedStudentFilter}
-            onChange={(e) => setSelectedStudentFilter(e.target.value)}
-            className="px-3.5 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+      <PageHeader
+        icon={<Piano className="w-6 h-6" />}
+        title="레슨 일지 및 진도 관리"
+        description="원생별 피아노 레슨 진도, 강점 및 보완점, 과제 기록"
+        actions={
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
-            <option value="ALL">전체 원생</option>
-            {students.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name} ({s.level})
-              </option>
-            ))}
-          </select>
+            <Plus className="w-4 h-4" />
+            레슨 일지 작성
+          </button>
+        }
+      />
 
-          <div className="relative">
-            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="원생, 레슨 곡명, 내용 검색..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8 pr-3 py-2 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
-
-        <span className="text-xs text-slate-500 font-medium">
-          총 <strong className="text-indigo-600">{filteredLessons.length}개</strong>의 레슨 기록
+      <FilterBar>
+        <select
+          value={selectedStudentFilter}
+          onChange={(e) => setSelectedStudentFilter(e.target.value)}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+        >
+          <option value="ALL">전체 원생</option>
+          {students.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} ({s.level})
+            </option>
+          ))}
+        </select>
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="원생, 레슨 곡명, 내용 검색..."
+          className="flex-1 min-w-[200px]"
+        />
+        <span className="text-xs text-slate-500 font-medium shrink-0">
+          총 <strong className="text-indigo-600">{filteredLessons.length}개</strong>
         </span>
-      </div>
+      </FilterBar>
 
       {/* Lesson Records List */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

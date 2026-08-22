@@ -1,0 +1,15 @@
+import React, { ReactNode } from 'react';
+
+interface FilterBarProps {
+  children: ReactNode;
+  className?: string;
+}
+
+/** 관리 화면 공통 필터/검색 바 래퍼 */
+export const FilterBar: React.FC<FilterBarProps> = ({ children, className = '' }) => (
+  <div
+    className={`bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-3 ${className}`}
+  >
+    {children}
+  </div>
+);

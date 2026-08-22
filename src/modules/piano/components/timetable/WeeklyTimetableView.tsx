@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { PageHeader, FilterBar } from '@/shared/components';
 import { ClassItem, DayOfWeek } from '@/types';
 import {
   Clock,
@@ -82,54 +83,46 @@ export const WeeklyTimetableView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Clock className="w-6 h-6 text-indigo-600" />
-            수업 시간표
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            월요일 ~ 토요일 전체 클래스 타임테이블 및 일별 시간표
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* View mode toggle */}
-          <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600 no-print">
+      <PageHeader
+        icon={<Clock className="w-6 h-6" />}
+        title="수업 시간표"
+        description="월요일 ~ 토요일 전체 클래스 타임테이블 및 일별 시간표"
+        actions={
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600 no-print">
+              <button
+                type="button"
+                onClick={() => setViewMode('daily')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'daily' || viewMode === 'auto'
+                    ? 'bg-white text-indigo-600 shadow-2xs'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                요일별
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('weekly')}
+                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'weekly'
+                    ? 'bg-white text-indigo-600 shadow-2xs'
+                    : 'hover:text-slate-900'
+                }`}
+              >
+                주간 그리드
+              </button>
+            </div>
             <button
-              type="button"
-              onClick={() => setViewMode('daily')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'daily' || viewMode === 'auto'
-                  ? 'bg-white text-indigo-600 shadow-2xs'
-                  : 'hover:text-slate-900'
-              }`}
+              onClick={handlePrint}
+              className="px-3.5 py-2 min-h-[44px] bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer no-print"
             >
-              요일별 (모바일 추천)
-            </button>
-            <button
-              type="button"
-              onClick={() => setViewMode('weekly')}
-              className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                viewMode === 'weekly'
-                  ? 'bg-white text-indigo-600 shadow-2xs'
-                  : 'hover:text-slate-900'
-              }`}
-            >
-              주간 전체 그리드
+              <Printer className="w-4 h-4" />
+              <span className="hidden sm:inline">인쇄</span>
             </button>
           </div>
-
-          <button
-            onClick={handlePrint}
-            className="px-3.5 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer no-print"
-          >
-            <Printer className="w-4 h-4" />
-            <span className="hidden sm:inline">인쇄</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters Bar */}
       <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 no-print">

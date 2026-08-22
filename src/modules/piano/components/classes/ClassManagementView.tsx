@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
+import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
 import {
   GraduationCap,
@@ -140,26 +141,20 @@ export const ClassManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <GraduationCap className="w-6 h-6 text-indigo-600" />
-            반 / 수업 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            개설된 피아노 정규 및 특별 클래스 <strong className="text-indigo-600 font-bold">{classes.length}개</strong>
-          </p>
-        </div>
-
-        <button
-          onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          신규 반 개설
-        </button>
-      </div>
+      <PageHeader
+        icon={<GraduationCap className="w-6 h-6" />}
+        title="반 / 수업 관리"
+        description={`개설된 피아노 정규 및 특별 클래스 ${classes.length}개`}
+        actions={
+          <button
+            onClick={handleOpenCreate}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            신규 반 개설
+          </button>
+        }
+      />
 
       {/* Class Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

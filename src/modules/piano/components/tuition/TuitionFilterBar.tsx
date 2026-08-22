@@ -1,5 +1,6 @@
 import React from 'react';
 import { CreditCard, Search, Users } from 'lucide-react';
+import { FilterBar } from '@/shared/components';
 import { ViewMode } from './tuitionViewTypes';
 
 interface MonthOption {
@@ -35,37 +36,37 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
   studentsCount
 }) => (
   <div className="space-y-3">
-    <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-2">
+    <FilterBar className="gap-2">
       <button
         onClick={() => onViewModeChange('invoices')}
         title="수강료 개별 청구서 목록"
         className={`px-3 sm:px-4 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'invoices'
             ? 'bg-indigo-600 text-white shadow-xs'
-            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
         }`}
       >
         <CreditCard className="w-4 h-4 shrink-0" />
-        <span className="hidden lg:inline">수강료 개별 청구서 목록 ({filteredInvoicesCount})</span>
-        <span className="lg:hidden">개별 청구 ({filteredInvoicesCount})</span>
+        <span className="hidden lg:inline">개별 청구 ({filteredInvoicesCount})</span>
+        <span className="lg:hidden">개별 ({filteredInvoicesCount})</span>
       </button>
       <button
         onClick={() => onViewModeChange('combined')}
-        title="원생별 월간 통합 청구 및 수납 (수강료 + 교재비)"
+        title="원생별 월간 통합 청구 및 수납"
         className={`px-3 sm:px-4 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'combined'
             ? 'bg-indigo-600 text-white shadow-xs'
-            : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
         }`}
       >
         <Users className="w-4 h-4 shrink-0" />
-        <span className="hidden lg:inline">원생별 월간 통합 청구 및 수납 (수강료 + 교재비)</span>
-        <span className="lg:hidden">통합 청구 ({studentsCount})</span>
+        <span className="hidden lg:inline">통합 청구 ({studentsCount})</span>
+        <span className="lg:hidden">통합 ({studentsCount})</span>
       </button>
-    </div>
+    </FilterBar>
 
-    <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-      <div className="flex flex-wrap items-center gap-2.5">
+    <FilterBar className="justify-between">
+      <div className="flex flex-wrap items-center gap-2.5 flex-1">
         <select
           value={selectedMonth}
           onChange={(e) => onSelectedMonthChange(e.target.value)}
@@ -99,18 +100,18 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
             placeholder="원생 이름 검색..."
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
-            className="w-full pl-8 pr-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+            className="w-full pl-8 pr-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
 
       <span className="text-xs text-slate-500 font-medium shrink-0">
         {viewMode === 'invoices' ? (
-          <>조회 결과: <strong className="text-slate-900">{filteredInvoicesCount}건</strong></>
+          <>조회: <strong className="text-slate-900">{filteredInvoicesCount}건</strong></>
         ) : (
-          <>재원생: <strong className="text-slate-900">{studentsCount}명</strong></>
+          <>재원: <strong className="text-slate-900">{studentsCount}명</strong></>
         )}
       </span>
-    </div>
+    </FilterBar>
   </div>
 );

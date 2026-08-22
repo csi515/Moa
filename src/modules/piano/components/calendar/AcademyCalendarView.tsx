@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { PageHeader, FilterBar } from '@/shared/components';
 import { AcademyEvent } from '@/types';
 import {
   CalendarDays,
@@ -93,36 +94,31 @@ export const AcademyCalendarView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CalendarDays className="w-6 h-6 text-indigo-600" />
-            학원 일정 및 캘린더
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            정기 연주회, 콩쿠르 출전, 방학/휴원, 조율 일정, 원생 생일
-          </p>
-        </div>
+      <PageHeader
+        icon={<CalendarDays className="w-6 h-6" />}
+        title="학원 일정 및 캘린더"
+        description="정기 연주회, 콩쿠르 출전, 방학/휴원, 조율 일정, 원생 생일"
+        actions={
+          <button
+            onClick={() => {
+              setNewEvent({
+                title: '',
+                startDate: `${currentYearMonthStr}-15`,
+                type: 'concert',
+                description: '',
+                color: '#4f46e5',
+              });
+              setIsModalOpen(true);
+            }}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            학원 일정 등록
+          </button>
+        }
+      />
 
-        <button
-          onClick={() => {
-            setNewEvent({
-              title: '',
-              startDate: `${currentYearMonthStr}-15`,
-              type: 'concert',
-              description: '',
-              color: '#4f46e5',
-            });
-            setIsModalOpen(true);
-          }}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
-        >
-          <Plus className="w-4 h-4" />
-          학원 일정 등록
-        </button>
-      </div>
-
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+      <FilterBar className="justify-between">
         <button
           onClick={handlePrevMonth}
           className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
@@ -140,7 +136,7 @@ export const AcademyCalendarView: React.FC = () => {
         >
           <ChevronRight className="w-5 h-5" />
         </button>
-      </div>
+      </FilterBar>
 
       <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-3">

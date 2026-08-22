@@ -10,14 +10,11 @@ import {
 } from '../services/attendanceService';
 import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import {
-  Calendar,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Clock,
-  Search,
-  Users,
 } from 'lucide-react';
 
 type AttendanceSubTab = 'overview' | 'kiosk';
@@ -74,57 +71,52 @@ export const AttendanceManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <CheckSquare className="w-6 h-6 text-indigo-600" />
-            출결 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            PIN 입·퇴실 기록 및 날짜별 현황 확인
-          </p>
-        </div>
-
-        <div className="flex bg-white border border-slate-200 rounded-xl p-1">
-          <button
-            type="button"
-            onClick={() => setSubTab('overview')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold ${
-              subTab === 'overview' ? 'bg-indigo-600 text-white' : 'text-slate-600'
-            }`}
-          >
-            현황
-          </button>
-          <button
-            type="button"
-            onClick={() => setSubTab('kiosk')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold ${
-              subTab === 'kiosk' ? 'bg-indigo-600 text-white' : 'text-slate-600'
-            }`}
-          >
-            키패드
-          </button>
-        </div>
-      </div>
+      <PageHeader
+        icon={<CheckSquare className="w-6 h-6" />}
+        title="출결 관리"
+        description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
+        actions={
+          <div className="flex bg-white border border-slate-200 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => setSubTab('overview')}
+              className={`px-4 py-2 min-h-[44px] rounded-lg text-xs font-bold ${
+                subTab === 'overview' ? 'bg-indigo-600 text-white' : 'text-slate-600'
+              }`}
+            >
+              현황
+            </button>
+            <button
+              type="button"
+              onClick={() => setSubTab('kiosk')}
+              className={`px-4 py-2 min-h-[44px] rounded-lg text-xs font-bold ${
+                subTab === 'kiosk' ? 'bg-indigo-600 text-white' : 'text-slate-600'
+              }`}
+            >
+              키패드
+            </button>
+          </div>
+        }
+      />
 
       {subTab === 'kiosk' ? (
         <PinCheckInKioskView />
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <StatCard label="재원생" value={stats.total} icon={<Users className="w-4 h-4" />} />
-            <StatCard label="입실" value={stats.checkedIn} tone="success" icon={<Clock className="w-4 h-4" />} />
-            <StatCard label="퇴실" value={stats.checkedOut} tone="warning" icon={<CheckSquare className="w-4 h-4" />} />
-            <StatCard label="미출석" value={stats.absent} tone="muted" icon={<Calendar className="w-4 h-4" />} />
+            <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant="indigo" />
+            <SummaryMetricCard label="입실" value={`${stats.checkedIn}명`} variant="emerald" />
+            <SummaryMetricCard label="퇴실" value={`${stats.checkedOut}명`} variant="amber" />
+            <SummaryMetricCard label="미출석" value={`${stats.absent}명`} />
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => changeDate(-1)}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50"
+                  className="p-2 min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 hover:bg-slate-50"
                   aria-label="이전 날짜"
                 >
                   <ChevronLeft className="w-4 h-4" />
@@ -133,29 +125,24 @@ export const AttendanceManagementView: React.FC = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 text-sm font-bold border border-slate-200 rounded-xl"
+                  className="px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
                 />
                 <button
                   type="button"
                   onClick={() => changeDate(1)}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50"
+                  className="p-2 min-h-[44px] min-w-[44px] rounded-xl border border-slate-200 hover:bg-slate-50"
                   aria-label="다음 날짜"
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
-
-              <div className="relative flex-1 max-w-xs">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  type="search"
-                  placeholder="이름·연락처 검색"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 text-xs border border-slate-200 rounded-xl"
-                />
-              </div>
-            </div>
+              <SearchField
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="이름·연락처 검색"
+                className="flex-1 max-w-xs"
+              />
+            </FilterBar>
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs sm:text-sm">
@@ -234,34 +221,3 @@ export const AttendanceManagementView: React.FC = () => {
     </div>
   );
 };
-
-function StatCard({
-  label,
-  value,
-  icon,
-  tone = 'default',
-}: {
-  label: string;
-  value: number;
-  icon: React.ReactNode;
-  tone?: 'default' | 'success' | 'warning' | 'muted';
-}) {
-  const toneClass =
-    tone === 'success'
-      ? 'text-emerald-600'
-      : tone === 'warning'
-        ? 'text-amber-600'
-        : tone === 'muted'
-          ? 'text-slate-500'
-          : 'text-indigo-600';
-
-  return (
-    <div className="bg-white rounded-2xl border border-slate-200 p-4">
-      <div className={`flex items-center gap-2 ${toneClass}`}>
-        {icon}
-        <span className="text-[10px] font-bold uppercase">{label}</span>
-      </div>
-      <p className="text-2xl font-black text-slate-900 mt-2">{value}</p>
-    </div>
-  );
-}

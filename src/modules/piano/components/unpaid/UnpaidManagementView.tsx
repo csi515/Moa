@@ -6,6 +6,7 @@ import { StorageService } from '@/services/storage';
 import { Student } from '@/types';
 import {
   EmptyState,
+  FilterBar,
   FilterTabs,
   PageHeader,
   SearchField,
@@ -107,7 +108,7 @@ export const UnpaidManagementView: React.FC = () => {
         <SummaryMetricCard label="교재비 미납" value={formatCurrency(stats.textbookTotal)} variant="amber" />
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-3">
+      <FilterBar>
         <FilterTabs tabs={filterTabs} active={filterMode} onChange={setFilterMode} />
         <SearchField
           value={searchQuery}
@@ -115,7 +116,7 @@ export const UnpaidManagementView: React.FC = () => {
           placeholder="원생명, 학부모, 연락처 검색..."
           className="flex-1 min-w-[200px]"
         />
-      </div>
+      </FilterBar>
 
       {filtered.length === 0 ? (
         <EmptyState icon={<span className="text-3xl">🎉</span>} title="미납 내역이 없습니다!" />

@@ -13,6 +13,9 @@ interface SummaryMetricCardProps {
   label: string;
   value: string | number;
   variant?: SummaryMetricVariant;
+  subtitle?: string;
+  onClick?: () => void;
+  className?: string;
 }
 
 const VARIANT_STYLES: Record<
@@ -60,13 +63,34 @@ export const SummaryMetricCard: React.FC<SummaryMetricCardProps> = ({
   label,
   value,
   variant = 'default',
+  subtitle,
+  onClick,
+  className = '',
 }) => {
   const styles = VARIANT_STYLES[variant];
 
   return (
-    <div className={`p-4 rounded-2xl border shadow-xs ${styles.container}`}>
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`p-4 rounded-2xl border shadow-xs ${styles.container} ${
+        onClick ? 'cursor-pointer hover:shadow-sm transition-shadow' : ''
+      } ${className}`}
+    >
       <p className={`text-xs ${styles.label}`}>{label}</p>
       <p className={`text-xl font-black mt-1 ${styles.value}`}>{value}</p>
+      {subtitle && <p className="text-[11px] text-slate-400 mt-1 font-medium">{subtitle}</p>}
     </div>
   );
 };
