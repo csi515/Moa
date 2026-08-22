@@ -144,18 +144,78 @@ export const AttendanceManagementView: React.FC = () => {
               />
             </FilterBar>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
-                <thead>
-                  <tr className="bg-slate-50 text-slate-500">
-                    <th className="text-left px-4 py-3 font-bold">이름</th>
-                    <th className="text-left px-4 py-3 font-bold">상태</th>
-                    <th className="text-left px-4 py-3 font-bold">입실</th>
-                    <th className="text-left px-4 py-3 font-bold">퇴실</th>
-                    <th className="text-left px-4 py-3 font-bold">PIN</th>
-                  </tr>
-                </thead>
-                <tbody>
+            {activeStudents.length === 0 ? (
+              <p className="px-4 py-10 text-center text-slate-400 text-sm">
+                {isScoped ? '담당 원생이 없습니다.' : '등록된 재원생이 없습니다.'}
+              </p>
+            ) : (
+              <>
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-xs sm:text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 text-slate-500">
+                        <th className="text-left px-4 py-3 font-bold">이름</th>
+                        <th className="text-left px-4 py-3 font-bold">상태</th>
+                        <th className="text-left px-4 py-3 font-bold">입실</th>
+                        <th className="text-left px-4 py-3 font-bold">퇴실</th>
+                        <th className="text-left px-4 py-3 font-bold">PIN</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {activeStudents.map((student) => {
+                        const session = sessionMap.get(student.id);
+                        const status = getSessionStatusLabel(session);
+                        const pinSet = StorageService.hasCustomerPin(student.id);
+                        const toneBg =
+                          status.tone === 'success'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : status.tone === 'warning'
+                              ? 'bg-amber-50 text-amber-700'
+                              : status.tone === 'error'
+                                ? 'bg-rose-50 text-rose-700'
+                                : 'bg-slate-100 text-slate-600';
+
+                        return (
+                          <tr key={student.id} className="border-t border-slate-100 hover:bg-slate-50/50">
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedStudentId(student.id);
+                                  setActiveTab('students');
+                                }}
+                                className="font-bold text-slate-900 hover:text-indigo-600"
+                              >
+                                {student.name}
+                              </button>
+                              <p className="text-[10px] text-slate-400">{student.grade}</p>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${toneBg}`}>
+                                {status.label}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-700">
+                              {formatSessionTime(session?.checkInAt)}
+                            </td>
+                            <td className="px-4 py-3 font-mono text-slate-700">
+                              {formatSessionTime(session?.checkOutAt)}
+                            </td>
+                            <td className="px-4 py-3">
+                              <span
+                                className={`text-[10px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}
+                              >
+                                {pinSet ? '설정됨' : '미설정'}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="md:hidden divide-y divide-slate-100">
                   {activeStudents.map((student) => {
                     const session = sessionMap.get(student.id);
                     const status = getSessionStatusLabel(session);
@@ -170,51 +230,42 @@ export const AttendanceManagementView: React.FC = () => {
                             : 'bg-slate-100 text-slate-600';
 
                     return (
-                      <tr key={student.id} className="border-t border-slate-100 hover:bg-slate-50/50">
-                        <td className="px-4 py-3">
+                      <div key={student.id} className="p-4 space-y-2">
+                        <div className="flex items-start justify-between gap-2">
                           <button
                             type="button"
                             onClick={() => {
                               setSelectedStudentId(student.id);
                               setActiveTab('students');
                             }}
-                            className="font-bold text-slate-900 hover:text-indigo-600"
+                            className="font-bold text-slate-900 hover:text-indigo-600 text-sm text-left"
                           >
                             {student.name}
                           </button>
-                          <p className="text-[10px] text-slate-400">{student.grade}</p>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${toneBg}`}>
+                          <span className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 ${toneBg}`}>
                             {status.label}
                           </span>
-                        </td>
-                        <td className="px-4 py-3 font-mono text-slate-700">
-                          {formatSessionTime(session?.checkInAt)}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-slate-700">
-                          {formatSessionTime(session?.checkOutAt)}
-                        </td>
-                        <td className="px-4 py-3">
-                          <span
-                            className={`text-[10px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}
-                          >
-                            {pinSet ? '설정됨' : '미설정'}
-                          </span>
-                        </td>
-                      </tr>
+                        </div>
+                        <p className="text-[11px] text-slate-400">{student.grade}</p>
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                          <div className="bg-slate-50 rounded-xl p-2">
+                            <p className="text-slate-400 font-semibold">입실</p>
+                            <p className="font-mono font-bold text-slate-700">{formatSessionTime(session?.checkInAt)}</p>
+                          </div>
+                          <div className="bg-slate-50 rounded-xl p-2">
+                            <p className="text-slate-400 font-semibold">퇴실</p>
+                            <p className="font-mono font-bold text-slate-700">{formatSessionTime(session?.checkOutAt)}</p>
+                          </div>
+                        </div>
+                        <p className={`text-[11px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}>
+                          PIN {pinSet ? '설정됨' : '미설정'}
+                        </p>
+                      </div>
                     );
                   })}
-                  {activeStudents.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-slate-400">
-                        {isScoped ? '담당 원생이 없습니다.' : '등록된 재원생이 없습니다.'}
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

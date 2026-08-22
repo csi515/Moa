@@ -48,7 +48,7 @@ export const OrganizationSwitcher: React.FC = () => {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
+          <div className="fixed left-4 right-4 bottom-20 sm:absolute sm:left-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:w-72 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
             <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
               Organization 전환
             </p>

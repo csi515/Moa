@@ -14,28 +14,39 @@ export const TuitionReceiptModal: React.FC<TuitionReceiptModalProps> = ({
   settings,
   onClose
 }) => (
-  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-    <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden my-6">
-      <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between no-print">
+  <div
+    className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+    onClick={onClose}
+    role="presentation"
+  >
+    <div
+      className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden"
+      onClick={(e) => e.stopPropagation()}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0 no-print">
         <span className="font-bold text-xs text-slate-600">수강료 납부 영수증 미리보기</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => window.print()}
-            className="px-3 py-1.5 bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-2xs"
+            className="px-3 py-2 min-h-[44px] bg-indigo-600 text-white font-bold text-xs rounded-xl flex items-center gap-1 shadow-2xs"
           >
             <Printer className="w-3.5 h-3.5" />
-            영수증 인쇄
+            <span className="hidden sm:inline">영수증 </span>인쇄
           </button>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 p-1"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl"
+            aria-label="닫기"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
       </div>
 
-      <div className="p-8 space-y-6 bg-white text-slate-900 border-4 border-double border-slate-300 m-4 rounded-2xl">
+      <div className="overflow-y-auto flex-1">
+      <div className="p-6 sm:p-8 space-y-6 bg-white text-slate-900 border-4 border-double border-slate-300 m-4 rounded-2xl">
         <div className="text-center border-b pb-4">
           <h3 className="text-2xl font-black tracking-widest text-slate-900">
             수 강 료 납 부 영 수 증
@@ -84,6 +95,7 @@ export const TuitionReceiptModal: React.FC<TuitionReceiptModalProps> = ({
             {settings.address}
           </p>
         </div>
+      </div>
       </div>
     </div>
   </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStaffScope } from '@/hooks';
+import { useStaffScope, useIsDesktop } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar } from '@/shared/components';
 import { ClassItem, DayOfWeek } from '@/types';
@@ -51,6 +51,10 @@ export const WeeklyTimetableView: React.FC = () => {
   const [teacherFilter, setTeacherFilter] = useState('ALL');
   const [roomFilter, setRoomFilter] = useState('ALL');
   const [selectedClass, setSelectedClass] = useState<ClassItem | null>(null);
+  const isDesktop = useIsDesktop();
+
+  const showDailyView = viewMode === 'daily' || (viewMode === 'auto' && !isDesktop);
+  const showWeeklyView = viewMode === 'weekly' || (viewMode === 'auto' && isDesktop);
 
   useEffect(() => {
     if (isScoped && staffId) setTeacherFilter(staffId);
@@ -89,12 +93,12 @@ export const WeeklyTimetableView: React.FC = () => {
         description="월요일 ~ 토요일 전체 클래스 타임테이블 및 일별 시간표"
         actions={
           <div className="flex items-center gap-2 flex-wrap">
-            <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600 no-print">
+            <div className="bg-slate-100 p-1 rounded-xl hidden md:flex items-center gap-1 text-xs font-bold text-slate-600 no-print">
               <button
                 type="button"
                 onClick={() => setViewMode('daily')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'daily' || viewMode === 'auto'
+                className={`px-3 py-1.5 min-h-[44px] rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'daily' || (viewMode === 'auto' && !isDesktop)
                     ? 'bg-white text-indigo-600 shadow-2xs'
                     : 'hover:text-slate-900'
                 }`}
@@ -104,8 +108,8 @@ export const WeeklyTimetableView: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setViewMode('weekly')}
-                className={`px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
-                  viewMode === 'weekly'
+                className={`px-3 py-1.5 min-h-[44px] rounded-lg transition-all cursor-pointer ${
+                  viewMode === 'weekly' || (viewMode === 'auto' && isDesktop)
                     ? 'bg-white text-indigo-600 shadow-2xs'
                     : 'hover:text-slate-900'
                 }`}
@@ -206,14 +210,14 @@ export const WeeklyTimetableView: React.FC = () => {
         </div>
 
         {/* Daily Timeline View (Recommended for Mobile) */}
-        {(viewMode === 'daily' || viewMode === 'auto') && (
+        {showDailyView && (
           <div className="space-y-3">
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-indigo-600" />
                 {selectedDay}요일 수업 일정 ({dayClasses.length}개 반)
               </h3>
-              <span className="text-xs text-slate-400">카드를 누르면 상세/출결 확인</span>
+              <span className="text-xs text-slate-400 hidden sm:inline">카드를 누르면 상세/출결 확인</span>
             </div>
 
             {dayClasses.length === 0 ? (
@@ -279,7 +283,7 @@ export const WeeklyTimetableView: React.FC = () => {
         )}
 
         {/* Timetable Grid (Desktop / Full Week View) */}
-        {viewMode === 'weekly' && (
+        {showWeeklyView && (
           <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <div className="min-w-[760px]">
@@ -367,7 +371,7 @@ export const WeeklyTimetableView: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedClass(null)}
-                className="text-white/80 hover:text-white p-1 cursor-pointer"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-white/80 hover:text-white rounded-xl cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>

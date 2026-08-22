@@ -99,7 +99,7 @@ export const DirectorFloatingFab: React.FC = () => {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="빠른 실행 메뉴"
-        className={`w-13 h-13 sm:w-14 sm:h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-90 ${
+        className={`w-14 h-14 sm:w-14 sm:h-14 min-h-[56px] min-w-[56px] rounded-full shadow-2xl flex items-center justify-center transition-all duration-200 cursor-pointer active:scale-90 ${
           isOpen
             ? 'bg-slate-800 text-white rotate-45 scale-95'
             : 'bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white hover:from-indigo-700 hover:to-indigo-600 hover:scale-105 shadow-indigo-500/30'

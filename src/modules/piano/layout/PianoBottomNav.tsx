@@ -26,6 +26,7 @@ import {
   X,
   BarChart3,
   TrendingUp,
+  FileText,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -63,6 +64,10 @@ export const PianoBottomNav: React.FC = () => {
     { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-5 h-5" /> },
     { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-5 h-5" /> },
     { tab: 'recitals', label: '연주회·콩쿠르', icon: <Award className="w-5 h-5" /> },
+    { tab: 'curriculum', label: '커리큘럼·진도', icon: <BookOpen className="w-5 h-5" /> },
+    { tab: 'assignments', label: '주간 과제', icon: <BookOpenCheck className="w-5 h-5" /> },
+    { tab: 'achievements', label: '시험·콩쿠르', icon: <Award className="w-5 h-5" /> },
+    { tab: 'reports', label: '학습 리포트', icon: <FileText className="w-5 h-5" /> },
     { tab: 'settings', label: '학원 설정', icon: <Settings className="w-5 h-5" /> },
   ],
     allowedTabs
@@ -80,14 +85,14 @@ export const PianoBottomNav: React.FC = () => {
 
   return (
     <>
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 py-1.5 flex items-center justify-around no-print">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1 flex items-center justify-around no-print safe-area-pb">
         {mainTabs.map((item) => {
           const isActive = activeTab === item.tab && !moreMenuOpen;
           return (
             <button
               key={item.tab}
               onClick={() => handleTabClick(item.tab)}
-              className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer ${
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
                 isActive ? 'text-indigo-600 font-bold scale-105' : 'text-slate-500 font-medium'
               }`}
             >
@@ -101,7 +106,7 @@ export const PianoBottomNav: React.FC = () => {
         {moreTabs.length > 0 && (
         <button
           onClick={() => setMoreMenuOpen(!moreMenuOpen)}
-          className={`flex flex-col items-center justify-center py-1 px-3 rounded-xl transition-all cursor-pointer ${
+          className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
             moreMenuOpen || isMoreActive ? 'text-indigo-600 font-bold scale-105' : 'text-slate-500 font-medium'
           }`}
         >
@@ -114,13 +119,18 @@ export const PianoBottomNav: React.FC = () => {
       {/* More Bottom Sheet */}
       <AnimatePresence>
         {moreMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end">
+          <div
+            className="md:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end"
+            onClick={() => setMoreMenuOpen(false)}
+            role="presentation"
+          >
             <motion.div
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               className="bg-white rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl border-t border-slate-200"
+              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
@@ -129,7 +139,8 @@ export const PianoBottomNav: React.FC = () => {
                 </div>
                 <button
                   onClick={() => setMoreMenuOpen(false)}
-                  className="p-1.5 text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full"
+                  aria-label="메뉴 닫기"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -143,7 +154,7 @@ export const PianoBottomNav: React.FC = () => {
                     <button
                       key={item.tab}
                       onClick={() => handleTabClick(item.tab)}
-                      className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all text-center cursor-pointer ${
+                      className={`flex flex-col items-center justify-center min-h-[72px] p-3 rounded-2xl border transition-all text-center cursor-pointer ${
                         isActive
                           ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-bold shadow-xs'
                           : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'

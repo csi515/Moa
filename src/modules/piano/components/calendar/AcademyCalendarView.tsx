@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { PageHeader, FilterBar } from '@/shared/components';
+import { PageHeader, FilterBar, Modal } from '@/shared/components';
 import { AcademyEvent } from '@/types';
 import {
   CalendarDays,
@@ -12,7 +12,6 @@ import {
   Trash2,
   Clock,
   Cake,
-  X,
 } from 'lucide-react';
 
 export const AcademyCalendarView: React.FC = () => {
@@ -21,7 +20,7 @@ export const AcademyCalendarView: React.FC = () => {
 
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
   useStorageRefresh();
   const events = StorageService.getEvents();
 
@@ -121,7 +120,8 @@ export const AcademyCalendarView: React.FC = () => {
       <FilterBar className="justify-between">
         <button
           onClick={handlePrevMonth}
-          className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          aria-label="이전 달"
         >
           <ChevronLeft className="w-5 h-5" />
         </button>
@@ -132,13 +132,106 @@ export const AcademyCalendarView: React.FC = () => {
 
         <button
           onClick={handleNextMonth}
-          className="p-2 text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+          aria-label="다음 달"
         >
           <ChevronRight className="w-5 h-5" />
         </button>
       </FilterBar>
 
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+      {/* 모바일: 날짜 선택 + 해당 일 일정 */}
+      <div className="md:hidden space-y-4">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          {Array.from({ length: daysInMonth }).map((_, i) => {
+            const dayNum = i + 1;
+            const dateStr = `${currentYearMonthStr}-${String(dayNum).padStart(2, '0')}`;
+            const dayEvents = events.filter((ev) => ev.startDate === dateStr);
+            const dayBdays = birthdayStudents.filter((s) => {
+              const bDay = parseInt(s.birthDate.split('-')[2], 10);
+              return bDay === dayNum;
+            });
+            const hasItems = dayEvents.length > 0 || dayBdays.length > 0;
+            const isSelected = selectedDay === dayNum;
+
+            return (
+              <button
+                key={dayNum}
+                type="button"
+                onClick={() => setSelectedDay(dayNum)}
+                className={`shrink-0 min-w-[52px] min-h-[52px] rounded-2xl flex flex-col items-center justify-center text-xs font-bold transition-all ${
+                  isSelected
+                    ? 'bg-indigo-600 text-white shadow-md'
+                    : hasItems
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : 'bg-white text-slate-700 border border-slate-200'
+                }`}
+              >
+                <span>{dayNum}</span>
+                {hasItems && !isSelected && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-0.5" />
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedDay && (
+          <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+            <h4 className="font-bold text-sm text-slate-900">
+              {currentMonth}월 {selectedDay}일 일정
+            </h4>
+            {(() => {
+              const dateStr = `${currentYearMonthStr}-${String(selectedDay).padStart(2, '0')}`;
+              const dayEvents = events.filter((ev) => ev.startDate === dateStr);
+              const dayBdays = birthdayStudents.filter((s) => {
+                const bDay = parseInt(s.birthDate.split('-')[2], 10);
+                return bDay === selectedDay;
+              });
+
+              if (dayEvents.length === 0 && dayBdays.length === 0) {
+                return <p className="text-xs text-slate-400 py-4 text-center">등록된 일정이 없습니다.</p>;
+              }
+
+              return (
+                <div className="space-y-2">
+                  {dayEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-3"
+                      style={{ borderLeftWidth: 4, borderLeftColor: ev.color || '#4f46e5' }}
+                    >
+                      <div>
+                        <p className="font-bold text-sm text-slate-900">{ev.title}</p>
+                        {ev.description && <p className="text-xs text-slate-500 mt-0.5">{ev.description}</p>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteEvent(ev.id)}
+                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg"
+                        aria-label="일정 삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {dayBdays.map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-3 rounded-xl bg-pink-50 border border-pink-100 flex items-center gap-2 text-sm font-bold text-pink-700"
+                    >
+                      <Cake className="w-4 h-4 shrink-0" />
+                      {s.name} 생일 🎂
+                    </div>
+                  ))}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+
+      {/* 데스크탑: 월간 캘린더 그리드 */}
+      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-3">
           <span className="text-rose-500">일</span>
           <span>월</span>
@@ -232,7 +325,8 @@ export const AcademyCalendarView: React.FC = () => {
 
                 <button
                   onClick={() => handleDeleteEvent(ev.id)}
-                  className="p-2 text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
+                  aria-label="일정 삭제"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -242,20 +336,8 @@ export const AcademyCalendarView: React.FC = () => {
         </div>
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base">학원 일정 등록</h3>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <form onSubmit={handleAddEvent} className="p-6 space-y-4">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="학원 일정 등록">
+        <form onSubmit={handleAddEvent} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
                   행사 / 일정명 <span className="text-rose-500">*</span>
@@ -342,9 +424,7 @@ export const AcademyCalendarView: React.FC = () => {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

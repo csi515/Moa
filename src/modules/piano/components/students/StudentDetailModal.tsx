@@ -292,8 +292,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden my-4 flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden sm:my-4 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-4">
             <div
@@ -336,14 +336,14 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             <>
               <button
                 onClick={() => onEdit(student)}
-                className="p-2 text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
                 title="원생 정보 수정"
               >
                 <Edit className="w-4 h-4" />
               </button>
               <button
                 onClick={handleDelete}
-                className="p-2 text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
                 title="원생 삭제"
               >
                 <Trash2 className="w-4 h-4" />
@@ -351,7 +351,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </>
             <button
               onClick={onClose}
-              className="p-2 text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
+              aria-label="닫기"
             >
               <X className="w-5 h-5" />
             </button>

@@ -21,6 +21,7 @@ import {
   Award,
   Calendar,
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   Music2,
@@ -178,7 +179,7 @@ export const RecitalManagementView: React.FC = () => {
           isAdmin ? (
           <button
             onClick={() => setIsCreateOpen(true)}
-            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 w-full sm:w-auto"
           >
             <Plus className="w-4 h-4" />
             행사 등록
@@ -187,7 +188,7 @@ export const RecitalManagementView: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <SummaryMetricCard label="예정 행사" value={`${stats.upcoming}건`} variant="purple" />
         <SummaryMetricCard label="총 참가 등록" value={`${stats.totalParticipants}명`} />
         <SummaryMetricCard label="행사 연결 영상" value={`${stats.withVideos}개`} variant="emerald" />
@@ -265,7 +266,13 @@ export const RecitalManagementView: React.FC = () => {
           )}
         </div>
 
-        <div className="lg:col-span-3">
+        <div
+          className={`lg:col-span-3 ${
+            selectedEvent
+              ? 'fixed inset-0 z-50 lg:static lg:z-auto flex flex-col bg-white lg:bg-transparent overflow-hidden lg:overflow-visible'
+              : 'hidden lg:block'
+          }`}
+        >
           {!selectedEvent ? (
             <EmptyState
               icon={<Award className="w-12 h-12" />}
@@ -274,7 +281,21 @@ export const RecitalManagementView: React.FC = () => {
               className="h-full flex flex-col items-center justify-center min-h-[320px]"
             />
           ) : (
-            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+            <>
+              <div className="lg:hidden flex items-center gap-2 px-4 py-3 border-b border-slate-200 bg-white shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedEventId(null)}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-600"
+                  aria-label="목록으로"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <span className="font-bold text-sm text-slate-900 truncate flex-1">{selectedEvent.title}</span>
+              </div>
+
+              <div className="flex-1 overflow-y-auto lg:overflow-visible">
+            <div className="bg-white rounded-3xl lg:border border-slate-200/80 lg:shadow-xs overflow-hidden">
               <div className="p-5 border-b border-slate-100 bg-slate-50/70">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -295,7 +316,7 @@ export const RecitalManagementView: React.FC = () => {
                   </div>
                   <button
                     onClick={() => handleDeleteEvent(selectedEvent)}
-                    className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
+                    className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
                     title="일정 삭제"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -387,7 +408,7 @@ export const RecitalManagementView: React.FC = () => {
                             </button>
                             <button
                               onClick={() => handleRemoveParticipant(p.studentId, p.studentName)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
+                              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg"
                             >
                               <Trash2 className="w-4 h-4" />
                             </button>
@@ -461,6 +482,8 @@ export const RecitalManagementView: React.FC = () => {
                 )}
               </div>
             </div>
+              </div>
+            </>
           )}
         </div>
       </div>

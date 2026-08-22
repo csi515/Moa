@@ -293,7 +293,7 @@ export const ClassManagementView: React.FC = () => {
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                   수업 요일 선택 <span className="text-rose-500">*</span>
                 </label>
-                <div className="grid grid-cols-6 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {DAYS_OF_WEEK.map((d) => {
                     const isChecked = formData.daysOfWeek.includes(d);
                     return (
@@ -301,7 +301,7 @@ export const ClassManagementView: React.FC = () => {
                         type="button"
                         key={d}
                         onClick={() => handleDayToggle(d)}
-                        className={`py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                        className={`py-2.5 min-h-[44px] text-xs font-bold rounded-xl border transition-all cursor-pointer ${
                           isChecked
                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-xs'
                             : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'

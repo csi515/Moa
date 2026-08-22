@@ -43,7 +43,7 @@ export const PwaInstallPrompt: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 left-4 z-40 max-w-sm bg-indigo-900 text-white p-4 rounded-2xl shadow-xl border border-indigo-700 flex items-center justify-between gap-3 animate-bounce-short">
+    <div className="fixed bottom-24 md:bottom-6 left-4 z-40 max-w-sm bg-indigo-900 text-white p-4 rounded-2xl shadow-xl border border-indigo-700 flex items-center justify-between gap-3 animate-bounce-short">
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-amber-400">
           <Sparkles className="w-5 h-5" />

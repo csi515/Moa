@@ -173,81 +173,127 @@ export const IncomeManagementView: React.FC = () => {
         </span>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
-              <tr>
-                <th className="py-3.5 px-4">수입 일자</th>
-                <th className="py-3.5 px-4">분류</th>
-                <th className="py-3.5 px-4">적요</th>
-                <th className="py-3.5 px-4">금액</th>
-                <th className="py-3.5 px-4">입금처/수단</th>
-                <th className="py-3.5 px-4 text-right">관리</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredEntries.length === 0 ? (
+      <div className="space-y-3">
+        {/* 데스크톱 테이블 */}
+        <div className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-400">
-                    수입 내역이 없습니다.
-                  </td>
+                  <th className="py-3.5 px-4">수입 일자</th>
+                  <th className="py-3.5 px-4">분류</th>
+                  <th className="py-3.5 px-4">적요</th>
+                  <th className="py-3.5 px-4">금액</th>
+                  <th className="py-3.5 px-4">입금처/수단</th>
+                  <th className="py-3.5 px-4 text-right">관리</th>
                 </tr>
-              ) : (
-                filteredEntries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{entry.date}</td>
-                    <td className="py-3.5 px-4">
-                      <span className="px-2.5 py-1 rounded-md font-bold text-[11px] bg-emerald-50 text-emerald-700">
-                        {getCategoryLabel(categoryOptions, entry.category)}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-slate-900">{entry.description}</td>
-                    <td className="py-3.5 px-4 font-black text-emerald-600 text-sm">
-                      {formatCurrency(entry.amount)}
-                    </td>
-                    <td className="py-3.5 px-4 text-slate-600">
-                      {entry.payer || '-'}
-                      <span className="text-slate-400 text-[11px] ml-1">
-                        ({entry.paymentMethod === 'card' ? '카드' : entry.paymentMethod === 'transfer' ? '이체' : '현금'})
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleOpenEdit(entry)}
-                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                        >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(entry)}
-                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {filteredEntries.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="py-12 text-center text-slate-400">
+                      수입 내역이 없습니다.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  filteredEntries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-slate-50/80 transition-colors">
+                      <td className="py-3.5 px-4 font-mono font-bold text-slate-700">{entry.date}</td>
+                      <td className="py-3.5 px-4">
+                        <span className="px-2.5 py-1 rounded-md font-bold text-[11px] bg-emerald-50 text-emerald-700">
+                          {getCategoryLabel(categoryOptions, entry.category)}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">{entry.description}</td>
+                      <td className="py-3.5 px-4 font-black text-emerald-600 text-sm">
+                        {formatCurrency(entry.amount)}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600">
+                        {entry.payer || '-'}
+                        <span className="text-slate-400 text-[11px] ml-1">
+                          ({entry.paymentMethod === 'card' ? '카드' : entry.paymentMethod === 'transfer' ? '이체' : '현금'})
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => handleOpenEdit(entry)}
+                            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(entry)}
+                            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* 모바일 카드 */}
+        <div className="md:hidden space-y-3">
+          {filteredEntries.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-slate-200/80 p-8 text-center text-slate-400 text-sm">
+              수입 내역이 없습니다.
+            </div>
+          ) : (
+            filteredEntries.map((entry) => (
+              <div key={entry.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-bold text-slate-900 text-sm">{entry.description}</p>
+                    <p className="text-[11px] text-slate-400 font-mono">{entry.date}</p>
+                  </div>
+                  <p className="font-black text-emerald-600 text-sm">{formatCurrency(entry.amount)}</p>
+                </div>
+                <p className="text-xs text-slate-600">
+                  {getCategoryLabel(categoryOptions, entry.category)} · {entry.payer || '입금처 미입력'}
+                </p>
+                <div className="flex gap-2 pt-2 border-t border-slate-100">
+                  <button
+                    onClick={() => handleOpenEdit(entry)}
+                    className="flex-1 min-h-[44px] text-xs font-bold rounded-xl bg-slate-100 text-slate-700"
+                  >
+                    수정
+                  </button>
+                  <button
+                    onClick={() => handleDelete(entry)}
+                    className="flex-1 min-h-[44px] text-xs font-bold rounded-xl bg-rose-50 text-rose-700"
+                  >
+                    삭제
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
               <h3 className="font-bold text-slate-900 text-base">
                 {editingEntry ? '수입 내역 수정' : '신규 수입 등록'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl"
+                aria-label="닫기"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">수입 일자</label>
                 <input
