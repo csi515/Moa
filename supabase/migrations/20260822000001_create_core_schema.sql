@@ -1,6 +1,7 @@
 -- Phase 0: Core schema foundation
 -- Multi-tenant SaaS core tables in dedicated `core` schema
 -- Legacy public.* tables remain untouched for backward compatibility
+-- Target project: Moa (xlsfnfolrrhxsxazmhjb)
 
 CREATE SCHEMA IF NOT EXISTS core;
 
