@@ -21,18 +21,25 @@ import {
   customerRowToStudent,
   invoiceToPaymentRow,
   isParentCustomer,
+  isPilatesServiceRow,
   isStudentCustomer,
   notificationRowToApp,
   notificationToRow,
   parentToCustomerRow,
   parseOrganizationSettings,
   paymentRowToInvoice,
+  bookingToScheduleRow,
+  scheduleRowToBooking,
+  serviceOfferingToRow,
   serviceRowToClass,
+  serviceRowToOffering,
   staffRowToTeacher,
   studentContactRow,
   studentToCustomerRow,
   teacherToStaffRow,
 } from './entityMappers';
+import type { Booking, ServiceOffering } from '../../../core/types/schedule';
+import { normalizeIndustryType } from '../../../core/industry/types';
 import { diffIds } from './utils';
 
 type CoreClient = SupabaseClient<Database, 'core'>;
@@ -46,8 +53,10 @@ export interface SyncCache {
 /** Core 엔티티 전체 hydrate */
 export async function hydrateCoreEntities(
   organizationId: string,
-  cache: SyncCache
+  cache: SyncCache,
+  industryTypeRaw?: string | null
 ): Promise<void> {
+  const industryType = normalizeIndustryType(industryTypeRaw);
   const client = getCoreClient();
 
   const [
@@ -56,15 +65,17 @@ export async function hydrateCoreEntities(
     customersResult,
     contactsResult,
     servicesResult,
+    schedulesResult,
     paymentsResult,
     consultationsResult,
     notificationsResult,
   ] = await Promise.all([
-    client.from('organizations').select('settings, name').eq('id', organizationId).single(),
+    client.from('organizations').select('settings, name, industry_type').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
     client.from('customers').select('*').eq('organization_id', organizationId),
     client.from('customer_contacts').select('*').eq('organization_id', organizationId),
     client.from('services').select('*').eq('organization_id', organizationId),
+    client.from('schedules').select('*').eq('organization_id', organizationId),
     client.from('payments').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
@@ -76,6 +87,7 @@ export async function hydrateCoreEntities(
     customers: customersResult.error,
     contacts: contactsResult.error,
     services: servicesResult.error,
+    schedules: schedulesResult.error,
     payments: paymentsResult.error,
     consultations: consultationsResult.error,
     notifications: notificationsResult.error,
@@ -107,7 +119,17 @@ export async function hydrateCoreEntities(
     .filter((c) => isParentCustomer(c.metadata))
     .map(customerRowToParent);
 
-  const classes = (servicesResult.data || []).map(serviceRowToClass);
+  const serviceRows = servicesResult.data || [];
+  const classes =
+    industryType === 'piano'
+      ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
+      : [];
+  const serviceOfferings =
+    industryType === 'pilates'
+      ? serviceRows.map(serviceRowToOffering)
+      : [];
+
+  const bookings = (schedulesResult.data || []).map(scheduleRowToBooking);
   const invoices = (paymentsResult.data || []).map(paymentRowToInvoice);
 
   const studentMap = new Map(students.map((s) => [s.id, s.name]));
@@ -128,6 +150,8 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.STUDENTS, students],
     [STORAGE_KEYS.PARENTS, parents],
     [STORAGE_KEYS.CLASSES, classes],
+    [STORAGE_KEYS.SERVICE_OFFERINGS, serviceOfferings],
+    [STORAGE_KEYS.SCHEDULES, bookings],
     [STORAGE_KEYS.INVOICES, invoices],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
@@ -156,7 +180,11 @@ export async function persistCoreEntity(
     case STORAGE_KEYS.PARENTS:
       return persistCustomers(client, organizationId, cache);
     case STORAGE_KEYS.CLASSES:
-      return persistServices(client, organizationId, cache);
+      return persistServices(client, organizationId, cache, 'piano');
+    case STORAGE_KEYS.SERVICE_OFFERINGS:
+      return persistServices(client, organizationId, cache, 'pilates');
+    case STORAGE_KEYS.SCHEDULES:
+      return persistSchedules(client, organizationId, cache);
     case STORAGE_KEYS.INVOICES:
       return persistPayments(client, organizationId, cache);
     case STORAGE_KEYS.CONSULTATIONS:
@@ -242,26 +270,54 @@ async function persistCustomers(
 async function persistServices(
   client: CoreClient,
   orgId: string,
+  cache: SyncCache,
+  mode: 'piano' | 'pilates'
+): Promise<void> {
+  if (mode === 'piano') {
+    const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
+    await syncTable(client, 'services', orgId, classes.map((c) => c.id), async () => {
+      for (const cls of classes) {
+        const row = classToServiceRow(cls, orgId);
+        const { error } = await client.from('services').upsert(row);
+        if (error) console.error('Failed to upsert service:', error);
+
+        if (cls.teacherId) {
+          await client.from('service_staff').upsert({
+            service_id: cls.id,
+            staff_id: cls.teacherId,
+          });
+        }
+      }
+    });
+    writeLocal(STORAGE_KEYS.CLASSES, classes);
+    return;
+  }
+
+  const offerings = cache.get<ServiceOffering[]>(STORAGE_KEYS.SERVICE_OFFERINGS) || [];
+  await syncTable(client, 'services', orgId, offerings.map((o) => o.id), async () => {
+    for (const offering of offerings) {
+      const { error } = await client.from('services').upsert(serviceOfferingToRow(offering, orgId));
+      if (error) console.error('Failed to upsert service offering:', error);
+    }
+  });
+  writeLocal(STORAGE_KEYS.SERVICE_OFFERINGS, offerings);
+}
+
+async function persistSchedules(
+  client: CoreClient,
+  orgId: string,
   cache: SyncCache
 ): Promise<void> {
-  const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
+  const bookings = cache.get<Booking[]>(STORAGE_KEYS.SCHEDULES) || [];
 
-  await syncTable(client, 'services', orgId, classes.map((c) => c.id), async () => {
-    for (const cls of classes) {
-      const row = classToServiceRow(cls, orgId);
-      const { error } = await client.from('services').upsert(row);
-      if (error) console.error('Failed to upsert service:', error);
-
-      if (cls.teacherId) {
-        await client.from('service_staff').upsert({
-          service_id: cls.id,
-          staff_id: cls.teacherId,
-        });
-      }
+  await syncTable(client, 'schedules', orgId, bookings.map((b) => b.id), async () => {
+    for (const booking of bookings) {
+      const { error } = await client.from('schedules').upsert(bookingToScheduleRow(booking, orgId));
+      if (error) console.error('Failed to upsert schedule:', error);
     }
   });
 
-  writeLocal(STORAGE_KEYS.CLASSES, classes);
+  writeLocal(STORAGE_KEYS.SCHEDULES, bookings);
 }
 
 async function persistPayments(
@@ -329,7 +385,7 @@ async function persistNotifications(
 
 async function syncTable(
   client: CoreClient,
-  table: 'staff' | 'customers' | 'services' | 'payments' | 'consultations' | 'notifications',
+  table: 'staff' | 'customers' | 'services' | 'schedules' | 'payments' | 'consultations' | 'notifications',
   orgId: string,
   currentIds: string[],
   upsertAll: () => Promise<void>

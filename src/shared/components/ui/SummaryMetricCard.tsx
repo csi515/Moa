@@ -6,7 +6,8 @@ type SummaryMetricVariant =
   | 'amber'
   | 'emerald'
   | 'purple'
-  | 'indigo';
+  | 'indigo'
+  | 'teal';
 
 interface SummaryMetricCardProps {
   label: string;
@@ -47,6 +48,11 @@ const VARIANT_STYLES: Record<
     container: 'bg-indigo-50 border-indigo-200',
     label: 'text-indigo-700 font-semibold',
     value: 'text-indigo-900',
+  },
+  teal: {
+    container: 'bg-teal-50 border-teal-200',
+    label: 'text-teal-700 font-semibold',
+    value: 'text-teal-900',
   },
 };
 

@@ -10,6 +10,7 @@ import type {
 import type { Json, PaymentMethod as DbPaymentMethod, PaymentStatus } from '../../../lib/supabase/database.types';
 import type { StaffMetadata } from '../types';
 import type { AcademySettings, Teacher } from '../../../types';
+import type { Booking, ServiceOffering } from '../../../core/types/schedule';
 
 // ─── Staff (Teachers) ───────────────────────────────────────────────
 
@@ -653,5 +654,118 @@ export function buildScheduleTimes(record: AttendanceRecord, cls?: ClassItem): {
   return {
     startsAt: `${record.date}T${startTime}:00`,
     endsAt: `${record.date}T${endTime}:00`,
+  };
+}
+
+// ─── Pilates: Service Offerings & Bookings ────────────────────────
+
+interface PilatesServiceMetadata {
+  moduleType: 'pilates';
+  maxCapacity: number;
+  category: ServiceOffering['category'];
+}
+
+interface BookingMetadata {
+  customerName: string;
+  staffName?: string;
+  serviceName?: string;
+}
+
+export function serviceOfferingToRow(offering: ServiceOffering, organizationId: string) {
+  const metadata: PilatesServiceMetadata = {
+    moduleType: 'pilates',
+    maxCapacity: offering.maxCapacity,
+    category: offering.category,
+  };
+
+  return {
+    id: offering.id,
+    organization_id: organizationId,
+    name: offering.name,
+    description: offering.description || null,
+    price: offering.price,
+    duration_minutes: offering.durationMinutes,
+    is_active: offering.isActive,
+    is_schedulable: offering.isSchedulable,
+    metadata: metadata as unknown as Json,
+  };
+}
+
+export function serviceRowToOffering(row: {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  duration_minutes: number;
+  is_active: boolean;
+  is_schedulable: boolean;
+  metadata: Json;
+}): ServiceOffering {
+  const meta = (row.metadata || {}) as Partial<PilatesServiceMetadata>;
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description || undefined,
+    price: row.price,
+    durationMinutes: row.duration_minutes,
+    maxCapacity: meta.maxCapacity ?? 1,
+    category: meta.category ?? 'private',
+    isActive: row.is_active,
+    isSchedulable: row.is_schedulable,
+  };
+}
+
+export function isPilatesServiceRow(metadata: Json): boolean {
+  const meta = (metadata || {}) as Partial<PilatesServiceMetadata>;
+  return meta.moduleType === 'pilates';
+}
+
+export function bookingToScheduleRow(booking: Booking, organizationId: string) {
+  const metadata: BookingMetadata = {
+    customerName: booking.customerName,
+    staffName: booking.staffName,
+    serviceName: booking.serviceName,
+  };
+
+  return {
+    id: booking.id,
+    organization_id: organizationId,
+    customer_id: booking.customerId,
+    staff_id: booking.staffId || null,
+    service_id: booking.serviceId || null,
+    starts_at: booking.startsAt,
+    ends_at: booking.endsAt,
+    status: booking.status,
+    memo: booking.memo || null,
+    metadata: metadata as unknown as Json,
+  };
+}
+
+export function scheduleRowToBooking(row: {
+  id: string;
+  customer_id: string | null;
+  staff_id: string | null;
+  service_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  memo: string | null;
+  metadata: Json;
+  created_at: string;
+}): Booking {
+  const meta = (row.metadata || {}) as BookingMetadata;
+  return {
+    id: row.id,
+    customerId: row.customer_id || '',
+    customerName: meta.customerName || '',
+    staffId: row.staff_id || undefined,
+    staffName: meta.staffName,
+    serviceId: row.service_id || undefined,
+    serviceName: meta.serviceName,
+    startsAt: row.starts_at,
+    endsAt: row.ends_at,
+    status: row.status as Booking['status'],
+    memo: row.memo || undefined,
+    createdAt: row.created_at,
   };
 }

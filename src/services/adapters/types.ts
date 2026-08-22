@@ -14,7 +14,7 @@ export interface IStorageAdapter {
   subscribe(listener: StorageListener): () => void;
 
   /** Supabase 모드: org 선택 시 원격 데이터 로드 */
-  hydrate(organizationId: string): Promise<void>;
+  hydrate(organizationId: string, industryType?: string | null): Promise<void>;
 
   /** org 전환/로그아웃 시 캐시 초기화 */
   clearOrganization(): void;

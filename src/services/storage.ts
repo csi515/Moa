@@ -35,6 +35,8 @@ import {
   type StorageKey,
 } from './adapters';
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
+import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
+import { setIndustryType, getIndustryType } from './adapters/storageContext';
 
 type Listener = () => void;
 
@@ -61,8 +63,9 @@ function generateEntityId(_prefix: string): string {
 
 export const StorageService = {
   /** Supabase org 선택 시 원격 데이터 hydrate */
-  async hydrate(organizationId: string): Promise<void> {
-    await getStorageAdapter().hydrate(organizationId);
+  async hydrate(organizationId: string, industryType?: string | null): Promise<void> {
+    setIndustryType(industryType ?? null);
+    await getStorageAdapter().hydrate(organizationId, industryType);
   },
 
   /** org 전환/로그아웃 시 캐시 초기화 */
@@ -1916,6 +1919,14 @@ export const StorageService = {
   },
 
   isNewOrganization(): boolean {
+    const industry = getIndustryType();
+    if (industry === 'pilates') {
+      return (
+        this.getStudents().length === 0 &&
+        this.getServiceOfferings().length === 0 &&
+        !this.getSettings().name?.trim()
+      );
+    }
     return (
       this.getStudents().length === 0 &&
       this.getClasses().length === 0 &&
@@ -1925,5 +1936,85 @@ export const StorageService = {
 
   shouldShowOnboarding(): boolean {
     return !this.isOnboardingComplete() && this.isNewOrganization();
+  },
+
+  // Bookings (core.schedules — 필라테스 등 예약형 업종)
+  getBookings(): Booking[] {
+    return getItem<Booking[]>(STORAGE_KEYS.SCHEDULES, []);
+  },
+
+  saveBooking(booking: Omit<Booking, 'id'> & { id?: string }): Booking {
+    const list = this.getBookings();
+    let saved: Booking;
+    if (booking.id) {
+      const idx = list.findIndex((b) => b.id === booking.id);
+      if (idx >= 0) {
+        saved = { ...list[idx], ...booking, id: booking.id };
+        list[idx] = saved;
+      } else {
+        saved = { ...booking, id: booking.id };
+        list.unshift(saved);
+      }
+    } else {
+      saved = { ...booking, id: generateEntityId('bk') };
+      list.unshift(saved);
+    }
+    setItem(STORAGE_KEYS.SCHEDULES, list);
+    return saved;
+  },
+
+  updateBookingStatus(id: string, status: BookingStatus): Booking | null {
+    const list = this.getBookings();
+    const idx = list.findIndex((b) => b.id === id);
+    if (idx === -1) return null;
+    const updated = { ...list[idx], status };
+    list[idx] = updated;
+    setItem(STORAGE_KEYS.SCHEDULES, list);
+    return updated;
+  },
+
+  deleteBooking(id: string): boolean {
+    const list = this.getBookings();
+    const filtered = list.filter((b) => b.id !== id);
+    if (filtered.length !== list.length) {
+      setItem(STORAGE_KEYS.SCHEDULES, filtered);
+      return true;
+    }
+    return false;
+  },
+
+  // Service offerings (core.services — 필라테스 수업 종류)
+  getServiceOfferings(): ServiceOffering[] {
+    return getItem<ServiceOffering[]>(STORAGE_KEYS.SERVICE_OFFERINGS, []);
+  },
+
+  saveServiceOffering(offering: Omit<ServiceOffering, 'id'> & { id?: string }): ServiceOffering {
+    const list = this.getServiceOfferings();
+    let saved: ServiceOffering;
+    if (offering.id) {
+      const idx = list.findIndex((o) => o.id === offering.id);
+      if (idx >= 0) {
+        saved = { ...list[idx], ...offering, id: offering.id };
+        list[idx] = saved;
+      } else {
+        saved = { ...offering, id: offering.id };
+        list.unshift(saved);
+      }
+    } else {
+      saved = { ...offering, id: generateEntityId('svc') };
+      list.unshift(saved);
+    }
+    setItem(STORAGE_KEYS.SERVICE_OFFERINGS, list);
+    return saved;
+  },
+
+  deleteServiceOffering(id: string): boolean {
+    const list = this.getServiceOfferings();
+    const filtered = list.filter((o) => o.id !== id);
+    if (filtered.length !== list.length) {
+      setItem(STORAGE_KEYS.SERVICE_OFFERINGS, filtered);
+      return true;
+    }
+    return false;
   },
 };

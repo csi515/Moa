@@ -3,9 +3,9 @@ import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
+import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
-import { AppContent } from './AppContent';
 
 export const SupabaseAppGate: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
@@ -24,8 +24,11 @@ export const SupabaseAppGate: React.FC = () => {
   }
 
   return (
-    <StorageHydrator organizationId={currentOrganization.id}>
-      <AppContent />
+    <StorageHydrator
+      organizationId={currentOrganization.id}
+      industryType={currentOrganization.industry_type}
+    >
+      <IndustryAppRouter />
     </StorageHydrator>
   );
 };

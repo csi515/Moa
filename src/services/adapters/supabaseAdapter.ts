@@ -1,5 +1,5 @@
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
-import { getOrganizationId, setOrganizationId } from './storageContext';
+import { getOrganizationId, setIndustryType, setOrganizationId } from './storageContext';
 import {
   CORE_SYNC_KEYS,
   PIANO_SYNC_KEYS,
@@ -53,17 +53,18 @@ export class SupabaseAdapter implements IStorageAdapter {
     return () => this.listeners.delete(listener);
   }
 
-  async hydrate(organizationId: string): Promise<void> {
+  async hydrate(organizationId: string, industryType?: string | null): Promise<void> {
     if (this.hydrating) return;
 
     setOrganizationId(organizationId);
+    setIndustryType(industryType ?? null);
     this.hydrating = true;
     this.hydrated = false;
 
     const cacheAdapter = this.createCacheAdapter();
 
     try {
-      await hydrateCoreEntities(organizationId, cacheAdapter);
+      await hydrateCoreEntities(organizationId, cacheAdapter, industryType);
       await hydratePianoEntities(organizationId, cacheAdapter);
       this.hydrated = true;
       this.notify();
@@ -78,6 +79,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.persistTimers.forEach((timer) => clearTimeout(timer));
     this.persistTimers.clear();
     setOrganizationId(null);
+    setIndustryType(null);
   }
 
   isHydrated(): boolean {

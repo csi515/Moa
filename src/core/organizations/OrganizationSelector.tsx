@@ -6,20 +6,23 @@ import {
   Loader2,
   Piano,
   Sparkles,
+  Activity,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
+import { INDUSTRY_OPTIONS, getIndustryLabel, type IndustryType } from '../industry/types';
 
-const INDUSTRY_OPTIONS = [
-  { value: 'piano', label: '피아노학원', icon: Piano },
-] as const;
+const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: string }>> = {
+  piano: Piano,
+  pilates: Activity,
+};
 
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, createOrganization, loading } =
     useOrganization();
   const [showCreate, setShowCreate] = useState(false);
   const [orgName, setOrgName] = useState('');
-  const [industryType, setIndustryType] = useState('piano');
+  const [industryType, setIndustryType] = useState<IndustryType>('piano');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +87,7 @@ export const OrganizationSelector: React.FC = () => {
                           {membership.organization.name}
                         </p>
                         <p className="text-xs text-slate-500">
-                          {membership.organization.industry_type} ·{' '}
+                          {getIndustryLabel(membership.organization.industry_type as IndustryType)} ·{' '}
                           {getRoleLabel(membership.role)}
                         </p>
                       </div>
@@ -138,7 +141,7 @@ export const OrganizationSelector: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-600 mb-1.5">업종</label>
                 <div className="grid grid-cols-1 gap-2">
                   {INDUSTRY_OPTIONS.map((opt) => {
-                    const Icon = opt.icon;
+                    const Icon = INDUSTRY_ICONS[opt.value];
                     return (
                       <button
                         key={opt.value}
@@ -150,8 +153,11 @@ export const OrganizationSelector: React.FC = () => {
                             : 'border-slate-200 hover:border-slate-300'
                         }`}
                       >
-                        <Icon className="w-5 h-5" />
-                        <span className="text-sm font-bold">{opt.label}</span>
+                        <Icon className="w-5 h-5 shrink-0" />
+                        <div>
+                          <span className="text-sm font-bold block">{opt.label}</span>
+                          <span className="text-[11px] text-slate-500">{opt.description}</span>
+                        </div>
                       </button>
                     );
                   })}

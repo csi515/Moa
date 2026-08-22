@@ -3,17 +3,8 @@ import { AppProvider } from './context/AppContext';
 import { SupabaseAppGate } from './SupabaseAppGate';
 import { AuthProvider } from './core/auth/AuthProvider';
 import { OrganizationProvider } from './core/organizations/OrganizationProvider';
-import { ModuleLabelsProvider } from './modules/piano';
 import { SupabaseRequiredScreen } from './shared/components/SupabaseRequiredScreen';
 import { isSupabaseConfigured } from './lib/supabase';
-
-function AppShell({ children }: { children: React.ReactNode }) {
-  return (
-    <ModuleLabelsProvider>
-      <AppProvider>{children}</AppProvider>
-    </ModuleLabelsProvider>
-  );
-}
 
 export default function App() {
   if (!isSupabaseConfigured()) {
@@ -23,9 +14,9 @@ export default function App() {
   return (
     <AuthProvider>
       <OrganizationProvider>
-        <AppShell>
+        <AppProvider>
           <SupabaseAppGate />
-        </AppShell>
+        </AppProvider>
       </OrganizationProvider>
     </AuthProvider>
   );

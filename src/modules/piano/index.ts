@@ -21,6 +21,7 @@ export { ExpenseManagementView } from './components/expenses/ExpenseManagementVi
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';
 export { AcademyCalendarView } from './components/calendar/AcademyCalendarView';
 export { AcademySettingsView } from './components/settings/AcademySettingsView';
+export { PianoAppContent } from './PianoAppContent';
 
 // Module config
 export { pianoModuleLabels, type ModuleLabels } from './config/labels';

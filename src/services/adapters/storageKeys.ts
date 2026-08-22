@@ -19,6 +19,8 @@ export const STORAGE_KEYS = {
   PERFORMANCE_VIDEOS: 'piano_app_performance_videos',
   NOTIFICATIONS: 'piano_app_notifications',
   SETTINGS: 'piano_app_settings',
+  SCHEDULES: 'core_schedules',
+  SERVICE_OFFERINGS: 'core_service_offerings',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
 } as const;
@@ -35,6 +37,8 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.INVOICES,
   STORAGE_KEYS.CONSULTATIONS,
   STORAGE_KEYS.NOTIFICATIONS,
+  STORAGE_KEYS.SCHEDULES,
+  STORAGE_KEYS.SERVICE_OFFERINGS,
 ]);
 
 /** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */
