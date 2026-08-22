@@ -7,6 +7,7 @@ import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord
 import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
 import { CustomerPinPanel } from '@/core/attendance';
+import { getGuardiansForStudent, formatGuardianRelationship } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '../textbooks/TextbookReceiptModal';
@@ -132,6 +133,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const recitalEvents = RecitalService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(student.id);
+  const guardians = getGuardiansForStudent(student.id);
+  const primaryGuardian = guardians.find((g) => g.isPrimary) || guardians[0];
 
   // Attendance stats for student
   const totalAttCount = allAttendance.length;
@@ -334,13 +337,15 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-center">
-            <a
-              href={`tel:${student.parentPhone}`}
-              className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
-            >
-              <Phone className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">학부모</span> 전화
-            </a>
+            {primaryGuardian?.parentPhone && (
+              <a
+                href={`tel:${primaryGuardian.parentPhone}`}
+                className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
+              >
+                <Phone className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">학부모</span> 전화
+              </a>
+            )}
             <>
               <button
                 onClick={() => onEdit(student)}
@@ -411,15 +416,45 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                     <span className="text-slate-500">원생 번호</span>
                     <span className="font-mono font-bold text-slate-800">{student.studentNumber}</span>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-                    <span className="text-slate-500">학부모 성함</span>
-                    <span className="font-bold text-slate-800">{student.parentName}</span>
-                  </div>
-                  <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">
-                    <span className="text-slate-500">학부모 연락처</span>
-                    <a href={`tel:${student.parentPhone}`} className="font-mono font-bold text-indigo-600 hover:underline">
-                      {formatPhone(student.parentPhone)}
-                    </a>
+                  <div className="py-1.5 border-b border-slate-200/60">
+                    <span className="text-slate-500 block mb-2">보호자 ({guardians.length}명)</span>
+                    {guardians.length === 0 ? (
+                      <span className="text-slate-400">등록된 보호자 없음</span>
+                    ) : (
+                      <div className="space-y-2">
+                        {guardians.map((g) => (
+                          <div
+                            key={g.parentId}
+                            className="flex items-center justify-between gap-2 bg-white rounded-xl px-3 py-2 border border-slate-100"
+                          >
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-800">{g.parentName}</span>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-bold">
+                                  {formatGuardianRelationship(g.relationship)}
+                                </span>
+                                {g.isPrimary && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold">
+                                    주
+                                  </span>
+                                )}
+                              </div>
+                              {g.parentEmail && (
+                                <span className="text-[11px] text-slate-500">{g.parentEmail}</span>
+                              )}
+                            </div>
+                            {g.parentPhone && (
+                              <a
+                                href={`tel:${g.parentPhone}`}
+                                className="font-mono text-xs font-bold text-indigo-600 hover:underline shrink-0"
+                              >
+                                {formatPhone(g.parentPhone)}
+                              </a>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                   {student.emergencyContact && (
                     <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">

@@ -5,10 +5,11 @@ import {
   fetchParentAccountStatuses,
   inviteParentMember,
   revokeParentInvitation,
-  syncParentStudentLinks,
+  syncAllParentStudentLinks,
   type ParentAccountStatus,
   type ParentAccountStatusItem,
 } from '@/core/parent/services/parentAccountService';
+import { formatGuardianRelationship } from '@/core/parent';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
@@ -54,6 +55,12 @@ export const ParentManagementView: React.FC = () => {
 
   const parents = StorageService.getParents();
   const students = StorageService.getStudents();
+  const parentLinks = StorageService.getParentStudentLinks();
+
+  const getChildRelationship = (parentId: string, studentId: string) => {
+    const link = parentLinks.find((l) => l.parentId === parentId && l.studentId === studentId);
+    return link ? formatGuardianRelationship(link.relationship) : null;
+  };
 
   const loadStatuses = useCallback(async () => {
     if (!currentOrganization?.id || !canInvite) return;
@@ -96,7 +103,7 @@ export const ParentManagementView: React.FC = () => {
     if (!inviteTarget || !currentOrganization?.id || !inviteEmail.trim()) return;
     setInviting(true);
     try {
-      await syncParentStudentLinks(currentOrganization.id, inviteTarget.id, inviteTarget.studentIds);
+      await syncAllParentStudentLinks(currentOrganization.id);
       await inviteParentMember(currentOrganization.id, inviteTarget.id, inviteEmail.trim());
       showToast(`${inviteTarget.name} 학부모에게 초대가 등록되었습니다.`, 'success');
       setInviteTarget(null);
@@ -209,18 +216,26 @@ export const ParentManagementView: React.FC = () => {
 
               <div className="mt-4 pt-3 border-t border-slate-100 space-y-2">
                 <p className="text-[11px] font-bold text-slate-400 uppercase">자녀 ({parentStudents.length}명)</p>
-                {parentStudents.map((st) => (
-                  <button
-                    key={st!.id}
-                    onClick={() => handleStudentClick(st!.id)}
-                    className="w-full p-2 rounded-xl bg-slate-50 hover:bg-indigo-50 flex items-center justify-between text-xs"
-                  >
-                    <span className="font-bold">{st!.name}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${getLevelColor(st!.level)}`}>
-                      {st!.level}
-                    </span>
-                  </button>
-                ))}
+                {parentStudents.map((st) => {
+                  const relLabel = getChildRelationship(parent.id, st!.id);
+                  return (
+                    <button
+                      key={st!.id}
+                      onClick={() => handleStudentClick(st!.id)}
+                      className="w-full p-2 rounded-xl bg-slate-50 hover:bg-indigo-50 flex items-center justify-between text-xs"
+                    >
+                      <span className="font-bold flex items-center gap-1.5">
+                        {st!.name}
+                        {relLabel && (
+                          <span className="text-[10px] font-bold text-slate-400">({relLabel})</span>
+                        )}
+                      </span>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-md font-bold border ${getLevelColor(st!.level)}`}>
+                        {st!.level}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           );

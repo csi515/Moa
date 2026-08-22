@@ -1,56 +1,94 @@
 import type { Student, Parent } from '@/types';
+import type { GuardianRelationship } from '@/core/parent/types';
+import { getPrimaryGuardian } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import {
   inviteParentMember,
-  syncParentStudentLinks,
+  syncAllParentStudentLinks,
 } from '@/core/parent/services/parentAccountService';
 import { getIndustryType } from '@/services/adapters/storageContext';
 
+/** 등록 시 보호자 1명 입력 */
+export interface GuardianRegistrationInput {
+  mode: 'existing' | 'new';
+  existingParentId?: string;
+  name?: string;
+  phone?: string;
+  email?: string;
+  relationship: GuardianRelationship;
+  isPrimary?: boolean;
+  invite?: boolean;
+}
+
 export interface StudentRegistrationOptions {
-  /** 학부모 이메일 (계정 초대용) */
-  parentEmail?: string;
-  /** 등록과 동시에 학부모 포털 초대 발송 */
-  inviteParent?: boolean;
-  /** 출입 PIN (4~8자리). 미입력 시 autoGeneratePin=true이면 자동 발급 */
+  guardians: GuardianRegistrationInput[];
   checkInPin?: string;
-  /** PIN 미입력 시 자동 발급 여부 (출결 모듈 활성 시 기본 true) */
   autoGeneratePin?: boolean;
   organizationId?: string;
 }
 
 export interface StudentRegistrationResult {
   student: Student;
-  parent: Parent;
+  parents: Parent[];
+  primaryParent: Parent | null;
   generatedPin?: string;
-  inviteSent: boolean;
-  inviteError?: string;
+  invitesSent: number;
+  inviteErrors: string[];
 }
 
-/** 학생·학부모·출결 PIN을 한 번에 등록 */
+/** 학생 + 보호자 links + PIN + 초대 */
 export async function registerStudentWithParent(
   studentData: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> & { id?: string },
-  options: StudentRegistrationOptions = {}
+  options: StudentRegistrationOptions
 ): Promise<StudentRegistrationResult> {
   const organizationId = options.organizationId || 'local-org';
   const settings = StorageService.getSettings();
   const industry = getIndustryType() || 'piano';
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
-  const savedStudent = StorageService.saveStudent(studentData);
+  const { parentId: _p, parentName: _n, parentPhone: _ph, ...studentCore } = studentData;
+  const savedStudent = StorageService.saveStudent(studentCore as typeof studentData);
 
-  const parent = StorageService.ensureParentFromStudent(savedStudent, {
-    parentEmail: options.parentEmail?.trim() || undefined,
-  });
+  const parents: Parent[] = [];
+  const inviteErrors: string[] = [];
+  let invitesSent = 0;
 
-  const linkedStudent = StorageService.getStudentById(savedStudent.id) || savedStudent;
+  for (const guardian of options.guardians) {
+    const parent = StorageService.createOrLinkParent({
+      studentId: savedStudent.id,
+      existingParentId: guardian.mode === 'existing' ? guardian.existingParentId : undefined,
+      name: guardian.name,
+      phone: guardian.phone,
+      email: guardian.email,
+      relationship: guardian.relationship,
+      isPrimary: guardian.isPrimary,
+    });
+    parents.push(parent);
+
+    if (
+      guardian.invite &&
+      guardian.email?.trim() &&
+      isSupabaseConfigured() &&
+      organizationId !== 'local-org'
+    ) {
+      try {
+        await inviteParentMember(organizationId, parent.id, guardian.email.trim());
+        invitesSent++;
+      } catch (e) {
+        inviteErrors.push(
+          e instanceof Error ? e.message : `${parent.name} 학부모 초대에 실패했습니다.`
+        );
+      }
+    }
+  }
 
   let generatedPin: string | undefined;
   if (attendanceEnabled) {
     const pin = options.checkInPin?.trim();
     if (pin) {
-      const result = await StorageService.setCustomerPin(linkedStudent.id, pin, organizationId);
+      const result = await StorageService.setCustomerPin(savedStudent.id, pin, organizationId);
       if (result.ok === false) {
         throw new Error(
           result.error === 'pin_already_used'
@@ -61,57 +99,69 @@ export async function registerStudentWithParent(
       generatedPin = pin;
     } else if (options.autoGeneratePin !== false) {
       const { pin: autoPin } = await StorageService.generateCustomerPin(
-        linkedStudent.id,
+        savedStudent.id,
         organizationId
       );
       generatedPin = autoPin;
     }
   }
 
-  let inviteSent = false;
-  let inviteError: string | undefined;
-
   if (isSupabaseConfigured() && organizationId !== 'local-org') {
     try {
-      await syncParentStudentLinks(organizationId, parent.id, parent.studentIds);
+      await syncAllParentStudentLinks(organizationId);
     } catch (e) {
       console.error('Failed to sync parent-student links:', e);
     }
-
-    const email = options.parentEmail?.trim() || parent.email?.trim();
-    if (options.inviteParent && email) {
-      try {
-        await inviteParentMember(organizationId, parent.id, email);
-        inviteSent = true;
-      } catch (e) {
-        inviteError = e instanceof Error ? e.message : '학부모 초대에 실패했습니다.';
-      }
-    }
   }
 
+  const student = StorageService.getStudentById(savedStudent.id) || savedStudent;
+  const primary = getPrimaryGuardian(student.id);
+  const primaryParent = primary
+    ? StorageService.getParents().find((p) => p.id === primary.parentId) || null
+    : parents[0] || null;
+
   return {
-    student: StorageService.getStudentById(linkedStudent.id) || linkedStudent,
-    parent: StorageService.getParents().find((p) => p.id === parent.id) || parent,
+    student,
+    parents,
+    primaryParent,
     generatedPin,
-    inviteSent,
-    inviteError,
+    invitesSent,
+    inviteErrors,
   };
 }
 
-/** 수정 시 학부모 정보 동기화 */
+/** 수정 시 보호자 links 갱신 */
 export async function updateStudentWithParent(
   studentData: Omit<Student, 'createdAt' | 'updatedAt'> & { id: string },
-  options: Pick<StudentRegistrationOptions, 'parentEmail' | 'organizationId'> = {}
-): Promise<{ student: Student; parent: Parent }> {
-  const savedStudent = StorageService.saveStudent(studentData);
-  const parent = StorageService.ensureParentFromStudent(savedStudent, {
-    parentEmail: options.parentEmail?.trim() || undefined,
-  });
+  options: {
+    guardians?: GuardianRegistrationInput[];
+    organizationId?: string;
+  } = {}
+): Promise<{ student: Student; parents: Parent[] }> {
+  const { parentId: _p, parentName: _n, parentPhone: _ph, ...studentCore } = studentData;
+  const savedStudent = StorageService.saveStudent(studentCore as typeof studentData);
+
+  const parents: Parent[] = [];
+  if (options.guardians?.length) {
+    for (const g of options.guardians) {
+      parents.push(
+        StorageService.createOrLinkParent({
+          studentId: savedStudent.id,
+          existingParentId: g.mode === 'existing' ? g.existingParentId : undefined,
+          name: g.name,
+          phone: g.phone,
+          email: g.email,
+          relationship: g.relationship,
+          isPrimary: g.isPrimary,
+        })
+      );
+    }
+  }
 
   const organizationId = options.organizationId;
   if (isSupabaseConfigured() && organizationId && organizationId !== 'local-org') {
     try {
-      await syncParentStudentLinks(organizationId, parent.id, parent.studentIds);
+      await syncAllParentStudentLinks(organizationId);
     } catch (e) {
       console.error('Failed to sync parent-student links:', e);
     }
@@ -119,16 +169,19 @@ export async function updateStudentWithParent(
 
   return {
     student: StorageService.getStudentById(savedStudent.id) || savedStudent,
-    parent: StorageService.getParents().find((p) => p.id === parent.id) || parent,
+    parents,
   };
 }
 
-/** 연결된 학부모 이메일 조회 */
+/** 주 보호자 이메일 */
 export function getLinkedParentEmail(student: Student): string {
-  if (student.parentId) {
-    const parent = StorageService.getParents().find((p) => p.id === student.parentId);
-    if (parent?.email) return parent.email;
-  }
-  const byPhone = StorageService.getParents().find((p) => p.phone === student.parentPhone);
-  return byPhone?.email || '';
+  const primary = getPrimaryGuardian(student.id);
+  return primary?.parentEmail || '';
+}
+
+/** 학생에 연결된 모든 보호자 */
+export function getLinkedParentIds(studentId: string): string[] {
+  return StorageService.getParentStudentLinks()
+    .filter((l) => l.studentId === studentId)
+    .map((l) => l.parentId);
 }

@@ -52,6 +52,7 @@ import {
   generateUniquePin,
   toggleCheckInByPinLocal,
 } from '../core/attendance/services/attendanceService';
+import type { GuardianRelationship, ParentStudentLink } from '../core/parent/types';
 
 type Listener = () => void;
 
@@ -109,6 +110,7 @@ export const StorageService = {
       attendance: this.getAttendance(),
       attendanceSessions: this.getAttendanceSessions(),
       customerPins: this.getCustomerPins(),
+      parentStudentLinks: this.getParentStudentLinks(),
       invoices: this.getInvoices(),
       expenses: this.getExpenses(),
       incomeEntries: this.getIncomeEntries(),
@@ -136,6 +138,7 @@ export const StorageService = {
       if (data.attendance) setItem(STORAGE_KEYS.ATTENDANCE, data.attendance);
       if (data.attendanceSessions) setItem(STORAGE_KEYS.ATTENDANCE_SESSIONS, data.attendanceSessions);
       if (data.customerPins) setItem(STORAGE_KEYS.CUSTOMER_PINS, data.customerPins);
+      if (data.parentStudentLinks) setItem(STORAGE_KEYS.PARENT_STUDENT_LINKS, data.parentStudentLinks);
       if (data.invoices) setItem(STORAGE_KEYS.INVOICES, data.invoices);
       if (data.expenses) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
       if (data.incomeEntries) setItem(STORAGE_KEYS.INCOME_ENTRIES, data.incomeEntries);
@@ -183,7 +186,27 @@ export const StorageService = {
 
   // Students
   getStudents(): Student[] {
+    const raw = getItem<Student[]>(STORAGE_KEYS.STUDENTS, []);
+    return raw.map((s) => this.deriveStudentGuardians(s));
+  },
+
+  /** links 미적용 raw 학생 목록 (내부용) */
+  getStudentsRaw(): Student[] {
     return getItem<Student[]>(STORAGE_KEYS.STUDENTS, []);
+  },
+
+  deriveStudentGuardians(student: Student): Student {
+    const links = this.getParentStudentLinks().filter((l) => l.studentId === student.id);
+    const primary = links.find((l) => l.isPrimary) || links[0];
+    if (!primary) return student;
+    const parent = this.getParents().find((p) => p.id === primary.parentId);
+    if (!parent) return student;
+    return {
+      ...student,
+      parentId: parent.id,
+      parentName: parent.name,
+      parentPhone: parent.phone,
+    };
   },
 
   getStudentById(id: string): Student | undefined {
@@ -191,7 +214,7 @@ export const StorageService = {
   },
 
   saveStudent(student: Omit<Student, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }): Student {
-    const list = this.getStudents();
+    const list = this.getStudentsRaw();
     const now = new Date().toISOString();
     let saved: Student;
 
@@ -2247,54 +2270,219 @@ export const StorageService = {
     return false;
   },
 
-  // ─── Parent helpers ─────────────────────────────────────────
-  getStudentsForParent(parentCustomerId: string): Student[] {
-    const parent = this.getParents().find((p) => p.id === parentCustomerId);
-    if (!parent) return [];
-    const idSet = new Set(parent.studentIds);
-    return this.getStudents().filter((s) => idSet.has(s.id));
+  // ─── Parent ↔ Student links (Source of Truth) ───────────────
+  getParentStudentLinks(): ParentStudentLink[] {
+    const links = getItem<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS, []);
+    if (links.length === 0) {
+      this.migrateLegacyParentLinks();
+      return getItem<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS, []);
+    }
+    return links;
   },
 
+  saveParentStudentLinks(links: ParentStudentLink[]): void {
+    setItem(STORAGE_KEYS.PARENT_STUDENT_LINKS, links);
+    this.rebuildParentStudentIdsFromLinks();
+  },
+
+  linkParentToStudent(params: {
+    parentId: string;
+    studentId: string;
+    relationship: GuardianRelationship;
+    isPrimary?: boolean;
+  }): ParentStudentLink {
+    const list = this.getParentStudentLinks();
+    const now = new Date().toISOString();
+    const existingIdx = list.findIndex(
+      (l) => l.parentId === params.parentId && l.studentId === params.studentId
+    );
+
+    if (params.isPrimary) {
+      for (const link of list) {
+        if (link.studentId === params.studentId) link.isPrimary = false;
+      }
+    }
+
+    let saved: ParentStudentLink;
+    if (existingIdx >= 0) {
+      saved = {
+        ...list[existingIdx],
+        relationship: params.relationship,
+        isPrimary: params.isPrimary ?? list[existingIdx].isPrimary,
+        updatedAt: now,
+      };
+      list[existingIdx] = saved;
+    } else {
+      saved = {
+        id: `${params.parentId}:${params.studentId}`,
+        parentId: params.parentId,
+        studentId: params.studentId,
+        relationship: params.relationship,
+        isPrimary: params.isPrimary ?? list.filter((l) => l.studentId === params.studentId).length === 0,
+        createdAt: now,
+        updatedAt: now,
+      };
+      list.push(saved);
+    }
+
+    this.saveParentStudentLinks(list);
+    return saved;
+  },
+
+  unlinkParentFromStudent(parentId: string, studentId: string): void {
+    const list = this.getParentStudentLinks().filter(
+      (l) => !(l.parentId === parentId && l.studentId === studentId)
+    );
+    this.saveParentStudentLinks(list);
+  },
+
+  rebuildParentStudentIdsFromLinks(): void {
+    const links = getItem<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS, []);
+    const parents = this.getParents();
+    const byParent = new Map<string, string[]>();
+    for (const link of links) {
+      const arr = byParent.get(link.parentId) || [];
+      if (!arr.includes(link.studentId)) arr.push(link.studentId);
+      byParent.set(link.parentId, arr);
+    }
+    let changed = false;
+    const updated = parents.map((p) => {
+      const ids = byParent.get(p.id) || [];
+      const same =
+        ids.length === p.studentIds.length && ids.every((id) => p.studentIds.includes(id));
+      if (!same) {
+        changed = true;
+        return { ...p, studentIds: ids };
+      }
+      return p;
+    });
+    if (changed) setItem(STORAGE_KEYS.PARENTS, updated);
+  },
+
+  migrateLegacyParentLinks(): void {
+    const existing = getItem<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS, []);
+    if (existing.length > 0) return;
+
+    const students = getItem<Student[]>(STORAGE_KEYS.STUDENTS, []);
+    const parents = getItem<Parent[]>(STORAGE_KEYS.PARENTS, []);
+    const links: ParentStudentLink[] = [];
+    const now = new Date().toISOString();
+
+    for (const student of students) {
+      let parent: Parent | undefined;
+      if (student.parentId) {
+        parent = parents.find((p) => p.id === student.parentId);
+      }
+      if (!parent && student.parentPhone) {
+        parent = parents.find((p) => p.phone === student.parentPhone);
+      }
+      if (!parent && (student.parentName || student.parentPhone)) {
+        parent = this.saveParent({
+          name: student.parentName || '학부모',
+          phone: student.parentPhone || '',
+          studentIds: [],
+        });
+        if (!parents.find((p) => p.id === parent!.id)) {
+          parents.push(parent);
+        }
+      }
+      if (!parent) continue;
+
+      links.push({
+        id: `${parent.id}:${student.id}`,
+        parentId: parent.id,
+        studentId: student.id,
+        relationship: 'other',
+        isPrimary: true,
+        createdAt: now,
+      });
+    }
+
+    if (links.length > 0) {
+      setItem(STORAGE_KEYS.PARENT_STUDENT_LINKS, links);
+      this.rebuildParentStudentIdsFromLinks();
+    }
+  },
+
+  createOrLinkParent(params: {
+    studentId: string;
+    existingParentId?: string;
+    name?: string;
+    phone?: string;
+    email?: string;
+    relationship: GuardianRelationship;
+    isPrimary?: boolean;
+  }): Parent {
+    let parent: Parent | undefined;
+
+    if (params.existingParentId) {
+      parent = this.getParents().find((p) => p.id === params.existingParentId);
+      if (!parent) throw new Error('선택한 학부모를 찾을 수 없습니다.');
+    } else {
+      if (!params.name?.trim() || !params.phone?.trim()) {
+        throw new Error('학부모 이름과 전화번호를 입력해 주세요.');
+      }
+      parent = this.getParents().find((p) => p.phone === params.phone!.trim());
+      if (!parent) {
+        parent = this.saveParent({
+          name: params.name.trim(),
+          phone: params.phone.trim(),
+          email: params.email?.trim() || undefined,
+          studentIds: [],
+        });
+      } else {
+        const updates: Partial<Parent> = {};
+        if (params.email?.trim() && params.email !== parent.email) updates.email = params.email.trim();
+        if (params.name?.trim() && params.name !== parent.name) updates.name = params.name.trim();
+        if (Object.keys(updates).length > 0) {
+          parent = this.saveParent({ ...parent, ...updates });
+        }
+      }
+    }
+
+    this.linkParentToStudent({
+      parentId: parent.id,
+      studentId: params.studentId,
+      relationship: params.relationship,
+      isPrimary: params.isPrimary,
+    });
+
+    return this.getParents().find((p) => p.id === parent!.id) || parent;
+  },
+
+  // ─── Parent helpers ─────────────────────────────────────────
+  getStudentsForParent(parentCustomerId: string): Student[] {
+    const studentIds = new Set(
+      this.getParentStudentLinks()
+        .filter((l) => l.parentId === parentCustomerId)
+        .map((l) => l.studentId)
+    );
+    if (studentIds.size === 0) {
+      const parent = this.getParents().find((p) => p.id === parentCustomerId);
+      if (parent) parent.studentIds.forEach((id) => studentIds.add(id));
+    }
+    return this.getStudents().filter((s) => studentIds.has(s.id));
+  },
+
+  /** @deprecated linkParentToStudent / createOrLinkParent 사용 */
   ensureParentFromStudent(
     student: Student,
-    options?: { parentEmail?: string }
+    options?: { parentEmail?: string; relationship?: GuardianRelationship }
   ): Parent {
-    const parents = this.getParents();
-    let parent = parents.find((p) => p.id === student.parentId || p.phone === student.parentPhone);
-    const parentEmail = options?.parentEmail?.trim();
-
-    if (!parent) {
-      parent = this.saveParent({
-        name: student.parentName || '학부모',
-        phone: student.parentPhone,
-        email: parentEmail || undefined,
-        studentIds: [student.id],
-      });
-    } else {
-      const updates: Partial<Parent> = {};
-      if (!parent.studentIds.includes(student.id)) {
-        updates.studentIds = [...parent.studentIds, student.id];
-      }
-      if (parentEmail && parentEmail !== parent.email) {
-        updates.email = parentEmail;
-      }
-      if (student.parentName && student.parentName !== parent.name) {
-        updates.name = student.parentName;
-      }
-      if (Object.keys(updates).length > 0) {
-        parent = this.saveParent({ ...parent, ...updates });
-      }
-    }
-
-    if (!student.parentId || student.parentId !== parent.id) {
-      this.saveStudent({ ...student, parentId: parent.id });
-    }
-    return parent;
+    return this.createOrLinkParent({
+      studentId: student.id,
+      existingParentId: student.parentId,
+      name: student.parentName,
+      phone: student.parentPhone,
+      email: options?.parentEmail,
+      relationship: options?.relationship || 'other',
+      isPrimary: true,
+    });
   },
 
   syncParentsFromStudents(): Parent[] {
-    const students = this.getStudents();
-    students.forEach((s) => this.ensureParentFromStudent(s));
+    this.migrateLegacyParentLinks();
+    this.rebuildParentStudentIdsFromLinks();
     return this.getParents();
   },
 

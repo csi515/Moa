@@ -84,6 +84,7 @@ interface CustomerMetadata {
   grade?: string;
   parentId?: string;
   parentName?: string;
+  parentPhone?: string;
   joinDate?: string;
   leaveDate?: string;
   level?: string;
@@ -130,7 +131,7 @@ export function studentToCustomerRow(student: Student, organizationId: string) {
     id: student.id,
     organization_id: organizationId,
     name: student.name,
-    phone: student.parentPhone || null,
+    phone: student.phone || null,
     email: null,
     status: student.status,
     metadata: metadata as unknown as Json,
@@ -162,7 +163,7 @@ export function customerRowToStudent(
     grade: meta.grade || '',
     parentId: meta.parentId,
     parentName: meta.parentName || parentName || '',
-    parentPhone: row.phone || '',
+    parentPhone: meta.parentPhone || '',
     phone: meta.studentPhone || undefined,
     emergencyContact: meta.emergencyContact,
     address: meta.address,
@@ -229,18 +230,23 @@ export function studentContactRow(
   student: Student,
   organizationId: string,
   contactId?: string,
-  parentEmail?: string | null
+  guardian?: { name: string; phone: string; email?: string | null }
 ) {
-  if (!student.parentName && !student.parentPhone) return null;
+  const g = guardian || {
+    name: student.parentName || '보호자',
+    phone: student.parentPhone || '',
+    email: null as string | null,
+  };
+  if (!g.name && !g.phone) return null;
 
   return {
     id: contactId || crypto.randomUUID(),
     organization_id: organizationId,
     customer_id: student.id,
-    name: student.parentName || '보호자',
+    name: g.name || '보호자',
     relationship: 'parent',
-    phone: student.parentPhone || null,
-    email: parentEmail || null,
+    phone: g.phone || null,
+    email: g.email || null,
     is_primary: true,
   };
 }

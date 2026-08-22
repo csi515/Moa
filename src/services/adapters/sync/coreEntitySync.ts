@@ -53,6 +53,8 @@ import {
   sessionToCoreRow,
 } from './attendanceEntityMappers';
 import type { AttendanceSession } from '../../../core/attendance/types';
+import type { ParentStudentLink } from '../../../core/parent/types';
+import { linkToRow, rowToLink } from './parentLinkEntityMappers';
 import { diffIds } from './utils';
 
 type CoreClient = SupabaseClient<Database, 'core'>;
@@ -85,6 +87,7 @@ export async function hydrateCoreEntities(
     consultationsResult,
     notificationsResult,
     attendanceSessionsResult,
+    parentLinksResult,
   ] = await Promise.all([
     client.from('organizations').select('settings, name, industry_type').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
@@ -98,6 +101,7 @@ export async function hydrateCoreEntities(
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
     client.from('attendance_sessions').select('*').eq('organization_id', organizationId),
+    client.from('parent_student_links').select('*').eq('organization_id', organizationId),
   ]);
 
   logErrors({
@@ -113,6 +117,7 @@ export async function hydrateCoreEntities(
     consultations: consultationsResult.error,
     notifications: notificationsResult.error,
     attendanceSessions: attendanceSessionsResult.error,
+    parentLinks: parentLinksResult.error,
   });
 
   const defaultSettings = readLocal<AcademySettings>(STORAGE_KEYS.SETTINGS, {
@@ -172,6 +177,7 @@ export async function hydrateCoreEntities(
       check_in_pin_hash: (c as { check_in_pin_hash?: string | null }).check_in_pin_hash ?? null,
     }))
   );
+  const parentStudentLinks = (parentLinksResult.data || []).map(rowToLink);
 
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.SETTINGS, settings],
@@ -188,6 +194,7 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
     [STORAGE_KEYS.ATTENDANCE_SESSIONS, attendanceSessions],
     [STORAGE_KEYS.CUSTOMER_PINS, customerPins],
+    [STORAGE_KEYS.PARENT_STUDENT_LINKS, parentStudentLinks],
   ];
 
   for (const [key, value] of entities) {
@@ -232,6 +239,8 @@ export async function persistCoreEntity(
       return persistAttendanceSessions(client, organizationId, cache);
     case STORAGE_KEYS.CUSTOMER_PINS:
       return persistCustomerPins(client, organizationId, cache);
+    case STORAGE_KEYS.PARENT_STUDENT_LINKS:
+      return persistParentStudentLinks(client, organizationId, cache);
     default:
       return;
   }
@@ -284,6 +293,7 @@ async function persistCustomers(
         (p) => [p.customerId, p.pinHash]
       )
     );
+    const links = cache.get<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS) || [];
 
     for (const student of students) {
       const row = {
@@ -293,8 +303,20 @@ async function persistCustomers(
       const { error } = await client.from('customers').upsert(row);
       if (error) console.error('Failed to upsert student:', error);
 
-      const parentRecord = parents.find((p) => p.id === student.parentId);
-      const contact = studentContactRow(student, orgId, undefined, parentRecord?.email);
+      const primaryLink =
+        links.find((l) => l.studentId === student.id && l.isPrimary) ||
+        links.find((l) => l.studentId === student.id);
+      const parentRecord = primaryLink
+        ? parents.find((p) => p.id === primaryLink.parentId)
+        : parents.find((p) => p.id === student.parentId);
+      const contact = studentContactRow(
+        student,
+        orgId,
+        undefined,
+        parentRecord
+          ? { name: parentRecord.name, phone: parentRecord.phone, email: parentRecord.email }
+          : undefined
+      );
       if (contact) {
         const { data: existing } = await client
           .from('customer_contacts')
@@ -512,6 +534,28 @@ async function persistCustomerPins(
   }
 
   writeLocal(STORAGE_KEYS.CUSTOMER_PINS, pins);
+}
+
+async function persistParentStudentLinks(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const links = cache.get<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS) || [];
+
+  const { error: deleteError } = await client
+    .from('parent_student_links')
+    .delete()
+    .eq('organization_id', orgId);
+  if (deleteError) console.error('Failed to delete parent_student_links:', deleteError);
+
+  if (links.length > 0) {
+    const rows = links.map((l) => linkToRow(l, orgId));
+    const { error } = await client.from('parent_student_links').insert(rows);
+    if (error) console.error('Failed to insert parent_student_links:', error);
+  }
+
+  writeLocal(STORAGE_KEYS.PARENT_STUDENT_LINKS, links);
 }
 
 async function syncTable(

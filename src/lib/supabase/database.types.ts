@@ -18,6 +18,7 @@ export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'online' | 'other';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type NotificationChannel = 'app' | 'email' | 'sms' | 'kakao';
 export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
+export type GuardianRelationship = 'father' | 'mother' | 'other';
 
 export interface Database {
   core: {
@@ -130,6 +131,28 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      parent_student_links: {
+        Row: {
+          organization_id: string;
+          parent_customer_id: string;
+          student_customer_id: string;
+          relationship: GuardianRelationship;
+          is_primary: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          parent_customer_id: string;
+          student_customer_id: string;
+          relationship?: GuardianRelationship;
+          is_primary?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['parent_student_links']['Insert']>;
+        Relationships: [];
       };
       customers: {
         Row: {
