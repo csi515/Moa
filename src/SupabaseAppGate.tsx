@@ -4,6 +4,7 @@ import { AuthPage } from './core/auth/AuthPage';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { LoadingScreen } from './shared/components/LoadingScreen';
+import { StorageHydrator } from './StorageHydrator';
 import { AppContent } from './AppContent';
 
 export const SupabaseAppGate: React.FC = () => {
@@ -22,5 +23,9 @@ export const SupabaseAppGate: React.FC = () => {
     return <OrganizationSelector />;
   }
 
-  return <AppContent />;
+  return (
+    <StorageHydrator organizationId={currentOrganization.id}>
+      <AppContent />
+    </StorageHydrator>
+  );
 };

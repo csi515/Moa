@@ -8,6 +8,7 @@ import React, {
 } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
+import { StorageService } from '../../services/storage';
 import * as orgService from './services/organizationService';
 
 interface OrganizationContextType {
@@ -96,6 +97,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     orgService.clearStoredOrganizationId();
     setCurrentOrganization(null);
     setCurrentRole(null);
+    StorageService.clearOrganization();
   }, []);
 
   const createOrganization = useCallback(

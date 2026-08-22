@@ -43,73 +43,62 @@ import {
   INITIAL_SETTINGS
 } from './mockData';
 
-const STORAGE_KEYS = {
-  STUDENTS: 'piano_app_students',
-  PARENTS: 'piano_app_parents',
-  TEACHERS: 'piano_app_teachers',
-  CLASSES: 'piano_app_classes',
-  ATTENDANCE: 'piano_app_attendance',
-  INVOICES: 'piano_app_invoices',
-  EXPENSES: 'piano_app_expenses',
-  CONSULTATIONS: 'piano_app_consultations',
-  PRACTICE_RECORDS: 'piano_app_practice_records',
-  LESSON_RECORDS: 'piano_app_lesson_records',
-  TEXTBOOKS: 'piano_app_textbooks',
-  TEXTBOOK_SALES: 'piano_app_textbook_sales',
-  TEXTBOOK_PAYMENTS: 'piano_app_textbook_payments',
-  TEXTBOOK_INVENTORY_TRANSACTIONS: 'piano_app_textbook_inventory_transactions',
-  SONGS: 'piano_app_songs',
-  NOTIFICATIONS: 'piano_app_notifications',
-  SETTINGS: 'piano_app_settings',
-  ACTIVE_USER: 'piano_app_active_user',
-  INITIALIZED: 'piano_app_initialized_v3'
-};
+import {
+  getStorageAdapter,
+  getStorageBackend,
+  STORAGE_KEYS,
+  type StorageKey,
+} from './adapters';
+import { readLocalRaw, writeLocalRaw } from './adapters/localStorageEngine';
+import { resolveStorageKey } from './adapters/storageContext';
 
 type Listener = () => void;
-const listeners = new Set<Listener>();
 
-function notifyListeners() {
-  listeners.forEach((listener) => {
-    try {
-      listener();
-    } catch (e) {
-      console.error('Storage listener error:', e);
-    }
-  });
+function getItem<T>(key: StorageKey, defaultValue: T): T {
+  return getStorageAdapter().getItem(key, defaultValue);
 }
 
-function getItem<T>(key: string, defaultValue: T): T {
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return defaultValue;
-    return JSON.parse(raw);
-  } catch (e) {
-    console.error(`Failed to parse storage item ${key}:`, e);
-    return defaultValue;
-  }
-}
-
-function setItem<T>(key: string, value: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-    notifyListeners();
-  } catch (e) {
-    console.error(`Failed to set storage item ${key}:`, e);
-  }
+function setItem<T>(key: StorageKey, value: T): void {
+  getStorageAdapter().setItem(key, value);
 }
 
 export const StorageService = {
+  /** 현재 저장소 백엔드 (local | supabase) */
+  getBackend() {
+    return getStorageBackend();
+  },
+
+  /** Supabase 모드: org 선택 시 원격 데이터 hydrate */
+  async hydrate(organizationId: string): Promise<void> {
+    await getStorageAdapter().hydrate(organizationId);
+  },
+
+  /** org 전환/로그아웃 시 캐시 초기화 */
+  clearOrganization(): void {
+    getStorageAdapter().clearOrganization();
+  },
+
+  isHydrated(): boolean {
+    return getStorageAdapter().isHydrated();
+  },
+
+  isHydrating(): boolean {
+    return getStorageAdapter().isHydrating();
+  },
+
   // Initialization
   init() {
-    const isInitialized = localStorage.getItem(STORAGE_KEYS.INITIALIZED);
+    if (getStorageBackend() === 'supabase') {
+      return;
+    }
+    const isInitialized = readLocalRaw(resolveStorageKey(STORAGE_KEYS.INITIALIZED));
     if (!isInitialized) {
       this.resetToSeedData();
     }
   },
 
   subscribe(listener: Listener): () => void {
-    listeners.add(listener);
-    return () => listeners.delete(listener);
+    return getStorageAdapter().subscribe(listener);
   },
 
   resetToSeedData() {
@@ -139,8 +128,7 @@ export const StorageService = {
       email: 'director.lee@harmonypiano.kr'
     };
     setItem(STORAGE_KEYS.ACTIVE_USER, defaultUser);
-    localStorage.setItem(STORAGE_KEYS.INITIALIZED, 'true');
-    notifyListeners();
+    writeLocalRaw(resolveStorageKey(STORAGE_KEYS.INITIALIZED), 'true');
   },
 
   clearAllData() {
@@ -157,7 +145,6 @@ export const StorageService = {
     setItem(STORAGE_KEYS.TEXTBOOKS, []);
     setItem(STORAGE_KEYS.SONGS, []);
     setItem(STORAGE_KEYS.NOTIFICATIONS, []);
-    notifyListeners();
   },
 
   exportDatabaseJSON(): string {
@@ -198,7 +185,6 @@ export const StorageService = {
       if (data.songs) setItem(STORAGE_KEYS.SONGS, data.songs);
       if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
       if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
-      notifyListeners();
       return true;
     } catch (e) {
       console.error('Import failed:', e);
@@ -376,7 +362,7 @@ export const StorageService = {
     } else {
       saved = {
         ...teacher,
-        id: `t-${Date.now()}`
+        id: getStorageBackend() === 'supabase' ? crypto.randomUUID() : `t-${Date.now()}`,
       };
       list.push(saved);
     }

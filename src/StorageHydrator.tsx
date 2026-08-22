@@ -1,0 +1,38 @@
+import React, { useEffect, useState } from 'react';
+import { getStorageBackend } from './services/adapters';
+import { StorageService } from './services/storage';
+import { LoadingScreen } from './shared/components/LoadingScreen';
+
+interface StorageHydratorProps {
+  organizationId: string;
+  children: React.ReactNode;
+}
+
+/** Supabase 모드: org 선택 시 StorageService hydrate */
+export const StorageHydrator: React.FC<StorageHydratorProps> = ({ organizationId, children }) => {
+  const [ready, setReady] = useState(getStorageBackend() !== 'supabase');
+
+  useEffect(() => {
+    if (getStorageBackend() !== 'supabase') {
+      setReady(true);
+      return;
+    }
+
+    let cancelled = false;
+    setReady(false);
+
+    void StorageService.hydrate(organizationId).then(() => {
+      if (!cancelled) setReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId]);
+
+  if (!ready) {
+    return <LoadingScreen message="데이터를 불러오는 중..." />;
+  }
+
+  return <>{children}</>;
+};
