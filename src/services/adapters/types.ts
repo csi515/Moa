@@ -1,13 +1,11 @@
 import type { AcademySettings, Teacher } from '../../types';
 import type { StorageKey } from './storageKeys';
 
-export type StorageBackend = 'local' | 'supabase';
-
 export type StorageListener = () => void;
 
 /** 저장소 어댑터 인터페이스 — sync API 유지, hydrate만 async */
 export interface IStorageAdapter {
-  readonly backend: StorageBackend;
+  readonly backend: 'supabase';
 
   getItem<T>(key: StorageKey, defaultValue: T): T;
   setItem<T>(key: StorageKey, value: T): void;

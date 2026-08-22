@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import { getStorageBackend } from './services/adapters';
 import { StorageService } from './services/storage';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 
@@ -8,16 +7,11 @@ interface StorageHydratorProps {
   children: React.ReactNode;
 }
 
-/** Supabase 모드: org 선택 시 StorageService hydrate */
+/** org 선택 시 StorageService hydrate */
 export const StorageHydrator: React.FC<StorageHydratorProps> = ({ organizationId, children }) => {
-  const [ready, setReady] = useState(getStorageBackend() !== 'supabase');
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (getStorageBackend() !== 'supabase') {
-      setReady(true);
-      return;
-    }
-
     let cancelled = false;
     setReady(false);
 

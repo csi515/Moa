@@ -941,6 +941,42 @@ export interface Database {
         Update: Partial<Database['piano']['Tables']['songs']['Insert']>;
         Relationships: [];
       };
+      expenses: {
+        Row: {
+          id: string;
+          organization_id: string;
+          expense_date: string;
+          category: string;
+          amount: number;
+          payment_method: PaymentMethod;
+          description: string;
+          recipient: string | null;
+          vendor: string | null;
+          memo: string | null;
+          receipt_memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          expense_date: string;
+          category: string;
+          amount: number;
+          payment_method?: PaymentMethod;
+          description?: string;
+          recipient?: string | null;
+          vendor?: string | null;
+          memo?: string | null;
+          receipt_memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['expenses']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

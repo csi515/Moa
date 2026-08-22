@@ -35,7 +35,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.NOTIFICATIONS,
 ]);
 
-/** Piano 모듈 Supabase 동기화 (Phase 4) */
+/** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */
 export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.STUDENTS,
   STORAGE_KEYS.ATTENDANCE,
@@ -46,17 +46,17 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.TEXTBOOK_PAYMENTS,
   STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
   STORAGE_KEYS.SONGS,
+  STORAGE_KEYS.EXPENSES,
+]);
+
+/** 클라이언트 전용 localStorage 키 (Supabase sync 제외) */
+export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.ACTIVE_USER,
+  STORAGE_KEYS.INITIALIZED,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano) */
 export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   ...CORE_SYNC_KEYS,
   ...PIANO_SYNC_KEYS,
-]);
-
-/** localStorage only (Phase 6에서 제거 예정) */
-export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
-  STORAGE_KEYS.EXPENSES,
-  STORAGE_KEYS.ACTIVE_USER,
-  STORAGE_KEYS.INITIALIZED,
 ]);

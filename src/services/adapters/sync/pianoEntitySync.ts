@@ -1,5 +1,6 @@
 import type {
   AttendanceRecord,
+  Expense,
   LessonRecord,
   PracticeRecord,
   Song,
@@ -15,11 +16,13 @@ import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { SyncCache } from './coreEntitySync';
 import {
   attendanceToPianoRow,
+  expenseToPianoRow,
   inventoryToPianoRow,
   lessonToPianoRow,
   mergeStudentWithPiano,
   paymentToPianoRow,
   pianoRowToAttendance,
+  pianoRowToExpense,
   pianoRowToInventory,
   pianoRowToLesson,
   pianoRowToPayment,
@@ -53,6 +56,7 @@ export async function hydratePianoEntities(
     paymentsResult,
     inventoryResult,
     songsResult,
+    expensesResult,
   ] = await Promise.all([
     client.from('customers').select('*').eq('organization_id', organizationId),
     client.from('class_members').select('*').eq('organization_id', organizationId),
@@ -64,6 +68,7 @@ export async function hydratePianoEntities(
     client.from('textbook_payments').select('*').eq('organization_id', organizationId),
     client.from('textbook_inventory_transactions').select('*').eq('organization_id', organizationId),
     client.from('songs').select('*').eq('organization_id', organizationId),
+    client.from('expenses').select('*').eq('organization_id', organizationId),
   ]);
 
   logErrors({
@@ -77,6 +82,7 @@ export async function hydratePianoEntities(
     payments: paymentsResult.error,
     inventory: inventoryResult.error,
     songs: songsResult.error,
+    expenses: expensesResult.error,
   });
 
   // Merge piano.customers + class_members into students
@@ -113,6 +119,7 @@ export async function hydratePianoEntities(
       (inventoryResult.data || []).map(pianoRowToInventory),
     ],
     [STORAGE_KEYS.SONGS, (songsResult.data || []).map(pianoRowToSong)],
+    [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(pianoRowToExpense)],
   ];
 
   for (const [key, value] of entities) {
@@ -166,6 +173,10 @@ export async function persistPianoEntity(
     case STORAGE_KEYS.SONGS:
       return persistPianoTable('songs', organizationId, cache, STORAGE_KEYS.SONGS, (items) =>
         (items as Song[]).map((s) => songToPianoRow(s, organizationId))
+      );
+    case STORAGE_KEYS.EXPENSES:
+      return persistPianoTable('expenses', organizationId, cache, STORAGE_KEYS.EXPENSES, (items) =>
+        (items as Expense[]).map((e) => expenseToPianoRow(e, organizationId))
       );
     default:
       return;
@@ -261,7 +272,8 @@ async function persistPianoTable<T extends { id: string }>(
     | 'textbooks'
     | 'textbook_sales'
     | 'textbook_inventory_transactions'
-    | 'songs',
+    | 'songs'
+    | 'expenses',
   orgId: string,
   cache: SyncCache,
   storageKey: StorageKey,

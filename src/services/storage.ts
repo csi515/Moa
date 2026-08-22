@@ -24,35 +24,21 @@ import {
 } from '../types';
 
 import {
-  INITIAL_STUDENTS,
-  INITIAL_PARENTS,
-  INITIAL_TEACHERS,
-  INITIAL_CLASSES,
-  INITIAL_ATTENDANCE,
-  INITIAL_INVOICES,
-  INITIAL_EXPENSES,
-  INITIAL_CONSULTATIONS,
-  INITIAL_PRACTICE_RECORDS,
-  INITIAL_LESSON_RECORDS,
-  INITIAL_TEXTBOOKS,
-  INITIAL_TEXTBOOK_SALES,
-  INITIAL_TEXTBOOK_PAYMENTS,
-  INITIAL_TEXTBOOK_INVENTORY_TRANSACTIONS,
-  INITIAL_SONGS,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_SETTINGS
-} from './mockData';
-
-import {
   getStorageAdapter,
-  getStorageBackend,
   STORAGE_KEYS,
   type StorageKey,
 } from './adapters';
-import { readLocalRaw, writeLocalRaw } from './adapters/localStorageEngine';
-import { resolveStorageKey } from './adapters/storageContext';
 
 type Listener = () => void;
+
+const DEFAULT_SETTINGS: AcademySettings = {
+  name: '',
+  address: '',
+  phone: '',
+  directorName: '',
+  defaultTuitionFee: 180000,
+  defaultPaymentDay: 25,
+};
 
 function getItem<T>(key: StorageKey, defaultValue: T): T {
   return getStorageAdapter().getItem(key, defaultValue);
@@ -62,18 +48,12 @@ function setItem<T>(key: StorageKey, value: T): void {
   getStorageAdapter().setItem(key, value);
 }
 
-/** Supabase 모드에서는 UUID, local 모드에서는 prefix-timestamp ID */
-function generateEntityId(prefix: string): string {
-  return getStorageBackend() === 'supabase' ? crypto.randomUUID() : `${prefix}-${Date.now()}`;
+function generateEntityId(_prefix: string): string {
+  return crypto.randomUUID();
 }
 
 export const StorageService = {
-  /** 현재 저장소 백엔드 (local | supabase) */
-  getBackend() {
-    return getStorageBackend();
-  },
-
-  /** Supabase 모드: org 선택 시 원격 데이터 hydrate */
+  /** Supabase org 선택 시 원격 데이터 hydrate */
   async hydrate(organizationId: string): Promise<void> {
     await getStorageAdapter().hydrate(organizationId);
   },
@@ -91,65 +71,8 @@ export const StorageService = {
     return getStorageAdapter().isHydrating();
   },
 
-  // Initialization
-  init() {
-    if (getStorageBackend() === 'supabase') {
-      return;
-    }
-    const isInitialized = readLocalRaw(resolveStorageKey(STORAGE_KEYS.INITIALIZED));
-    if (!isInitialized) {
-      this.resetToSeedData();
-    }
-  },
-
   subscribe(listener: Listener): () => void {
     return getStorageAdapter().subscribe(listener);
-  },
-
-  resetToSeedData() {
-    setItem(STORAGE_KEYS.STUDENTS, INITIAL_STUDENTS);
-    setItem(STORAGE_KEYS.PARENTS, INITIAL_PARENTS);
-    setItem(STORAGE_KEYS.TEACHERS, INITIAL_TEACHERS);
-    setItem(STORAGE_KEYS.CLASSES, INITIAL_CLASSES);
-    setItem(STORAGE_KEYS.ATTENDANCE, INITIAL_ATTENDANCE);
-    setItem(STORAGE_KEYS.INVOICES, INITIAL_INVOICES);
-    setItem(STORAGE_KEYS.EXPENSES, INITIAL_EXPENSES);
-    setItem(STORAGE_KEYS.CONSULTATIONS, INITIAL_CONSULTATIONS);
-    setItem(STORAGE_KEYS.PRACTICE_RECORDS, INITIAL_PRACTICE_RECORDS);
-    setItem(STORAGE_KEYS.LESSON_RECORDS, INITIAL_LESSON_RECORDS);
-    setItem(STORAGE_KEYS.TEXTBOOKS, INITIAL_TEXTBOOKS);
-    setItem(STORAGE_KEYS.TEXTBOOK_SALES, INITIAL_TEXTBOOK_SALES);
-    setItem(STORAGE_KEYS.TEXTBOOK_PAYMENTS, INITIAL_TEXTBOOK_PAYMENTS);
-    setItem(STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS, INITIAL_TEXTBOOK_INVENTORY_TRANSACTIONS);
-    setItem(STORAGE_KEYS.SONGS, INITIAL_SONGS);
-    setItem(STORAGE_KEYS.NOTIFICATIONS, INITIAL_NOTIFICATIONS);
-    setItem(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
-    
-    // Default active user: Director
-    const defaultUser: User = {
-      id: 'u-director',
-      name: '이세진 원장님',
-      role: 'director',
-      email: 'director.lee@harmonypiano.kr'
-    };
-    setItem(STORAGE_KEYS.ACTIVE_USER, defaultUser);
-    writeLocalRaw(resolveStorageKey(STORAGE_KEYS.INITIALIZED), 'true');
-  },
-
-  clearAllData() {
-    setItem(STORAGE_KEYS.STUDENTS, []);
-    setItem(STORAGE_KEYS.PARENTS, []);
-    setItem(STORAGE_KEYS.TEACHERS, []);
-    setItem(STORAGE_KEYS.CLASSES, []);
-    setItem(STORAGE_KEYS.ATTENDANCE, []);
-    setItem(STORAGE_KEYS.INVOICES, []);
-    setItem(STORAGE_KEYS.EXPENSES, []);
-    setItem(STORAGE_KEYS.CONSULTATIONS, []);
-    setItem(STORAGE_KEYS.PRACTICE_RECORDS, []);
-    setItem(STORAGE_KEYS.LESSON_RECORDS, []);
-    setItem(STORAGE_KEYS.TEXTBOOKS, []);
-    setItem(STORAGE_KEYS.SONGS, []);
-    setItem(STORAGE_KEYS.NOTIFICATIONS, []);
   },
 
   exportDatabaseJSON(): string {
@@ -234,7 +157,7 @@ export const StorageService = {
 
   // Settings
   getSettings(): AcademySettings {
-    return getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, INITIAL_SETTINGS);
+    return getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
   },
 
   updateSettings(settings: Partial<AcademySettings>): AcademySettings {
@@ -1660,12 +1583,4 @@ export const StorageService = {
   importAllData(jsonStr: string): boolean {
     return this.importDatabaseJSON(jsonStr);
   },
-
-  resetToInitialData(): void {
-    this.resetToSeedData();
-  }
 };
-
-
-// Initialize right away
-StorageService.init();

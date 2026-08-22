@@ -2,24 +2,18 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { AcademySettings } from '@/types';
-import { formatCurrency } from '@/utils/formatters';
 import {
   Settings,
   Building,
   Save,
   Download,
   Upload,
-  RefreshCw,
-  Trash2,
   ShieldCheck,
-  Phone,
-  MapPin,
-  CreditCard
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const AcademySettingsView: React.FC = () => {
-  const { showToast, openConfirmDialog } = useApp();
+  const { showToast } = useApp();
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
 
@@ -65,23 +59,6 @@ export const AcademySettingsView: React.FC = () => {
       }
     };
     reader.readAsText(file);
-  };
-
-  // Reset to initial sample data
-  const handleResetData = () => {
-    openConfirmDialog({
-      title: '데이터 초기화',
-      message: '모든 데이터를 기본 초기 샘플 데이터로 복원하시겠습니까? 현재 입력된 변경사항은 덮어씌워집니다.',
-      isDestructive: true,
-      confirmText: '초기화 실행',
-      onConfirm: () => {
-        StorageService.resetToInitialData();
-        showToast('기본 샘플 데이터로 초기화되었습니다.', 'info');
-        setTimeout(() => {
-          window.location.reload();
-        }, 800);
-      }
-    });
   };
 
   return (
@@ -262,24 +239,6 @@ export const AcademySettingsView: React.FC = () => {
                 />
               </label>
             </div>
-          </div>
-
-          {/* Reset Panel */}
-          <div className="bg-rose-50/50 rounded-3xl p-6 border border-rose-200 shadow-xs space-y-3">
-            <h4 className="font-bold text-sm text-rose-900 flex items-center gap-1.5">
-              <Trash2 className="w-4 h-4 text-rose-600" />
-              샘플 데이터 초기화
-            </h4>
-            <p className="text-xs text-rose-700 leading-relaxed">
-              체험용 초기 데이터로 되돌리려면 아래 초기화 버튼을 누르세요.
-            </p>
-            <button
-              onClick={handleResetData}
-              className="w-full py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              기본 샘플 데이터로 복원
-            </button>
           </div>
         </div>
       </div>
