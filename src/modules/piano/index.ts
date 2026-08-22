@@ -14,6 +14,7 @@ export { ResourceManagementView } from './components/resources/ResourceManagemen
 export { TuitionManagementView } from './components/tuition/TuitionManagementView';
 export { UnpaidManagementView } from './components/unpaid/UnpaidManagementView';
 export { MakeupManagementView } from './components/makeup/MakeupManagementView';
+export { RecitalManagementView } from './components/recitals/RecitalManagementView';
 export { TextbookManagementView } from './components/textbooks/TextbookManagementView';
 export { ExpenseManagementView } from './components/expenses/ExpenseManagementView';
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';

@@ -20,7 +20,19 @@ export type NavTab =
   | 'resources' 
   | 'teachers' 
   | 'calendar' 
+  | 'recitals'
   | 'settings';
+
+export type StudentDetailTab =
+  | 'info'
+  | 'classes'
+  | 'attendance'
+  | 'tuition'
+  | 'textbooks'
+  | 'consultations'
+  | 'practice'
+  | 'videos'
+  | 'memo';
 
 export interface ToastMessage {
   id: string;
@@ -44,6 +56,8 @@ interface AppContextType {
   setActiveTab: (tab: NavTab) => void;
   selectedStudentId: string | null;
   setSelectedStudentId: (id: string | null) => void;
+  selectedStudentDetailTab: StudentDetailTab | null;
+  setSelectedStudentDetailTab: (tab: StudentDetailTab | null) => void;
   currentUser: User;
   toasts: ToastMessage[];
   showToast: (message: string, type?: 'success' | 'error' | 'info' | 'warning', title?: string) => void;
@@ -62,6 +76,7 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedStudentDetailTab, setSelectedStudentDetailTab] = useState<StudentDetailTab | null>(null);
   const [currentUser, setCurrentUser] = useState<User>(StorageService.getActiveUser());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogOptions | null>(null);
@@ -107,6 +122,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         setActiveTab,
         selectedStudentId,
         setSelectedStudentId,
+        selectedStudentDetailTab,
+        setSelectedStudentDetailTab,
         currentUser,
         toasts,
         showToast,

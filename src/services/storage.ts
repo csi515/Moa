@@ -21,6 +21,7 @@ import {
   PaymentMethod,
   Song,
   AcademyEvent,
+  EventParticipantSummary,
   PerformanceVideo,
   Expense,
   AppNotification,
@@ -1572,6 +1573,65 @@ export const StorageService = {
       return true;
     }
     return false;
+  },
+
+  getRecitalEvents(): AcademyEvent[] {
+    return this.getEvents()
+      .filter((e) => e.type === 'concert' || e.type === 'competition')
+      .sort((a, b) => b.startDate.localeCompare(a.startDate));
+  },
+
+  eventTypeToVideoType(type: AcademyEvent['type']): PerformanceVideo['eventType'] {
+    if (type === 'concert') return 'recital';
+    if (type === 'competition') return 'competition';
+    return 'other';
+  },
+
+  getPerformanceVideosByEventId(eventId: string): PerformanceVideo[] {
+    return this.getPerformanceVideos().filter((v) => v.eventId === eventId);
+  },
+
+  getEventParticipantSummaries(eventId: string): EventParticipantSummary[] {
+    const event = this.getEvents().find((e) => e.id === eventId);
+    if (!event) return [];
+
+    const students = this.getStudents();
+    const videos = this.getPerformanceVideosByEventId(eventId);
+
+    return (event.participantIds || []).map((studentId) => {
+      const st = students.find((s) => s.id === studentId);
+      const video = videos.find((v) => v.studentId === studentId);
+      return {
+        studentId,
+        studentName: st?.name || '알 수 없음',
+        parentPhone: st?.parentPhone || '',
+        level: st?.level,
+        hasVideo: Boolean(video),
+        videoId: video?.id,
+        videoTitle: video?.title,
+      };
+    });
+  },
+
+  setEventParticipants(eventId: string, participantIds: string[]): AcademyEvent | null {
+    const event = this.getEvents().find((e) => e.id === eventId);
+    if (!event) return null;
+    return this.saveEvent({ ...event, participantIds });
+  },
+
+  addEventParticipant(eventId: string, studentId: string): AcademyEvent | null {
+    const event = this.getEvents().find((e) => e.id === eventId);
+    if (!event) return null;
+    const ids = event.participantIds || [];
+    if (ids.includes(studentId)) return event;
+    return this.saveEvent({ ...event, participantIds: [...ids, studentId] });
+  },
+
+  removeEventParticipant(eventId: string, studentId: string): AcademyEvent | null {
+    const event = this.getEvents().find((e) => e.id === eventId);
+    if (!event) return null;
+    const ids = (event.participantIds || []).filter((id) => id !== studentId);
+    return this.saveEvent({ ...event, participantIds: ids });
   },
 
   // Performance Videos

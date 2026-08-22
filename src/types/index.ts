@@ -207,6 +207,8 @@ export interface PerformanceVideo {
   eventType: PerformanceVideoType;
   songTitle?: string;
   memo?: string;
+  eventId?: string;
+  eventTitle?: string;
   createdAt?: string;
 }
 
@@ -433,6 +435,18 @@ export interface AcademyEvent {
   type: 'concert' | 'competition' | 'special_lesson' | 'tuning' | 'vacation' | 'other';
   description?: string;
   color?: string;
+  participantIds?: string[];
+}
+
+/** 연주회·콩쿠르 참가 원생 + 영상 등록 현황 */
+export interface EventParticipantSummary {
+  studentId: string;
+  studentName: string;
+  parentPhone: string;
+  level?: StudentLevel;
+  hasVideo: boolean;
+  videoId?: string;
+  videoTitle?: string;
 }
 
 export interface AcademySettings {

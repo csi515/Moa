@@ -648,7 +648,9 @@ export function eventToPianoRow(event: AcademyEvent, organizationId: string) {
     event_type: event.type,
     description: event.description || null,
     color: event.color || null,
-    metadata: {} as Json,
+    metadata: {
+      participantIds: event.participantIds || [],
+    } as Json,
   };
 }
 
@@ -660,7 +662,9 @@ export function pianoRowToEvent(row: {
   event_type: string;
   description: string | null;
   color: string | null;
+  metadata?: Json;
 }): AcademyEvent {
+  const meta = (row.metadata || {}) as { participantIds?: string[] };
   return {
     id: row.id,
     title: row.title,
@@ -669,6 +673,7 @@ export function pianoRowToEvent(row: {
     type: row.event_type as AcademyEvent['type'],
     description: row.description || undefined,
     color: row.color || undefined,
+    participantIds: meta.participantIds || [],
   };
 }
 
@@ -685,7 +690,11 @@ export function performanceVideoToPianoRow(video: PerformanceVideo, organization
     event_type: video.eventType,
     song_title: video.songTitle || null,
     memo: video.memo || null,
-    metadata: { studentName: video.studentName } as Json,
+    metadata: {
+      studentName: video.studentName,
+      eventId: video.eventId || null,
+      eventTitle: video.eventTitle || null,
+    } as Json,
   };
 }
 
@@ -701,7 +710,11 @@ export function pianoRowToPerformanceVideo(row: {
   metadata: Json;
   created_at: string;
 }): PerformanceVideo {
-  const meta = (row.metadata || {}) as { studentName?: string };
+  const meta = (row.metadata || {}) as {
+    studentName?: string;
+    eventId?: string | null;
+    eventTitle?: string | null;
+  };
   return {
     id: row.id,
     studentId: row.customer_id,
@@ -712,6 +725,8 @@ export function pianoRowToPerformanceVideo(row: {
     eventType: row.event_type as PerformanceVideo['eventType'],
     songTitle: row.song_title || undefined,
     memo: row.memo || undefined,
+    eventId: meta.eventId || undefined,
+    eventTitle: meta.eventTitle || undefined,
     createdAt: row.created_at,
   };
 }

@@ -19,6 +19,7 @@ import {
   Settings,
   AlertCircle,
   Sparkles,
+  Award,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -75,6 +76,7 @@ export const Sidebar: React.FC = () => {
       items: [
         { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-4 h-4" /> },
         { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-4 h-4" /> },
+        { tab: 'recitals', label: '연주회·콩쿠르', icon: <Award className="w-4 h-4" /> },
         { tab: 'settings', label: '학원 설정', icon: <Settings className="w-4 h-4" /> },
       ],
     },

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 export const StudentListView: React.FC = () => {
-  const { selectedStudentId, setSelectedStudentId, refreshKey } = useApp();
+  const { selectedStudentId, setSelectedStudentId, selectedStudentDetailTab, setSelectedStudentDetailTab, refreshKey } = useApp();
   const labels = useModuleLabels();
 
   const students = StorageService.getStudents();
@@ -410,6 +410,8 @@ export const StudentListView: React.FC = () => {
         isOpen={Boolean(detailStudent)}
         onClose={handleCloseDetail}
         onEdit={handleOpenEdit}
+        initialTab={selectedStudentDetailTab || undefined}
+        onInitialTabApplied={() => setSelectedStudentDetailTab(null)}
       />
     </div>
   );
