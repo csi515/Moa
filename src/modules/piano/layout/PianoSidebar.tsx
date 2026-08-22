@@ -115,7 +115,7 @@ export const PianoSidebar: React.FC = () => {
   };
 
   return (
-    <aside className="w-64 bg-white text-slate-600 flex flex-col h-[calc(100vh-65px)] sticky top-[65px] border-r border-slate-200 select-none shrink-0 no-print">
+    <aside className="hidden md:flex w-64 bg-white text-slate-600 flex-col h-[calc(100vh-65px)] sticky top-[65px] border-r border-slate-200 select-none shrink-0 no-print">
       <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5">
         {menuSections.map((section, sIdx) => (
           <div key={sIdx} className="space-y-1">

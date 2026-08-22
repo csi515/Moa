@@ -320,7 +320,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl overflow-hidden my-8">
+      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-2xl lg:max-w-4xl overflow-hidden my-8">
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
@@ -349,21 +349,23 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
-          <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+            <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
 
-          <GuardianSection
-            isEdit={isEdit}
-            canInviteParent={canInviteParent}
-            guardians={guardians}
-            activeSearchIdx={activeSearchIdx}
-            searchResults={searchResults}
-            onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
-            onUpdateGuardian={updateGuardian}
-            onSetPrimary={setPrimaryGuardian}
-            onRemoveGuardian={removeGuardian}
-            onSelectExistingParent={selectExistingParent}
-            onFocusSearch={setActiveSearchIdx}
-          />
+            <GuardianSection
+              isEdit={isEdit}
+              canInviteParent={canInviteParent}
+              guardians={guardians}
+              activeSearchIdx={activeSearchIdx}
+              searchResults={searchResults}
+              onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
+              onUpdateGuardian={updateGuardian}
+              onSetPrimary={setPrimaryGuardian}
+              onRemoveGuardian={removeGuardian}
+              onSelectExistingParent={selectExistingParent}
+              onFocusSearch={setActiveSearchIdx}
+            />
+          </div>
 
           {attendanceEnabled && !isEdit && (
             <StudentPinSection formData={formData} onChange={updateFormData} />
