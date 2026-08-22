@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation } from '@/hooks';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { Student } from '@/types';
 import {
@@ -51,8 +52,7 @@ export const UnpaidManagementView: React.FC = () => {
         const q = searchQuery.toLowerCase();
         return (
           s.studentName.toLowerCase().includes(q) ||
-          s.parentName.toLowerCase().includes(q) ||
-          s.parentPhone.includes(q)
+          studentMatchesGuardianQuery(s.studentId, searchQuery)
         );
       }
       return true;

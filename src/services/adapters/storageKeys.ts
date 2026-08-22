@@ -2,6 +2,7 @@
 export const STORAGE_KEYS = {
   STUDENTS: 'piano_app_students',
   PARENTS: 'piano_app_parents',
+  PARENT_STUDENT_LINKS: 'core_parent_student_links',
   TEACHERS: 'piano_app_teachers',
   CLASSES: 'piano_app_classes',
   ATTENDANCE: 'piano_app_attendance',
@@ -42,6 +43,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.TEACHERS,
   STORAGE_KEYS.STUDENTS,
   STORAGE_KEYS.PARENTS,
+  STORAGE_KEYS.PARENT_STUDENT_LINKS,
   STORAGE_KEYS.CLASSES,
   STORAGE_KEYS.INVOICES,
   STORAGE_KEYS.CONSULTATIONS,

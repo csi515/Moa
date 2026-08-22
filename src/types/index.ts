@@ -31,9 +31,12 @@ export interface Student {
   birthDate: string; // YYYY-MM-DD
   school: string;
   grade: string; // e.g. 초3, 유치부, 중1, 성인
+  /** @deprecated parent_student_links에서 파생 — UI는 getPrimaryGuardian 사용 */
   parentId?: string;
-  parentName: string;
-  parentPhone: string;
+  /** @deprecated */
+  parentName?: string;
+  /** @deprecated */
+  parentPhone?: string;
   /** 원생 본인 연락처 (선택) */
   phone?: string;
   emergencyContact?: string;

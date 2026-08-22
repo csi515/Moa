@@ -1,12 +1,13 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { Search, Music, Shield } from 'lucide-react';
+import { Search, Music, Shield, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -20,6 +21,10 @@ export const Header: React.FC = () => {
   const settings = StorageService.getSettings();
   const supabaseOrg = useOptionalOrganization();
   const { roleLabel, isStaff, staffId } = usePermissions();
+  const canEnterParentPortal =
+    supabaseOrg?.canAccessParentPortal &&
+    !supabaseOrg.isParentOnly &&
+    !supabaseOrg.parentPortalActive;
   const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
@@ -36,7 +41,7 @@ export const Header: React.FC = () => {
           (s) =>
             (!isStaff || !staffId || s.teacherId === staffId) &&
             (s.name.includes(globalSearchQuery) ||
-            s.parentPhone.includes(globalSearchQuery) ||
+            studentMatchesGuardianQuery(s.id, globalSearchQuery) ||
             s.school.includes(globalSearchQuery) ||
             s.level.includes(globalSearchQuery))
         )
@@ -111,6 +116,16 @@ export const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          {canEnterParentPortal && (
+            <button
+              type="button"
+              onClick={() => supabaseOrg?.enterParentPortal()}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold hover:bg-indigo-100 min-h-[44px]"
+            >
+              <Users className="w-4 h-4" />
+              학부모 포털
+            </button>
+          )}
           <OrganizationSwitcher />
           <PwaInstallPrompt />
 

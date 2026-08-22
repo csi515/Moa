@@ -372,9 +372,6 @@ const APP_TO_DB_PAYMENT: Record<string, DbPaymentMethod> = {
 
 export function saleToPianoRow(sale: TextbookSale, organizationId: string) {
   const metadata: SaleMetadata = {
-    parentId: sale.parentId,
-    parentName: sale.parentName,
-    parentPhone: sale.parentPhone,
     textbookTitle: sale.textbookTitle,
     studentName: sale.studentName,
     teacherName: sale.teacherName,

@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
+import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { Consultation, ConsultationType } from '@/types';
 import {
@@ -47,7 +48,7 @@ export const ConsultationRecordsView: React.FC = () => {
         const q = searchQuery.toLowerCase();
         if (
           !c.studentName.toLowerCase().includes(q) &&
-          !c.parentName.toLowerCase().includes(q) &&
+          !studentMatchesGuardianQuery(c.studentId, searchQuery) &&
           !c.content.toLowerCase().includes(q)
         ) {
           return false;
@@ -97,7 +98,7 @@ export const ConsultationRecordsView: React.FC = () => {
     StorageService.saveConsultation({
       studentId: st.id,
       studentName: st.name,
-      parentName: st.parentName,
+      parentName: getPrimaryGuardian(st.id)?.parentName || st.parentName || '학부모',
       date: formData.date,
       type: formData.type,
       content: formData.content.trim(),

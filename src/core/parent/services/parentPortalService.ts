@@ -1,0 +1,63 @@
+import { getCoreClient } from '@/lib/supabase';
+import type { ParentPortalTree, GlobalParent, GlobalStudent, StudentEnrollment, EnrollmentStatus } from '../types/globalParent';
+import type { GuardianRelationship } from '../types';
+
+function parseEnrollment(raw: Record<string, unknown>): StudentEnrollment {
+  return {
+    enrollmentId: String(raw.enrollment_id),
+    organizationId: String(raw.organization_id),
+    organizationName: String(raw.organization_name ?? ''),
+    industryType: String(raw.industry_type ?? 'piano'),
+    customerId: String(raw.customer_id),
+    status: (raw.status as EnrollmentStatus) ?? 'active',
+    enrolledAt: raw.enrolled_at ? String(raw.enrolled_at) : null,
+    leftAt: raw.left_at ? String(raw.left_at) : null,
+  };
+}
+
+function parseChild(raw: Record<string, unknown>): GlobalStudent {
+  const enrollments = Array.isArray(raw.enrollments)
+    ? (raw.enrollments as Record<string, unknown>[]).map(parseEnrollment)
+    : [];
+
+  return {
+    studentId: String(raw.student_id),
+    displayName: String(raw.display_name ?? ''),
+    birthDate: raw.birth_date ? String(raw.birth_date) : null,
+    relationship: (raw.relationship as GuardianRelationship) ?? 'other',
+    isPrimary: Boolean(raw.is_primary),
+    enrollments,
+  };
+}
+
+function parsePortalTree(data: unknown): ParentPortalTree {
+  const root = (data ?? {}) as Record<string, unknown>;
+  const parentRaw = root.parent as Record<string, unknown> | null;
+
+  const parent: GlobalParent | null = parentRaw
+    ? {
+        id: String(parentRaw.id),
+        name: String(parentRaw.name ?? '학부모'),
+        phone: parentRaw.phone ? String(parentRaw.phone) : null,
+        email: parentRaw.email ? String(parentRaw.email) : null,
+      }
+    : null;
+
+  const children = Array.isArray(root.children)
+    ? (root.children as Record<string, unknown>[]).map(parseChild)
+    : [];
+
+  return { parent, children };
+}
+
+export async function ensureGlobalParentProfile(): Promise<string | null> {
+  const { data, error } = await getCoreClient().rpc('ensure_global_parent_profile');
+  if (error) throw error;
+  return data ? String(data) : null;
+}
+
+export async function fetchParentPortalTree(): Promise<ParentPortalTree> {
+  const { data, error } = await getCoreClient().rpc('get_my_parent_portal_tree');
+  if (error) throw error;
+  return parsePortalTree(data);
+}

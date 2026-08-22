@@ -6,6 +6,7 @@ import {
   TextbookInventoryTransaction
 } from '@/types';
 import { StorageService } from '@/services/storage';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { useApp } from '@/context/AppContext';
 import {
   BookOpen,
@@ -133,8 +134,7 @@ export const TextbookManagementView: React.FC = () => {
     const matchSearch =
       s.studentName.toLowerCase().includes(salesSearch.toLowerCase()) ||
       s.textbookTitle.toLowerCase().includes(salesSearch.toLowerCase()) ||
-      (s.parentName && s.parentName.toLowerCase().includes(salesSearch.toLowerCase())) ||
-      (s.parentPhone && s.parentPhone.includes(salesSearch));
+      studentMatchesGuardianQuery(s.studentId, salesSearch);
 
     const matchStatus = salesStatusFilter === 'all' || s.status === salesStatusFilter;
     return matchSearch && matchStatus;

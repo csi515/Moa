@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { ACADEMY_EVENT_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
-import { RecitalService } from '@/modules/piano/services/recitalService';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { AcademyEvent } from '@/types';
 import {
   EmptyState,
@@ -102,7 +102,7 @@ export const RecitalManagementView: React.FC = () => {
       if (selectedIds.has(s.id)) return false;
       if (!participantSearch.trim()) return true;
       const q = participantSearch.toLowerCase();
-      return s.name.toLowerCase().includes(q) || s.parentName.toLowerCase().includes(q);
+      return s.name.toLowerCase().includes(q) || studentMatchesGuardianQuery(s.id, participantSearch);
     });
   }, [students, selectedEvent, participantSearch]);
 

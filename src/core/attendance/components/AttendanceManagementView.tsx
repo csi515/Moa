@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import type { Student } from '@/types';
 import {
@@ -51,7 +52,7 @@ export const AttendanceManagementView: React.FC = () => {
       if (s.status !== 'active') return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();
-      return s.name.toLowerCase().includes(q) || s.parentPhone.includes(q);
+      return s.name.toLowerCase().includes(q) || studentMatchesGuardianQuery(s.id, searchQuery);
     });
   }, [students, searchQuery]);
 

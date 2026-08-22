@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/piano';
 import { useStaffScope } from '@/hooks';
+import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { Student, StudentStatus } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
@@ -87,9 +88,11 @@ export const StudentListView: React.FC = () => {
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchName = s.name.toLowerCase().includes(q);
-          const matchPhone = s.parentPhone.includes(q) || (s.emergencyContact && s.emergencyContact.includes(q));
+          const matchPhone =
+            studentMatchesGuardianQuery(s.id, searchQuery) ||
+            (s.emergencyContact && s.emergencyContact.includes(q));
           const matchSchool = s.school.toLowerCase().includes(q);
-          const matchParent = s.parentName.toLowerCase().includes(q);
+          const matchParent = studentMatchesGuardianQuery(s.id, searchQuery);
           const matchNum = s.studentNumber.toLowerCase().includes(q);
           if (!matchName && !matchPhone && !matchSchool && !matchParent && !matchNum) {
             return false;
