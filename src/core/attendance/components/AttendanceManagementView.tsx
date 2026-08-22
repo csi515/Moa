@@ -9,12 +9,14 @@ import {
 } from '../services/attendanceService';
 import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
+import { resolveKioskSettings } from '../kiosk/kioskConfig';
 import {
   Calendar,
   CheckSquare,
   ChevronLeft,
   ChevronRight,
   Clock,
+  ExternalLink,
   Search,
   Users,
 } from 'lucide-react';
@@ -71,6 +73,8 @@ export const AttendanceManagementView: React.FC = () => {
     };
   }, [activeStudents, sessionMap]);
 
+  const kioskSettings = resolveKioskSettings(StorageService.getSettings());
+
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -107,7 +111,27 @@ export const AttendanceManagementView: React.FC = () => {
       </div>
 
       {subTab === 'kiosk' ? (
-        <PinCheckInKioskView />
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-indigo-50 border border-indigo-100 rounded-2xl p-4">
+            <div>
+              <p className="text-xs font-bold text-indigo-800">전용 키오스크 (PWA)</p>
+              <p className="text-[11px] text-indigo-600/80 mt-0.5">
+                태블릿 홈 화면에 `/kiosk`를 추가하거나 아래 버튼으로 전체 화면 모드를 여세요.
+                Android/iPad는 OS 키오스크(Guided Access·MDM)와 함께 사용합니다.
+              </p>
+            </div>
+            <a
+              href="/kiosk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 shrink-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+              키오스크 열기
+            </a>
+          </div>
+          <PinCheckInKioskView mode="embedded" kioskSettings={kioskSettings} />
+        </div>
       ) : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

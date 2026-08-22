@@ -4,6 +4,8 @@
   "description": "실제 피아노학원을 위한 실사용 올인원 관리 시스템",
   "start_url": "/",
   "display": "standalone",
+  "display_override": ["standalone", "fullscreen"],
+  "orientation": "portrait",
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "icons": [
@@ -12,6 +14,15 @@
       "sizes": "192x192 512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "출결 키오스크",
+      "short_name": "출결",
+      "description": "PIN 입·퇴실 전용 키오스크 화면",
+      "url": "/kiosk",
+      "icons": [{ "src": "/pwa-icon.svg", "sizes": "192x192" }]
     }
   ]
 }

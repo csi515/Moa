@@ -1,0 +1,20 @@
+{
+  "name": "Moa 출결 키오스크",
+  "short_name": "출결",
+  "description": "학원 PIN 출결 전용 키오스크 — Android/iPad PWA",
+  "start_url": "/kiosk",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#f1f5f9",
+  "theme_color": "#4f46e5",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

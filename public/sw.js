@@ -1,8 +1,10 @@
-const CACHE_NAME = 'piano-academy-v1';
+const CACHE_NAME = 'piano-academy-v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/kiosk',
   '/manifest.json',
+  '/manifest-kiosk.json',
   '/pwa-icon.svg'
 ];
 

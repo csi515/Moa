@@ -4,6 +4,7 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { AcademySettings } from '@/types';
 import { getDefaultAttendanceSettings } from '@/core/attendance/features';
+import { KIOSK_DEFAULTS } from '@/core/attendance/kiosk/kioskConfig';
 import {
   Settings,
   Building,
@@ -21,6 +22,21 @@ export const AcademySettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
   const attendanceDefaults = getDefaultAttendanceSettings(industry);
   const attendanceEnabled = settings.features?.attendance?.enabled ?? attendanceDefaults.enabled;
+  const kioskSettings = settings.features?.attendance?.kiosk ?? {};
+
+  const updateKioskSetting = (key: keyof typeof KIOSK_DEFAULTS, value: number | boolean) => {
+    setSettings({
+      ...settings,
+      features: {
+        ...settings.features,
+        attendance: {
+          ...settings.features?.attendance,
+          enabled: attendanceEnabled,
+          kiosk: { ...kioskSettings, [key]: value },
+        },
+      },
+    });
+  };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -218,7 +234,10 @@ export const AcademySettingsView: React.FC = () => {
                       ...settings,
                       features: {
                         ...settings.features,
-                        attendance: { enabled: !attendanceEnabled },
+                        attendance: {
+                          ...settings.features?.attendance,
+                          enabled: !attendanceEnabled,
+                        },
                       },
                     })
                   }
@@ -233,6 +252,72 @@ export const AcademySettingsView: React.FC = () => {
                   />
                 </button>
               </div>
+
+              {attendanceEnabled && (
+                <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                  <p className="text-xs font-semibold text-slate-700">출결 키오스크 (PWA / 태블릿)</p>
+                  <p className="text-[11px] text-slate-500">
+                    전용 URL: <code className="font-mono bg-slate-100 px-1 rounded">/kiosk</code>
+                    — Android COSU·iPad Guided Access·MDM과 함께 사용
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <label className="text-[11px] font-semibold text-slate-600">
+                      입력 없을 때 초기화 (초)
+                      <input
+                        type="number"
+                        min={10}
+                        max={300}
+                        value={kioskSettings.idleTimeoutSeconds ?? KIOSK_DEFAULTS.idleTimeoutSeconds}
+                        onChange={(e) =>
+                          updateKioskSetting('idleTimeoutSeconds', Number(e.target.value) || 30)
+                        }
+                        className="mt-1 w-full px-3 py-2 text-sm border border-slate-200 rounded-xl"
+                      />
+                    </label>
+                    <label className="text-[11px] font-semibold text-slate-600">
+                      결과 표시 후 복귀 (초)
+                      <input
+                        type="number"
+                        min={1}
+                        max={10}
+                        step={0.5}
+                        value={kioskSettings.resultDisplaySeconds ?? KIOSK_DEFAULTS.resultDisplaySeconds}
+                        onChange={(e) =>
+                          updateKioskSetting('resultDisplaySeconds', Number(e.target.value) || 2)
+                        }
+                        className="mt-1 w-full px-3 py-2 text-sm border border-slate-200 rounded-xl"
+                      />
+                    </label>
+                    <label className="text-[11px] font-semibold text-slate-600">
+                      이름 표시 시간 (초)
+                      <input
+                        type="number"
+                        min={0.5}
+                        max={5}
+                        step={0.5}
+                        value={
+                          kioskSettings.resultWithNameSeconds ?? KIOSK_DEFAULTS.resultWithNameSeconds
+                        }
+                        onChange={(e) =>
+                          updateKioskSetting('resultWithNameSeconds', Number(e.target.value) || 1.5)
+                        }
+                        className="mt-1 w-full px-3 py-2 text-sm border border-slate-200 rounded-xl"
+                      />
+                    </label>
+                    <div className="flex items-end">
+                      <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-600 cursor-pointer pb-2">
+                        <input
+                          type="checkbox"
+                          checked={kioskSettings.wakeLockEnabled ?? KIOSK_DEFAULTS.wakeLockEnabled}
+                          onChange={(e) => updateKioskSetting('wakeLockEnabled', e.target.checked)}
+                          className="rounded border-slate-300"
+                        />
+                        화면 꺼짐 방지 (Wake Lock)
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">
