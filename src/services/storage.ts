@@ -17,6 +17,7 @@ import {
   PaymentMethod,
   Song,
   AcademyEvent,
+  PerformanceVideo,
   Expense,
   AppNotification,
   AcademySettings,
@@ -90,6 +91,7 @@ export const StorageService = {
       textbooks: this.getTextbooks(),
       songs: this.getSongs(),
       events: this.getEvents(),
+      performanceVideos: this.getPerformanceVideos(),
       notifications: this.getNotifications(),
       settings: this.getSettings(),
       exportedAt: new Date().toISOString()
@@ -113,6 +115,7 @@ export const StorageService = {
       if (data.textbooks) setItem(STORAGE_KEYS.TEXTBOOKS, data.textbooks);
       if (data.songs) setItem(STORAGE_KEYS.SONGS, data.songs);
       if (data.events) setItem(STORAGE_KEYS.EVENTS, data.events);
+      if (data.performanceVideos) setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, data.performanceVideos);
       if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
       if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
       return true;
@@ -1375,6 +1378,50 @@ export const StorageService = {
     const filtered = list.filter((e) => e.id !== id);
     if (filtered.length !== list.length) {
       setItem(STORAGE_KEYS.EVENTS, filtered);
+      return true;
+    }
+    return false;
+  },
+
+  // Performance Videos
+  getPerformanceVideos(): PerformanceVideo[] {
+    return getItem<PerformanceVideo[]>(STORAGE_KEYS.PERFORMANCE_VIDEOS, []);
+  },
+
+  getPerformanceVideosByStudentId(studentId: string): PerformanceVideo[] {
+    return this.getPerformanceVideos().filter((v) => v.studentId === studentId);
+  },
+
+  savePerformanceVideo(
+    video: Omit<PerformanceVideo, 'id'> & { id?: string }
+  ): PerformanceVideo {
+    const list = this.getPerformanceVideos();
+    let saved: PerformanceVideo;
+    if (video.id) {
+      const idx = list.findIndex((v) => v.id === video.id);
+      if (idx >= 0) {
+        saved = { ...list[idx], ...video, id: video.id };
+        list[idx] = saved;
+      } else {
+        saved = { ...video, id: video.id };
+        list.unshift(saved);
+      }
+    } else {
+      saved = {
+        ...video,
+        id: generateEntityId('pv'),
+      };
+      list.unshift(saved);
+    }
+    setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, list);
+    return saved;
+  },
+
+  deletePerformanceVideo(id: string): boolean {
+    const list = this.getPerformanceVideos();
+    const filtered = list.filter((v) => v.id !== id);
+    if (filtered.length !== list.length) {
+      setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, filtered);
       return true;
     }
     return false;

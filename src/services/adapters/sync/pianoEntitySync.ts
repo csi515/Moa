@@ -3,6 +3,7 @@ import type {
   AttendanceRecord,
   Expense,
   LessonRecord,
+  PerformanceVideo,
   PracticeRecord,
   Song,
   Student,
@@ -29,6 +30,8 @@ import {
   pianoRowToInventory,
   pianoRowToLesson,
   pianoRowToPayment,
+  performanceVideoToPianoRow,
+  pianoRowToPerformanceVideo,
   pianoRowToPractice,
   pianoRowToSale,
   pianoRowToSong,
@@ -61,6 +64,7 @@ export async function hydratePianoEntities(
     songsResult,
     expensesResult,
     eventsResult,
+    performanceVideosResult,
   ] = await Promise.all([
     client.from('customers').select('*').eq('organization_id', organizationId),
     client.from('class_members').select('*').eq('organization_id', organizationId),
@@ -74,6 +78,7 @@ export async function hydratePianoEntities(
     client.from('songs').select('*').eq('organization_id', organizationId),
     client.from('expenses').select('*').eq('organization_id', organizationId),
     client.from('events').select('*').eq('organization_id', organizationId),
+    client.from('performance_videos').select('*').eq('organization_id', organizationId),
   ]);
 
   logErrors({
@@ -89,6 +94,7 @@ export async function hydratePianoEntities(
     songs: songsResult.error,
     expenses: expensesResult.error,
     events: eventsResult.error,
+    performanceVideos: performanceVideosResult.error,
   });
 
   // Merge piano.customers + class_members into students
@@ -127,6 +133,7 @@ export async function hydratePianoEntities(
     [STORAGE_KEYS.SONGS, (songsResult.data || []).map(pianoRowToSong)],
     [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(pianoRowToExpense)],
     [STORAGE_KEYS.EVENTS, (eventsResult.data || []).map(pianoRowToEvent)],
+    [STORAGE_KEYS.PERFORMANCE_VIDEOS, (performanceVideosResult.data || []).map(pianoRowToPerformanceVideo)],
   ];
 
   for (const [key, value] of entities) {
@@ -188,6 +195,10 @@ export async function persistPianoEntity(
     case STORAGE_KEYS.EVENTS:
       return persistPianoTable('events', organizationId, cache, STORAGE_KEYS.EVENTS, (items) =>
         (items as AcademyEvent[]).map((e) => eventToPianoRow(e, organizationId))
+      );
+    case STORAGE_KEYS.PERFORMANCE_VIDEOS:
+      return persistPianoTable('performance_videos', organizationId, cache, STORAGE_KEYS.PERFORMANCE_VIDEOS, (items) =>
+        (items as PerformanceVideo[]).map((v) => performanceVideoToPianoRow(v, organizationId))
       );
     default:
       return;
@@ -285,7 +296,8 @@ async function persistPianoTable<T extends { id: string }>(
     | 'textbook_inventory_transactions'
     | 'songs'
     | 'expenses'
-    | 'events',
+    | 'events'
+    | 'performance_videos',
   orgId: string,
   cache: SyncCache,
   storageKey: StorageKey,

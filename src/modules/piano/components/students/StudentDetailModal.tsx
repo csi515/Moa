@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
-import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord, LessonRecord, TextbookSale } from '@/types';
+import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord, LessonRecord, TextbookSale, PerformanceVideo } from '@/types';
+import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '../textbooks/TextbookReceiptModal';
@@ -37,7 +38,9 @@ import {
   Piano,
   Award,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  Video,
+  Play
 } from 'lucide-react';
 
 interface StudentDetailModalProps {
@@ -47,7 +50,7 @@ interface StudentDetailModalProps {
   onEdit: (student: Student) => void;
 }
 
-type DetailTab = 'info' | 'classes' | 'attendance' | 'tuition' | 'textbooks' | 'consultations' | 'practice' | 'memo';
+type DetailTab = 'info' | 'classes' | 'attendance' | 'tuition' | 'textbooks' | 'consultations' | 'practice' | 'videos' | 'memo';
 
 export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   student,
@@ -77,6 +80,15 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const [newPrDifficulty, setNewPrDifficulty] = useState('');
   const [newPrHomework, setNewPrHomework] = useState('');
 
+  const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
+  const [newVideoTitle, setNewVideoTitle] = useState('');
+  const [newVideoUrl, setNewVideoUrl] = useState('');
+  const [newVideoDate, setNewVideoDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newVideoType, setNewVideoType] = useState<PerformanceVideo['eventType']>('recital');
+  const [newVideoSong, setNewVideoSong] = useState('');
+  const [newVideoMemo, setNewVideoMemo] = useState('');
+  const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
+
   // Payment record modal
   const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState(0);
@@ -99,6 +111,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const allConsultations = StorageService.getConsultations().filter((c) => c.studentId === student.id);
   const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
   const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
+  const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(student.id);
 
@@ -187,6 +200,56 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     setNewPrSong('');
     setNewPrDifficulty('');
     setNewPrHomework('');
+  };
+
+  const handleSaveVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newVideoTitle.trim()) {
+      showToast('영상 제목을 입력해주세요.', 'warning');
+      return;
+    }
+    if (!isValidYouTubeUrl(newVideoUrl)) {
+      showToast('올바른 YouTube 링크를 입력해주세요.', 'warning');
+      return;
+    }
+    StorageService.savePerformanceVideo({
+      studentId: student.id,
+      studentName: student.name,
+      title: newVideoTitle.trim(),
+      youtubeUrl: newVideoUrl.trim(),
+      recordedDate: newVideoDate || undefined,
+      eventType: newVideoType,
+      songTitle: newVideoSong.trim() || undefined,
+      memo: newVideoMemo.trim() || undefined,
+    });
+    showToast('연주 영상이 등록되었습니다.', 'success');
+    setIsAddVideoOpen(false);
+    setNewVideoTitle('');
+    setNewVideoUrl('');
+    setNewVideoSong('');
+    setNewVideoMemo('');
+  };
+
+  const handleDeleteVideo = (video: PerformanceVideo) => {
+    openConfirmDialog({
+      title: '연주 영상 삭제',
+      message: `'${video.title}' 영상을 삭제하시겠습니까?`,
+      isDestructive: true,
+      confirmText: '삭제하기',
+      onConfirm: () => {
+        StorageService.deletePerformanceVideo(video.id);
+        if (previewVideoId === video.id) setPreviewVideoId(null);
+        showToast('연주 영상이 삭제되었습니다.', 'info');
+      },
+    });
+  };
+
+  const videoTypeLabel: Record<PerformanceVideo['eventType'], string> = {
+    recital: '연주회',
+    competition: '콩쿠르',
+    lesson: '레슨',
+    practice: '연습',
+    other: '기타',
   };
 
   const handleOpenPayModal = (inv: TuitionInvoice) => {
@@ -282,6 +345,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             { id: 'textbooks', label: `교재 구매 (${studentSales.length})`, icon: <BookOpen className="w-3.5 h-3.5" /> },
             { id: 'consultations', label: `상담 (${allConsultations.length})`, icon: <MessageSquare className="w-3.5 h-3.5" /> },
             { id: 'practice', label: `연습/레슨 (${allPractice.length})`, icon: <Piano className="w-3.5 h-3.5" /> },
+            { id: 'videos', label: `연주영상 (${allVideos.length})`, icon: <Video className="w-3.5 h-3.5" /> },
             { id: 'memo', label: '메모/특이사항', icon: <FileText className="w-3.5 h-3.5" /> }
           ].map((tab) => {
             const isActive = currentTab === tab.id;
@@ -1026,6 +1090,201 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* TAB: 연주 영상 */}
+          {currentTab === 'videos' && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-bold text-slate-900">연주 영상 아카이브</h4>
+                  <p className="text-xs text-slate-500">YouTube 링크로 연주회·콩쿠르·레슨 영상을 관리합니다</p>
+                </div>
+                <button
+                  onClick={() => setIsAddVideoOpen(true)}
+                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                >
+                  <Plus className="w-3.5 h-3.5" /> 영상 추가
+                </button>
+              </div>
+
+              {isAddVideoOpen && (
+                <form onSubmit={handleSaveVideo} className="p-4 bg-indigo-50/70 rounded-2xl border border-indigo-200 space-y-3">
+                  <h5 className="text-xs font-bold text-indigo-900">새 연주 영상 등록</h5>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">영상 제목 *</label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="예: 2025 가을 정기 연주회 - Für Elise"
+                        value={newVideoTitle}
+                        onChange={(e) => setNewVideoTitle(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">YouTube 링크 *</label>
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://www.youtube.com/watch?v=..."
+                        value={newVideoUrl}
+                        onChange={(e) => setNewVideoUrl(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">연주일</label>
+                      <input
+                        type="date"
+                        value={newVideoDate}
+                        onChange={(e) => setNewVideoDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">분류</label>
+                      <select
+                        value={newVideoType}
+                        onChange={(e) => setNewVideoType(e.target.value as PerformanceVideo['eventType'])}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      >
+                        <option value="recital">연주회</option>
+                        <option value="competition">콩쿠르</option>
+                        <option value="lesson">레슨</option>
+                        <option value="practice">연습</option>
+                        <option value="other">기타</option>
+                      </select>
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">연주곡</label>
+                      <input
+                        type="text"
+                        placeholder="예: Für Elise, Op.66"
+                        value={newVideoSong}
+                        onChange={(e) => setNewVideoSong(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <label className="text-[11px] font-semibold text-slate-700 block mb-1">메모</label>
+                      <input
+                        type="text"
+                        placeholder="연주회 장소, 심사위원 코멘트 등"
+                        value={newVideoMemo}
+                        onChange={(e) => setNewVideoMemo(e.target.value)}
+                        className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddVideoOpen(false)}
+                      className="px-3 py-1 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg"
+                    >
+                      취소
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-1 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"
+                    >
+                      저장
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {previewVideoId && (() => {
+                const video = allVideos.find((v) => v.id === previewVideoId);
+                const embedUrl = video ? getYouTubeEmbedUrl(video.youtubeUrl) : null;
+                if (!video || !embedUrl) return null;
+                return (
+                  <div className="rounded-2xl overflow-hidden border border-slate-200 bg-black aspect-video">
+                    <iframe
+                      src={embedUrl}
+                      title={video.title}
+                      className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                    />
+                  </div>
+                );
+              })()}
+
+              {allVideos.length === 0 ? (
+                <div className="p-8 text-center bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                  <Video className="w-10 h-10 text-slate-300 mx-auto" />
+                  <p className="font-bold text-slate-600 text-sm">등록된 연주 영상이 없습니다</p>
+                  <p className="text-xs text-slate-400">YouTube 링크로 연주회·콩쿠르 영상을 보관해 보세요</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {allVideos.map((video) => {
+                    const thumb = getYouTubeThumbnailUrl(video.youtubeUrl);
+                    const watchUrl = getYouTubeWatchUrl(video.youtubeUrl);
+                    return (
+                      <div
+                        key={video.id}
+                        className="rounded-2xl border border-slate-200 overflow-hidden bg-white hover:border-indigo-200 transition-colors"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => setPreviewVideoId(previewVideoId === video.id ? null : video.id)}
+                          className="relative w-full aspect-video bg-slate-900 group cursor-pointer"
+                        >
+                          {thumb && (
+                            <img src={thumb} alt={video.title} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
+                          )}
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                              <Play className="w-5 h-5 text-indigo-600 ml-0.5" />
+                            </div>
+                          </div>
+                          <span className="absolute top-2 left-2 text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/60 text-white">
+                            {videoTypeLabel[video.eventType]}
+                          </span>
+                        </button>
+                        <div className="p-3 space-y-1">
+                          <h5 className="text-sm font-bold text-slate-900 leading-snug">{video.title}</h5>
+                          {video.songTitle && (
+                            <p className="text-xs text-indigo-700 font-semibold">🎵 {video.songTitle}</p>
+                          )}
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-[11px] text-slate-400">
+                              {video.recordedDate || '날짜 미입력'}
+                            </span>
+                            <div className="flex items-center gap-1">
+                              {watchUrl && (
+                                <a
+                                  href={watchUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="p-1.5 text-slate-400 hover:text-indigo-600 rounded-lg"
+                                  aria-label="YouTube에서 보기"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                              <button
+                                onClick={() => handleDeleteVideo(video)}
+                                className="p-1.5 text-slate-300 hover:text-rose-600 rounded-lg"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                          {video.memo && (
+                            <p className="text-[11px] text-slate-500 pt-1 border-t border-slate-100">{video.memo}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
 

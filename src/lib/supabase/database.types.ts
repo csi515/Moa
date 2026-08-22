@@ -1007,6 +1007,38 @@ export interface Database {
         Update: Partial<Database['piano']['Tables']['events']['Insert']>;
         Relationships: [];
       };
+      performance_videos: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          title: string;
+          youtube_url: string;
+          recorded_date: string | null;
+          event_type: string;
+          song_title: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          title: string;
+          youtube_url: string;
+          recorded_date?: string | null;
+          event_type?: string;
+          song_title?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['performance_videos']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;

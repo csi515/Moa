@@ -3,6 +3,7 @@ import type {
   AcademyEvent,
   Expense,
   LessonRecord,
+  PerformanceVideo,
   PracticeRecord,
   Song,
   Student,
@@ -668,6 +669,50 @@ export function pianoRowToEvent(row: {
     type: row.event_type as AcademyEvent['type'],
     description: row.description || undefined,
     color: row.color || undefined,
+  };
+}
+
+// ─── Performance Videos ───────────────────────────────────────────
+
+export function performanceVideoToPianoRow(video: PerformanceVideo, organizationId: string) {
+  return {
+    id: video.id,
+    organization_id: organizationId,
+    customer_id: video.studentId,
+    title: video.title,
+    youtube_url: video.youtubeUrl,
+    recorded_date: video.recordedDate || null,
+    event_type: video.eventType,
+    song_title: video.songTitle || null,
+    memo: video.memo || null,
+    metadata: { studentName: video.studentName } as Json,
+  };
+}
+
+export function pianoRowToPerformanceVideo(row: {
+  id: string;
+  customer_id: string;
+  title: string;
+  youtube_url: string;
+  recorded_date: string | null;
+  event_type: string;
+  song_title: string | null;
+  memo: string | null;
+  metadata: Json;
+  created_at: string;
+}): PerformanceVideo {
+  const meta = (row.metadata || {}) as { studentName?: string };
+  return {
+    id: row.id,
+    studentId: row.customer_id,
+    studentName: meta.studentName || '',
+    title: row.title,
+    youtubeUrl: row.youtube_url,
+    recordedDate: row.recorded_date || undefined,
+    eventType: row.event_type as PerformanceVideo['eventType'],
+    songTitle: row.song_title || undefined,
+    memo: row.memo || undefined,
+    createdAt: row.created_at,
   };
 }
 

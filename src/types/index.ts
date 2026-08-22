@@ -195,6 +195,21 @@ export interface LessonRecord {
   createdAt?: string;
 }
 
+export type PerformanceVideoType = 'recital' | 'competition' | 'lesson' | 'practice' | 'other';
+
+export interface PerformanceVideo {
+  id: string;
+  studentId: string;
+  studentName: string;
+  title: string;
+  youtubeUrl: string;
+  recordedDate?: string;
+  eventType: PerformanceVideoType;
+  songTitle?: string;
+  memo?: string;
+  createdAt?: string;
+}
+
 export interface Textbook {
   id: string;
   title: string;
