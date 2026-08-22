@@ -9,6 +9,8 @@ import { NewSaleModal } from '../textbooks/NewSaleModal';
 import { CustomerPinPanel } from '@/core/attendance';
 import { getGuardiansForStudent, formatGuardianRelationship, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '../textbooks/TextbookReceiptModal';
 import {
@@ -45,7 +47,8 @@ import {
   ExternalLink,
   ChevronRight,
   Video,
-  Play
+  Play,
+  Link2,
 } from 'lucide-react';
 
 interface StudentDetailModalProps {
@@ -68,8 +71,9 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   onInitialTabApplied,
 }) => {
   const { showToast, openConfirmDialog, currentUser, setActiveTab, triggerRefresh } = useApp();
-  const { attendanceEnabled } = usePermissions();
+  const { attendanceEnabled, isAdmin } = usePermissions();
   const [currentTab, setCurrentTab] = useState<DetailTab>('info');
+  const [guardianLinkOpen, setGuardianLinkOpen] = useState(false);
 
   React.useEffect(() => {
     if (isOpen && initialTab) {
@@ -419,13 +423,25 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   <div className="py-1.5 border-b border-slate-200/60">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-slate-500">보호자 ({guardians.length}명)</span>
-                      <button
-                        type="button"
-                        onClick={() => onEdit(student)}
-                        className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2"
-                      >
-                        보호자 추가/수정
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {isAdmin && isSupabaseConfigured() && (
+                          <button
+                            type="button"
+                            onClick={() => setGuardianLinkOpen(true)}
+                            className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2 flex items-center gap-1"
+                          >
+                            <Link2 className="w-3 h-3" />
+                            연결 코드
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => onEdit(student)}
+                          className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2"
+                        >
+                          보호자 추가/수정
+                        </button>
+                      </div>
                     </div>
                     {guardians.length === 0 ? (
                       <span className="text-slate-400">등록된 보호자 없음</span>
@@ -1437,6 +1453,13 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           onClose={() => setIsTbReceiptOpen(false)}
         />
       )}
+
+      <GuardianLinkInviteModal
+        studentId={student.id}
+        studentName={student.name}
+        isOpen={guardianLinkOpen}
+        onClose={() => setGuardianLinkOpen(false)}
+      />
     </div>
   );
 };

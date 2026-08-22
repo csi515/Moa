@@ -10,7 +10,8 @@ import { StorageHydrator } from './StorageHydrator';
 
 export const SupabaseAppGate: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
-  const { currentOrganization, loading: orgLoading, isParentOnly } = useOrganization();
+  const { currentOrganization, loading: orgLoading, isParentOnly, parentPortalActive } =
+    useOrganization();
 
   if (authLoading || (session && orgLoading)) {
     return <LoadingScreen />;
@@ -20,7 +21,7 @@ export const SupabaseAppGate: React.FC = () => {
     return <AuthPage />;
   }
 
-  if (isParentOnly) {
+  if (isParentOnly || parentPortalActive) {
     return <ParentShell />;
   }
 
