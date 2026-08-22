@@ -34,6 +34,7 @@ import {
   STORAGE_KEYS,
   type StorageKey,
 } from './adapters';
+import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 
 type Listener = () => void;
 
@@ -1582,9 +1583,7 @@ export const StorageService = {
   },
 
   eventTypeToVideoType(type: AcademyEvent['type']): PerformanceVideo['eventType'] {
-    if (type === 'concert') return 'recital';
-    if (type === 'competition') return 'competition';
-    return 'other';
+    return academyEventTypeToVideoType(type);
   },
 
   getPerformanceVideosByEventId(eventId: string): PerformanceVideo[] {

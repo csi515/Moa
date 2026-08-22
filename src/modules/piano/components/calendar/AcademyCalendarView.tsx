@@ -1,5 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { AcademyEvent } from '@/types';
 import {
@@ -20,7 +21,8 @@ export const AcademyCalendarView: React.FC = () => {
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [events, setEvents] = useState<AcademyEvent[]>([]);
+  useStorageRefresh();
+  const events = StorageService.getEvents();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
@@ -30,13 +32,6 @@ export const AcademyCalendarView: React.FC = () => {
     description: '',
     color: '#4f46e5',
   });
-
-  useEffect(() => {
-    const loadEvents = () => setEvents(StorageService.getEvents());
-    loadEvents();
-    const unsubscribe = StorageService.subscribe(loadEvents);
-    return () => unsubscribe();
-  }, []);
 
   const students = StorageService.getStudents();
 

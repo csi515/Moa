@@ -1,7 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { StorageService } from '@/services/storage';
+import { useStorageRefresh, useStudentNavigation } from '@/hooks';
+import { ACADEMY_EVENT_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
+import { RecitalService } from '@/modules/piano/services/recitalService';
 import { AcademyEvent } from '@/types';
+import {
+  EmptyState,
+  FilterTabs,
+  Modal,
+  PageHeader,
+  SearchField,
+  SummaryMetricCard,
+  type FilterTabItem,
+} from '@/shared/components';
 import { formatPhone } from '@/utils/formatters';
 import { getYouTubeWatchUrl } from '@/utils/youtube';
 import {
@@ -13,35 +24,25 @@ import {
   Music2,
   Phone,
   Plus,
-  Search,
   Trash2,
   UserPlus,
   Users,
   Video,
-  X,
 } from 'lucide-react';
 
 type EventFilter = 'upcoming' | 'past' | 'all';
 
-const EVENT_TYPE_LABEL: Record<AcademyEvent['type'], string> = {
-  concert: '연주회',
-  competition: '콩쿠르',
-  special_lesson: '특강',
-  tuning: '조율',
-  vacation: '방학',
-  other: '기타',
-};
+const FILTER_TABS: FilterTabItem<EventFilter>[] = [
+  { id: 'upcoming', label: '예정' },
+  { id: 'past', label: '지난 행사' },
+  { id: 'all', label: '전체' },
+];
 
 export const RecitalManagementView: React.FC = () => {
-  const {
-    showToast,
-    openConfirmDialog,
-    setSelectedStudentId,
-    setSelectedStudentDetailTab,
-    setActiveTab,
-  } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
+  const { openStudent } = useStudentNavigation();
+  const refreshKey = useStorageRefresh();
 
-  const [refreshKey, setRefreshKey] = useState(0);
   const [filter, setFilter] = useState<EventFilter>('upcoming');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
@@ -53,14 +54,9 @@ export const RecitalManagementView: React.FC = () => {
   const [formType, setFormType] = useState<'concert' | 'competition'>('concert');
   const [formDescription, setFormDescription] = useState('');
 
-  useEffect(() => {
-    const unsub = StorageService.subscribe(() => setRefreshKey((k) => k + 1));
-    return unsub;
-  }, []);
-
   const today = new Date().toISOString().slice(0, 10);
-  const events = StorageService.getRecitalEvents();
-  const students = StorageService.getStudents().filter((s) => s.status === 'active');
+  const events = RecitalService.getRecitalEvents();
+  const students = RecitalService.getActiveStudents();
 
   const filteredEvents = useMemo(() => {
     return events.filter((ev) => {
@@ -74,14 +70,17 @@ export const RecitalManagementView: React.FC = () => {
     });
   }, [events, filter, searchQuery, today, refreshKey]);
 
-  const selectedEvent = selectedEventId ? events.find((e) => e.id === selectedEventId) : null;
-  const participants = selectedEvent ? StorageService.getEventParticipantSummaries(selectedEvent.id) : [];
-  const eventVideos = selectedEvent ? StorageService.getPerformanceVideosByEventId(selectedEvent.id) : [];
+  const selectedEvent = selectedEventId ? RecitalService.getEventById(selectedEventId) : null;
+  const participants = selectedEvent ? RecitalService.getParticipantSummaries(selectedEvent.id) : [];
+  const eventVideos = selectedEvent ? RecitalService.getVideosByEventId(selectedEvent.id) : [];
 
   const stats = useMemo(() => {
     const upcoming = events.filter((e) => e.startDate >= today).length;
     const totalParticipants = events.reduce((sum, e) => sum + (e.participantIds?.length || 0), 0);
-    const withVideos = StorageService.getPerformanceVideos().filter((v) => v.eventId).length;
+    const withVideos = events.reduce(
+      (sum, e) => sum + RecitalService.getVideosByEventId(e.id).length,
+      0
+    );
     return { upcoming, totalParticipants, withVideos };
   }, [events, today, refreshKey]);
 
@@ -99,7 +98,7 @@ export const RecitalManagementView: React.FC = () => {
     e.preventDefault();
     if (!formTitle.trim()) return;
 
-    const saved = StorageService.saveEvent({
+    const saved = RecitalService.saveEvent({
       title: formTitle.trim(),
       startDate: formDate,
       type: formType,
@@ -122,7 +121,7 @@ export const RecitalManagementView: React.FC = () => {
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
-        StorageService.deleteEvent(event.id);
+        RecitalService.deleteEvent(event.id);
         if (selectedEventId === event.id) setSelectedEventId(null);
         showToast('일정이 삭제되었습니다.', 'info');
       },
@@ -131,7 +130,7 @@ export const RecitalManagementView: React.FC = () => {
 
   const handleAddParticipant = (studentId: string) => {
     if (!selectedEvent) return;
-    StorageService.addEventParticipant(selectedEvent.id, studentId);
+    RecitalService.addParticipant(selectedEvent.id, studentId);
     showToast('참가 원생이 추가되었습니다.', 'success');
     setParticipantSearch('');
   };
@@ -144,16 +143,10 @@ export const RecitalManagementView: React.FC = () => {
       isDestructive: true,
       confirmText: '제외하기',
       onConfirm: () => {
-        StorageService.removeEventParticipant(selectedEvent.id, studentId);
+        RecitalService.removeParticipant(selectedEvent.id, studentId);
         showToast('참가 명단에서 제외되었습니다.', 'info');
       },
     });
-  };
-
-  const openStudentVideos = (studentId: string) => {
-    setSelectedStudentDetailTab('videos');
-    setSelectedStudentId(studentId);
-    setActiveTab('students');
   };
 
   const videoCompletionRate =
@@ -163,77 +156,49 @@ export const RecitalManagementView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Award className="w-6 h-6 text-purple-600" />
-            연주회·콩쿠르 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            행사 일정, 참가 원생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다
-          </p>
-        </div>
-        <button
-          onClick={() => setIsCreateOpen(true)}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
-        >
-          <Plus className="w-4 h-4" />
-          행사 등록
-        </button>
-      </div>
+      <PageHeader
+        icon={<Award className="w-6 h-6" />}
+        iconClassName="text-purple-600"
+        title="연주회·콩쿠르 관리"
+        description="행사 일정, 참가 원생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다"
+        actions={
+          <button
+            onClick={() => setIsCreateOpen(true)}
+            className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+          >
+            <Plus className="w-4 h-4" />
+            행사 등록
+          </button>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-purple-50 p-4 rounded-2xl border border-purple-200">
-          <p className="text-xs text-purple-700 font-semibold">예정 행사</p>
-          <p className="text-2xl font-black text-purple-900">{stats.upcoming}건</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200">
-          <p className="text-xs text-slate-500">총 참가 등록</p>
-          <p className="text-2xl font-black text-slate-900">{stats.totalParticipants}명</p>
-        </div>
-        <div className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200">
-          <p className="text-xs text-emerald-700 font-semibold">행사 연결 영상</p>
-          <p className="text-2xl font-black text-emerald-900">{stats.withVideos}개</p>
-        </div>
+        <SummaryMetricCard label="예정 행사" value={`${stats.upcoming}건`} variant="purple" />
+        <SummaryMetricCard label="총 참가 등록" value={`${stats.totalParticipants}명`} />
+        <SummaryMetricCard label="행사 연결 영상" value={`${stats.withVideos}개`} variant="emerald" />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         <div className="lg:col-span-2 space-y-3">
           <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs space-y-3">
-            <div className="flex flex-wrap gap-2">
-              {(['upcoming', 'past', 'all'] as EventFilter[]).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg ${
-                    filter === f ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}
-                >
-                  {f === 'upcoming' ? '예정' : f === 'past' ? '지난 행사' : '전체'}
-                </button>
-              ))}
-            </div>
-            <div className="relative">
-              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                placeholder="행사명 검색..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-8 pr-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-              />
-            </div>
+            <FilterTabs tabs={FILTER_TABS} active={filter} onChange={setFilter} />
+            <SearchField
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="행사명 검색..."
+            />
           </div>
 
           {filteredEvents.length === 0 ? (
-            <div className="bg-white rounded-2xl p-8 text-center border border-slate-200">
-              <Music2 className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-              <p className="font-bold text-slate-600 text-sm">등록된 행사가 없습니다</p>
-            </div>
+            <EmptyState
+              icon={<Music2 className="w-10 h-10" />}
+              title="등록된 행사가 없습니다"
+              className="rounded-2xl p-8"
+            />
           ) : (
             filteredEvents.map((ev) => {
               const count = ev.participantIds?.length || 0;
-              const videos = StorageService.getPerformanceVideosByEventId(ev.id);
+              const videos = RecitalService.getVideosByEventId(ev.id);
               const isSelected = selectedEventId === ev.id;
               return (
                 <button
@@ -255,7 +220,7 @@ export const RecitalManagementView: React.FC = () => {
                               : 'bg-amber-100 text-amber-700'
                           }`}
                         >
-                          {EVENT_TYPE_LABEL[ev.type]}
+                          {ACADEMY_EVENT_TYPE_LABEL[ev.type]}
                         </span>
                         {ev.startDate >= today && (
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700">
@@ -287,11 +252,12 @@ export const RecitalManagementView: React.FC = () => {
 
         <div className="lg:col-span-3">
           {!selectedEvent ? (
-            <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 h-full flex flex-col items-center justify-center">
-              <Award className="w-12 h-12 text-slate-300 mb-4" />
-              <p className="font-bold text-slate-600">왼쪽에서 행사를 선택하세요</p>
-              <p className="text-xs text-slate-400 mt-1">참가 원생 명단과 영상 등록 현황을 확인할 수 있습니다</p>
-            </div>
+            <EmptyState
+              icon={<Award className="w-12 h-12" />}
+              title="왼쪽에서 행사를 선택하세요"
+              description="참가 원생 명단과 영상 등록 현황을 확인할 수 있습니다"
+              className="h-full flex flex-col items-center justify-center min-h-[320px]"
+            />
           ) : (
             <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
               <div className="p-5 border-b border-slate-100 bg-slate-50/70">
@@ -304,7 +270,7 @@ export const RecitalManagementView: React.FC = () => {
                           : 'bg-amber-100 text-amber-700'
                       }`}
                     >
-                      {EVENT_TYPE_LABEL[selectedEvent.type]}
+                      {ACADEMY_EVENT_TYPE_LABEL[selectedEvent.type]}
                     </span>
                     <h3 className="text-lg font-black text-slate-900 mt-2">{selectedEvent.title}</h3>
                     <p className="text-xs text-slate-500 mt-1">{selectedEvent.startDate}</p>
@@ -340,12 +306,10 @@ export const RecitalManagementView: React.FC = () => {
 
               <div className="p-5 space-y-5">
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                      <Users className="w-4 h-4 text-indigo-600" />
-                      참가 원생 ({participants.length}명)
-                    </h4>
-                  </div>
+                  <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
+                    <Users className="w-4 h-4 text-indigo-600" />
+                    참가 원생 ({participants.length}명)
+                  </h4>
 
                   {participants.length === 0 ? (
                     <p className="text-xs text-slate-400 py-4 text-center bg-slate-50 rounded-xl">
@@ -359,7 +323,7 @@ export const RecitalManagementView: React.FC = () => {
                           className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-slate-100 bg-slate-50/50"
                         >
                           <div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="font-bold text-sm text-slate-900">{p.studentName}</span>
                               {p.level && (
                                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-500">
@@ -388,9 +352,11 @@ export const RecitalManagementView: React.FC = () => {
                           <div className="flex items-center gap-2">
                             {p.hasVideo && p.videoId && (
                               <a
-                                href={getYouTubeWatchUrl(
-                                  eventVideos.find((v) => v.id === p.videoId)?.youtubeUrl || ''
-                                ) || '#'}
+                                href={
+                                  getYouTubeWatchUrl(
+                                    eventVideos.find((v) => v.id === p.videoId)?.youtubeUrl || ''
+                                  ) || '#'
+                                }
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="px-2.5 py-1.5 text-[11px] font-bold bg-white border border-slate-200 rounded-lg text-slate-600 hover:text-indigo-600 flex items-center gap-1"
@@ -399,7 +365,7 @@ export const RecitalManagementView: React.FC = () => {
                               </a>
                             )}
                             <button
-                              onClick={() => openStudentVideos(p.studentId)}
+                              onClick={() => openStudent(p.studentId, 'videos')}
                               className="px-2.5 py-1.5 text-[11px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                             >
                               {p.hasVideo ? '원생 보기' : '영상 등록'}
@@ -408,7 +374,7 @@ export const RecitalManagementView: React.FC = () => {
                               onClick={() => handleRemoveParticipant(p.studentId, p.studentName)}
                               className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg"
                             >
-                              <X className="w-4 h-4" />
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </div>
@@ -422,12 +388,11 @@ export const RecitalManagementView: React.FC = () => {
                     <UserPlus className="w-4 h-4 text-emerald-600" />
                     참가 원생 추가
                   </h4>
-                  <input
-                    type="text"
-                    placeholder="원생명 검색..."
+                  <SearchField
                     value={participantSearch}
-                    onChange={(e) => setParticipantSearch(e.target.value)}
-                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl mb-2 focus:bg-white focus:outline-none"
+                    onChange={setParticipantSearch}
+                    placeholder="원생명 검색..."
+                    className="mb-2"
                   />
                   <div className="max-h-40 overflow-y-auto space-y-1">
                     {availableStudents.length === 0 ? (
@@ -485,70 +450,60 @@ export const RecitalManagementView: React.FC = () => {
         </div>
       </div>
 
-      {isCreateOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-sm">연주회·콩쿠르 등록</h3>
-              <button onClick={() => setIsCreateOpen(false)} className="text-slate-400 hover:text-slate-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">행사명 *</label>
-                <input
-                  type="text"
-                  required
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="예: 2025 가을 정기 연주회"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">일정 *</label>
-                  <input
-                    type="date"
-                    required
-                    value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">유형 *</label>
-                  <select
-                    value={formType}
-                    onChange={(e) => setFormType(e.target.value as 'concert' | 'competition')}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-                  >
-                    <option value="concert">연주회</option>
-                    <option value="competition">콩쿠르</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">설명</label>
-                <textarea
-                  value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
-                  rows={3}
-                  placeholder="장소, 프로그램, 준비 사항 등"
-                  className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none resize-none"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
-              >
-                등록
-              </button>
-            </form>
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="연주회·콩쿠르 등록">
+        <form onSubmit={handleCreateEvent} className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">행사명 *</label>
+            <input
+              type="text"
+              required
+              value={formTitle}
+              onChange={(e) => setFormTitle(e.target.value)}
+              placeholder="예: 2025 가을 정기 연주회"
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+            />
           </div>
-        </div>
-      )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">일정 *</label>
+              <input
+                type="date"
+                required
+                value={formDate}
+                onChange={(e) => setFormDate(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">유형 *</label>
+              <select
+                value={formType}
+                onChange={(e) => setFormType(e.target.value as 'concert' | 'competition')}
+                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+              >
+                <option value="concert">연주회</option>
+                <option value="competition">콩쿠르</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">설명</label>
+            <textarea
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              rows={3}
+              placeholder="장소, 프로그램, 준비 사항 등"
+              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none resize-none"
+            />
+          </div>
+          <button
+            type="submit"
+            className="w-full py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+          >
+            등록
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
+import { RecitalService } from '@/modules/piano/services/recitalService';
+import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { Student, AttendanceRecord, TuitionInvoice, Consultation, PracticeRecord, LessonRecord, TextbookSale, PerformanceVideo } from '@/types';
 import { isValidYouTubeUrl, getYouTubeEmbedUrl, getYouTubeWatchUrl, getYouTubeThumbnailUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
@@ -124,7 +126,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
   const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
-  const recitalEvents = StorageService.getRecitalEvents();
+  const recitalEvents = RecitalService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(student.id);
 
@@ -256,7 +258,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     const ev = recitalEvents.find((item) => item.id === eventId);
     if (!ev) return;
     setNewVideoDate(ev.startDate);
-    setNewVideoType(StorageService.eventTypeToVideoType(ev.type));
+    setNewVideoType(RecitalService.eventTypeToVideoType(ev.type));
     if (!newVideoTitle.trim()) {
       setNewVideoTitle(`${ev.title} - ${student.name}`);
     }
@@ -276,13 +278,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     });
   };
 
-  const videoTypeLabel: Record<PerformanceVideo['eventType'], string> = {
-    recital: '연주회',
-    competition: '콩쿠르',
-    lesson: '레슨',
-    practice: '연습',
-    other: '기타',
-  };
+  const videoTypeLabel = PERFORMANCE_VIDEO_TYPE_LABEL;
 
   const handleOpenPayModal = (inv: TuitionInvoice) => {
     setPayInvoiceId(inv.id);
