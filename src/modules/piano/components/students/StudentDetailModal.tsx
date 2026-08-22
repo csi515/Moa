@@ -417,7 +417,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                     <span className="font-mono font-bold text-slate-800">{student.studentNumber}</span>
                   </div>
                   <div className="py-1.5 border-b border-slate-200/60">
-                    <span className="text-slate-500 block mb-2">보호자 ({guardians.length}명)</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-slate-500">보호자 ({guardians.length}명)</span>
+                      <button
+                        type="button"
+                        onClick={() => onEdit(student)}
+                        className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2"
+                      >
+                        보호자 추가/수정
+                      </button>
+                    </div>
                     {guardians.length === 0 ? (
                       <span className="text-slate-400">등록된 보호자 없음</span>
                     ) : (

@@ -130,7 +130,7 @@ export async function registerStudentWithParent(
   };
 }
 
-/** 수정 시 보호자 links 갱신 */
+/** 수정 시 보호자 links 갱신 (추가·관계 변경·제거) */
 export async function updateStudentWithParent(
   studentData: Omit<Student, 'createdAt' | 'updatedAt'> & { id: string },
   options: {
@@ -143,19 +143,19 @@ export async function updateStudentWithParent(
 
   const parents: Parent[] = [];
   if (options.guardians?.length) {
-    for (const g of options.guardians) {
-      parents.push(
-        StorageService.createOrLinkParent({
-          studentId: savedStudent.id,
+    parents.push(
+      ...StorageService.syncStudentGuardians(
+        savedStudent.id,
+        options.guardians.map((g) => ({
           existingParentId: g.mode === 'existing' ? g.existingParentId : undefined,
           name: g.name,
           phone: g.phone,
           email: g.email,
           relationship: g.relationship,
           isPrimary: g.isPrimary,
-        })
-      );
-    }
+        }))
+      )
+    );
   }
 
   const organizationId = options.organizationId;

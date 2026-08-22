@@ -86,7 +86,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  const { showToast } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
@@ -212,12 +212,32 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   };
 
   const removeGuardian = (idx: number) => {
-    if (guardians.length <= 1) return;
-    setGuardians((prev) => {
-      const next = prev.filter((_, i) => i !== idx);
-      if (!next.some((g) => g.isPrimary)) next[0].isPrimary = true;
-      return next;
-    });
+    if (guardians.length <= 1) {
+      showToast('최소 1명의 보호자가 필요합니다.', 'warning');
+      return;
+    }
+
+    const target = guardians[idx];
+    const doRemove = () => {
+      setGuardians((prev) => {
+        const next = prev.filter((_, i) => i !== idx);
+        if (!next.some((g) => g.isPrimary)) next[0].isPrimary = true;
+        return next;
+      });
+    };
+
+    if (isEdit && target.existingParentId) {
+      openConfirmDialog({
+        title: '보호자 연결 해제',
+        message: `${target.name || '선택한 보호자'}와의 연결을 해제할까요?\n저장 시 이 학생과의 link만 제거됩니다.`,
+        confirmText: '연결 해제',
+        isDestructive: true,
+        onConfirm: doRemove,
+      });
+      return;
+    }
+
+    doRemove();
   };
 
   const selectExistingParent = (idx: number, parent: Parent) => {
@@ -294,6 +314,16 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         showToast('학부모 초대를 위해 이메일을 입력해 주세요.', 'warning');
         return;
       }
+    }
+
+    const parentKeys = guardians.map((g) =>
+      g.mode === 'existing' && g.existingParentId
+        ? `id:${g.existingParentId}`
+        : `phone:${g.phone.trim()}`
+    );
+    if (new Set(parentKeys).size !== parentKeys.length) {
+      showToast('같은 보호자가 중복 등록되어 있습니다.', 'warning');
+      return;
     }
 
     setIsSubmitting(true);
@@ -408,13 +438,20 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           {/* 학부모 연결 */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5" /> 학부모 연결
-              </h4>
+              <div>
+                <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5" /> 학부모 연결
+                </h4>
+                {isEdit && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    부·모 각각 별도 계정으로 연결할 수 있습니다. 보호자 추가 후 저장하면 link가 반영됩니다.
+                  </p>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
-                className="text-xs font-bold text-indigo-600 flex items-center gap-1"
+                className="text-xs font-bold text-indigo-600 flex items-center gap-1 shrink-0 min-h-[44px] px-2"
               >
                 <UserPlus className="w-3.5 h-3.5" /> 보호자 추가
               </button>
@@ -443,7 +480,13 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                         </button>
                       )}
                       {guardians.length > 1 && (
-                        <button type="button" onClick={() => removeGuardian(idx)} className="text-rose-500">
+                        <button
+                          type="button"
+                          onClick={() => removeGuardian(idx)}
+                          className="text-rose-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                          title="연결 해제"
+                          aria-label="보호자 연결 해제"
+                        >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       )}

@@ -2450,6 +2450,57 @@ export const StorageService = {
     return this.getParents().find((p) => p.id === parent!.id) || parent;
   },
 
+  /** 학생 보호자 links 전체 동기화 (추가·수정·제거) */
+  syncStudentGuardians(
+    studentId: string,
+    entries: Array<{
+      existingParentId?: string;
+      name?: string;
+      phone?: string;
+      email?: string;
+      relationship: GuardianRelationship;
+      isPrimary?: boolean;
+    }>
+  ): Parent[] {
+    const parents: Parent[] = [];
+    const targetParentIds = new Set<string>();
+
+    for (const entry of entries) {
+      const parent = this.createOrLinkParent({
+        studentId,
+        existingParentId: entry.existingParentId,
+        name: entry.name,
+        phone: entry.phone,
+        email: entry.email,
+        relationship: entry.relationship,
+        isPrimary: entry.isPrimary,
+      });
+      parents.push(parent);
+      targetParentIds.add(parent.id);
+    }
+
+    const currentLinks = this.getParentStudentLinks().filter((l) => l.studentId === studentId);
+    for (const link of currentLinks) {
+      if (!targetParentIds.has(link.parentId)) {
+        this.unlinkParentFromStudent(link.parentId, studentId);
+      }
+    }
+
+    const remaining = this.getParentStudentLinks().filter((l) => l.studentId === studentId);
+    if (remaining.length > 0 && !remaining.some((l) => l.isPrimary)) {
+      const first = remaining[0];
+      this.linkParentToStudent({
+        parentId: first.parentId,
+        studentId,
+        relationship: first.relationship,
+        isPrimary: true,
+      });
+    }
+
+    this.rebuildParentStudentIdsFromLinks();
+    return parents;
+  },
+
   // ─── Parent helpers ─────────────────────────────────────────
   getStudentsForParent(parentCustomerId: string): Student[] {
     const studentIds = new Set(
