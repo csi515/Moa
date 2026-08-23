@@ -476,6 +476,8 @@ export interface AcademySettings {
     holder: string;
   };
   announcement?: string;
+  /** 종합학원 운영 과목 ID (복수 선택, academySubjects 카탈로그 id) */
+  academySubjects?: string[];
   /** Industry Module 기능 플래그 */
   features?: {
     attendance?: {

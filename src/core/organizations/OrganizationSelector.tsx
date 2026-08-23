@@ -7,6 +7,7 @@ import {
   Piano,
   Sparkles,
   Activity,
+  GraduationCap,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
@@ -14,6 +15,7 @@ import { INDUSTRY_OPTIONS, getIndustryLabel, type IndustryType } from '../indust
 
 const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: string }>> = {
   piano: Piano,
+  academy: GraduationCap,
   pilates: Activity,
   skincare: Sparkles,
 };

@@ -42,6 +42,14 @@ export const SKINCARE_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'education', label: '교육/세미나' },
 ];
 
+/** 종합학원 추가 지출 카테고리 */
+export const ACADEMY_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'workbook', label: '교재/문제집' },
+  { value: 'classroom', label: '강의실 운영' },
+  { value: 'teacher_salary', label: '강사료' },
+  { value: 'snacks', label: '간식/다과' },
+];
+
 /** 업종 공통 수입 카테고리 */
 export const COMMON_INCOME_CATEGORIES: CategoryOption[] = [
   { value: 'membership', label: '회원권/정기 수입' },
@@ -66,6 +74,9 @@ export function getExpenseCategories(industry: IndustryType | string): CategoryO
   }
   if (industry === 'skincare') {
     return [...base, ...SKINCARE_EXPENSE_CATEGORIES];
+  }
+  if (industry === 'academy') {
+    return [...base, ...ACADEMY_EXPENSE_CATEGORIES];
   }
   return [...base, ...PIANO_EXPENSE_CATEGORIES];
 }

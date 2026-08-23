@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { Student, Parent } from '@/types';
 import { X, Save, User, RefreshCw } from 'lucide-react';
 import { StudentBasicInfoSection } from './form/StudentBasicInfoSection';
+import { StudentEnrollmentSection } from './form/StudentEnrollmentSection';
 import { GuardianSection } from './form/GuardianSection';
 import { StudentPinSection } from './form/StudentPinSection';
 import { StudentAdvancedSection } from './form/StudentAdvancedSection';
@@ -22,6 +23,7 @@ import {
   type GuardianFormEntry,
   type StudentFormData,
 } from './form/studentFormTypes';
+import { getAcademySubjectOptions } from '@/modules/academy/config/subjects';
 
 interface StudentFormModalProps {
   student?: Student | null;
@@ -45,6 +47,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const classes = StorageService.getClasses();
   const settings = StorageService.getSettings();
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
+  const isAcademy = industry === 'academy';
+  const academySubjectLabels = isAcademy
+    ? getAcademySubjectOptions(settings).map((s) => s.label)
+    : undefined;
+  const defaultAcademyLevel = academySubjectLabels?.[0] || '국어';
   const canInviteParent = isSupabaseConfigured() && organizationId !== 'local-org';
   const isEdit = Boolean(student?.id);
 
@@ -130,7 +137,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         status: 'active',
         teacherId: teachers[0]?.id || '',
         classIds: classes.length > 0 ? [classes[0].id] : [],
-        level: '바이엘 상',
+        level: isAcademy ? defaultAcademyLevel : '바이엘 상',
         tuitionFee: settings.defaultTuitionFee || 180000,
         paymentDay: settings.defaultPaymentDay || 10,
         specialNotes: '',
@@ -350,7 +357,10 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
-            <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+            <div className="space-y-5">
+              <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+              <StudentEnrollmentSection formData={formData} onChange={updateFormData} />
+            </div>
 
             <GuardianSection
               isEdit={isEdit}
@@ -387,6 +397,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             showAdvanced={showAdvanced}
             onToggle={() => setShowAdvanced((v) => !v)}
             onChange={updateFormData}
+            subjectOptions={academySubjectLabels}
           />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">

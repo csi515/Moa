@@ -1,5 +1,5 @@
 /** 지원 업종 타입 */
-export type IndustryType = 'piano' | 'pilates' | 'skincare';
+export type IndustryType = 'piano' | 'pilates' | 'skincare' | 'academy';
 
 export interface IndustryOption {
   value: IndustryType;
@@ -12,6 +12,11 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
     value: 'piano',
     label: '피아노학원',
     description: '원생·출결·수강료·교재 중심 운영',
+  },
+  {
+    value: 'academy',
+    label: '종합학원',
+    description: '운영 과목 선택 · 원생 등록·퇴원 · 숙제·시험 관리',
   },
   {
     value: 'pilates',
@@ -30,9 +35,15 @@ export function isBookingIndustry(industry?: string | null): boolean {
   return industry === 'pilates' || industry === 'skincare';
 }
 
+/** 반/시간표·출결형 학원 (피아노·일반학원) */
+export function isClassScheduleIndustry(industry?: string | null): boolean {
+  return industry === 'piano' || industry === 'academy' || !industry;
+}
+
 export function normalizeIndustryType(value?: string | null): IndustryType {
   if (value === 'pilates') return 'pilates';
   if (value === 'skincare') return 'skincare';
+  if (value === 'academy') return 'academy';
   return 'piano';
 }
 

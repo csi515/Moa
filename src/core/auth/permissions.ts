@@ -59,6 +59,19 @@ const SKINCARE_STAFF_TABS: NavTab[] = [
   'products',
 ];
 
+/** 종합학원 — 강사 접근 가능 탭 */
+const ACADEMY_STAFF_TABS: NavTab[] = [
+  'dashboard',
+  'students',
+  'timetable',
+  'attendance',
+  'makeups',
+  'homework',
+  'exams',
+  'consultations',
+  'calendar',
+];
+
 /** 피아노 — 관리자 탭 (재무 제외) */
 const PIANO_ADMIN_TABS: NavTab[] = [
   'dashboard',
@@ -107,6 +120,26 @@ const SKINCARE_ADMIN_TABS: NavTab[] = [
   'settings',
 ];
 
+/** 종합학원 — 관리자 탭 (재무 제외) */
+const ACADEMY_ADMIN_TABS: NavTab[] = [
+  'dashboard',
+  'students',
+  'parents',
+  'classes',
+  'timetable',
+  'attendance',
+  'makeups',
+  'homework',
+  'exams',
+  'consultations',
+  'tuition',
+  'unpaid',
+  'products',
+  'teachers',
+  'calendar',
+  'settings',
+];
+
 function resolveIndustryTabs(
   industry: IndustryType | string | null | undefined
 ): { admin: NavTab[]; staff: NavTab[] } {
@@ -115,6 +148,9 @@ function resolveIndustryTabs(
   }
   if (industry === 'skincare') {
     return { admin: SKINCARE_ADMIN_TABS, staff: SKINCARE_STAFF_TABS };
+  }
+  if (industry === 'academy') {
+    return { admin: ACADEMY_ADMIN_TABS, staff: ACADEMY_STAFF_TABS };
   }
   return { admin: PIANO_ADMIN_TABS, staff: PIANO_STAFF_TABS };
 }
@@ -156,7 +192,7 @@ export function getAllowedTabs(
 
   if (isStaffRole(role)) {
     const staffMerged =
-      industry === 'pilates' || industry === 'skincare'
+      industry === 'pilates' || industry === 'skincare' || industry === 'academy'
         ? staff
         : [...staff, ...PIANO_EDUCATION_TABS.filter((t) => !staff.includes(t))];
     return applyFilters(staffMerged);

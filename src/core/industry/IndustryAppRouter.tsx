@@ -4,9 +4,11 @@ import { normalizeIndustryType, type IndustryType } from './types';
 import { ModuleLabelsProvider as PianoLabelsProvider } from '@/modules/piano';
 import { ModuleLabelsProvider as PilatesLabelsProvider } from '@/modules/pilates';
 import { ModuleLabelsProvider as SkincareLabelsProvider } from '@/modules/skincare';
+import { ModuleLabelsProvider as AcademyLabelsProvider } from '@/modules/academy';
 import { PianoAppContent } from '@/modules/piano/PianoAppContent';
 import { PilatesAppContent } from '@/modules/pilates/PilatesAppContent';
 import { SkincareAppContent } from '@/modules/skincare/SkincareAppContent';
+import { AcademyAppContent } from '@/modules/academy/AcademyAppContent';
 import { ParentAppContent } from '@/modules/parent/ParentAppContent';
 
 const APP_BY_INDUSTRY: Record<
@@ -14,6 +16,7 @@ const APP_BY_INDUSTRY: Record<
   { LabelsProvider: React.FC<{ children: React.ReactNode }>; AppContent: React.FC }
 > = {
   piano: { LabelsProvider: PianoLabelsProvider, AppContent: PianoAppContent },
+  academy: { LabelsProvider: AcademyLabelsProvider, AppContent: AcademyAppContent },
   pilates: { LabelsProvider: PilatesLabelsProvider, AppContent: PilatesAppContent },
   skincare: { LabelsProvider: SkincareLabelsProvider, AppContent: SkincareAppContent },
 };

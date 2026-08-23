@@ -5,6 +5,7 @@ import type { AttendanceModuleSettings } from './types';
 /** 업종별 출결 모듈 기본 지원 여부 */
 const INDUSTRY_ATTENDANCE_DEFAULT: Record<IndustryType, boolean> = {
   piano: true,
+  academy: true,
   pilates: false,
   skincare: false,
 };
@@ -19,7 +20,13 @@ export function isAttendanceModuleEnabled(
   industry: IndustryType | string | null | undefined
 ): boolean {
   const industryType =
-    industry === 'pilates' ? 'pilates' : industry === 'skincare' ? 'skincare' : 'piano';
+    industry === 'pilates'
+      ? 'pilates'
+      : industry === 'skincare'
+        ? 'skincare'
+        : industry === 'academy'
+          ? 'academy'
+          : 'piano';
   const featureFlag = settings?.features?.attendance?.enabled;
   if (typeof featureFlag === 'boolean') return featureFlag;
   return INDUSTRY_ATTENDANCE_DEFAULT[industryType];
