@@ -3,7 +3,7 @@ import { useApp, NavTab } from '@/context/AppContext';
 import { useModuleLabels } from '@/modules/pilates';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavTabs } from '@/core/auth/navUtils';
-import { LayoutDashboard, Calendar, Users, MoreHorizontal, Dumbbell, Activity, Settings, X, BarChart3, TrendingUp, Receipt } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, MoreHorizontal, Dumbbell, Activity, Settings, X, BarChart3, TrendingUp, Receipt, Package } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 export const PilatesBottomNav: React.FC = () => {
@@ -24,6 +24,7 @@ export const PilatesBottomNav: React.FC = () => {
   const moreTabs = filterNavTabs(
     [
     { tab: 'services', label: '수업 종류', icon: <Dumbbell className="w-5 h-5" /> },
+    { tab: 'products', label: '상품 관리', icon: <Package className="w-5 h-5" /> },
     { tab: 'instructors', label: '강사', icon: <Activity className="w-5 h-5" /> },
     { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-5 h-5" /> },
     { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-5 h-5" /> },

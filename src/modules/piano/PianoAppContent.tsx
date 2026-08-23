@@ -21,6 +21,7 @@ import {
   IncomeManagementView,
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
+import { ProductManagementView } from '@/core/products';
 import {
   DashboardView,
   StudentListView,
@@ -76,6 +77,8 @@ export const PianoAppContent: React.FC = () => {
         return <MakeupManagementView />;
       case 'textbooks':
         return <TextbookManagementView />;
+      case 'products':
+        return <ProductManagementView />;
       case 'finance':
         return <FinanceOverviewView />;
       case 'income':

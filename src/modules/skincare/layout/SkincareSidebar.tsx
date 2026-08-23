@@ -15,6 +15,7 @@ import {
   BarChart3,
   TrendingUp,
   Receipt,
+  Package,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -53,6 +54,11 @@ export const SkincareSidebar: React.FC = () => {
             tab: 'care-programs',
             label: labels.careProgram.management,
             icon: <Ticket className="w-4 h-4" />,
+          },
+          {
+            tab: 'products',
+            label: '홈케어 제품',
+            icon: <Package className="w-4 h-4" />,
           },
         ],
       },

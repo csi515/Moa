@@ -33,6 +33,8 @@ export const STORAGE_KEYS = {
   SERVICE_OFFERINGS: 'core_service_offerings',
   CARE_PROGRAMS: 'skincare_care_programs',
   CARE_ENROLLMENTS: 'skincare_care_enrollments',
+  PRODUCTS: 'core_products',
+  PRODUCT_SALES: 'core_product_sales',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
 } as const;
@@ -85,6 +87,8 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.INITIALIZED,
   STORAGE_KEYS.CARE_PROGRAMS,
   STORAGE_KEYS.CARE_ENROLLMENTS,
+  STORAGE_KEYS.PRODUCTS,
+  STORAGE_KEYS.PRODUCT_SALES,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano) */

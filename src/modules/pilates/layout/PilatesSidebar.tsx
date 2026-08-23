@@ -13,6 +13,7 @@ import {
   BarChart3,
   TrendingUp,
   Receipt,
+  Package,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -37,6 +38,7 @@ export const PilatesSidebar: React.FC = () => {
       items: [
         { tab: 'bookings', label: labels.schedule.management, icon: <Calendar className="w-4 h-4" /> },
         { tab: 'services', label: labels.service.management, icon: <Dumbbell className="w-4 h-4" /> },
+        { tab: 'products', label: '상품 관리', icon: <Package className="w-4 h-4" /> },
       ],
     },
     {

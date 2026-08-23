@@ -27,6 +27,7 @@ import {
   ExpenseManagementView,
   IncomeManagementView,
 } from '@/core/finance';
+import { ProductManagementView } from '@/core/products';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 export const SkincareAppContent: React.FC = () => {
@@ -43,6 +44,8 @@ export const SkincareAppContent: React.FC = () => {
         return <TreatmentMenuView />;
       case 'care-programs':
         return <CareProgramManagementView />;
+      case 'products':
+        return <ProductManagementView />;
       case 'members':
         return <CustomerListView />;
       case 'consultations':

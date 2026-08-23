@@ -2,6 +2,7 @@ import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
 import type { UserRole } from '@/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
+import { isProductModuleEnabled } from '@/core/products/features';
 import type { AcademySettings } from '@/types';
 
 /** owner/admin/manager — 학원 운영 전체 메뉴 */
@@ -46,7 +47,7 @@ const PIANO_STAFF_TABS: NavTab[] = [
 ];
 
 /** 필라테스 — 강사 접근 가능 탭 */
-const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members'];
+const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members', 'products'];
 
 /** 피부샵 — 관리사 접근 가능 탭 */
 const SKINCARE_STAFF_TABS: NavTab[] = [
@@ -55,6 +56,7 @@ const SKINCARE_STAFF_TABS: NavTab[] = [
   'members',
   'care-programs',
   'consultations',
+  'products',
 ];
 
 /** 피아노 — 관리자 탭 (재무 제외) */
@@ -73,6 +75,7 @@ const PIANO_ADMIN_TABS: NavTab[] = [
   'tuition',
   'unpaid',
   'textbooks',
+  'products',
   'teachers',
   'calendar',
   'recitals',
@@ -85,6 +88,7 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'bookings',
   'services',
+  'products',
   'members',
   'instructors',
   'settings',
@@ -96,6 +100,7 @@ const SKINCARE_ADMIN_TABS: NavTab[] = [
   'bookings',
   'services',
   'care-programs',
+  'products',
   'members',
   'consultations',
   'instructors',
@@ -128,6 +133,11 @@ function filterAttendanceTabs(tabs: NavTab[], attendanceEnabled: boolean): NavTa
   return tabs.filter((t) => t !== 'attendance' && t !== 'makeups');
 }
 
+function filterProductTabs(tabs: NavTab[], productsEnabled: boolean): NavTab[] {
+  if (productsEnabled) return tabs;
+  return tabs.filter((t) => t !== 'products');
+}
+
 export function getAllowedTabs(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined,
@@ -135,9 +145,13 @@ export function getAllowedTabs(
 ): NavTab[] {
   const { admin, staff } = resolveIndustryTabs(industry);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
+  const productsEnabled = isProductModuleEnabled(settings, industry);
+
+  const applyFilters = (tabs: NavTab[]) =>
+    filterProductTabs(filterAttendanceTabs(tabs, attendanceEnabled), productsEnabled);
 
   if (isOrgAdmin(role)) {
-    return filterAttendanceTabs(withFinanceTabs(admin, role), attendanceEnabled);
+    return applyFilters(withFinanceTabs(admin, role));
   }
 
   if (isStaffRole(role)) {
@@ -145,14 +159,14 @@ export function getAllowedTabs(
       industry === 'pilates' || industry === 'skincare'
         ? staff
         : [...staff, ...PIANO_EDUCATION_TABS.filter((t) => !staff.includes(t))];
-    return filterAttendanceTabs(staffMerged, attendanceEnabled);
+    return applyFilters(staffMerged);
   }
 
   if (isParentRole(role)) {
     return [];
   }
 
-  return filterAttendanceTabs(withFinanceTabs(admin, role), attendanceEnabled);
+  return applyFilters(withFinanceTabs(admin, role));
 }
 
 export function canAccessTab(

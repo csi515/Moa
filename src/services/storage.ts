@@ -25,6 +25,7 @@ import { createAttendanceStorage } from './storage/attendanceStorage';
 import { createFinanceStorage } from './storage/financeStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
 import { createCareProgramStorage } from './storage/careProgramStorage';
+import { createProductStorage } from './storage/productStorage';
 import type { StorageApi } from './storage/helpers';
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
@@ -990,5 +991,6 @@ export const StorageService = Object.assign(
   createAttendanceStorage(storageCore as StorageApi),
   createFinanceStorage(storageCore as StorageApi),
   createTextbookStorage(storageCore as StorageApi),
-  createCareProgramStorage(storageCore as StorageApi)
+  createCareProgramStorage(storageCore as StorageApi),
+  createProductStorage(storageCore as StorageApi)
 );
