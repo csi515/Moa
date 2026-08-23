@@ -7,7 +7,7 @@ import { EmptyState, Modal, PageHeader } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
 import { Dumbbell, Trash2 } from 'lucide-react';
 
-const CATEGORY_LABEL: Record<ServiceOffering['category'], string> = {
+const CATEGORY_LABEL: Partial<Record<ServiceOffering['category'], string>> = {
   private: '개인',
   group: '그룹',
   reformer: '기구',
@@ -103,7 +103,7 @@ export const ServiceManagementView: React.FC = () => {
               <div className="flex justify-between items-start">
                 <div>
                   <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-700">
-                    {CATEGORY_LABEL[o.category]}
+                    {CATEGORY_LABEL[o.category] || o.category}
                   </span>
                   <p className="font-bold text-slate-900 mt-2">{o.name}</p>
                   <p className="text-sm text-slate-500 mt-1">

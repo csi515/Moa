@@ -669,8 +669,8 @@ export function buildScheduleTimes(record: AttendanceRecord, cls?: ClassItem): {
 
 // ─── Pilates: Service Offerings & Bookings ────────────────────────
 
-interface PilatesServiceMetadata {
-  moduleType: 'pilates';
+interface BookingServiceMetadata {
+  moduleType: 'pilates' | 'skincare';
   maxCapacity: number;
   category: ServiceOffering['category'];
 }
@@ -681,9 +681,13 @@ interface BookingMetadata {
   serviceName?: string;
 }
 
-export function serviceOfferingToRow(offering: ServiceOffering, organizationId: string) {
-  const metadata: PilatesServiceMetadata = {
-    moduleType: 'pilates',
+export function serviceOfferingToRow(
+  offering: ServiceOffering,
+  organizationId: string,
+  moduleType: 'pilates' | 'skincare' = 'pilates'
+) {
+  const metadata: BookingServiceMetadata = {
+    moduleType,
     maxCapacity: offering.maxCapacity,
     category: offering.category,
   };
@@ -711,7 +715,7 @@ export function serviceRowToOffering(row: {
   is_schedulable: boolean;
   metadata: Json;
 }): ServiceOffering {
-  const meta = (row.metadata || {}) as Partial<PilatesServiceMetadata>;
+  const meta = (row.metadata || {}) as Partial<BookingServiceMetadata>;
   return {
     id: row.id,
     name: row.name,
@@ -726,8 +730,12 @@ export function serviceRowToOffering(row: {
 }
 
 export function isPilatesServiceRow(metadata: Json): boolean {
-  const meta = (metadata || {}) as Partial<PilatesServiceMetadata>;
-  return meta.moduleType === 'pilates';
+  const meta = (metadata || {}) as Partial<BookingServiceMetadata>;
+  return meta.moduleType === 'pilates' || meta.moduleType === 'skincare';
+}
+
+export function isBookingServiceRow(metadata: Json): boolean {
+  return isPilatesServiceRow(metadata);
 }
 
 export function bookingToScheduleRow(booking: Booking, organizationId: string) {

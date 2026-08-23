@@ -1,5 +1,5 @@
 /** 지원 업종 타입 */
-export type IndustryType = 'piano' | 'pilates';
+export type IndustryType = 'piano' | 'pilates' | 'skincare';
 
 export interface IndustryOption {
   value: IndustryType;
@@ -18,10 +18,21 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
     label: '필라테스학원',
     description: '회원·예약·수업 종류·강사 스케줄 중심 운영',
   },
+  {
+    value: 'skincare',
+    label: '1인 피부관리샵',
+    description: '고객·예약·시술 메뉴·케어 프로그램 중심 운영',
+  },
 ];
+
+/** 예약·시술 메뉴를 쓰는 업종 (필라테스·피부샵) */
+export function isBookingIndustry(industry?: string | null): boolean {
+  return industry === 'pilates' || industry === 'skincare';
+}
 
 export function normalizeIndustryType(value?: string | null): IndustryType {
   if (value === 'pilates') return 'pilates';
+  if (value === 'skincare') return 'skincare';
   return 'piano';
 }
 
