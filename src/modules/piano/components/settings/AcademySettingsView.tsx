@@ -6,13 +6,11 @@ import { PageHeader } from '@/shared/components';
 import { AcademySettings } from '@/types';
 import { getDefaultAttendanceSettings } from '@/core/attendance/features';
 import { getProductModuleSettings } from '@/core/products/features';
+import { StoreBackupPanel } from '@/core/backup';
 import {
   Settings,
   Building,
   Save,
-  Download,
-  Upload,
-  ShieldCheck,
   Package,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
@@ -37,50 +35,12 @@ export const AcademySettingsView: React.FC = () => {
     showToast('학원 기본 정보가 안전하게 저장되었습니다.', 'success');
   };
 
-  // Export JSON Backup
-  const handleExportData = () => {
-    const data = StorageService.exportAllData();
-    const blob = new Blob([data], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `piano_academy_backup_${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast('학원 전체 데이터 백업 파일이 다운로드되었습니다.', 'success');
-  };
-
-  // Import JSON Backup
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const content = event.target?.result as string;
-        const success = StorageService.importAllData(content);
-        if (success) {
-          showToast('데이터 복원이 완료되었습니다. 페이지를 새로고침합니다.', 'success');
-          setTimeout(() => {
-            window.location.reload();
-          }, 1000);
-        } else {
-          showToast('유효하지 않은 백업 파일 형식입니다.', 'error');
-        }
-      } catch (err) {
-        showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
-      }
-    };
-    reader.readAsText(file);
-  };
-
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Settings className="w-6 h-6" />}
         title="학원 운영 및 환경 설정"
-        description="학원명, 대표자 정보, 수납 계좌, 수강료 기본값 및 데이터 백업/복원"
+        description="매장명, 대표자 정보, 기능 모듈 및 데이터 백업/복원"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -418,36 +378,7 @@ export const AcademySettingsView: React.FC = () => {
 
         {/* Data Backup & Restore Panel */}
         <div className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-            <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600" />
-              데이터 안전 백업 및 복원
-            </h3>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              원생 정보, 출결 기록, 수강료 청구 및 지출 등 학원의 모든 데이터를 JSON 파일로 다운로드하거나 다른 기기에서 복원할 수 있습니다.
-            </p>
-
-            <div className="space-y-2 pt-2">
-              <button
-                onClick={handleExportData}
-                className="w-full py-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Download className="w-4 h-4 text-indigo-600" />
-                전체 데이터 백업 (JSON 다운로드)
-              </button>
-
-              <label className="w-full py-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer">
-                <Upload className="w-4 h-4 text-indigo-600" />
-                <span>백업 파일 복원 (JSON 업로드)</span>
-                <input
-                  type="file"
-                  accept=".json"
-                  onChange={handleImportData}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
+          <StoreBackupPanel />
         </div>
       </div>
     </div>

@@ -31,6 +31,7 @@ import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
 import { setIndustryType, getIndustryType } from './adapters/storageContext';
 import type { GuardianRelationship, ParentStudentLink } from '../core/parent/types';
+import { buildStoreBackupJson, restoreStoreBackupJson } from '../core/backup/storeBackup';
 
 type Listener = () => void;
 
@@ -59,60 +60,11 @@ const storageCore = {
   },
 
   exportDatabaseJSON(): string {
-    const fullDump = {
-      students: this.getStudents(),
-      parents: this.getParents(),
-      teachers: this.getTeachers(),
-      classes: this.getClasses(),
-      attendance: this.getAttendance(),
-      attendanceSessions: this.getAttendanceSessions(),
-      customerPins: this.getCustomerPins(),
-      parentStudentLinks: this.getParentStudentLinks(),
-      invoices: this.getInvoices(),
-      expenses: this.getExpenses(),
-      incomeEntries: this.getIncomeEntries(),
-      consultations: this.getConsultations(),
-      practiceRecords: this.getPracticeRecords(),
-      lessonRecords: this.getLessonRecords(),
-      textbooks: this.getTextbooks(),
-      songs: this.getSongs(),
-      events: this.getEvents(),
-      performanceVideos: this.getPerformanceVideos(),
-      notifications: this.getNotifications(),
-      settings: this.getSettings(),
-      exportedAt: new Date().toISOString()
-    };
-    return JSON.stringify(fullDump, null, 2);
+    return buildStoreBackupJson();
   },
 
   importDatabaseJSON(jsonStr: string): boolean {
-    try {
-      const data = JSON.parse(jsonStr);
-      if (data.students) setItem(STORAGE_KEYS.STUDENTS, data.students);
-      if (data.parents) setItem(STORAGE_KEYS.PARENTS, data.parents);
-      if (data.teachers) setItem(STORAGE_KEYS.TEACHERS, data.teachers);
-      if (data.classes) setItem(STORAGE_KEYS.CLASSES, data.classes);
-      if (data.attendance) setItem(STORAGE_KEYS.ATTENDANCE, data.attendance);
-      if (data.attendanceSessions) setItem(STORAGE_KEYS.ATTENDANCE_SESSIONS, data.attendanceSessions);
-      if (data.customerPins) setItem(STORAGE_KEYS.CUSTOMER_PINS, data.customerPins);
-      if (data.parentStudentLinks) setItem(STORAGE_KEYS.PARENT_STUDENT_LINKS, data.parentStudentLinks);
-      if (data.invoices) setItem(STORAGE_KEYS.INVOICES, data.invoices);
-      if (data.expenses) setItem(STORAGE_KEYS.EXPENSES, data.expenses);
-      if (data.incomeEntries) setItem(STORAGE_KEYS.INCOME_ENTRIES, data.incomeEntries);
-      if (data.consultations) setItem(STORAGE_KEYS.CONSULTATIONS, data.consultations);
-      if (data.practiceRecords) setItem(STORAGE_KEYS.PRACTICE_RECORDS, data.practiceRecords);
-      if (data.lessonRecords) setItem(STORAGE_KEYS.LESSON_RECORDS, data.lessonRecords);
-      if (data.textbooks) setItem(STORAGE_KEYS.TEXTBOOKS, data.textbooks);
-      if (data.songs) setItem(STORAGE_KEYS.SONGS, data.songs);
-      if (data.events) setItem(STORAGE_KEYS.EVENTS, data.events);
-      if (data.performanceVideos) setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, data.performanceVideos);
-      if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
-      if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
-      return true;
-    } catch (e) {
-      console.error('Import failed:', e);
-      return false;
-    }
+    return restoreStoreBackupJson(jsonStr);
   },
 
   // Active User / Role
