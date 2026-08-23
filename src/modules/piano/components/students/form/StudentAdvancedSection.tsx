@@ -11,6 +11,8 @@ interface Props {
   showAdvanced: boolean;
   onToggle: () => void;
   onChange: (patch: Partial<StudentFormData>) => void;
+  /** 종합학원: 운영 과목 목록 (라벨) */
+  subjectOptions?: string[];
 }
 
 export const StudentAdvancedSection: React.FC<Props> = ({
@@ -19,6 +21,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
   showAdvanced,
   onToggle,
   onChange,
+  subjectOptions,
 }) => (
   <section>
     <button
@@ -47,15 +50,31 @@ export const StudentAdvancedSection: React.FC<Props> = ({
           onChange={(e) => onChange({ grade: e.target.value })}
           className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
         />
-        <select
-          value={formData.level}
-          onChange={(e) => onChange({ level: e.target.value as StudentFormData['level'] })}
-          className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
-        >
-          {LEVEL_OPTIONS.map((l) => (
-            <option key={l} value={l}>{l}</option>
-          ))}
-        </select>
+        {subjectOptions && subjectOptions.length > 0 ? (
+          <select
+            value={formData.level}
+            onChange={(e) => onChange({ level: e.target.value as StudentFormData['level'] })}
+            className="px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl"
+          >
+            {subjectOptions.map((label) => (
+              <option key={label} value={label}>
+                {label}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <select
+            value={formData.level}
+            onChange={(e) => onChange({ level: e.target.value as StudentFormData['level'] })}
+            className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
+          >
+            {LEVEL_OPTIONS.map((l) => (
+              <option key={l} value={l}>
+                {l}
+              </option>
+            ))}
+          </select>
+        )}
         <select
           value={formData.teacherId}
           onChange={(e) => onChange({ teacherId: e.target.value })}

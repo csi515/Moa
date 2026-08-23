@@ -15,8 +15,8 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
   },
   {
     value: 'academy',
-    label: '일반 학원 (국영수 등)',
-    description: '원생 등록·퇴원, 반 수업 요일·시간·수업 길이 관리',
+    label: '종합학원',
+    description: '운영 과목 선택 · 원생 등록·퇴원 · 숙제·시험 관리',
   },
   {
     value: 'pilates',

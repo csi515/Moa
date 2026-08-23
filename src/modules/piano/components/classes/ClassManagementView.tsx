@@ -4,6 +4,7 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek } from '@/types';
+import { getAcademySubjectOptions } from '@/modules/academy/config/subjects';
 import {
   GraduationCap,
   Plus,
@@ -14,7 +15,7 @@ import {
   X,
   Save,
   BookOpen,
-  CalendarDays
+  CalendarDays,
 } from 'lucide-react';
 
 const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
@@ -39,6 +40,8 @@ export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const isAcademy = industry === 'academy';
+  const subjectOptions = isAcademy ? getAcademySubjectOptions(StorageService.getSettings()) : [];
+  const defaultSubjectLabel = subjectOptions[0]?.label || '국어';
 
   const classes = StorageService.getClasses();
   const teachers = StorageService.getTeachers();
@@ -50,7 +53,7 @@ export const ClassManagementView: React.FC = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    targetLevel: isAcademy ? '국어' : '바이엘 하',
+    targetLevel: isAcademy ? defaultSubjectLabel : '바이엘 하',
     daysOfWeek: ['월', '수', '금'] as DayOfWeek[],
     startTime: '15:00',
     endTime: formatTime(parseMinutes('15:00') + defaultDuration),
@@ -68,7 +71,7 @@ export const ClassManagementView: React.FC = () => {
     const start = '15:00';
     setFormData({
       name: '',
-      targetLevel: isAcademy ? '수학' : '바이엘 하',
+      targetLevel: isAcademy ? (subjectOptions[1]?.label || defaultSubjectLabel) : '바이엘 하',
       daysOfWeek: ['월', '수', '금'],
       startTime: start,
       endTime: formatTime(parseMinutes(start) + defaultDuration),
@@ -88,7 +91,7 @@ export const ClassManagementView: React.FC = () => {
     const duration = durationBetween(cls.startTime, cls.endTime);
     setFormData({
       name: cls.name,
-      targetLevel: cls.targetLevel || cls.level || (isAcademy ? '국어' : '바이엘 하'),
+      targetLevel: cls.targetLevel || cls.level || (isAcademy ? defaultSubjectLabel : '바이엘 하'),
       daysOfWeek: cls.daysOfWeek,
       startTime: cls.startTime,
       endTime: cls.endTime,
@@ -172,7 +175,7 @@ export const ClassManagementView: React.FC = () => {
         title="반 / 수업 관리"
         description={
           isAcademy
-            ? `국어·수학·영어 등 개설 반 ${classes.length}개 · 요일·시작 시각·수업 시간(분)`
+            ? `종합학원 개설 반 ${classes.length}개 · 요일·시작 시각·수업 시간(분)`
             : `개설된 정규 및 특별 클래스 ${classes.length}개`
         }
         actions={
@@ -416,8 +419,10 @@ export const ClassManagementView: React.FC = () => {
                     onChange={(e) => setFormData({ ...formData, targetLevel: e.target.value })}
                     className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl"
                   >
-                    {['국어', '수학', '영어', '과학', '사회', '논술', '종합', '기타'].map((s) => (
-                      <option key={s} value={s}>{s}</option>
+                    {subjectOptions.map((s) => (
+                      <option key={s.id} value={s.label}>
+                        {s.label}
+                      </option>
                     ))}
                   </select>
                 ) : (

@@ -59,13 +59,15 @@ const SKINCARE_STAFF_TABS: NavTab[] = [
   'products',
 ];
 
-/** 일반 학원 — 강사 접근 가능 탭 */
+/** 종합학원 — 강사 접근 가능 탭 */
 const ACADEMY_STAFF_TABS: NavTab[] = [
   'dashboard',
   'students',
   'timetable',
   'attendance',
   'makeups',
+  'homework',
+  'exams',
   'consultations',
   'calendar',
 ];
@@ -118,7 +120,7 @@ const SKINCARE_ADMIN_TABS: NavTab[] = [
   'settings',
 ];
 
-/** 일반 학원 — 관리자 탭 (재무 제외) — 국영수 학원 운영 핵심 */
+/** 종합학원 — 관리자 탭 (재무 제외) */
 const ACADEMY_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'students',
@@ -127,6 +129,8 @@ const ACADEMY_ADMIN_TABS: NavTab[] = [
   'timetable',
   'attendance',
   'makeups',
+  'homework',
+  'exams',
   'consultations',
   'tuition',
   'unpaid',

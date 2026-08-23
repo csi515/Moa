@@ -13,6 +13,7 @@ import {
   Save,
   Package,
 } from 'lucide-react';
+import { AcademySubjectsPanel } from '@/modules/academy/components/settings/AcademySubjectsPanel';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const AcademySettingsView: React.FC = () => {
@@ -162,6 +163,10 @@ export const AcademySettingsView: React.FC = () => {
                 className="w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
               />
             </div>
+
+            {industry === 'academy' && (
+              <AcademySubjectsPanel settings={settings} onChange={setSettings} />
+            )}
 
             <div className="pt-4 border-t border-slate-100">
               <div className="flex items-center justify-between gap-4">

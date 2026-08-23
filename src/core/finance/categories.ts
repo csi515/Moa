@@ -42,7 +42,7 @@ export const SKINCARE_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'education', label: '교육/세미나' },
 ];
 
-/** 일반 학원(국영수 등) 추가 지출 카테고리 */
+/** 종합학원 추가 지출 카테고리 */
 export const ACADEMY_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'workbook', label: '교재/문제집' },
   { value: 'classroom', label: '강의실 운영' },

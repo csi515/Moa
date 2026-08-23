@@ -59,6 +59,10 @@ export function buildStoreBackupJson(): string {
     weeklyAssignments: getItem(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, []),
     achievements: getItem(STORAGE_KEYS.ACHIEVEMENTS, []),
     learningReports: getItem(STORAGE_KEYS.LEARNING_REPORTS, []),
+    academyHomeworkAssignments: getItem(STORAGE_KEYS.ACADEMY_HOMEWORK_ASSIGNMENTS, []),
+    academyHomeworkChecks: getItem(STORAGE_KEYS.ACADEMY_HOMEWORK_CHECKS, []),
+    academyExams: getItem(STORAGE_KEYS.ACADEMY_EXAMS, []),
+    academyExamScores: getItem(STORAGE_KEYS.ACADEMY_EXAM_SCORES, []),
   };
   return JSON.stringify(payload, null, 2);
 }
@@ -122,6 +126,10 @@ export function restoreStoreBackupJson(jsonStr: string): boolean {
     applyIfPresent(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, data.weeklyAssignments);
     applyIfPresent(STORAGE_KEYS.ACHIEVEMENTS, data.achievements);
     applyIfPresent(STORAGE_KEYS.LEARNING_REPORTS, data.learningReports);
+    applyIfPresent(STORAGE_KEYS.ACADEMY_HOMEWORK_ASSIGNMENTS, data.academyHomeworkAssignments);
+    applyIfPresent(STORAGE_KEYS.ACADEMY_HOMEWORK_CHECKS, data.academyHomeworkChecks);
+    applyIfPresent(STORAGE_KEYS.ACADEMY_EXAMS, data.academyExams);
+    applyIfPresent(STORAGE_KEYS.ACADEMY_EXAM_SCORES, data.academyExamScores);
 
     return true;
   } catch (e) {

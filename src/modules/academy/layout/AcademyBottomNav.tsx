@@ -22,6 +22,8 @@ import {
   BarChart3,
   TrendingUp,
   Package,
+  BookOpenCheck,
+  ClipboardList,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -47,6 +49,8 @@ export const AcademyBottomNav: React.FC = () => {
       { tab: 'tuition', label: '수강료/수납', icon: <CreditCard className="w-5 h-5" /> },
       { tab: 'unpaid', label: '미납 통합', icon: <AlertCircle className="w-5 h-5" /> },
       { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-5 h-5" /> },
+      { tab: 'homework', label: '숙제', icon: <BookOpenCheck className="w-5 h-5" /> },
+      { tab: 'exams', label: '시험·점수', icon: <ClipboardList className="w-5 h-5" /> },
       { tab: 'products', label: '학습 교재·문구', icon: <Package className="w-5 h-5" /> },
       { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-5 h-5" /> },
       { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-5 h-5" /> },
@@ -126,7 +130,7 @@ export const AcademyBottomNav: React.FC = () => {
               <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                 <div>
                   <h3 className="font-bold text-slate-900 text-base">전체 메뉴</h3>
-                  <p className="text-xs text-slate-500">일반 학원 운영 메뉴를 선택하세요</p>
+                  <p className="text-xs text-slate-500">종합학원 운영 메뉴를 선택하세요</p>
                 </div>
                 <button
                   onClick={() => setMoreMenuOpen(false)}

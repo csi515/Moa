@@ -1,5 +1,5 @@
 /**
- * 일반 학원(국영수 등) 모듈 UI 라벨
+ * 종합학원 모듈 UI 라벨
  * Piano 공유 컴포넌트와 동일한 ModuleLabels 형태
  */
 export interface ModuleLabels {

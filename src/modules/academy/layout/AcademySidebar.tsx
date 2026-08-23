@@ -20,6 +20,8 @@ import {
   BarChart3,
   TrendingUp,
   Package,
+  BookOpenCheck,
+  ClipboardList,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -28,7 +30,7 @@ interface MenuItem {
   icon: React.ReactNode;
 }
 
-/** 일반 학원 사이드바 — 피아노 전용(연주회·교재·레슨일지 등) 제외 */
+/** 종합학원 사이드바 — 피아노 전용(연주회·교재·레슨일지 등) 제외 */
 export const AcademySidebar: React.FC = () => {
   const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
@@ -68,6 +70,13 @@ export const AcademySidebar: React.FC = () => {
           },
           { tab: 'attendance', label: '출결 관리', icon: <CheckSquare className="w-4 h-4" /> },
           { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-4 h-4" /> },
+        ],
+      },
+      {
+        title: '학습 관리',
+        items: [
+          { tab: 'homework', label: '숙제 관리', icon: <BookOpenCheck className="w-4 h-4" /> },
+          { tab: 'exams', label: '시험·점수', icon: <ClipboardList className="w-4 h-4" /> },
           {
             tab: 'consultations',
             label: '상담 이력',

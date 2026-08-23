@@ -13,6 +13,8 @@ import {
 import { AcademySidebar } from './layout/AcademySidebar';
 import { AcademyBottomNav } from './layout/AcademyBottomNav';
 import { AcademyDashboardView } from './components/dashboard/AcademyDashboardView';
+import { HomeworkManagementView } from './components/homework/HomeworkManagementView';
+import { ExamManagementView } from './components/exams/ExamManagementView';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
@@ -37,7 +39,7 @@ import {
   AcademySettingsView,
 } from '@/modules/piano';
 
-/** 일반 학원(국영수 등) 앱 셸 — 원생 등록·퇴원, 반 요일·시간·수업 길이 */
+/** 종합학원 앱 셸 — 원생 등록·퇴원, 반·숙제·시험 관리 */
 export const AcademyAppContent: React.FC = () => {
   const { activeTab } = useApp();
   const { isAdmin, isOwner } = usePermissions();
@@ -67,6 +69,10 @@ export const AcademyAppContent: React.FC = () => {
         return <UnpaidManagementView />;
       case 'makeups':
         return <MakeupManagementView />;
+      case 'homework':
+        return <HomeworkManagementView />;
+      case 'exams':
+        return <ExamManagementView />;
       case 'products':
         return <ProductManagementView />;
       case 'finance':
