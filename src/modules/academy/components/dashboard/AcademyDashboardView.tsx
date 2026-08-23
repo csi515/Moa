@@ -23,7 +23,7 @@ function durationBetween(start: string, end: string): number {
   return Math.max(0, (eh || 0) * 60 + (em || 0) - ((sh || 0) * 60 + (sm || 0)));
 }
 
-/** 일반 학원 대시보드 — 등록·퇴원·오늘 수업 */
+/** 종합학원 대시보드 — 등록·퇴원·오늘 수업 */
 export const AcademyDashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
   const refreshKey = useStorageRefresh();
@@ -58,7 +58,7 @@ export const AcademyDashboardView: React.FC = () => {
       <PageHeader
         icon={<BookOpen className="w-6 h-6" />}
         iconClassName="text-indigo-600"
-        title="학원 대시보드"
+        title="종합학원 대시보드"
         description={`${formatKoreanDate(today)} · 원생 등록·퇴원과 오늘의 수업을 한눈에`}
         actions={
           <div className="flex flex-wrap gap-2">
