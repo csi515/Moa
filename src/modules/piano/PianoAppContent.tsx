@@ -1,9 +1,7 @@
 import React from 'react';
-import { useApp } from '@/context/AppContext';
-import { useTabGuard } from '@/core/auth/useTabGuard';
-import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
-import { PianoSidebar } from './layout/PianoSidebar';
-import { PianoBottomNav } from './layout/PianoBottomNav';
+import { ModuleViewRouter } from '@/shared/components/layout/ModuleViewRouter';
+import { IndustryModuleSidebar } from '@/shared/components/layout/IndustryModuleSidebar';
+import { IndustryModuleBottomNav } from '@/shared/components/layout/IndustryModuleBottomNav';
 import {
   ExpenseManagementView,
   FinanceOverviewView,
@@ -33,7 +31,9 @@ import {
   AssignmentsManagementView,
   AchievementsManagementView,
   ReportsManagementView,
+  useModuleLabels,
 } from './index';
+import { buildPianoNavSections, buildPianoBottomNavTabs } from './config/nav';
 
 const PIANO_VIEWS: Record<string, React.FC> = {
   dashboard: DashboardView,
@@ -64,19 +64,25 @@ const PIANO_VIEWS: Record<string, React.FC> = {
   settings: AcademySettingsView,
 };
 
-export const PianoAppContent: React.FC = () => {
-  const { activeTab } = useApp();
-  useTabGuard();
-
-  const View = PIANO_VIEWS[activeTab] ?? DashboardView;
-
-  return (
-    <ModuleAppShell
-      theme="indigo"
-      sidebar={<PianoSidebar />}
-      bottomNav={<PianoBottomNav />}
-    >
-      <View />
-    </ModuleAppShell>
-  );
-};
+export const PianoAppContent: React.FC = () => (
+  <ModuleViewRouter
+    views={PIANO_VIEWS}
+    fallback={DashboardView}
+    theme="indigo"
+    sidebar={
+      <IndustryModuleSidebar
+        buildSections={buildPianoNavSections}
+        useLabels={useModuleLabels}
+        theme="indigo"
+      />
+    }
+    bottomNav={
+      <IndustryModuleBottomNav
+        buildTabs={buildPianoBottomNavTabs}
+        useLabels={useModuleLabels}
+        moreMenuSubtitle="피아노 학원 운영 메뉴를 선택하세요"
+        theme="indigo"
+      />
+    }
+  />
+);

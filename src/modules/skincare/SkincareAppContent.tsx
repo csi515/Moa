@@ -1,15 +1,14 @@
 import React from 'react';
-import { useApp } from '@/context/AppContext';
-import { useTabGuard } from '@/core/auth/useTabGuard';
-import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
-import { SkincareSidebar } from './layout/SkincareSidebar';
-import { SkincareBottomNav } from './layout/SkincareBottomNav';
+import { ModuleViewRouter } from '@/shared/components/layout/ModuleViewRouter';
+import { IndustryModuleSidebar } from '@/shared/components/layout/IndustryModuleSidebar';
+import { IndustryModuleBottomNav } from '@/shared/components/layout/IndustryModuleBottomNav';
 import {
   SkincareDashboardView,
   TreatmentMenuView,
   CareProgramManagementView,
   CustomerListView,
   TherapistListView,
+  useModuleLabels,
 } from './index';
 import { BookingCalendarView } from '@/modules/pilates/components/bookings/BookingCalendarView';
 import { ConsultationRecordsView } from '@/modules/piano/components/consultations/ConsultationRecordsView';
@@ -20,6 +19,7 @@ import {
 } from '@/core/finance';
 import { ProductManagementView } from '@/core/products';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
+import { buildSkincareNavSections, buildSkincareBottomNavTabs } from './config/nav';
 
 const SKINCARE_VIEWS: Record<string, React.FC> = {
   dashboard: SkincareDashboardView,
@@ -36,15 +36,25 @@ const SKINCARE_VIEWS: Record<string, React.FC> = {
   settings: AcademySettingsView,
 };
 
-export const SkincareAppContent: React.FC = () => {
-  const { activeTab } = useApp();
-  useTabGuard();
-
-  const View = SKINCARE_VIEWS[activeTab] ?? SkincareDashboardView;
-
-  return (
-    <ModuleAppShell theme="rose" sidebar={<SkincareSidebar />} bottomNav={<SkincareBottomNav />}>
-      <View />
-    </ModuleAppShell>
-  );
-};
+export const SkincareAppContent: React.FC = () => (
+  <ModuleViewRouter
+    views={SKINCARE_VIEWS}
+    fallback={SkincareDashboardView}
+    theme="rose"
+    sidebar={
+      <IndustryModuleSidebar
+        buildSections={buildSkincareNavSections}
+        useLabels={useModuleLabels}
+        theme="rose"
+      />
+    }
+    bottomNav={
+      <IndustryModuleBottomNav
+        buildTabs={buildSkincareBottomNavTabs}
+        useLabels={useModuleLabels}
+        moreMenuSubtitle="스킨케어 샵 메뉴를 선택하세요"
+        theme="rose"
+      />
+    }
+  />
+);

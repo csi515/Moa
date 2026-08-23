@@ -1,9 +1,10 @@
 export { Header } from './layout/Header';
-export { Sidebar } from './layout/Sidebar';
-export { BottomNav } from './layout/BottomNav';
 export { ModuleAppShell } from './layout/ModuleAppShell';
 export { ModuleSidebar } from './layout/ModuleSidebar';
 export { ModuleBottomNav } from './layout/ModuleBottomNav';
+export { ModuleViewRouter } from './layout/ModuleViewRouter';
+export { IndustryModuleSidebar } from './layout/IndustryModuleSidebar';
+export { IndustryModuleBottomNav } from './layout/IndustryModuleBottomNav';
 export { MODULE_THEMES, type ModuleTheme } from './layout/moduleTheme';
 export { LoadingScreen } from './LoadingScreen';
 export { PwaInstallPrompt } from './PwaInstallPrompt';

@@ -1,9 +1,8 @@
 import React from 'react';
-import { useApp } from '@/context/AppContext';
-import { useTabGuard } from '@/core/auth/useTabGuard';
-import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
-import { AcademySidebar } from './layout/AcademySidebar';
-import { AcademyBottomNav } from './layout/AcademyBottomNav';
+import { ModuleViewRouter } from '@/shared/components/layout/ModuleViewRouter';
+import { IndustryModuleSidebar } from '@/shared/components/layout/IndustryModuleSidebar';
+import { IndustryModuleBottomNav } from '@/shared/components/layout/IndustryModuleBottomNav';
+import { useModuleLabels } from '@/modules/piano';
 import { AcademyDashboardView } from './components/dashboard/AcademyDashboardView';
 import { HomeworkManagementView } from './components/homework/HomeworkManagementView';
 import { ExamManagementView } from './components/exams/ExamManagementView';
@@ -27,6 +26,7 @@ import {
   AcademyCalendarView,
   AcademySettingsView,
 } from '@/modules/piano';
+import { buildAcademyNavSections, buildAcademyBottomNavTabs } from './config/nav';
 
 const ACADEMY_VIEWS: Record<string, React.FC> = {
   dashboard: AcademyDashboardView,
@@ -51,15 +51,25 @@ const ACADEMY_VIEWS: Record<string, React.FC> = {
 };
 
 /** 종합학원 앱 셸 */
-export const AcademyAppContent: React.FC = () => {
-  const { activeTab } = useApp();
-  useTabGuard();
-
-  const View = ACADEMY_VIEWS[activeTab] ?? AcademyDashboardView;
-
-  return (
-    <ModuleAppShell theme="indigo" sidebar={<AcademySidebar />} bottomNav={<AcademyBottomNav />}>
-      <View />
-    </ModuleAppShell>
-  );
-};
+export const AcademyAppContent: React.FC = () => (
+  <ModuleViewRouter
+    views={ACADEMY_VIEWS}
+    fallback={AcademyDashboardView}
+    theme="indigo"
+    sidebar={
+      <IndustryModuleSidebar
+        buildSections={buildAcademyNavSections}
+        useLabels={useModuleLabels}
+        theme="indigo"
+      />
+    }
+    bottomNav={
+      <IndustryModuleBottomNav
+        buildTabs={buildAcademyBottomNavTabs}
+        useLabels={useModuleLabels}
+        moreMenuSubtitle="종합학원 운영 메뉴를 선택하세요"
+        theme="indigo"
+      />
+    }
+  />
+);

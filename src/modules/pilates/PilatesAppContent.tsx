@@ -1,15 +1,14 @@
 import React from 'react';
-import { useApp } from '@/context/AppContext';
-import { useTabGuard } from '@/core/auth/useTabGuard';
-import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
-import { PilatesSidebar } from './layout/PilatesSidebar';
-import { PilatesBottomNav } from './layout/PilatesBottomNav';
+import { ModuleViewRouter } from '@/shared/components/layout/ModuleViewRouter';
+import { IndustryModuleSidebar } from '@/shared/components/layout/IndustryModuleSidebar';
+import { IndustryModuleBottomNav } from '@/shared/components/layout/IndustryModuleBottomNav';
 import {
   PilatesDashboardView,
   BookingCalendarView,
   ServiceManagementView,
   MemberListView,
   InstructorListView,
+  useModuleLabels,
 } from './index';
 import {
   FinanceOverviewView,
@@ -18,6 +17,7 @@ import {
 } from '@/core/finance';
 import { ProductManagementView } from '@/core/products';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
+import { buildPilatesNavSections, buildPilatesBottomNavTabs } from './config/nav';
 
 const PILATES_VIEWS: Record<string, React.FC> = {
   dashboard: PilatesDashboardView,
@@ -32,15 +32,25 @@ const PILATES_VIEWS: Record<string, React.FC> = {
   settings: AcademySettingsView,
 };
 
-export const PilatesAppContent: React.FC = () => {
-  const { activeTab } = useApp();
-  useTabGuard();
-
-  const View = PILATES_VIEWS[activeTab] ?? PilatesDashboardView;
-
-  return (
-    <ModuleAppShell theme="teal" sidebar={<PilatesSidebar />} bottomNav={<PilatesBottomNav />}>
-      <View />
-    </ModuleAppShell>
-  );
-};
+export const PilatesAppContent: React.FC = () => (
+  <ModuleViewRouter
+    views={PILATES_VIEWS}
+    fallback={PilatesDashboardView}
+    theme="teal"
+    sidebar={
+      <IndustryModuleSidebar
+        buildSections={buildPilatesNavSections}
+        useLabels={useModuleLabels}
+        theme="teal"
+      />
+    }
+    bottomNav={
+      <IndustryModuleBottomNav
+        buildTabs={buildPilatesBottomNavTabs}
+        useLabels={useModuleLabels}
+        moreMenuSubtitle="필라테스 스튜디오 메뉴를 선택하세요"
+        theme="teal"
+      />
+    }
+  />
+);
