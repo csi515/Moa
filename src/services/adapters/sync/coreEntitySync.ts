@@ -39,7 +39,11 @@ import {
   teacherToStaffRow,
 } from './entityMappers';
 import type { Booking, ServiceOffering } from '../../../core/types/schedule';
-import { normalizeIndustryType, isBookingIndustry } from '../../../core/industry/types';
+import {
+  normalizeIndustryType,
+  isBookingIndustry,
+  isClassScheduleIndustry,
+} from '../../../core/industry/types';
 import { getIndustryType } from '../storageContext';
 import {
   expenseToCoreRow,
@@ -148,10 +152,9 @@ export async function hydrateCoreEntities(
     .map(customerRowToParent);
 
   const serviceRows = servicesResult.data || [];
-  const classes =
-    industryType === 'piano'
-      ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
-      : [];
+  const classes = isClassScheduleIndustry(industryType)
+    ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
+    : [];
   const serviceOfferings = isBookingIndustry(industryType)
     ? serviceRows.map(serviceRowToOffering)
     : [];

@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
-import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
+import { ClassItem, DayOfWeek } from '@/types';
 import {
   GraduationCap,
   Plus,
   Clock,
-  MapPin,
   Users,
   Edit,
   Trash2,
@@ -19,43 +19,65 @@ import {
 
 const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
+function parseMinutes(time: string): number {
+  const [h, m] = time.split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+function formatTime(totalMinutes: number): string {
+  const mins = ((totalMinutes % (24 * 60)) + 24 * 60) % (24 * 60);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function durationBetween(start: string, end: string): number {
+  return Math.max(5, parseMinutes(end) - parseMinutes(start));
+}
+
 export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const { industry } = usePermissions();
+  const isAcademy = industry === 'academy';
 
   const classes = StorageService.getClasses();
   const teachers = StorageService.getTeachers();
   const students = StorageService.getStudents();
+  const defaultDuration = StorageService.getSettings().defaultLessonMinutes || (isAcademy ? 60 : 50);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassItem | null>(null);
 
   const [formData, setFormData] = useState({
     name: '',
-    targetLevel: '바이엘' as StudentLevel,
+    targetLevel: isAcademy ? '국어' : '바이엘 하',
     daysOfWeek: ['월', '수', '금'] as DayOfWeek[],
-    startTime: '14:00',
-    endTime: '14:50',
-    capacity: 4,
+    startTime: '15:00',
+    endTime: formatTime(parseMinutes('15:00') + defaultDuration),
+    durationMinutes: defaultDuration,
+    capacity: isAcademy ? 8 : 4,
     teacherId: teachers[0]?.id || '',
-    room: '피아노 1실',
+    room: isAcademy ? '1강의실' : '피아노 1실',
     color: '#4f46e5',
-    textbook: '바이엘 1권, 체르니 100',
+    textbook: '',
     memo: ''
   });
 
   const handleOpenCreate = () => {
     setEditingClass(null);
+    const start = '15:00';
     setFormData({
       name: '',
-      targetLevel: '바이엘 하',
+      targetLevel: isAcademy ? '수학' : '바이엘 하',
       daysOfWeek: ['월', '수', '금'],
-      startTime: '15:00',
-      endTime: '15:50',
-      capacity: 4,
+      startTime: start,
+      endTime: formatTime(parseMinutes(start) + defaultDuration),
+      durationMinutes: defaultDuration,
+      capacity: isAcademy ? 8 : 4,
       teacherId: teachers[0]?.id || '',
-      room: '피아노 1실',
+      room: isAcademy ? '1강의실' : '피아노 1실',
       color: '#4f46e5',
-      textbook: '어린이 피아노 소곡집',
+      textbook: '',
       memo: ''
     });
     setIsModalOpen(true);
@@ -63,12 +85,14 @@ export const ClassManagementView: React.FC = () => {
 
   const handleOpenEdit = (cls: ClassItem) => {
     setEditingClass(cls);
+    const duration = durationBetween(cls.startTime, cls.endTime);
     setFormData({
       name: cls.name,
-      targetLevel: cls.targetLevel,
+      targetLevel: cls.targetLevel || cls.level || (isAcademy ? '국어' : '바이엘 하'),
       daysOfWeek: cls.daysOfWeek,
       startTime: cls.startTime,
       endTime: cls.endTime,
+      durationMinutes: duration,
       capacity: cls.capacity,
       teacherId: cls.teacherId,
       room: cls.room,
@@ -116,13 +140,15 @@ export const ClassManagementView: React.FC = () => {
     }
 
     const targetTeacher = teachers.find((t) => t.id === formData.teacherId);
+    const endTime = formatTime(parseMinutes(formData.startTime) + formData.durationMinutes);
     StorageService.saveClass({
       ...(editingClass ? { id: editingClass.id } : {}),
       name: formData.name.trim(),
       targetLevel: formData.targetLevel,
+      level: formData.targetLevel,
       daysOfWeek: formData.daysOfWeek,
       startTime: formData.startTime,
-      endTime: formData.endTime,
+      endTime,
       capacity: Number(formData.capacity) || 4,
       teacherId: formData.teacherId,
       teacherName: targetTeacher ? targetTeacher.name : '미지정',
@@ -144,7 +170,11 @@ export const ClassManagementView: React.FC = () => {
       <PageHeader
         icon={<GraduationCap className="w-6 h-6" />}
         title="반 / 수업 관리"
-        description={`개설된 피아노 정규 및 특별 클래스 ${classes.length}개`}
+        description={
+          isAcademy
+            ? `국어·수학·영어 등 개설 반 ${classes.length}개 · 요일·시작 시각·수업 시간(분)`
+            : `개설된 정규 및 특별 클래스 ${classes.length}개`
+        }
         actions={
           <button
             onClick={handleOpenCreate}
@@ -188,7 +218,12 @@ export const ClassManagementView: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-2 text-slate-600">
                     <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>시간: {cls.startTime} ~ {cls.endTime}</span>
+                    <span>
+                      시간: {cls.startTime} ~ {cls.endTime}
+                      <strong className="ml-1 text-indigo-700">
+                        ({durationBetween(cls.startTime, cls.endTime)}분)
+                      </strong>
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 text-slate-600">
                     <Users className="w-4 h-4 text-slate-400 shrink-0" />
@@ -282,7 +317,7 @@ export const ClassManagementView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="예: 기초 피아노 A반 (월/수/금)"
+                  placeholder={isAcademy ? '예: 중1 수학 심화 (월/수/금)' : '예: 기초 피아노 A반 (월/수/금)'}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -314,15 +349,42 @@ export const ClassManagementView: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">시작 시간</label>
                   <input
                     type="time"
                     required
                     value={formData.startTime}
-                    onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    onChange={(e) => {
+                      const startTime = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        startTime,
+                        endTime: formatTime(parseMinutes(startTime) + prev.durationMinutes),
+                      }));
+                    }}
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">수업 시간(분)</label>
+                  <input
+                    type="number"
+                    min={10}
+                    max={300}
+                    step={5}
+                    required
+                    value={formData.durationMinutes}
+                    onChange={(e) => {
+                      const durationMinutes = Math.max(10, Number(e.target.value) || defaultDuration);
+                      setFormData((prev) => ({
+                        ...prev,
+                        durationMinutes,
+                        endTime: formatTime(parseMinutes(prev.startTime) + durationMinutes),
+                      }));
+                    }}
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none font-bold"
                   />
                 </div>
                 <div>
@@ -331,10 +393,42 @@ export const ClassManagementView: React.FC = () => {
                     type="time"
                     required
                     value={formData.endTime}
-                    onChange={(e) => setFormData({ ...formData, endTime: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    onChange={(e) => {
+                      const endTime = e.target.value;
+                      setFormData((prev) => ({
+                        ...prev,
+                        endTime,
+                        durationMinutes: durationBetween(prev.startTime, endTime),
+                      }));
+                    }}
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {isAcademy ? '과목 / 과정' : '과정 레벨'}
+                </label>
+                {isAcademy ? (
+                  <select
+                    value={formData.targetLevel}
+                    onChange={(e) => setFormData({ ...formData, targetLevel: e.target.value })}
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl"
+                  >
+                    {['국어', '수학', '영어', '과학', '사회', '논술', '종합', '기타'].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text"
+                    value={formData.targetLevel}
+                    onChange={(e) => setFormData({ ...formData, targetLevel: e.target.value })}
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder="예: 체르니 30"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -353,18 +447,14 @@ export const ClassManagementView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">강의실 / 연습실</label>
-                  <select
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">강의실</label>
+                  <input
+                    type="text"
                     value={formData.room}
                     onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="피아노 1실">피아노 1실</option>
-                    <option value="피아노 2실">피아노 2실</option>
-                    <option value="피아노 3실">피아노 3실</option>
-                    <option value="그랜드홀">그랜드홀 (연주홀)</option>
-                    <option value="이론실">음악이론실</option>
-                  </select>
+                    className="w-full px-3 py-2 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl"
+                    placeholder={isAcademy ? '예: 2강의실' : '예: 피아노 1실'}
+                  />
                 </div>
               </div>
 
@@ -392,10 +482,12 @@ export const ClassManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">사용 교재</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  {isAcademy ? '교재 / 학습 자료' : '사용 교재'}
+                </label>
                 <input
                   type="text"
-                  placeholder="예: 바이엘 상권, 어린이 피아노 소곡집"
+                  placeholder={isAcademy ? '예: 개념원리 수학, 모의고사 문제집' : '예: 바이엘 상권, 어린이 피아노 소곡집'}
                   value={formData.textbook}
                   onChange={(e) => setFormData({ ...formData, textbook: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"

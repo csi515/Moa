@@ -14,6 +14,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { Student, Parent } from '@/types';
 import { X, Save, User, RefreshCw } from 'lucide-react';
 import { StudentBasicInfoSection } from './form/StudentBasicInfoSection';
+import { StudentEnrollmentSection } from './form/StudentEnrollmentSection';
 import { GuardianSection } from './form/GuardianSection';
 import { StudentPinSection } from './form/StudentPinSection';
 import { StudentAdvancedSection } from './form/StudentAdvancedSection';
@@ -350,7 +351,10 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
-            <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+            <div className="space-y-5">
+              <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+              <StudentEnrollmentSection formData={formData} onChange={updateFormData} />
+            </div>
 
             <GuardianSection
               isEdit={isEdit}

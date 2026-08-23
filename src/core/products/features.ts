@@ -34,6 +34,20 @@ const INDUSTRY_DEFAULTS: Record<
       { id: 'other', label: '기타' },
     ],
   },
+  academy: {
+    enabled: false,
+    labels: {
+      catalog: '학습 교재·문구',
+      singular: '상품',
+      sales: '상품 판매',
+      report: '상품 리포트',
+    },
+    productTypes: [
+      { id: 'workbook', label: '문제집/교재' },
+      { id: 'stationery', label: '문구' },
+      { id: 'other', label: '기타' },
+    ],
+  },
   pilates: {
     enabled: true,
     labels: {
@@ -82,7 +96,10 @@ export function getProductModuleSettings(
   industry: IndustryType | string | null | undefined
 ): ProductModuleSettings {
   const industryType =
-    industry === 'pilates' || industry === 'skincare' || industry === 'piano'
+    industry === 'pilates' ||
+    industry === 'skincare' ||
+    industry === 'piano' ||
+    industry === 'academy'
       ? industry
       : 'piano';
   const defaults = getDefaultProductSettings(industryType);
