@@ -58,7 +58,7 @@ export const AcademyAppContent: React.FC = () => {
   const View = ACADEMY_VIEWS[activeTab] ?? AcademyDashboardView;
 
   return (
-    <ModuleAppShell sidebar={<AcademySidebar />} bottomNav={<AcademyBottomNav />}>
+    <ModuleAppShell theme="indigo" sidebar={<AcademySidebar />} bottomNav={<AcademyBottomNav />}>
       <View />
     </ModuleAppShell>
   );

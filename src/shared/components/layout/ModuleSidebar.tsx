@@ -1,19 +1,29 @@
 import React from 'react';
 import { useApp, NavTab } from '@/context/AppContext';
 import type { NavMenuSection } from '@/core/auth/navUtils';
+import { MODULE_THEMES, type ModuleTheme } from './moduleTheme';
+
+const LIST_TABS: NavTab[] = ['students', 'members'];
 
 interface Props {
   sections: NavMenuSection[];
   roleBadge: string;
   roleLabel: string;
+  theme?: ModuleTheme;
 }
 
 /** 업종별 사이드바 공통 렌더러 (권한 필터는 호출부에서 적용) */
-export const ModuleSidebar: React.FC<Props> = ({ sections, roleBadge, roleLabel }) => {
+export const ModuleSidebar: React.FC<Props> = ({
+  sections,
+  roleBadge,
+  roleLabel,
+  theme = 'indigo',
+}) => {
   const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
+  const t = MODULE_THEMES[theme];
 
   const handleTabClick = (tab: NavTab) => {
-    if (tab === 'students') setSelectedStudentId(null);
+    if (LIST_TABS.includes(tab)) setSelectedStudentId(null);
     setActiveTab(tab);
   };
 
@@ -31,15 +41,16 @@ export const ModuleSidebar: React.FC<Props> = ({ sections, roleBadge, roleLabel 
                 <button
                   key={item.tab}
                   id={`nav-${item.tab}`}
+                  type="button"
                   onClick={() => handleTabClick(item.tab)}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs transition-colors duration-150 cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs transition-colors duration-150 cursor-pointer ${
                     isActive
-                      ? 'bg-indigo-50 text-indigo-700 font-bold'
+                      ? t.sidebarActive
                       : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50 font-medium'
                   }`}
                 >
                   <div className="flex items-center gap-3">
-                    <span className={isActive ? 'text-indigo-600' : 'text-slate-400'}>
+                    <span className={isActive ? t.sidebarActiveIcon : 'text-slate-400'}>
                       {item.icon}
                     </span>
                     <span>{item.label}</span>
@@ -53,7 +64,9 @@ export const ModuleSidebar: React.FC<Props> = ({ sections, roleBadge, roleLabel 
 
       <div className="p-3.5 border-t border-slate-100 bg-slate-50/70">
         <div className="flex items-center gap-2.5 p-2 rounded-xl bg-white border border-slate-200/80 shadow-2xs">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 bg-indigo-600 text-white">
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${t.sidebarBadge}`}
+          >
             {roleBadge}
           </div>
           <div className="min-w-0">

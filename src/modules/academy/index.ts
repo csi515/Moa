@@ -12,3 +12,6 @@ export {
   getAcademySubjectOptions,
   getAcademySubjectLabel,
 } from './config/subjects';
+export { buildAcademyNavSections, buildAcademyBottomNavTabs } from './config/nav';
+export { useAcademyLearningContext } from './hooks/useAcademyLearningContext';
+export { resolveTargetStudents, resolveTargetStudentIds } from './utils/resolveTargetStudents';

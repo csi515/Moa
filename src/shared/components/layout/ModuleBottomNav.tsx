@@ -3,12 +3,16 @@ import { useApp, NavTab } from '@/context/AppContext';
 import { filterNavTabs, type NavMenuItem } from '@/core/auth/navUtils';
 import { MoreHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { MODULE_THEMES, type ModuleTheme } from './moduleTheme';
+
+const LIST_TABS: NavTab[] = ['students', 'members'];
 
 interface Props {
   mainTabs: NavMenuItem[];
   moreTabs: NavMenuItem[];
   allowedTabs: NavTab[];
   moreMenuSubtitle: string;
+  theme?: ModuleTheme;
 }
 
 /** 업종별 모바일 하단 네비 (더보기 시트 포함) */
@@ -17,9 +21,11 @@ export const ModuleBottomNav: React.FC<Props> = ({
   moreTabs,
   allowedTabs,
   moreMenuSubtitle,
+  theme = 'indigo',
 }) => {
   const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const t = MODULE_THEMES[theme];
 
   const visibleMain = filterNavTabs<NavMenuItem>(mainTabs, allowedTabs);
   const visibleMore = filterNavTabs<NavMenuItem>(moreTabs, allowedTabs);
@@ -27,12 +33,12 @@ export const ModuleBottomNav: React.FC<Props> = ({
   if (visibleMain.length === 0 && visibleMore.length === 0) return null;
 
   const handleTabClick = (tab: NavTab) => {
-    if (tab === 'students') setSelectedStudentId(null);
+    if (LIST_TABS.includes(tab)) setSelectedStudentId(null);
     setActiveTab(tab);
     setMoreMenuOpen(false);
   };
 
-  const isMoreActive = visibleMore.some((t) => t.tab === activeTab);
+  const isMoreActive = visibleMore.some((item) => item.tab === activeTab);
 
   return (
     <>
@@ -42,9 +48,10 @@ export const ModuleBottomNav: React.FC<Props> = ({
           return (
             <button
               key={item.tab}
+              type="button"
               onClick={() => handleTabClick(item.tab)}
               className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-                isActive ? 'text-indigo-600 font-bold scale-105' : 'text-slate-500 font-medium'
+                isActive ? t.bottomNavActive : 'text-slate-500 font-medium'
               }`}
             >
               {item.icon}
@@ -55,11 +62,10 @@ export const ModuleBottomNav: React.FC<Props> = ({
 
         {visibleMore.length > 0 && (
           <button
+            type="button"
             onClick={() => setMoreMenuOpen(!moreMenuOpen)}
             className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
-              moreMenuOpen || isMoreActive
-                ? 'text-indigo-600 font-bold scale-105'
-                : 'text-slate-500 font-medium'
+              moreMenuOpen || isMoreActive ? t.bottomNavActive : 'text-slate-500 font-medium'
             }`}
           >
             <MoreHorizontal className="w-5 h-5" />
@@ -89,6 +95,7 @@ export const ModuleBottomNav: React.FC<Props> = ({
                   <p className="text-xs text-slate-500">{moreMenuSubtitle}</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setMoreMenuOpen(false)}
                   className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full"
                   aria-label="메뉴 닫기"
@@ -103,16 +110,19 @@ export const ModuleBottomNav: React.FC<Props> = ({
                   return (
                     <button
                       key={item.tab}
+                      type="button"
                       onClick={() => handleTabClick(item.tab)}
                       className={`flex flex-col items-center justify-center min-h-[72px] p-3 rounded-2xl border transition-all text-center cursor-pointer ${
                         isActive
-                          ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-bold shadow-xs'
+                          ? t.bottomSheetActive
                           : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
                       }`}
                     >
                       <div
                         className={`p-2 rounded-xl mb-1.5 ${
-                          isActive ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 shadow-xs'
+                          isActive
+                            ? t.bottomSheetActiveIcon
+                            : 'bg-white text-slate-700 shadow-xs'
                         }`}
                       >
                         {item.icon}

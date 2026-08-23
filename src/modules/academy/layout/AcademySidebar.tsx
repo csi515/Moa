@@ -14,5 +14,7 @@ export const AcademySidebar: React.FC = () => {
     [labels, allowedTabs]
   );
 
-  return <ModuleSidebar sections={sections} roleBadge={roleBadge} roleLabel={roleLabel} />;
+  return (
+    <ModuleSidebar sections={sections} roleBadge={roleBadge} roleLabel={roleLabel} theme="indigo" />
+  );
 };

@@ -16,6 +16,7 @@ export const AcademyBottomNav: React.FC = () => {
       moreTabs={moreTabs}
       allowedTabs={allowedTabs}
       moreMenuSubtitle="종합학원 운영 메뉴를 선택하세요"
+      theme="indigo"
     />
   );
 };

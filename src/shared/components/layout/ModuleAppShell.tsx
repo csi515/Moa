@@ -11,11 +11,13 @@ import {
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
+import { MODULE_THEMES, type ModuleTheme } from './moduleTheme';
 
 interface Props {
   sidebar: ReactNode;
   bottomNav: ReactNode;
   children: ReactNode;
+  theme?: ModuleTheme;
   shellClassName?: string;
 }
 
@@ -24,10 +26,12 @@ export const ModuleAppShell: React.FC<Props> = ({
   sidebar,
   bottomNav,
   children,
-  shellClassName = 'min-h-screen bg-[#F1F5F9] text-slate-800 flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white',
+  theme = 'indigo',
+  shellClassName,
 }) => {
   const { isAdmin, isOwner } = usePermissions();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const resolvedShell = shellClassName ?? MODULE_THEMES[theme].shell;
 
   useEffect(() => {
     if (isAdmin) {
@@ -36,7 +40,7 @@ export const ModuleAppShell: React.FC<Props> = ({
   }, [isAdmin]);
 
   return (
-    <div className={shellClassName}>
+    <div className={resolvedShell}>
       {isSupabaseConfigured() && <SupabaseRoleSync />}
       <Header />
       <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
