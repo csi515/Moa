@@ -1,0 +1,131 @@
+import React, { useState } from 'react';
+import { useApp, NavTab } from '@/context/AppContext';
+import { filterNavTabs, type NavMenuItem } from '@/core/auth/navUtils';
+import { MoreHorizontal, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+
+interface Props {
+  mainTabs: NavMenuItem[];
+  moreTabs: NavMenuItem[];
+  allowedTabs: NavTab[];
+  moreMenuSubtitle: string;
+}
+
+/** 업종별 모바일 하단 네비 (더보기 시트 포함) */
+export const ModuleBottomNav: React.FC<Props> = ({
+  mainTabs,
+  moreTabs,
+  allowedTabs,
+  moreMenuSubtitle,
+}) => {
+  const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  const visibleMain = filterNavTabs<NavMenuItem>(mainTabs, allowedTabs);
+  const visibleMore = filterNavTabs<NavMenuItem>(moreTabs, allowedTabs);
+
+  if (visibleMain.length === 0 && visibleMore.length === 0) return null;
+
+  const handleTabClick = (tab: NavTab) => {
+    if (tab === 'students') setSelectedStudentId(null);
+    setActiveTab(tab);
+    setMoreMenuOpen(false);
+  };
+
+  const isMoreActive = visibleMore.some((t) => t.tab === activeTab);
+
+  return (
+    <>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1 flex items-center justify-around no-print safe-area-pb">
+        {visibleMain.map((item) => {
+          const isActive = activeTab === item.tab && !moreMenuOpen;
+          return (
+            <button
+              key={item.tab}
+              onClick={() => handleTabClick(item.tab)}
+              className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+                isActive ? 'text-indigo-600 font-bold scale-105' : 'text-slate-500 font-medium'
+              }`}
+            >
+              {item.icon}
+              <span className="text-[10px] mt-0.5">{item.label}</span>
+            </button>
+          );
+        })}
+
+        {visibleMore.length > 0 && (
+          <button
+            onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+            className={`flex flex-col items-center justify-center min-h-[44px] min-w-[44px] py-1 px-2 rounded-xl transition-all cursor-pointer ${
+              moreMenuOpen || isMoreActive
+                ? 'text-indigo-600 font-bold scale-105'
+                : 'text-slate-500 font-medium'
+            }`}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="text-[10px] mt-0.5">더보기</span>
+          </button>
+        )}
+      </nav>
+
+      <AnimatePresence>
+        {moreMenuOpen && (
+          <div
+            className="md:hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex flex-col justify-end"
+            onClick={() => setMoreMenuOpen(false)}
+            role="presentation"
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="bg-white rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl border-t border-slate-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">전체 메뉴</h3>
+                  <p className="text-xs text-slate-500">{moreMenuSubtitle}</p>
+                </div>
+                <button
+                  onClick={() => setMoreMenuOpen(false)}
+                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-700 bg-slate-100 rounded-full"
+                  aria-label="메뉴 닫기"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3 mt-4 pb-6">
+                {visibleMore.map((item) => {
+                  const isActive = activeTab === item.tab;
+                  return (
+                    <button
+                      key={item.tab}
+                      onClick={() => handleTabClick(item.tab)}
+                      className={`flex flex-col items-center justify-center min-h-[72px] p-3 rounded-2xl border transition-all text-center cursor-pointer ${
+                        isActive
+                          ? 'bg-indigo-50 border-indigo-300 text-indigo-700 font-bold shadow-xs'
+                          : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
+                      }`}
+                    >
+                      <div
+                        className={`p-2 rounded-xl mb-1.5 ${
+                          isActive ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 shadow-xs'
+                        }`}
+                      >
+                        {item.icon}
+                      </div>
+                      <span className="text-xs">{item.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+};
