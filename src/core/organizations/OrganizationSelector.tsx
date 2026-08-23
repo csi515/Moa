@@ -15,6 +15,7 @@ import { INDUSTRY_OPTIONS, getIndustryLabel, type IndustryType } from '../indust
 const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: string }>> = {
   piano: Piano,
   pilates: Activity,
+  skincare: Sparkles,
 };
 
 export const OrganizationSelector: React.FC = () => {

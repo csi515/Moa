@@ -33,6 +33,15 @@ export const PILATES_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'instructor_fee', label: '강사료' },
 ];
 
+/** 피부관리샵 추가 지출 카테고리 */
+export const SKINCARE_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'cosmetics', label: '화장품/앰플' },
+  { value: 'consumables', label: '일회용 소모품' },
+  { value: 'equipment', label: '장비/기기' },
+  { value: 'cleaning', label: '청소/위생' },
+  { value: 'education', label: '교육/세미나' },
+];
+
 /** 업종 공통 수입 카테고리 */
 export const COMMON_INCOME_CATEGORIES: CategoryOption[] = [
   { value: 'membership', label: '회원권/정기 수입' },
@@ -43,15 +52,29 @@ export const COMMON_INCOME_CATEGORIES: CategoryOption[] = [
   { value: 'other', label: '기타 수입' },
 ];
 
+/** 피부관리샵 추가 수입 카테고리 */
+export const SKINCARE_INCOME_CATEGORIES: CategoryOption[] = [
+  { value: 'care_program', label: '케어 프로그램(회차권)' },
+  { value: 'treatment', label: '시술/관리 매출' },
+  { value: 'product', label: '홈케어 제품 판매' },
+];
+
 export function getExpenseCategories(industry: IndustryType | string): CategoryOption[] {
   const base = [...COMMON_EXPENSE_CATEGORIES];
   if (industry === 'pilates') {
     return [...base, ...PILATES_EXPENSE_CATEGORIES];
   }
+  if (industry === 'skincare') {
+    return [...base, ...SKINCARE_EXPENSE_CATEGORIES];
+  }
   return [...base, ...PIANO_EXPENSE_CATEGORIES];
 }
 
-export function getIncomeCategories(_industry: IndustryType | string): CategoryOption[] {
+export function getIncomeCategories(industry: IndustryType | string): CategoryOption[] {
+  if (industry === 'skincare') {
+    const base = COMMON_INCOME_CATEGORIES.filter((c) => c.value !== 'product');
+    return [...base, ...SKINCARE_INCOME_CATEGORIES];
+  }
   return COMMON_INCOME_CATEGORIES;
 }
 

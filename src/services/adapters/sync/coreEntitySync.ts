@@ -39,7 +39,8 @@ import {
   teacherToStaffRow,
 } from './entityMappers';
 import type { Booking, ServiceOffering } from '../../../core/types/schedule';
-import { normalizeIndustryType } from '../../../core/industry/types';
+import { normalizeIndustryType, isBookingIndustry } from '../../../core/industry/types';
+import { getIndustryType } from '../storageContext';
 import {
   expenseToCoreRow,
   coreRowToExpense,
@@ -151,10 +152,9 @@ export async function hydrateCoreEntities(
     industryType === 'piano'
       ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
       : [];
-  const serviceOfferings =
-    industryType === 'pilates'
-      ? serviceRows.map(serviceRowToOffering)
-      : [];
+  const serviceOfferings = isBookingIndustry(industryType)
+    ? serviceRows.map(serviceRowToOffering)
+    : [];
 
   const bookings = (schedulesResult.data || []).map(scheduleRowToBooking);
   const invoices = (paymentsResult.data || []).map(paymentRowToInvoice);
@@ -222,7 +222,7 @@ export async function persistCoreEntity(
     case STORAGE_KEYS.CLASSES:
       return persistServices(client, organizationId, cache, 'piano');
     case STORAGE_KEYS.SERVICE_OFFERINGS:
-      return persistServices(client, organizationId, cache, 'pilates');
+      return persistServices(client, organizationId, cache, 'booking');
     case STORAGE_KEYS.SCHEDULES:
       return persistSchedules(client, organizationId, cache);
     case STORAGE_KEYS.INVOICES:
@@ -345,7 +345,7 @@ async function persistServices(
   client: CoreClient,
   orgId: string,
   cache: SyncCache,
-  mode: 'piano' | 'pilates'
+  mode: 'piano' | 'booking'
 ): Promise<void> {
   if (mode === 'piano') {
     const classes = cache.get<ClassItem[]>(STORAGE_KEYS.CLASSES) || [];
@@ -368,9 +368,13 @@ async function persistServices(
   }
 
   const offerings = cache.get<ServiceOffering[]>(STORAGE_KEYS.SERVICE_OFFERINGS) || [];
+  const industry = getIndustryType();
+  const moduleType = industry === 'skincare' ? 'skincare' : 'pilates';
   await syncTable(client, 'services', orgId, offerings.map((o) => o.id), async () => {
     for (const offering of offerings) {
-      const { error } = await client.from('services').upsert(serviceOfferingToRow(offering, orgId));
+      const { error } = await client
+        .from('services')
+        .upsert(serviceOfferingToRow(offering, orgId, moduleType));
       if (error) console.error('Failed to upsert service offering:', error);
     }
   });

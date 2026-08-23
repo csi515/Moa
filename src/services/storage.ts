@@ -24,6 +24,7 @@ import { createParentEducationStorage } from './storage/parentEducationStorage';
 import { createAttendanceStorage } from './storage/attendanceStorage';
 import { createFinanceStorage } from './storage/financeStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
+import { createCareProgramStorage } from './storage/careProgramStorage';
 import type { StorageApi } from './storage/helpers';
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
@@ -884,7 +885,7 @@ const storageCore = {
 
   isNewOrganization(): boolean {
     const industry = getIndustryType();
-    if (industry === 'pilates') {
+    if (industry === 'pilates' || industry === 'skincare') {
       return (
         this.getStudents().length === 0 &&
         this.getServiceOfferings().length === 0 &&
@@ -988,5 +989,6 @@ export const StorageService = Object.assign(
   createParentEducationStorage(storageCore as StorageApi),
   createAttendanceStorage(storageCore as StorageApi),
   createFinanceStorage(storageCore as StorageApi),
-  createTextbookStorage(storageCore as StorageApi)
+  createTextbookStorage(storageCore as StorageApi),
+  createCareProgramStorage(storageCore as StorageApi)
 );

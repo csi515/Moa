@@ -6,6 +6,7 @@ import type { AttendanceModuleSettings } from './types';
 const INDUSTRY_ATTENDANCE_DEFAULT: Record<IndustryType, boolean> = {
   piano: true,
   pilates: false,
+  skincare: false,
 };
 
 export function getDefaultAttendanceSettings(industry: IndustryType): AttendanceModuleSettings {
@@ -17,7 +18,8 @@ export function isAttendanceModuleEnabled(
   settings: AcademySettings | null | undefined,
   industry: IndustryType | string | null | undefined
 ): boolean {
-  const industryType = industry === 'pilates' ? 'pilates' : 'piano';
+  const industryType =
+    industry === 'pilates' ? 'pilates' : industry === 'skincare' ? 'skincare' : 'piano';
   const featureFlag = settings?.features?.attendance?.enabled;
   if (typeof featureFlag === 'boolean') return featureFlag;
   return INDUSTRY_ATTENDANCE_DEFAULT[industryType];

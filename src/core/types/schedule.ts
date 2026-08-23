@@ -2,6 +2,15 @@
 
 export type BookingStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 
+export type ServiceCategory =
+  | 'private'
+  | 'group'
+  | 'reformer'
+  | 'facial'
+  | 'body'
+  | 'package'
+  | 'other';
+
 export interface ServiceOffering {
   id: string;
   name: string;
@@ -9,7 +18,7 @@ export interface ServiceOffering {
   price: number;
   durationMinutes: number;
   maxCapacity: number;
-  category: 'private' | 'group' | 'reformer' | 'other';
+  category: ServiceCategory;
   isActive: boolean;
   isSchedulable: boolean;
 }
