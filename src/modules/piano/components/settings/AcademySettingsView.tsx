@@ -5,6 +5,7 @@ import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { AcademySettings } from '@/types';
 import { getDefaultAttendanceSettings } from '@/core/attendance/features';
+import { getProductModuleSettings } from '@/core/products/features';
 import {
   Settings,
   Building,
@@ -12,6 +13,7 @@ import {
   Download,
   Upload,
   ShieldCheck,
+  Package,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
@@ -22,6 +24,12 @@ export const AcademySettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
   const attendanceDefaults = getDefaultAttendanceSettings(industry);
   const attendanceEnabled = settings.features?.attendance?.enabled ?? attendanceDefaults.enabled;
+  const productDefaults = getProductModuleSettings(settings, industry);
+  const productsEnabled = settings.features?.products?.enabled ?? productDefaults.enabled;
+  const productCaps = {
+    ...productDefaults.capabilities,
+    ...settings.features?.products?.capabilities,
+  };
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,6 +235,173 @@ export const AcademySettingsView: React.FC = () => {
                   />
                 </button>
               </div>
+            </div>
+
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                    <Package className="w-3.5 h-3.5" />
+                    상품 카탈로그 Module
+                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    매장별 상품 등록·판매·리포트. 유형은 상품 화면에서 자유롭게 추가
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={productsEnabled}
+                  onClick={() =>
+                    setSettings({
+                      ...settings,
+                      features: {
+                        ...settings.features,
+                        products: {
+                          ...settings.features?.products,
+                          enabled: !productsEnabled,
+                          labels: settings.features?.products?.labels || productDefaults.labels,
+                          productTypes:
+                            settings.features?.products?.productTypes ||
+                            productDefaults.productTypes,
+                          capabilities: productCaps,
+                        },
+                      },
+                    })
+                  }
+                  className={`relative w-12 h-7 rounded-full transition-colors ${
+                    productsEnabled ? 'bg-amber-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                      productsEnabled ? 'translate-x-5' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {productsEnabled && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {(
+                    [
+                      ['canCreate', '등록'],
+                      ['canEdit', '수정'],
+                      ['canDelete', '삭제'],
+                      ['canSell', '판매'],
+                      ['trackInventory', '재고'],
+                      ['showReport', '리포트'],
+                    ] as const
+                  ).map(([key, label]) => (
+                    <label
+                      key={key}
+                      className="flex items-center gap-2 px-3 py-2 min-h-[44px] rounded-xl bg-slate-50 border border-slate-100 text-xs font-semibold text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={productCaps[key] !== false}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            features: {
+                              ...settings.features,
+                              products: {
+                                ...settings.features?.products,
+                                enabled: true,
+                                labels:
+                                  settings.features?.products?.labels || productDefaults.labels,
+                                productTypes:
+                                  settings.features?.products?.productTypes ||
+                                  productDefaults.productTypes,
+                                capabilities: {
+                                  ...productCaps,
+                                  [key]: e.target.checked,
+                                },
+                              },
+                            },
+                          })
+                        }
+                        className="rounded"
+                      />
+                      {label} 허용
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {productsEnabled && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      메뉴 이름
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        settings.features?.products?.labels?.catalog ||
+                        productDefaults.labels.catalog
+                      }
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          features: {
+                            ...settings.features,
+                            products: {
+                              ...settings.features?.products,
+                              enabled: true,
+                              capabilities: productCaps,
+                              productTypes:
+                                settings.features?.products?.productTypes ||
+                                productDefaults.productTypes,
+                              labels: {
+                                ...productDefaults.labels,
+                                ...settings.features?.products?.labels,
+                                catalog: e.target.value,
+                              },
+                            },
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      단수 명칭
+                    </label>
+                    <input
+                      type="text"
+                      value={
+                        settings.features?.products?.labels?.singular ||
+                        productDefaults.labels.singular
+                      }
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          features: {
+                            ...settings.features,
+                            products: {
+                              ...settings.features?.products,
+                              enabled: true,
+                              capabilities: productCaps,
+                              productTypes:
+                                settings.features?.products?.productTypes ||
+                                productDefaults.productTypes,
+                              labels: {
+                                ...productDefaults.labels,
+                                ...settings.features?.products?.labels,
+                                singular: e.target.value,
+                              },
+                            },
+                          },
+                        })
+                      }
+                      className="w-full px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl"
+                      placeholder="상품 / 제품 / 교보재"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">

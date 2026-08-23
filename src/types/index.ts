@@ -481,5 +481,24 @@ export interface AcademySettings {
     attendance?: {
       enabled?: boolean;
     };
+    /** 매장별 맞춤 상품 카탈로그 */
+    products?: {
+      enabled?: boolean;
+      labels?: {
+        catalog?: string;
+        singular?: string;
+        sales?: string;
+        report?: string;
+      };
+      productTypes?: { id: string; label: string }[];
+      capabilities?: {
+        canCreate?: boolean;
+        canEdit?: boolean;
+        canDelete?: boolean;
+        canSell?: boolean;
+        trackInventory?: boolean;
+        showReport?: boolean;
+      };
+    };
   };
 }

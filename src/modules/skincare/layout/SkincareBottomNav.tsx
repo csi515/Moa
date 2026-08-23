@@ -17,6 +17,7 @@ import {
   BarChart3,
   TrendingUp,
   Receipt,
+  Package,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -43,6 +44,7 @@ export const SkincareBottomNav: React.FC = () => {
   const moreTabs = filterNavTabs(
     [
       { tab: 'services', label: '시술 메뉴', icon: <Sparkles className="w-5 h-5" /> },
+      { tab: 'products', label: '제품', icon: <Package className="w-5 h-5" /> },
       { tab: 'consultations', label: '상담 기록', icon: <MessageSquareText className="w-5 h-5" /> },
       { tab: 'instructors', label: '관리사', icon: <Activity className="w-5 h-5" /> },
       { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-5 h-5" /> },

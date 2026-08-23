@@ -28,11 +28,21 @@ export function usePermissions() {
 
   const allowedTabs = useMemo(
     () => getAllowedTabs(role, industry, settings),
-    [role, industry, settings.features?.attendance?.enabled]
+    [
+      role,
+      industry,
+      settings.features?.attendance?.enabled,
+      settings.features?.products?.enabled,
+    ]
   );
 
   const attendanceEnabled = useMemo(
     () => allowedTabs.includes('attendance'),
+    [allowedTabs]
+  );
+
+  const productsEnabled = useMemo(
+    () => allowedTabs.includes('products'),
     [allowedTabs]
   );
 
@@ -43,6 +53,7 @@ export function usePermissions() {
     industry,
     settings,
     attendanceEnabled,
+    productsEnabled,
     isAdmin: isOrgAdmin(role),
     isOwner: isOrgOwner(role),
     isStaff: isStaffRole(role),
