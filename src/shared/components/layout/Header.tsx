@@ -7,6 +7,7 @@ import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
+import { HeaderBackupButton } from '@/core/backup';
 import { Search, Music, Shield, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
@@ -141,6 +142,7 @@ export const Header: React.FC = () => {
             </button>
           )}
           <OrganizationSwitcher />
+          <HeaderBackupButton />
           <PwaInstallPrompt />
 
           <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">

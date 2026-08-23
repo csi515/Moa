@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { downloadStoreBackupFile } from '@/core/backup';
 import {
   Plus,
   UserPlus,
@@ -8,14 +9,25 @@ import {
   Receipt,
   BookOpen,
   TrendingUp,
+  Download,
 } from 'lucide-react';
 
 export const DirectorFloatingFab: React.FC = () => {
-  const { setActiveTab } = useApp();
+  const { setActiveTab, showToast } = useApp();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleAction = (tab: Parameters<typeof setActiveTab>[0]) => {
     setActiveTab(tab);
+    setIsOpen(false);
+  };
+
+  const handleBackup = () => {
+    try {
+      const { fileName } = downloadStoreBackupFile();
+      showToast(`백업 파일이 컴퓨터에 저장되었습니다. (${fileName})`, 'success');
+    } catch {
+      showToast('백업 다운로드에 실패했습니다.', 'error');
+    }
     setIsOpen(false);
   };
 
@@ -26,6 +38,17 @@ export const DirectorFloatingFab: React.FC = () => {
           <div className="bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg mb-1">
             ⚡ 빠른 실행 메뉴
           </div>
+
+          <button
+            type="button"
+            onClick={handleBackup}
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-emerald-50 hover:text-emerald-700 transition-all active:scale-95"
+          >
+            <span>매장 백업 다운로드</span>
+            <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center">
+              <Download className="w-4 h-4" />
+            </div>
+          </button>
 
           <button
             type="button"
