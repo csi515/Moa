@@ -6,5 +6,12 @@ export {
   isValidOrganizationPublicCode,
   getOrganizationPublicCodeError,
   getPublicBookingUrl,
+  parsePublicBookingCode,
+  isPublicBookingRoute,
 } from './publicCode';
+export {
+  ORGANIZATION_PUBLIC_CODE_ERROR_MESSAGES,
+  getOrganizationPublicCodeRpcErrorMessage,
+} from './publicCodeErrors';
 export { OrganizationPublicCodeEditor } from './components/OrganizationPublicCodeEditor';
+export { updateOrganizationPublicCode, type UpdatePublicCodeResult } from './services/organizationPublicCodeService';

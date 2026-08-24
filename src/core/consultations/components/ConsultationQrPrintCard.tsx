@@ -1,11 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
-import { CalendarDays, Clock, Phone, Printer, QrCode, User } from 'lucide-react';
+import { Printer, QrCode } from 'lucide-react';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { getPublicBookingUrl } from '@/core/organizations/publicCode';
 
 interface Props {
-  publicCode: string | null | undefined;
+  publicCode: string;
   enabled: boolean;
 }
 
@@ -14,32 +14,13 @@ export const ConsultationQrPrintCard: React.FC<Props> = ({ publicCode, enabled }
   const { currentOrganization } = useOrganization();
   const [qrDataUrl, setQrDataUrl] = useState('');
 
-  const bookingUrl = useMemo(
-    () => (publicCode ? getPublicBookingUrl(publicCode) : ''),
-    [publicCode]
-  );
+  const bookingUrl = useMemo(() => getPublicBookingUrl(publicCode), [publicCode]);
 
   useEffect(() => {
-    if (!bookingUrl) {
-      setQrDataUrl('');
-      return;
-    }
     QRCode.toDataURL(bookingUrl, { width: 240, margin: 2 })
       .then(setQrDataUrl)
       .catch(() => setQrDataUrl(''));
   }, [bookingUrl]);
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  if (!publicCode) {
-    return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        업체 코드가 없어 QR 링크를 만들 수 없습니다. 잠시 후 다시 시도해 주세요.
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -78,7 +59,7 @@ export const ConsultationQrPrintCard: React.FC<Props> = ({ publicCode, enabled }
 
       <button
         type="button"
-        onClick={handlePrint}
+        onClick={() => window.print()}
         className="inline-flex items-center gap-2 min-h-[44px] px-4 py-2 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 print:hidden"
       >
         <Printer className="w-4 h-4" />
@@ -87,66 +68,3 @@ export const ConsultationQrPrintCard: React.FC<Props> = ({ publicCode, enabled }
     </div>
   );
 };
-
-/** 신청 카드 (관리자 목록용) */
-export const ConsultationRequestCard: React.FC<{
-  name: string;
-  phone: string;
-  content: string;
-  preferredDate: string;
-  preferredTime: string;
-  statusLabel: string;
-  statusClassName: string;
-  adminMemo?: string;
-  actions?: React.ReactNode;
-}> = ({
-  name,
-  phone,
-  content,
-  preferredDate,
-  preferredTime,
-  statusLabel,
-  statusClassName,
-  adminMemo,
-  actions,
-}) => (
-  <article className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
-    <div className="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        <p className="font-bold text-slate-900 flex items-center gap-2">
-          <User className="w-4 h-4 text-slate-400" />
-          {name}
-        </p>
-        <a
-          href={`tel:${phone}`}
-          className="text-sm text-indigo-600 font-medium inline-flex items-center gap-1 mt-1 min-h-[44px]"
-        >
-          <Phone className="w-3.5 h-3.5" />
-          {phone}
-        </a>
-      </div>
-      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${statusClassName}`}>
-        {statusLabel}
-      </span>
-    </div>
-
-    <div className="flex flex-wrap gap-3 text-xs text-slate-600">
-      <span className="inline-flex items-center gap-1">
-        <CalendarDays className="w-3.5 h-3.5" />
-        {preferredDate}
-      </span>
-      <span className="inline-flex items-center gap-1">
-        <Clock className="w-3.5 h-3.5" />
-        {preferredTime}
-      </span>
-    </div>
-
-    <p className="text-sm text-slate-700 whitespace-pre-wrap">{content}</p>
-
-    {adminMemo && (
-      <p className="text-xs text-slate-500 bg-slate-50 rounded-lg p-2">메모: {adminMemo}</p>
-    )}
-
-    {actions}
-  </article>
-);

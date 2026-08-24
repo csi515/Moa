@@ -6,7 +6,8 @@ import {
   ORGANIZATION_PUBLIC_CODE_MAX_LENGTH,
   ORGANIZATION_PUBLIC_CODE_MIN_LENGTH,
 } from '../publicCode';
-import { updateOrganizationPublicCode } from '../services/organizationService';
+import { updateOrganizationPublicCode } from '../services/organizationPublicCodeService';
+import { getOrganizationPublicCodeRpcErrorMessage } from '../publicCodeErrors';
 
 interface Props {
   organizationId: string;
@@ -42,14 +43,7 @@ export const OrganizationPublicCodeEditor: React.FC<Props> = ({
     setSaving(false);
 
     if ('error' in result) {
-      const messages: Record<string, string> = {
-        already_taken: '이미 사용 중인 업체 코드입니다.',
-        invalid_format: '업체 코드 형식이 올바르지 않습니다.',
-        forbidden: '업체 코드를 변경할 권한이 없습니다.',
-        not_found: 'Organization을 찾을 수 없습니다.',
-        not_authenticated: '로그인이 필요합니다.',
-      };
-      setError(messages[result.error] ?? '업체 코드 변경에 실패했습니다.');
+      setError(getOrganizationPublicCodeRpcErrorMessage(result.error));
       return;
     }
 

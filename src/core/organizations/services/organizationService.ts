@@ -1,5 +1,8 @@
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
+import { buildOrganizationSlug } from './organizationSlug';
+
+export { updateOrganizationPublicCode, type UpdatePublicCodeResult } from './organizationPublicCodeService';
 
 const ORG_STORAGE_KEY = 'moa_current_organization_id';
 
@@ -68,52 +71,15 @@ export async function createOrganization(
   name: string,
   industryType = 'piano'
 ): Promise<string> {
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40) || `org-${Date.now()}`;
-
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: name.trim(),
     p_industry_type: industryType,
-    p_slug: slug,
+    p_slug: buildOrganizationSlug(name),
   });
 
   if (error) throw error;
   if (!data) throw new Error('Organization 생성에 실패했습니다.');
   return data as string;
-}
-
-export type UpdatePublicCodeResult =
-  | { success: true; publicCode: string }
-  | { error: string };
-
-/** 업체 공개 코드 변경 (DB 유일성 검증) */
-export async function updateOrganizationPublicCode(
-  organizationId: string,
-  publicCode: string
-): Promise<UpdatePublicCodeResult> {
-  const { data, error } = await getCoreClient().rpc(
-    'update_organization_public_code' as never,
-    {
-      p_organization_id: organizationId,
-      p_public_code: publicCode,
-    } as never
-  );
-
-  if (error) {
-    console.error('update_organization_public_code failed:', error);
-    return { error: 'request_failed' };
-  }
-
-  const row = data as { error?: string; success?: boolean; publicCode?: string } | null;
-  if (!row?.success || !row.publicCode) {
-    return { error: row?.error ?? 'request_failed' };
-  }
-
-  return { success: true, publicCode: row.publicCode };
 }
 
 /** org 멤버 role 라벨 */

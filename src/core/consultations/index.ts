@@ -12,6 +12,9 @@ export {
 } from './types';
 export { ConsultationBookingAdminView } from './components/ConsultationBookingAdminView';
 export { PublicConsultationBookingPage } from './public/PublicConsultationBookingPage';
-export { isPublicBookingRoute, parsePublicBookingCode } from './public/bookingRouteConfig';
-export { getPublicBookingUrl } from '@/core/organizations/publicCode';
+export {
+  isPublicBookingRoute,
+  parsePublicBookingCode,
+  getPublicBookingUrl,
+} from '@/core/organizations/publicCode';
 export { getAvailableSlotsForDate, getSelectableDates } from './slotUtils';

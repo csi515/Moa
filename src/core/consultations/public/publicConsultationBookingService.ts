@@ -1,16 +1,13 @@
 import { getCoreClient } from '@/lib/supabase';
-import {
-  DEFAULT_CONSULTATION_BOOKING_SETTINGS,
-  type ConsultationBookingSettings,
-  type PublicConsultationBookingContext,
-} from '../types';
+import { normalizeConsultationBookingSettings } from '../settingsUtils';
+import type { PublicConsultationBookingContext } from '../types';
 
 interface RpcContextRow {
   error?: string;
   organizationId?: string;
   organizationName?: string;
   publicCode?: string;
-  settings?: Partial<ConsultationBookingSettings>;
+  settings?: Parameters<typeof normalizeConsultationBookingSettings>[0];
   bookedSlots?: { date: string; time: string }[];
 }
 
@@ -18,19 +15,6 @@ interface RpcSubmitRow {
   error?: string;
   success?: boolean;
   id?: string;
-}
-
-function normalizeSettings(raw?: Partial<ConsultationBookingSettings>): ConsultationBookingSettings {
-  if (!raw) return DEFAULT_CONSULTATION_BOOKING_SETTINGS;
-  return {
-    ...DEFAULT_CONSULTATION_BOOKING_SETTINGS,
-    ...raw,
-    weeklyAvailability:
-      raw.weeklyAvailability?.length === 7
-        ? raw.weeklyAvailability
-        : DEFAULT_CONSULTATION_BOOKING_SETTINGS.weeklyAvailability,
-    blockedDates: raw.blockedDates ?? [],
-  };
 }
 
 /** QR 공개 페이지 — 업체 코드로 예약 컨텍스트 조회 */
@@ -56,7 +40,7 @@ export async function fetchPublicConsultationBookingContext(
     organizationId: row.organizationId!,
     organizationName: row.organizationName ?? '',
     publicCode: row.publicCode ?? publicCode,
-    settings: normalizeSettings(row.settings),
+    settings: normalizeConsultationBookingSettings(row.settings),
     bookedSlots: row.bookedSlots ?? [],
   };
 }

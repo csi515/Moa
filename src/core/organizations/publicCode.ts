@@ -8,6 +8,7 @@ export const ORGANIZATION_PUBLIC_CODE_MAX_LENGTH = 16;
 export const ORGANIZATION_PUBLIC_CODE_DEFAULT_LENGTH = 10;
 
 const FORMAT_REGEX = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8,16}$/;
+const PUBLIC_BOOKING_PATH = /^\/book\/([^/]+)\/?$/;
 
 /** 입력값을 허용 문자만 남기고 대문자로 정규화 */
 export function normalizeOrganizationPublicCode(input: string): string {
@@ -40,4 +41,15 @@ export function getOrganizationPublicCodeError(code: string): string | null {
 export function getPublicBookingUrl(publicCode: string): string {
   const normalized = normalizeOrganizationPublicCode(publicCode);
   return `${window.location.origin}/book/${encodeURIComponent(normalized)}`;
+}
+
+/** URL 경로에서 업체 코드 추출 */
+export function parsePublicBookingCode(): string | null {
+  const match = window.location.pathname.match(PUBLIC_BOOKING_PATH);
+  if (!match) return null;
+  return decodeURIComponent(match[1]).toUpperCase();
+}
+
+export function isPublicBookingRoute(): boolean {
+  return parsePublicBookingCode() !== null;
 }
