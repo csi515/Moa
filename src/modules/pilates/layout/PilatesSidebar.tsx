@@ -13,6 +13,7 @@ import {
   BarChart3,
   TrendingUp,
   Receipt,
+  QrCode,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -52,6 +53,12 @@ export const PilatesSidebar: React.FC = () => {
         { tab: 'finance', label: '재무 요약', icon: <BarChart3 className="w-4 h-4" /> },
         { tab: 'income', label: '수입 관리', icon: <TrendingUp className="w-4 h-4" /> },
         { tab: 'expenses', label: '지출 관리', icon: <Receipt className="w-4 h-4" /> },
+      ],
+    },
+    {
+      title: '고객 유입',
+      items: [
+        { tab: 'consultationBooking', label: '상담 예약', icon: <QrCode className="w-4 h-4" /> },
       ],
     },
     {

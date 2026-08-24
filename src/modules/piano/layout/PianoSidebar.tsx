@@ -25,6 +25,7 @@ import {
   BarChart3,
   TrendingUp,
   FileText,
+  QrCode,
 } from 'lucide-react';
 
 interface MenuItem {
@@ -66,6 +67,7 @@ export const PianoSidebar: React.FC = () => {
         { tab: 'lessons', label: '레슨 기록', icon: <Piano className="w-4 h-4" /> },
         { tab: 'practice', label: '연습 기록', icon: <BookOpenCheck className="w-4 h-4" /> },
         { tab: 'consultations', label: '상담 이력', icon: <MessageSquareText className="w-4 h-4" /> },
+        { tab: 'consultationBooking', label: '상담 예약', icon: <QrCode className="w-4 h-4" /> },
         { tab: 'resources', label: '교재 및 곡 관리', icon: <Music2 className="w-4 h-4" /> },
       ],
     },

@@ -56,6 +56,12 @@ import type { AttendanceSession } from '../../../core/attendance/types';
 import type { ParentStudentLink } from '../../../core/parent/types';
 import { linkToRow, rowToLink } from './parentLinkEntityMappers';
 import { diffIds } from './utils';
+import type { ConsultationBookingRequest, ConsultationBookingSettings } from '../../../core/consultations/types';
+import {
+  consultationBookingRequestRowToApp,
+  consultationBookingRequestToRow,
+  parseConsultationBookingSettings,
+} from './consultationBookingMappers';
 
 type CoreClient = SupabaseClient<Database, 'core'>;
 
@@ -88,6 +94,7 @@ export async function hydrateCoreEntities(
     notificationsResult,
     attendanceSessionsResult,
     parentLinksResult,
+    bookingRequestsResult,
   ] = await Promise.all([
     client.from('organizations').select('settings, name, industry_type').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
@@ -102,6 +109,10 @@ export async function hydrateCoreEntities(
     client.from('notifications').select('*').eq('organization_id', organizationId),
     client.from('attendance_sessions').select('*').eq('organization_id', organizationId),
     client.from('parent_student_links').select('*').eq('organization_id', organizationId),
+    (client.from('consultation_booking_requests' as never) as ReturnType<CoreClient['from']>)
+      .select('*')
+      .eq('organization_id', organizationId)
+      .order('created_at', { ascending: false }),
   ]);
 
   logErrors({
@@ -118,6 +129,7 @@ export async function hydrateCoreEntities(
     notifications: notificationsResult.error,
     attendanceSessions: attendanceSessionsResult.error,
     parentLinks: parentLinksResult.error,
+    bookingRequests: bookingRequestsResult.error,
   });
 
   const defaultSettings = readLocal<AcademySettings>(STORAGE_KEYS.SETTINGS, {
@@ -128,6 +140,11 @@ export async function hydrateCoreEntities(
   });
   const settings = parseOrganizationSettings(orgResult.data?.settings, defaultSettings);
   if (!settings.name && orgResult.data?.name) settings.name = orgResult.data.name;
+
+  const consultationBookingSettings = parseConsultationBookingSettings(orgResult.data?.settings);
+  const consultationBookingRequests = (bookingRequestsResult.data || []).map((row) =>
+    consultationBookingRequestRowToApp(row as Parameters<typeof consultationBookingRequestRowToApp>[0])
+  );
 
   const teachers = (staffResult.data || []).map(staffRowToTeacher);
 
@@ -195,6 +212,8 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.ATTENDANCE_SESSIONS, attendanceSessions],
     [STORAGE_KEYS.CUSTOMER_PINS, customerPins],
     [STORAGE_KEYS.PARENT_STUDENT_LINKS, parentStudentLinks],
+    [STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS, consultationBookingSettings],
+    [STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS, consultationBookingRequests],
   ];
 
   for (const [key, value] of entities) {
@@ -241,6 +260,10 @@ export async function persistCoreEntity(
       return persistCustomerPins(client, organizationId, cache);
     case STORAGE_KEYS.PARENT_STUDENT_LINKS:
       return persistParentStudentLinks(client, organizationId, cache);
+    case STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS:
+      return persistConsultationBookingSettings(client, organizationId, cache);
+    case STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS:
+      return persistConsultationBookingRequests(client, organizationId, cache);
     default:
       return;
   }
@@ -556,6 +579,80 @@ async function persistParentStudentLinks(
   }
 
   writeLocal(STORAGE_KEYS.PARENT_STUDENT_LINKS, links);
+}
+
+async function persistConsultationBookingSettings(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const bookingSettings = cache.get<ConsultationBookingSettings>(
+    STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS
+  );
+  if (!bookingSettings) return;
+
+  const { data: org, error: fetchError } = await client
+    .from('organizations')
+    .select('settings')
+    .eq('id', orgId)
+    .single();
+
+  if (fetchError) {
+    console.error('Failed to fetch org settings for consultation booking:', fetchError);
+    return;
+  }
+
+  const current =
+    org?.settings && typeof org.settings === 'object' && !Array.isArray(org.settings)
+      ? (org.settings as Record<string, unknown>)
+      : {};
+
+  const { error } = await client
+    .from('organizations')
+    .update({
+      settings: {
+        ...current,
+        consultationBooking: bookingSettings,
+      } as never,
+    })
+    .eq('id', orgId);
+
+  if (error) console.error('Failed to persist consultation booking settings:', error);
+  writeLocal(STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS, bookingSettings);
+}
+
+async function persistConsultationBookingRequests(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  const requests = cache.get<ConsultationBookingRequest[]>(
+    STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS
+  ) || [];
+
+  const table = client.from('consultation_booking_requests' as never);
+
+  const { data: existing, error: fetchError } = await table
+    .select('id')
+    .eq('organization_id', orgId);
+
+  if (fetchError) {
+    console.error('Failed to fetch consultation booking requests:', fetchError);
+    return;
+  }
+
+  const toDelete = diffIds((existing || []).map((r: { id: string }) => r.id), requests.map((r) => r.id));
+  if (toDelete.length > 0) {
+    const { error: deleteError } = await table.delete().in('id', toDelete);
+    if (deleteError) console.error('Failed to delete consultation booking requests:', deleteError);
+  }
+
+  for (const req of requests) {
+    const { error } = await table.upsert(consultationBookingRequestToRow(req, orgId) as never);
+    if (error) console.error('Failed to upsert consultation booking request:', error);
+  }
+
+  writeLocal(STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS, requests);
 }
 
 async function syncTable(

@@ -27,6 +27,7 @@ import {
   BarChart3,
   TrendingUp,
   FileText,
+  QrCode,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -60,6 +61,7 @@ export const PianoBottomNav: React.FC = () => {
     { tab: 'lessons', label: '레슨 기록', icon: <Piano className="w-5 h-5" /> },
     { tab: 'practice', label: '연습 기록', icon: <BookOpenCheck className="w-5 h-5" /> },
     { tab: 'consultations', label: '상담 이력', icon: <MessageSquareText className="w-5 h-5" /> },
+    { tab: 'consultationBooking', label: '상담 예약', icon: <QrCode className="w-5 h-5" /> },
     { tab: 'resources', label: '교재/곡 자료실', icon: <Music2 className="w-5 h-5" /> },
     { tab: 'teachers', label: labels.staff.management, icon: <GraduationCap className="w-5 h-5" /> },
     { tab: 'calendar', label: '학원 캘린더', icon: <Calendar className="w-5 h-5" /> },
