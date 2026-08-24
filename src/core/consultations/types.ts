@@ -40,6 +40,7 @@ export interface BookedSlot {
 export interface PublicConsultationBookingContext {
   organizationId: string;
   organizationName: string;
+  publicCode: string;
   settings: ConsultationBookingSettings;
   bookedSlots: BookedSlot[];
 }

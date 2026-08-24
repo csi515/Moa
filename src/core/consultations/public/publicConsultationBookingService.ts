@@ -9,6 +9,7 @@ interface RpcContextRow {
   error?: string;
   organizationId?: string;
   organizationName?: string;
+  publicCode?: string;
   settings?: Partial<ConsultationBookingSettings>;
   bookedSlots?: { date: string; time: string }[];
 }
@@ -32,13 +33,13 @@ function normalizeSettings(raw?: Partial<ConsultationBookingSettings>): Consulta
   };
 }
 
-/** QR 공개 페이지 — org slug로 예약 컨텍스트 조회 */
+/** QR 공개 페이지 — 업체 코드로 예약 컨텍스트 조회 */
 export async function fetchPublicConsultationBookingContext(
-  slug: string
+  publicCode: string
 ): Promise<PublicConsultationBookingContext | { error: string }> {
   const { data, error } = await getCoreClient().rpc(
     'public_get_consultation_booking_context' as never,
-    { p_slug: slug } as never
+    { p_public_code: publicCode } as never
   );
 
   if (error) {
@@ -54,6 +55,7 @@ export async function fetchPublicConsultationBookingContext(
   return {
     organizationId: row.organizationId!,
     organizationName: row.organizationName ?? '',
+    publicCode: row.publicCode ?? publicCode,
     settings: normalizeSettings(row.settings),
     bookedSlots: row.bookedSlots ?? [],
   };
@@ -61,7 +63,7 @@ export async function fetchPublicConsultationBookingContext(
 
 /** QR 공개 페이지 — 상담 예약 제출 */
 export async function submitPublicConsultationBooking(input: {
-  slug: string;
+  publicCode: string;
   name: string;
   phone: string;
   content: string;
@@ -71,7 +73,7 @@ export async function submitPublicConsultationBooking(input: {
   const { data, error } = await getCoreClient().rpc(
     'public_submit_consultation_booking' as never,
     {
-      p_slug: input.slug,
+      p_public_code: input.publicCode,
       p_name: input.name.trim(),
       p_phone: input.phone.trim(),
       p_content: input.content.trim(),

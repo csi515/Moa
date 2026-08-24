@@ -1,15 +1,13 @@
-/** 공개 상담 예약 URL (/book/:slug) */
-export function parsePublicBookingSlug(): string | null {
+/** 공개 상담 예약 URL (/book/:publicCode) — 업체 코드로 Organization 식별 */
+export function parsePublicBookingCode(): string | null {
   const match = window.location.pathname.match(/^\/book\/([^/]+)\/?$/);
   if (!match) return null;
-  return decodeURIComponent(match[1]);
+  return decodeURIComponent(match[1]).toUpperCase();
 }
 
 export function isPublicBookingRoute(): boolean {
-  return parsePublicBookingSlug() !== null;
+  return parsePublicBookingCode() !== null;
 }
 
-export function getPublicBookingUrl(slug: string): string {
-  const normalized = slug.trim();
-  return `${window.location.origin}/book/${encodeURIComponent(normalized)}`;
-}
+/** @deprecated bookingRouteConfig — getPublicBookingUrl는 core/organizations/publicCode 사용 */
+export { getPublicBookingUrl } from '@/core/organizations/publicCode';

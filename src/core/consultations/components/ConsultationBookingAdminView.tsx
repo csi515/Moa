@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { OrganizationPublicCodeEditor } from '@/core/organizations/components/OrganizationPublicCodeEditor';
 import { StorageService } from '@/services/storage';
 import { getStorageAdapter } from '@/services/adapters';
 import { PageHeader, FilterTabs, EmptyState, type FilterTabItem } from '@/shared/components';
@@ -33,7 +34,7 @@ const ADMIN_TABS: FilterTabItem<AdminTab>[] = [
 export const ConsultationBookingAdminView: React.FC = () => {
   const { showToast, triggerRefresh } = useApp();
   const refreshKey = useStorageRefresh();
-  const { currentOrganization } = useOrganization();
+  const { currentOrganization, refreshOrganizations } = useOrganization();
   const [refreshing, setRefreshing] = useState(false);
   const [adminTab, setAdminTab] = useState<AdminTab>('requests');
   const [statusFilter, setStatusFilter] = useState<ConsultationRequestStatus | 'all'>('all');
@@ -198,8 +199,21 @@ export const ConsultationBookingAdminView: React.FC = () => {
         <ConsultationBookingSettingsPanel settings={settings} onSave={handleSaveSettings} />
       )}
 
-      {adminTab === 'qr' && (
-        <ConsultationQrPrintCard slug={currentOrganization?.slug} enabled={settings.enabled} />
+      {adminTab === 'qr' && currentOrganization && (
+        <div className="space-y-4">
+          <OrganizationPublicCodeEditor
+            organizationId={currentOrganization.id}
+            publicCode={currentOrganization.public_code}
+            onUpdated={async () => {
+              await refreshOrganizations();
+              showToast('업체 코드가 변경되었습니다. QR을 다시 인쇄해 주세요.', 'success');
+            }}
+          />
+          <ConsultationQrPrintCard
+            publicCode={currentOrganization.public_code}
+            enabled={settings.enabled}
+          />
+        </div>
       )}
     </div>
   );

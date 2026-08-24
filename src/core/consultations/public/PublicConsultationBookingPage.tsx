@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, CheckCircle2, Clock, Loader2, Phone, User } from 'lucide-react';
-import { parsePublicBookingSlug } from './bookingRouteConfig';
+import { parsePublicBookingCode } from './bookingRouteConfig';
 import {
   fetchPublicConsultationBookingContext,
   submitPublicConsultationBooking,
@@ -20,7 +20,7 @@ const ERROR_MESSAGES: Record<string, string> = {
 
 /** QR 공개 상담 예약 페이지 (비로그인) */
 export const PublicConsultationBookingPage: React.FC = () => {
-  const slug = parsePublicBookingSlug();
+  const publicCode = parsePublicBookingCode();
   const [loading, setLoading] = useState(true);
   const [context, setContext] = useState<PublicConsultationBookingContext | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
@@ -34,13 +34,13 @@ export const PublicConsultationBookingPage: React.FC = () => {
   const [preferredTime, setPreferredTime] = useState('');
 
   useEffect(() => {
-    if (!slug) {
+    if (!publicCode) {
       setErrorKey('not_found');
       setLoading(false);
       return;
     }
 
-    fetchPublicConsultationBookingContext(slug).then((result) => {
+    fetchPublicConsultationBookingContext(publicCode).then((result) => {
       if ('error' in result) {
         setErrorKey(result.error);
       } else {
@@ -50,7 +50,7 @@ export const PublicConsultationBookingPage: React.FC = () => {
       }
       setLoading(false);
     });
-  }, [slug]);
+  }, [publicCode]);
 
   const selectableDates = useMemo(() => {
     if (!context) return [];
@@ -72,11 +72,11 @@ export const PublicConsultationBookingPage: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!slug || !preferredDate || !preferredTime) return;
+    if (!publicCode || !preferredDate || !preferredTime) return;
 
     setSubmitting(true);
     const result = await submitPublicConsultationBooking({
-      slug,
+      publicCode,
       name,
       phone,
       content,

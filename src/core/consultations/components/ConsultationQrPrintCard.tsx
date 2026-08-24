@@ -2,19 +2,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { CalendarDays, Clock, Phone, Printer, QrCode, User } from 'lucide-react';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
-import { getPublicBookingUrl } from '../public/bookingRouteConfig';
+import { getPublicBookingUrl } from '@/core/organizations/publicCode';
 
 interface Props {
-  slug: string | null | undefined;
+  publicCode: string | null | undefined;
   enabled: boolean;
 }
 
-/** QR 인쇄용 카드 */
-export const ConsultationQrPrintCard: React.FC<Props> = ({ slug, enabled }) => {
+/** QR 인쇄용 카드 (업체 코드 기반) */
+export const ConsultationQrPrintCard: React.FC<Props> = ({ publicCode, enabled }) => {
   const { currentOrganization } = useOrganization();
   const [qrDataUrl, setQrDataUrl] = useState('');
 
-  const bookingUrl = useMemo(() => (slug ? getPublicBookingUrl(slug) : ''), [slug]);
+  const bookingUrl = useMemo(
+    () => (publicCode ? getPublicBookingUrl(publicCode) : ''),
+    [publicCode]
+  );
 
   useEffect(() => {
     if (!bookingUrl) {
@@ -30,10 +33,10 @@ export const ConsultationQrPrintCard: React.FC<Props> = ({ slug, enabled }) => {
     window.print();
   };
 
-  if (!slug) {
+  if (!publicCode) {
     return (
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-        조직 slug가 없어 QR 링크를 만들 수 없습니다. Supabase 조직 설정을 확인해 주세요.
+        업체 코드가 없어 QR 링크를 만들 수 없습니다. 잠시 후 다시 시도해 주세요.
       </div>
     );
   }
@@ -50,6 +53,7 @@ export const ConsultationQrPrintCard: React.FC<Props> = ({ slug, enabled }) => {
             {currentOrganization?.name ?? '우리 학원'}
           </h3>
           <p className="text-sm text-slate-600">QR 코드를 스캔하고 상담 시간을 예약해 주세요</p>
+          <p className="text-xs font-mono tracking-wider text-slate-500">코드: {publicCode}</p>
 
           {qrDataUrl ? (
             <img
