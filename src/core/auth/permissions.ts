@@ -1,5 +1,6 @@
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
+import { normalizeIndustryType } from '@/core/industry/types';
 import type { UserRole } from '@/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import type { AcademySettings } from '@/types';
@@ -51,6 +52,15 @@ const PIANO_STAFF_TABS: NavTab[] = [
 /** 필라테스 — 강사 접근 가능 탭 */
 const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members', 'attendance'];
 
+/** 태권도 — 강사(사범) 접근 가능 탭 */
+const TAEKWONDO_STAFF_TABS: NavTab[] = [
+  'dashboard',
+  'students',
+  'classes',
+  'timetable',
+  'attendance',
+];
+
 /** 피아노 — 관리자 탭 (재무 제외) */
 const PIANO_ADMIN_TABS: NavTab[] = [
   'dashboard',
@@ -85,6 +95,37 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'settings',
 ];
 
+/** 태권도 — 관리자 탭 (재무 제외) */
+const TAEKWONDO_ADMIN_TABS: NavTab[] = [
+  'dashboard',
+  'students',
+  'parents',
+  'classes',
+  'timetable',
+  'attendance',
+  'tuition',
+  'unpaid',
+  'teachers',
+  'calendar',
+  'settings',
+];
+
+function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
+  return normalizeIndustryType(industry);
+}
+
+function getAdminTabs(industryType: IndustryType): NavTab[] {
+  if (industryType === 'pilates') return PILATES_ADMIN_TABS;
+  if (industryType === 'taekwondo') return TAEKWONDO_ADMIN_TABS;
+  return PIANO_ADMIN_TABS;
+}
+
+function getStaffTabs(industryType: IndustryType): NavTab[] {
+  if (industryType === 'pilates') return PILATES_STAFF_TABS;
+  if (industryType === 'taekwondo') return TAEKWONDO_STAFF_TABS;
+  return PIANO_STAFF_TABS;
+}
+
 function withFinanceTabs(base: NavTab[], role: UserRole | string | null | undefined): NavTab[] {
   if (!isOrgOwner(role)) return base;
   const merged = [...base];
@@ -105,16 +146,16 @@ export function getAllowedTabs(
   industry: IndustryType | string | null | undefined,
   settings?: AcademySettings | null
 ): NavTab[] {
-  const industryType = industry === 'pilates' ? 'pilates' : 'piano';
+  const industryType = resolveIndustryType(industry);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industryType);
 
   if (isOrgAdmin(role)) {
-    const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+    const base = getAdminTabs(industryType);
     return filterAttendancePinTab(withFinanceTabs(base, role), attendanceEnabled);
   }
 
   if (isStaffRole(role)) {
-    const staffTabs = industryType === 'pilates' ? PILATES_STAFF_TABS : PIANO_STAFF_TABS;
+    const staffTabs = getStaffTabs(industryType);
     const merged =
       industryType === 'piano'
         ? [...staffTabs, ...PIANO_EDUCATION_TABS.filter((t) => !staffTabs.includes(t))]
@@ -126,7 +167,7 @@ export function getAllowedTabs(
     return [];
   }
 
-  const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
+  const base = getAdminTabs(industryType);
   return filterAttendancePinTab(withFinanceTabs(base, role), attendanceEnabled);
 }
 

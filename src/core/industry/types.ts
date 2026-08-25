@@ -1,5 +1,5 @@
 /** 지원 업종 타입 */
-export type IndustryType = 'piano' | 'pilates';
+export type IndustryType = 'piano' | 'pilates' | 'taekwondo';
 
 export interface IndustryOption {
   value: IndustryType;
@@ -18,10 +18,16 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
     label: '필라테스학원',
     description: '회원·예약·수업 종류·강사 스케줄 중심 운영',
   },
+  {
+    value: 'taekwondo',
+    label: '태권도장',
+    description: '수련생·띠급·출결·수강료 중심 운영',
+  },
 ];
 
 export function normalizeIndustryType(value?: string | null): IndustryType {
   if (value === 'pilates') return 'pilates';
+  if (value === 'taekwondo') return 'taekwondo';
   return 'piano';
 }
 

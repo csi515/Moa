@@ -1,4 +1,4 @@
-import type { IndustryType } from '@/core/industry/types';
+import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 
 export interface FeatureGuideItem {
   id: string;
@@ -250,9 +250,89 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
   COMMON_SETTINGS,
 ];
 
+const TAEKWONDO_GUIDE: FeatureGuideSection[] = [
+  {
+    id: 'customers',
+    title: '수련생·보호자',
+    description: '등록 수련생과 보호자 연락처, 띠/급을 관리합니다.',
+    items: [
+      {
+        id: 'students',
+        title: '수련생 관리',
+        summary: '수련생 등록, 재원/휴원/퇴원, 담당 사범·반·띠급을 관리합니다.',
+        howTo: '수련생 등록 시 보호자 연락처와 PIN을 함께 설정할 수 있습니다.',
+      },
+      {
+        id: 'parents',
+        title: '보호자 관리',
+        summary: '보호자 연락처와 연결된 수련생을 관리합니다.',
+      },
+    ],
+  },
+  {
+    id: 'classes',
+    title: '수업·출결',
+    description: '수업반, 시간표, PIN 출입을 다룹니다.',
+    items: [
+      {
+        id: 'classes',
+        title: '수업반 관리',
+        summary: '연령·급수별 수업반(요일·시간·정원·사범)을 만듭니다.',
+      },
+      {
+        id: 'timetable',
+        title: '주간 시간표',
+        summary: '요일별 수업 일정을 한 화면에서 확인합니다.',
+      },
+      {
+        id: 'attendance',
+        title: '출입 관리',
+        summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
+      },
+    ],
+  },
+  {
+    id: 'billing',
+    title: '수납',
+    description: '수강료 청구·미납을 관리합니다.',
+    items: [
+      {
+        id: 'tuition',
+        title: '수강료 및 수납',
+        summary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
+      },
+      {
+        id: 'unpaid',
+        title: '미납 통합 관리',
+        summary: '미납 수련생을 모아 보고 연락·수납을 이어갑니다.',
+      },
+    ],
+  },
+  {
+    id: 'staff',
+    title: '지도진',
+    description: '사범과 도장 일정을 관리합니다.',
+    items: [
+      {
+        id: 'teachers',
+        title: '사범 관리',
+        summary: '사범 정보와 담당 반을 관리합니다.',
+      },
+      {
+        id: 'calendar',
+        title: '도장 캘린더',
+        summary: '승급·시합·행사 일정을 기록합니다.',
+      },
+    ],
+  },
+  COMMON_FINANCE,
+  COMMON_SETTINGS,
+];
+
 const GUIDE_BY_INDUSTRY: Record<IndustryType, FeatureGuideSection[]> = {
   piano: PIANO_GUIDE,
   pilates: PILATES_GUIDE,
+  taekwondo: TAEKWONDO_GUIDE,
 };
 
 const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> = {
@@ -264,13 +344,17 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
     title: '필라테스 스튜디오 기능 안내',
     body: '회원 예약·수업 종류·강사·재무를 중심으로 스튜디오를 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
+  taekwondo: {
+    title: '태권도장 기능 안내',
+    body: '수련생·띠급·출결·수강료를 중심으로 도장을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+  },
 };
 
 export function getIndustryFeatureGuide(industry: IndustryType | string | null | undefined): {
   intro: { title: string; body: string };
   sections: FeatureGuideSection[];
 } {
-  const type = industry === 'pilates' ? 'pilates' : 'piano';
+  const type = normalizeIndustryType(industry);
   return {
     intro: INTRO_BY_INDUSTRY[type],
     sections: GUIDE_BY_INDUSTRY[type],

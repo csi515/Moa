@@ -7,6 +7,7 @@ import {
   Piano,
   Sparkles,
   Activity,
+  Shield,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
@@ -15,6 +16,7 @@ import { INDUSTRY_OPTIONS, getIndustryLabel, type IndustryType } from '../indust
 const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: string }>> = {
   piano: Piano,
   pilates: Activity,
+  taekwondo: Shield,
 };
 
 export const OrganizationSelector: React.FC = () => {

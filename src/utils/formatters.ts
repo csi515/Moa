@@ -111,6 +111,9 @@ export function getStudentStatusBadge(status: StudentStatus): { label: string; b
 
 export function getLevelColor(level?: string): string {
   if (!level) return 'bg-slate-100 text-slate-700';
+  if (level.includes('흰띠')) return 'bg-slate-100 text-slate-800 border-slate-200';
+  if (level.includes('급')) return 'bg-amber-100 text-amber-900 border-amber-200';
+  if (level.includes('단')) return 'bg-red-100 text-red-800 border-red-200';
   if (level.includes('바이엘')) return 'bg-sky-100 text-sky-800 border-sky-200';
   if (level.includes('체르니 100')) return 'bg-teal-100 text-teal-800 border-teal-200';
   if (level.includes('체르니 30')) return 'bg-indigo-100 text-indigo-800 border-indigo-200';

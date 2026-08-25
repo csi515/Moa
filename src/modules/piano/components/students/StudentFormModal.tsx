@@ -8,6 +8,7 @@ import {
   updateStudentWithParent,
   type GuardianRegistrationInput,
 } from '@/core/students';
+import { getStudentLevelOptions } from '@/core/students/levelOptions';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -45,6 +46,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const classes = StorageService.getClasses();
   const settings = StorageService.getSettings();
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
+  const defaultLevel = getStudentLevelOptions(industry)[0];
   const canInviteParent = isSupabaseConfigured() && organizationId !== 'local-org';
   const isEdit = Boolean(student?.id);
 
@@ -60,7 +62,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     status: 'active',
     teacherId: '',
     classIds: [],
-    level: '바이엘 상',
+    level: defaultLevel,
     tuitionFee: 180000,
     paymentDay: 10,
     specialNotes: '',
@@ -92,7 +94,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         status: student.status || 'active',
         teacherId: student.teacherId || teachers[0]?.id || '',
         classIds: student.classIds || [],
-        level: student.level || '체르니 100',
+        level: student.level || defaultLevel,
         tuitionFee: student.tuitionFee || 180000,
         paymentDay: student.paymentDay || 10,
         specialNotes: student.specialNotes || '',
@@ -130,7 +132,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         status: 'active',
         teacherId: teachers[0]?.id || '',
         classIds: classes.length > 0 ? [classes[0].id] : [],
-        level: '바이엘 상',
+        level: defaultLevel,
         tuitionFee: settings.defaultTuitionFee || 180000,
         paymentDay: settings.defaultPaymentDay || 10,
         specialNotes: '',
@@ -143,7 +145,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     }
     setRevealedPin(null);
     setActiveSearchIdx(null);
-  }, [student, isOpen, attendanceEnabled]);
+  }, [student, isOpen, attendanceEnabled, defaultLevel, teachers, classes, settings]);
 
   const searchResults = useMemo(() => {
     if (activeSearchIdx === null) return [];

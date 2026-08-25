@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useModuleLabels } from '@/modules/pilates';
+import { useModuleLabels } from '@/core/labels';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavSections } from '@/core/auth/navUtils';
 import { ModuleSidebar } from '@/shared/components/layout/ModuleSidebar';

@@ -43,10 +43,20 @@ export const COMMON_INCOME_CATEGORIES: CategoryOption[] = [
   { value: 'other', label: '기타 수입' },
 ];
 
+/** 태권도장 추가 지출 카테고리 */
+export const TAEKWONDO_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'uniform', label: '도복/장비' },
+  { value: 'competition', label: '시합/승급 비용' },
+  { value: 'instructor_fee', label: '사범료' },
+];
+
 export function getExpenseCategories(industry: IndustryType | string): CategoryOption[] {
   const base = [...COMMON_EXPENSE_CATEGORIES];
   if (industry === 'pilates') {
     return [...base, ...PILATES_EXPENSE_CATEGORIES];
+  }
+  if (industry === 'taekwondo') {
+    return [...base, ...TAEKWONDO_EXPENSE_CATEGORIES];
   }
   return [...base, ...PIANO_EXPENSE_CATEGORIES];
 }

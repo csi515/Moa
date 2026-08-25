@@ -4,24 +4,25 @@ import { useModuleLabels } from '@/core/labels';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavTabs } from '@/core/auth/navUtils';
 import { ModuleBottomNav } from '@/shared/components/layout/ModuleBottomNav';
-import { getPilatesMainTabs, getPilatesMoreTabs } from '../config/nav';
+import { getTaekwondoMainTabs, getTaekwondoMoreTabs } from '../config/nav';
 
-export const PilatesBottomNav: FC = () => {
+export const TaekwondoBottomNav: FC = () => {
   const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
   const { allowedTabs } = usePermissions();
 
   return (
     <ModuleBottomNav
-      theme="teal"
-      mainTabs={filterNavTabs(getPilatesMainTabs(labels), allowedTabs)}
-      moreTabs={filterNavTabs(getPilatesMoreTabs(), allowedTabs)}
+      theme="red"
+      mainTabs={filterNavTabs(getTaekwondoMainTabs(labels), allowedTabs)}
+      moreTabs={filterNavTabs(getTaekwondoMoreTabs(labels), allowedTabs)}
       activeTab={activeTab}
       onNavigate={(tab) => {
-        if (tab === 'members') setSelectedStudentId(null);
+        if (tab === 'students') setSelectedStudentId(null);
         setActiveTab(tab);
       }}
       moreMenuTitle="전체 메뉴"
+      moreMenuDescription="태권도장 운영 메뉴를 선택하세요"
     />
   );
 };

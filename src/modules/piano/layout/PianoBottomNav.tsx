@@ -1,6 +1,6 @@
 import type { FC } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useModuleLabels } from '@/modules/piano';
+import { useModuleLabels } from '@/core/labels';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavTabs } from '@/core/auth/navUtils';
 import { ModuleBottomNav } from '@/shared/components/layout/ModuleBottomNav';

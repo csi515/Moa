@@ -1,15 +1,12 @@
-import React, { createContext, useContext } from 'react';
+import React from 'react';
+import { ModuleLabelsProvider as CoreLabelsProvider } from '@/core/labels';
 import { pilatesModuleLabels, type ModuleLabels } from './labels';
-
-const ModuleLabelsContext = createContext<ModuleLabels>(pilatesModuleLabels);
 
 export const ModuleLabelsProvider: React.FC<{
   children: React.ReactNode;
   labels?: ModuleLabels;
 }> = ({ children, labels = pilatesModuleLabels }) => (
-  <ModuleLabelsContext.Provider value={labels}>{children}</ModuleLabelsContext.Provider>
+  <CoreLabelsProvider labels={labels}>{children}</CoreLabelsProvider>
 );
 
-export function useModuleLabels(): ModuleLabels {
-  return useContext(ModuleLabelsContext);
-}
+export { useModuleLabels } from '@/core/labels';

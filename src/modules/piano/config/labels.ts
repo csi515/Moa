@@ -1,37 +1,6 @@
-/**
- * Piano 모듈 UI 라벨 설정
- * Core 용어(Customer/Staff)를 Piano 도메인 라벨로 매핑
- */
-export interface ModuleLabels {
-  customer: {
-    singular: string;
-    plural: string;
-    management: string;
-    section: string;
-    add: string;
-    search: string;
-  };
-  contact: {
-    singular: string;
-    plural: string;
-    management: string;
-  };
-  staff: {
-    singular: string;
-    plural: string;
-    management: string;
-  };
-  service: {
-    singular: string;
-    plural: string;
-    management: string;
-  };
-  schedule: {
-    singular: string;
-    plural: string;
-    management: string;
-  };
-}
+import type { ModuleLabels } from '@/core/labels/types';
+
+export type { ModuleLabels };
 
 /** Piano Academy 기본 라벨 (원생/선생님/학부모) */
 export const pianoModuleLabels: ModuleLabels = {

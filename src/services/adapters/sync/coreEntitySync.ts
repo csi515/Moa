@@ -148,7 +148,7 @@ export async function hydrateCoreEntities(
 
   const serviceRows = servicesResult.data || [];
   const classes =
-    industryType === 'piano'
+    industryType === 'piano' || industryType === 'taekwondo'
       ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
       : [];
   const serviceOfferings =
