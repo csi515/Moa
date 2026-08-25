@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { BookOpen } from 'lucide-react';
 import type { IndustryType } from '@/core/industry/types';
 import { AccordionSection } from '@/shared/components/ui/AccordionSection';
@@ -9,7 +10,7 @@ interface Props {
 }
 
 /** 업종별 기능 설명서 (사업주용) */
-export const IndustryFeatureGuidePanel: React.FC<Props> = ({ industry }) => {
+export const IndustryFeatureGuidePanel: FC<Props> = ({ industry }) => {
   const { intro, sections } = getIndustryFeatureGuide(industry);
 
   return (

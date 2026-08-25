@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
@@ -25,14 +25,14 @@ import {
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
-export const AcademySettingsView: React.FC = () => {
+export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = (e: FormEvent) => {
     e.preventDefault();
     StorageService.saveSettings(settings);
     triggerRefresh();
@@ -51,7 +51,7 @@ export const AcademySettingsView: React.FC = () => {
     showToast('학원 전체 데이터 백업 파일이 다운로드되었습니다.', 'success');
   };
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportData = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 

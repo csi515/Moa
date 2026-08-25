@@ -1,3 +1,4 @@
+import type { FC } from 'react';
 import { KeyRound } from 'lucide-react';
 import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 
@@ -9,7 +10,7 @@ interface Props {
 }
 
 /** 사업장 설정 — 출입 관리(핀번호) on/off */
-export const AttendanceFeatureToggle: React.FC<Props> = ({
+export const AttendanceFeatureToggle: FC<Props> = ({
   enabled,
   onChange,
   activeClassName = 'bg-indigo-600',
