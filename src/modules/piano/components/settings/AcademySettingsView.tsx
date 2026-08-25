@@ -9,6 +9,7 @@ import {
   isAttendanceModuleEnabled,
   withAttendanceModuleEnabled,
 } from '@/core/attendance';
+import { IndustryFeatureGuidePanel } from '@/core/help';
 import {
   Settings,
   Building,
@@ -76,7 +77,7 @@ export const AcademySettingsView: React.FC = () => {
       <PageHeader
         icon={<Settings className="w-6 h-6" />}
         title="사업장 운영 및 환경 설정"
-        description="기본 정보, 출입 관리(핀번호), 수납 계좌, 데이터 백업/복원"
+        description="기본 정보, 출입 관리, 백업, 업종별 기능 설명서"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -253,6 +254,8 @@ export const AcademySettingsView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <IndustryFeatureGuidePanel industry={industry} />
     </div>
   );
 };
