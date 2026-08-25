@@ -41,7 +41,7 @@ export const PianoBottomNav: React.FC = () => {
     { tab: 'dashboard', label: '대시보드', icon: <LayoutDashboard className="w-5 h-5" /> },
     { tab: 'students', label: labels.customer.singular, icon: <Users className="w-5 h-5" /> },
     { tab: 'timetable', label: labels.schedule.singular, icon: <Clock className="w-5 h-5" /> },
-    { tab: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> },
+    { tab: 'attendance', label: '출입', icon: <CheckSquare className="w-5 h-5" /> },
   ],
     allowedTabs
   );

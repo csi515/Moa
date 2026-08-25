@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
 import type { Student } from '@/types';
@@ -12,6 +13,7 @@ interface CustomerPinPanelProps {
 /** 원생별 출결 PIN 설정 패널 */
 export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) => {
   const { showToast } = useApp();
+  const { attendanceEnabled } = usePermissions();
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
 
@@ -20,6 +22,8 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
   const [loading, setLoading] = useState(false);
 
   const pinSet = StorageService.hasCustomerPin(student.id);
+
+  if (!attendanceEnabled) return null;
 
   const handleGenerate = async () => {
     setLoading(true);

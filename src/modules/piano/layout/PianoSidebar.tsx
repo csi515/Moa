@@ -56,7 +56,7 @@ export const PianoSidebar: React.FC = () => {
       items: [
         { tab: 'classes', label: labels.service.management, icon: <GraduationCap className="w-4 h-4" /> },
         { tab: 'timetable', label: labels.schedule.management, icon: <Clock className="w-4 h-4" /> },
-        { tab: 'attendance', label: '출결 관리', icon: <CheckSquare className="w-4 h-4" /> },
+        { tab: 'attendance', label: '출입 관리', icon: <CheckSquare className="w-4 h-4" /> },
         { tab: 'makeups', label: '보강 수업', icon: <Sparkles className="w-4 h-4" /> },
       ],
     },

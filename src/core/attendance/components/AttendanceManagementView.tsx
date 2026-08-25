@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
@@ -21,6 +22,7 @@ type AttendanceSubTab = 'overview' | 'kiosk';
 
 export const AttendanceManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab } = useApp();
+  const { attendanceEnabled } = usePermissions();
   const { isScoped, scopeStudents } = useStaffScope();
 
   const [subTab, setSubTab] = useState<AttendanceSubTab>('overview');
@@ -69,11 +71,19 @@ export const AttendanceManagementView: React.FC = () => {
     };
   }, [activeStudents, sessionMap]);
 
+  if (!attendanceEnabled) {
+    return (
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
+        이 사업장에서는 출입 관리(핀번호)가 꺼져 있습니다. 설정에서 활성화할 수 있습니다.
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<CheckSquare className="w-6 h-6" />}
-        title="출결 관리"
+        title="출입 관리"
         description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
         actions={
           <div className="flex bg-white border border-slate-200 rounded-xl p-1">

@@ -30,6 +30,9 @@ const PIANO_EDUCATION_TABS: NavTab[] = ['curriculum', 'assignments', 'achievemen
 /** 원장 전용 재무 탭 (모든 업종 공통) */
 const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses'];
 
+/** 출입(PIN) 탭 — 사업장 설정으로 on/off */
+const ATTENDANCE_PIN_TAB: NavTab = 'attendance';
+
 /** 피아노 — 강사 접근 가능 탭 */
 const PIANO_STAFF_TABS: NavTab[] = [
   'dashboard',
@@ -46,7 +49,7 @@ const PIANO_STAFF_TABS: NavTab[] = [
 ];
 
 /** 필라테스 — 강사 접근 가능 탭 */
-const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members'];
+const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members', 'attendance'];
 
 /** 피아노 — 관리자 탭 (재무 제외) */
 const PIANO_ADMIN_TABS: NavTab[] = [
@@ -78,6 +81,7 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'services',
   'members',
   'instructors',
+  'attendance',
   'settings',
 ];
 
@@ -90,9 +94,10 @@ function withFinanceTabs(base: NavTab[], role: UserRole | string | null | undefi
   return merged;
 }
 
-function filterAttendanceTabs(tabs: NavTab[], attendanceEnabled: boolean): NavTab[] {
+/** 출입(PIN) 꺼진 사업장에서는 attendance 탭만 숨김 (보강 makeups와 분리) */
+function filterAttendancePinTab(tabs: NavTab[], attendanceEnabled: boolean): NavTab[] {
   if (attendanceEnabled) return tabs;
-  return tabs.filter((t) => t !== 'attendance' && t !== 'makeups');
+  return tabs.filter((t) => t !== ATTENDANCE_PIN_TAB);
 }
 
 export function getAllowedTabs(
@@ -105,7 +110,7 @@ export function getAllowedTabs(
 
   if (isOrgAdmin(role)) {
     const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
-    return filterAttendanceTabs(withFinanceTabs(base, role), attendanceEnabled);
+    return filterAttendancePinTab(withFinanceTabs(base, role), attendanceEnabled);
   }
 
   if (isStaffRole(role)) {
@@ -114,7 +119,7 @@ export function getAllowedTabs(
       industryType === 'piano'
         ? [...staffTabs, ...PIANO_EDUCATION_TABS.filter((t) => !staffTabs.includes(t))]
         : staffTabs;
-    return filterAttendanceTabs(merged, attendanceEnabled);
+    return filterAttendancePinTab(merged, attendanceEnabled);
   }
 
   if (isParentRole(role)) {
@@ -122,7 +127,7 @@ export function getAllowedTabs(
   }
 
   const base = industryType === 'pilates' ? PILATES_ADMIN_TABS : PIANO_ADMIN_TABS;
-  return filterAttendanceTabs(withFinanceTabs(base, role), attendanceEnabled);
+  return filterAttendancePinTab(withFinanceTabs(base, role), attendanceEnabled);
 }
 
 export function canAccessTab(

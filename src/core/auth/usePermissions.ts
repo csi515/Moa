@@ -4,6 +4,7 @@ import { useOptionalOrganization } from '@/core/organizations/OrganizationProvid
 import { StorageService } from '@/services/storage';
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
+import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import {
   canAccessTab,
   getAllowedTabs,
@@ -17,7 +18,7 @@ import {
 } from './permissions';
 
 export function usePermissions() {
-  const { currentUser } = useApp();
+  const { currentUser, refreshKey } = useApp();
   const org = useOptionalOrganization();
 
   const role = currentUser.role;
@@ -28,12 +29,15 @@ export function usePermissions() {
 
   const allowedTabs = useMemo(
     () => getAllowedTabs(role, industry, settings),
-    [role, industry, settings.features?.attendance?.enabled]
+    // refreshKey: 설정 저장 후 출입(PIN) on/off 즉시 반영
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [role, industry, settings.features?.attendance?.enabled, refreshKey]
   );
 
   const attendanceEnabled = useMemo(
-    () => allowedTabs.includes('attendance'),
-    [allowedTabs]
+    () => isAttendanceModuleEnabled(settings, industry),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [settings.features?.attendance?.enabled, industry, refreshKey]
   );
 
   return {

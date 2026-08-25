@@ -25,6 +25,7 @@ import {
   ExpenseManagementView,
   IncomeManagementView,
 } from '@/core/finance';
+import { AttendanceManagementView } from '@/core/attendance';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 export const PilatesAppContent: React.FC = () => {
@@ -43,6 +44,8 @@ export const PilatesAppContent: React.FC = () => {
         return <MemberListView />;
       case 'instructors':
         return <InstructorListView />;
+      case 'attendance':
+        return <AttendanceManagementView />;
       case 'finance':
         return <FinanceOverviewView />;
       case 'income':

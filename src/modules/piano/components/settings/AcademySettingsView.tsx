@@ -4,7 +4,11 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { AcademySettings } from '@/types';
-import { getDefaultAttendanceSettings } from '@/core/attendance/features';
+import {
+  AttendanceFeatureToggle,
+  isAttendanceModuleEnabled,
+  withAttendanceModuleEnabled,
+} from '@/core/attendance';
 import {
   Settings,
   Building,
@@ -16,17 +20,17 @@ import {
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const AcademySettingsView: React.FC = () => {
-  const { showToast } = useApp();
+  const { showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
-  const attendanceDefaults = getDefaultAttendanceSettings(industry);
-  const attendanceEnabled = settings.features?.attendance?.enabled ?? attendanceDefaults.enabled;
+  const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
   const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
     StorageService.saveSettings(settings);
-    showToast('학원 기본 정보가 안전하게 저장되었습니다.', 'success');
+    triggerRefresh();
+    showToast('사업장 설정이 저장되었습니다.', 'success');
   };
 
   // Export JSON Backup
@@ -71,8 +75,8 @@ export const AcademySettingsView: React.FC = () => {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Settings className="w-6 h-6" />}
-        title="학원 운영 및 환경 설정"
-        description="학원명, 대표자 정보, 수납 계좌, 수강료 기본값 및 데이터 백업/복원"
+        title="사업장 운영 및 환경 설정"
+        description="기본 정보, 출입 관리(핀번호), 수납 계좌, 데이터 백업/복원"
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -196,37 +200,11 @@ export const AcademySettingsView: React.FC = () => {
             </div>
 
             <div className="pt-4 border-t border-slate-100">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold text-slate-700">출결 Industry Module</p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    PIN 입·퇴실 기능 (학원·태권도장 등). 필라테스·피부관리샵 등은 비활성화 권장
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={attendanceEnabled}
-                  onClick={() =>
-                    setSettings({
-                      ...settings,
-                      features: {
-                        ...settings.features,
-                        attendance: { enabled: !attendanceEnabled },
-                      },
-                    })
-                  }
-                  className={`relative w-12 h-7 rounded-full transition-colors ${
-                    attendanceEnabled ? 'bg-indigo-600' : 'bg-slate-300'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-                      attendanceEnabled ? 'translate-x-5' : ''
-                    }`}
-                  />
-                </button>
-              </div>
+              <AttendanceFeatureToggle
+                enabled={attendanceEnabled}
+                onChange={(enabled) => setSettings(withAttendanceModuleEnabled(settings, enabled))}
+                activeClassName={industry === 'pilates' ? 'bg-teal-600' : 'bg-indigo-600'}
+              />
             </div>
 
             <div className="flex justify-end pt-4">
