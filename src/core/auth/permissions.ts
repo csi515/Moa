@@ -60,6 +60,7 @@ const PIANO_ADMIN_TABS: NavTab[] = [
   'lessons',
   'practice',
   'consultations',
+  'consultationBooking',
   'resources',
   'tuition',
   'unpaid',
@@ -78,6 +79,7 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'services',
   'members',
   'instructors',
+  'consultationBooking',
   'settings',
 ];
 

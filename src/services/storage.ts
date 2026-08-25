@@ -24,6 +24,7 @@ import { createParentEducationStorage } from './storage/parentEducationStorage';
 import { createAttendanceStorage } from './storage/attendanceStorage';
 import { createFinanceStorage } from './storage/financeStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
+import { createConsultationBookingStorage } from './storage/consultationBookingStorage';
 import type { StorageApi } from './storage/helpers';
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
@@ -77,6 +78,8 @@ const storageCore = {
       events: this.getEvents(),
       performanceVideos: this.getPerformanceVideos(),
       notifications: this.getNotifications(),
+      consultationBookingSettings: this.getConsultationBookingSettings(),
+      consultationBookingRequests: this.getConsultationBookingRequests(),
       settings: this.getSettings(),
       exportedAt: new Date().toISOString()
     };
@@ -105,6 +108,12 @@ const storageCore = {
       if (data.events) setItem(STORAGE_KEYS.EVENTS, data.events);
       if (data.performanceVideos) setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, data.performanceVideos);
       if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
+      if (data.consultationBookingSettings) {
+        setItem(STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS, data.consultationBookingSettings);
+      }
+      if (data.consultationBookingRequests) {
+        setItem(STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS, data.consultationBookingRequests);
+      }
       if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
       return true;
     } catch (e) {
@@ -988,5 +997,6 @@ export const StorageService = Object.assign(
   createParentEducationStorage(storageCore as StorageApi),
   createAttendanceStorage(storageCore as StorageApi),
   createFinanceStorage(storageCore as StorageApi),
-  createTextbookStorage(storageCore as StorageApi)
+  createTextbookStorage(storageCore as StorageApi),
+  createConsultationBookingStorage()
 );

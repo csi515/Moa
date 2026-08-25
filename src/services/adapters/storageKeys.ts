@@ -29,6 +29,8 @@ export const STORAGE_KEYS = {
   LEARNING_REPORTS: 'piano_learning_reports',
   NOTIFICATIONS: 'piano_app_notifications',
   SETTINGS: 'piano_app_settings',
+  CONSULTATION_BOOKING_SETTINGS: 'core_consultation_booking_settings',
+  CONSULTATION_BOOKING_REQUESTS: 'core_consultation_booking_requests',
   SCHEDULES: 'core_schedules',
   SERVICE_OFFERINGS: 'core_service_offerings',
   ACTIVE_USER: 'piano_app_active_user',
@@ -54,6 +56,8 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.INCOME_ENTRIES,
   STORAGE_KEYS.ATTENDANCE_SESSIONS,
   STORAGE_KEYS.CUSTOMER_PINS,
+  STORAGE_KEYS.CONSULTATION_BOOKING_SETTINGS,
+  STORAGE_KEYS.CONSULTATION_BOOKING_REQUESTS,
 ]);
 
 /** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */

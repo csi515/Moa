@@ -29,6 +29,7 @@ export interface Database {
           name: string;
           industry_type: string;
           slug: string | null;
+          public_code: string;
           settings: Json;
           is_active: boolean;
           created_at: string;
@@ -39,6 +40,7 @@ export interface Database {
           name: string;
           industry_type?: string;
           slug?: string | null;
+          public_code?: string;
           settings?: Json;
           is_active?: boolean;
           created_at?: string;
@@ -49,6 +51,7 @@ export interface Database {
           name?: string;
           industry_type?: string;
           slug?: string | null;
+          public_code?: string;
           settings?: Json;
           is_active?: boolean;
           created_at?: string;

@@ -5,8 +5,16 @@ import { AuthProvider } from './core/auth/AuthProvider';
 import { OrganizationProvider } from './core/organizations/OrganizationProvider';
 import { SupabaseRequiredScreen } from './shared/components/SupabaseRequiredScreen';
 import { isSupabaseConfigured } from './lib/supabase';
+import { isPublicBookingRoute, PublicConsultationBookingPage } from './core/consultations';
 
 export default function App() {
+  if (isPublicBookingRoute()) {
+    if (!isSupabaseConfigured()) {
+      return <SupabaseRequiredScreen />;
+    }
+    return <PublicConsultationBookingPage />;
+  }
+
   if (!isSupabaseConfigured()) {
     return <SupabaseRequiredScreen />;
   }

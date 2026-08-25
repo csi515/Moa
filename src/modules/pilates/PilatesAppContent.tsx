@@ -26,6 +26,7 @@ import {
   IncomeManagementView,
 } from '@/core/finance';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
+import { ConsultationBookingAdminView } from '@/core/consultations';
 
 export const PilatesAppContent: React.FC = () => {
   const { activeTab } = useApp();
@@ -49,6 +50,8 @@ export const PilatesAppContent: React.FC = () => {
         return <IncomeManagementView />;
       case 'expenses':
         return <ExpenseManagementView />;
+      case 'consultationBooking':
+        return <ConsultationBookingAdminView />;
       case 'settings':
         return <AcademySettingsView />;
       case 'dashboard':

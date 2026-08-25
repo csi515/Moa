@@ -1,5 +1,8 @@
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
+import { buildOrganizationSlug } from './organizationSlug';
+
+export { updateOrganizationPublicCode, type UpdatePublicCodeResult } from './organizationPublicCodeService';
 
 const ORG_STORAGE_KEY = 'moa_current_organization_id';
 
@@ -39,6 +42,7 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
           name,
           industry_type,
           slug,
+          public_code,
           settings,
           is_active,
           created_at,
@@ -67,17 +71,10 @@ export async function createOrganization(
   name: string,
   industryType = 'piano'
 ): Promise<string> {
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9가-힣]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 40) || `org-${Date.now()}`;
-
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: name.trim(),
     p_industry_type: industryType,
-    p_slug: slug,
+    p_slug: buildOrganizationSlug(name),
   });
 
   if (error) throw error;
