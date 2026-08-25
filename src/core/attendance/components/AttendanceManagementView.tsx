@@ -4,19 +4,21 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
-import type { Student } from '@/types';
 import {
   formatSessionTime,
   getSessionStatusLabel,
 } from '../services/attendanceService';
 import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
-import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
 import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Settings,
+  UserPlus,
+  Users,
 } from 'lucide-react';
 
 type AttendanceSubTab = 'overview' | 'kiosk';
@@ -28,8 +30,13 @@ const ATTENDANCE_SUB_TABS: { value: AttendanceSubTab; label: string }[] = [
 
 export const AttendanceManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab } = useApp();
-  const { attendanceEnabled } = usePermissions();
+  const { attendanceEnabled, industry } = usePermissions();
   const { isScoped, scopeStudents } = useStaffScope();
+
+  const isTeal = industry === 'pilates';
+  const accentActive = isTeal ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white';
+  const linkHover = isTeal ? 'hover:text-teal-600' : 'hover:text-indigo-600';
+  const metricVariant = isTeal ? 'teal' : 'indigo';
 
   const [subTab, setSubTab] = useState<AttendanceSubTab>('overview');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
@@ -79,9 +86,24 @@ export const AttendanceManagementView: React.FC = () => {
 
   if (!attendanceEnabled) {
     return (
-      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-sm text-amber-900">
-        이 사업장에서는 출입 관리(핀번호)가 꺼져 있습니다. 설정에서 활성화할 수 있습니다.
-      </div>
+      <EmptyState
+        icon={<CheckSquare className="w-10 h-10" />}
+        title="출입 관리가 꺼져 있습니다"
+        description="설정에서 출입 관리(핀번호)를 활성화하면 PIN 입·퇴실 기록을 사용할 수 있습니다."
+        action={
+          <button
+            type="button"
+            onClick={() => setActiveTab('settings')}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${
+              isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+          >
+            <Settings className="w-4 h-4" />
+            설정으로 이동
+          </button>
+        }
+        className="border-amber-200 bg-amber-50/30"
+      />
     );
   }
 
@@ -89,6 +111,7 @@ export const AttendanceManagementView: React.FC = () => {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<CheckSquare className="w-6 h-6" />}
+        iconClassName={isTeal ? 'text-teal-600' : 'text-indigo-600'}
         title="출입 관리"
         description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
         actions={
@@ -96,19 +119,22 @@ export const AttendanceManagementView: React.FC = () => {
             value={subTab}
             options={ATTENDANCE_SUB_TABS}
             onChange={setSubTab}
-            activeClassName="bg-indigo-600 text-white"
+            activeClassName={accentActive}
             aria-label="출입 관리 보기"
-            className="bg-white"
+            fullWidth
+            className="sm:w-auto"
           />
         }
       />
 
       {subTab === 'kiosk' ? (
-        <PinCheckInKioskView />
+        <div id="attendance-panel-kiosk" role="tabpanel" aria-labelledby="segment-kiosk">
+          <PinCheckInKioskView />
+        </div>
       ) : (
-        <>
+        <div id="attendance-panel-overview" role="tabpanel" aria-labelledby="segment-overview">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant="indigo" />
+            <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant={metricVariant} />
             <SummaryMetricCard label="입실" value={`${stats.checkedIn}명`} variant="emerald" />
             <SummaryMetricCard label="퇴실" value={`${stats.checkedOut}명`} variant="amber" />
             <SummaryMetricCard label="미출석" value={`${stats.absent}명`} />
@@ -116,7 +142,7 @@ export const AttendanceManagementView: React.FC = () => {
 
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => changeDate(-1)}
@@ -129,7 +155,7 @@ export const AttendanceManagementView: React.FC = () => {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
+                  className="flex-1 sm:flex-none px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
                 />
                 <button
                   type="button"
@@ -144,14 +170,38 @@ export const AttendanceManagementView: React.FC = () => {
                 value={searchQuery}
                 onChange={setSearchQuery}
                 placeholder="이름·연락처 검색"
-                className="flex-1 max-w-xs"
+                className="w-full sm:flex-1 sm:max-w-xs"
               />
             </FilterBar>
 
             {activeStudents.length === 0 ? (
-              <p className="px-4 py-10 text-center text-slate-400 text-sm">
-                {isScoped ? '담당 원생이 없습니다.' : '등록된 재원생이 없습니다.'}
-              </p>
+              <EmptyState
+                icon={<Users className="w-10 h-10" />}
+                title={isScoped ? '담당 원생이 없습니다' : '등록된 재원생이 없습니다'}
+                description={
+                  searchQuery.trim()
+                    ? '검색 조건에 맞는 재원생이 없습니다.'
+                    : '원생을 등록하면 출입 현황을 확인할 수 있습니다.'
+                }
+                action={
+                  !searchQuery.trim() && !isScoped ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedStudentId(null);
+                        setActiveTab(industry === 'pilates' ? 'members' : 'students');
+                      }}
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${
+                        isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                      }`}
+                    >
+                      <UserPlus className="w-4 h-4" />
+                      {industry === 'pilates' ? '회원 등록' : '원생 등록'}
+                    </button>
+                  ) : undefined
+                }
+                className="border-0 shadow-none rounded-none"
+              />
             ) : (
               <>
                 <div className="hidden md:block overflow-x-auto">
@@ -186,9 +236,9 @@ export const AttendanceManagementView: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setSelectedStudentId(student.id);
-                                  setActiveTab('students');
+                                  setActiveTab(industry === 'pilates' ? 'members' : 'students');
                                 }}
-                                className="font-bold text-slate-900 hover:text-indigo-600"
+                                className={`font-bold text-slate-900 ${linkHover}`}
                               >
                                 {student.name}
                               </button>
@@ -240,9 +290,9 @@ export const AttendanceManagementView: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setSelectedStudentId(student.id);
-                              setActiveTab('students');
+                              setActiveTab(industry === 'pilates' ? 'members' : 'students');
                             }}
-                            className="font-bold text-slate-900 hover:text-indigo-600 text-sm text-left"
+                            className={`font-bold text-slate-900 ${linkHover} text-sm text-left min-h-[44px]`}
                           >
                             {student.name}
                           </button>
@@ -254,11 +304,15 @@ export const AttendanceManagementView: React.FC = () => {
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="bg-slate-50 rounded-xl p-2">
                             <p className="text-slate-400 font-semibold">입실</p>
-                            <p className="font-mono font-bold text-slate-700">{formatSessionTime(session?.checkInAt)}</p>
+                            <p className="font-mono font-bold text-slate-700">
+                              {formatSessionTime(session?.checkInAt)}
+                            </p>
                           </div>
                           <div className="bg-slate-50 rounded-xl p-2">
                             <p className="text-slate-400 font-semibold">퇴실</p>
-                            <p className="font-mono font-bold text-slate-700">{formatSessionTime(session?.checkOutAt)}</p>
+                            <p className="font-mono font-bold text-slate-700">
+                              {formatSessionTime(session?.checkOutAt)}
+                            </p>
                           </div>
                         </div>
                         <p className={`text-[11px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}>
@@ -271,7 +325,7 @@ export const AttendanceManagementView: React.FC = () => {
               </>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );

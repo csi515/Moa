@@ -106,7 +106,7 @@ export function ModuleBottomNav({
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mt-4 pb-6">
+              <div className="grid grid-cols-3 gap-3 mt-4 pb-6 safe-area-pb">
                 {moreTabs.map((item) => {
                   const isActive = activeTab === item.tab;
                   return (

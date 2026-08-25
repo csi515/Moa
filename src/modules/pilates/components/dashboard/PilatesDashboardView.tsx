@@ -4,9 +4,9 @@ import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
-import { PageHeader, SummaryMetricCard } from '@/shared/components';
+import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
-import { Activity, Calendar, Users, Dumbbell } from 'lucide-react';
+import { Activity, Calendar, Users, Dumbbell, Plus } from 'lucide-react';
 
 /** 필라테스 강사 전용 축소 대시보드 */
 const PilatesStaffDashboard: React.FC = () => {
@@ -64,7 +64,22 @@ const PilatesStaffDashboard: React.FC = () => {
             </button>
           </div>
           {todayBookings.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">오늘 예약이 없습니다</p>
+            <EmptyState
+              icon={<Calendar className="w-8 h-8" />}
+              title="오늘 예약이 없습니다"
+              description="예약 캘린더에서 수업을 등록해 보세요."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('bookings')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold"
+                >
+                  <Plus className="w-4 h-4" />
+                  예약 추가
+                </button>
+              }
+              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+            />
           ) : (
             <div className="space-y-2">
               {todayBookings.map((b) => (
@@ -85,7 +100,12 @@ const PilatesStaffDashboard: React.FC = () => {
             담당 회원
           </h3>
           {members.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">담당 회원이 없습니다</p>
+            <EmptyState
+              icon={<Users className="w-8 h-8" />}
+              title="담당 회원이 없습니다"
+              description="예약이 연결되면 담당 회원이 표시됩니다."
+              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+            />
           ) : (
             <div className="space-y-2">
               {members.slice(0, 6).map((m) => (
@@ -162,7 +182,22 @@ const PilatesAdminDashboard: React.FC = () => {
             </button>
           </div>
           {todayBookings.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">오늘 예약이 없습니다</p>
+            <EmptyState
+              icon={<Calendar className="w-8 h-8" />}
+              title="오늘 예약이 없습니다"
+              description="예약 캘린더에서 수업을 등록해 보세요."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('bookings')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold"
+                >
+                  <Plus className="w-4 h-4" />
+                  예약 추가
+                </button>
+              }
+              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+            />
           ) : (
             <div className="space-y-2">
               {todayBookings.map((b) => (
@@ -183,7 +218,21 @@ const PilatesAdminDashboard: React.FC = () => {
             다가오는 예약
           </h3>
           {upcoming.length === 0 ? (
-            <p className="text-sm text-slate-400 py-6 text-center">예정된 예약이 없습니다</p>
+            <EmptyState
+              icon={<Calendar className="w-8 h-8" />}
+              title="예정된 예약이 없습니다"
+              description="다가오는 수업 예약이 여기에 표시됩니다."
+              action={
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('bookings')}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold"
+                >
+                  예약 관리
+                </button>
+              }
+              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+            />
           ) : (
             <div className="space-y-2">
               {upcoming.map((b) => (
@@ -202,16 +251,18 @@ const PilatesAdminDashboard: React.FC = () => {
 
       <div className="grid grid-cols-2 gap-3">
         <button
+          type="button"
           onClick={() => setActiveTab('members')}
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left"
+          className="p-4 min-h-[72px] bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left transition-colors"
         >
           <Users className="w-5 h-5 text-teal-600 mb-2" />
           <p className="font-bold text-sm">회원 {members.length}명</p>
           <p className="text-xs text-slate-500">회원 관리</p>
         </button>
         <button
+          type="button"
           onClick={() => setActiveTab('instructors')}
-          className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left"
+          className="p-4 min-h-[72px] bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left transition-colors"
         >
           <Activity className="w-5 h-5 text-purple-600 mb-2" />
           <p className="font-bold text-sm">강사 {instructors.length}명</p>

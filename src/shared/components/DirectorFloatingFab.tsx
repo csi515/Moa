@@ -20,7 +20,7 @@ export const DirectorFloatingFab: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-20 right-4 md:bottom-8 md:right-8 z-40 flex flex-col items-end pointer-events-auto">
+    <div className="fixed mobile-overlay-bottom right-4 md:bottom-8 md:right-8 z-40 flex flex-col items-end pointer-events-auto safe-area-pb">
       {isOpen && (
         <div className="mb-3 flex flex-col items-end gap-2 transition-all animate-in fade-in slide-in-from-bottom-3 duration-200">
           <div className="bg-slate-900/90 backdrop-blur-md text-white text-[11px] font-bold px-3 py-1 rounded-full shadow-lg mb-1">

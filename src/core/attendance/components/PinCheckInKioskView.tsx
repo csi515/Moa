@@ -91,7 +91,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
   }
 
   return (
-    <div className="max-w-md mx-auto">
+    <div className="max-w-md mx-auto pb-4 md:pb-0">
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
         <div className="text-center mb-6">
           <p className="text-xs text-slate-500 font-semibold">출결 키패드</p>
@@ -137,7 +137,9 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
                 onClick={() => handleKey(key)}
                 className={`min-h-[56px] rounded-2xl text-lg font-black transition-all active:scale-95 ${
                   key === 'enter'
-                    ? 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    ? industry === 'pilates'
+                      ? 'bg-teal-600 text-white hover:bg-teal-700'
+                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
                     : key === 'clear'
                       ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50'

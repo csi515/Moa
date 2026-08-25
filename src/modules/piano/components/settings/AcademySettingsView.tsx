@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent, type FC, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
@@ -22,21 +22,36 @@ import {
   Download,
   Upload,
   ShieldCheck,
+  Loader2,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 
 export const AcademySettingsView: FC = () => {
-  const { showToast, triggerRefresh } = useApp();
+  const { showToast, triggerRefresh, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
+  const importInputRef = useRef<HTMLInputElement>(null);
+  const pendingImportRef = useRef<File | null>(null);
+
+  const isTeal = industry === 'pilates';
+  const accentBtn = isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700';
+  const accentIcon = isTeal ? 'text-teal-600' : 'text-indigo-600';
+  const accentHover = isTeal ? 'hover:bg-teal-50' : 'hover:bg-indigo-50';
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
+  const [isSaving, setIsSaving] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
-  const handleSaveSettings = (e: FormEvent) => {
+  const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
-    StorageService.saveSettings(settings);
-    triggerRefresh();
-    showToast('사업장 설정이 저장되었습니다.', 'success');
+    setIsSaving(true);
+    try {
+      StorageService.saveSettings(settings);
+      triggerRefresh();
+      showToast('사업장 설정이 저장되었습니다.', 'success');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleExportData = () => {
@@ -45,16 +60,14 @@ export const AcademySettingsView: FC = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `piano_academy_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `academy_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
     showToast('학원 전체 데이터 백업 파일이 다운로드되었습니다.', 'success');
   };
 
-  const handleImportData = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const runImport = (file: File) => {
+    setIsImporting(true);
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -70,15 +83,46 @@ export const AcademySettingsView: FC = () => {
         }
       } catch {
         showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+      } finally {
+        setIsImporting(false);
+        pendingImportRef.current = null;
       }
     };
+    reader.onerror = () => {
+      showToast('파일을 읽는 중 오류가 발생했습니다.', 'error');
+      setIsImporting(false);
+      pendingImportRef.current = null;
+    };
     reader.readAsText(file);
+  };
+
+  const handleFileSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    pendingImportRef.current = file;
+    openConfirmDialog({
+      title: '백업 파일 복원',
+      message:
+        '현재 저장된 모든 데이터가 백업 파일 내용으로 교체됩니다. 이 작업은 되돌릴 수 없습니다. 계속하시겠습니까?',
+      isDestructive: true,
+      confirmText: '복원',
+      onConfirm: () => {
+        const pending = pendingImportRef.current;
+        if (pending) runImport(pending);
+      },
+      onCancel: () => {
+        pendingImportRef.current = null;
+      },
+    });
   };
 
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Settings className="w-6 h-6" />}
+        iconClassName={accentIcon}
         title="사업장 운영 및 환경 설정"
         description="기본 정보, 출입 관리, 백업, 업종별 기능 설명서"
       />
@@ -87,7 +131,7 @@ export const AcademySettingsView: FC = () => {
         <SettingsCard
           className="lg:col-span-2 sm:p-8"
           title="학원 기본 프로필"
-          icon={<Building className="w-4 h-4 text-indigo-600" />}
+          icon={<Building className={`w-4 h-4 ${accentIcon}`} />}
         >
           <form onSubmit={handleSaveSettings} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -183,17 +227,19 @@ export const AcademySettingsView: FC = () => {
               <AttendanceFeatureToggle
                 enabled={attendanceEnabled}
                 onChange={(enabled) => setSettings(withAttendanceModuleEnabled(settings, enabled))}
-                activeClassName={industry === 'pilates' ? 'bg-teal-600' : 'bg-indigo-600'}
+                activeClassName={isTeal ? 'bg-teal-600' : 'bg-indigo-600'}
+                iconClassName={accentIcon}
               />
             </div>
 
             <div className="flex justify-end pt-4">
               <button
                 type="submit"
-                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                disabled={isSaving}
+                className={`px-6 py-2.5 min-h-[44px] ${accentBtn} disabled:opacity-60 text-white font-bold text-xs sm:text-sm rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer`}
               >
-                <Save className="w-4 h-4" />
-                설정 정보 저장
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {isSaving ? '저장 중…' : '설정 정보 저장'}
               </button>
             </div>
           </form>
@@ -213,17 +259,33 @@ export const AcademySettingsView: FC = () => {
               <button
                 type="button"
                 onClick={handleExportData}
-                className="w-full py-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer"
+                disabled={isImporting}
+                className={`w-full py-3 min-h-[44px] bg-slate-50 ${accentHover} border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
               >
-                <Download className="w-4 h-4 text-indigo-600" />
+                <Download className={`w-4 h-4 ${accentIcon}`} />
                 전체 데이터 백업 (JSON 다운로드)
               </button>
 
-              <label className="w-full py-3 bg-slate-50 hover:bg-indigo-50 border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer">
-                <Upload className="w-4 h-4 text-indigo-600" />
-                <span>백업 파일 복원 (JSON 업로드)</span>
-                <input type="file" accept=".json" onChange={handleImportData} className="hidden" />
-              </label>
+              <button
+                type="button"
+                disabled={isImporting}
+                onClick={() => importInputRef.current?.click()}
+                className={`w-full py-3 min-h-[44px] bg-slate-50 ${accentHover} border border-slate-200 text-slate-800 text-xs font-bold rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60`}
+              >
+                {isImporting ? (
+                  <Loader2 className={`w-4 h-4 animate-spin ${accentIcon}`} />
+                ) : (
+                  <Upload className={`w-4 h-4 ${accentIcon}`} />
+                )}
+                {isImporting ? '복원 중…' : '백업 파일 복원 (JSON 업로드)'}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
             </div>
           </SettingsCard>
         </div>

@@ -7,6 +7,8 @@ interface Props {
   onChange: (enabled: boolean) => void;
   /** 스위치 색상 (업종 테마) */
   activeClassName?: string;
+  /** 아이콘 색상 (업종 테마) */
+  iconClassName?: string;
 }
 
 /** 사업장 설정 — 출입 관리(핀번호) on/off */
@@ -14,11 +16,12 @@ export const AttendanceFeatureToggle: FC<Props> = ({
   enabled,
   onChange,
   activeClassName = 'bg-indigo-600',
+  iconClassName = 'text-indigo-600',
 }) => (
   <div className="flex items-start justify-between gap-4">
     <div className="min-w-0">
       <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-        <KeyRound className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+        <KeyRound className={`w-3.5 h-3.5 shrink-0 ${iconClassName}`} />
         출입 관리 (핀번호)
       </p>
       <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">

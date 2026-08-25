@@ -29,3 +29,28 @@
   }
 }
 
+/* iOS safe area — 하단 네비·FAB·토스트와 겹침 방지 */
+.safe-area-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.main-with-bottom-nav {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .main-with-bottom-nav {
+    padding-bottom: 2rem;
+  }
+}
+
+.mobile-overlay-bottom {
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .mobile-overlay-bottom {
+    bottom: 1.5rem;
+  }
+}
+

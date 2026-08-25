@@ -26,4 +26,4 @@ export const FormField: React.FC<Props> = ({
 );
 
 export const FORM_CONTROL_CLASS =
-  'w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none';
+  'w-full px-3.5 py-2.5 text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-300';
