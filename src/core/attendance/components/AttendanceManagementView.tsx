@@ -12,6 +12,7 @@ import {
 import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
 import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
+import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
 import {
   CheckSquare,
   ChevronLeft,
@@ -19,6 +20,11 @@ import {
 } from 'lucide-react';
 
 type AttendanceSubTab = 'overview' | 'kiosk';
+
+const ATTENDANCE_SUB_TABS: { value: AttendanceSubTab; label: string }[] = [
+  { value: 'overview', label: '현황' },
+  { value: 'kiosk', label: '키패드' },
+];
 
 export const AttendanceManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab } = useApp();
@@ -86,26 +92,14 @@ export const AttendanceManagementView: React.FC = () => {
         title="출입 관리"
         description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
         actions={
-          <div className="flex bg-white border border-slate-200 rounded-xl p-1">
-            <button
-              type="button"
-              onClick={() => setSubTab('overview')}
-              className={`px-4 py-2 min-h-[44px] rounded-lg text-xs font-bold ${
-                subTab === 'overview' ? 'bg-indigo-600 text-white' : 'text-slate-600'
-              }`}
-            >
-              현황
-            </button>
-            <button
-              type="button"
-              onClick={() => setSubTab('kiosk')}
-              className={`px-4 py-2 min-h-[44px] rounded-lg text-xs font-bold ${
-                subTab === 'kiosk' ? 'bg-indigo-600 text-white' : 'text-slate-600'
-              }`}
-            >
-              키패드
-            </button>
-          </div>
+          <SegmentedControl
+            value={subTab}
+            options={ATTENDANCE_SUB_TABS}
+            onChange={setSubTab}
+            activeClassName="bg-indigo-600 text-white"
+            aria-label="출입 관리 보기"
+            className="bg-white"
+          />
         }
       />
 

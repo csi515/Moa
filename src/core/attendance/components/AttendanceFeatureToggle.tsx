@@ -1,5 +1,5 @@
-import React from 'react';
 import { KeyRound } from 'lucide-react';
+import { ToggleSwitch } from '@/shared/components/ui/ToggleSwitch';
 
 interface Props {
   enabled: boolean;
@@ -25,21 +25,11 @@ export const AttendanceFeatureToggle: React.FC<Props> = ({
         유지됩니다.
       </p>
     </div>
-    <button
-      type="button"
-      role="switch"
-      aria-checked={enabled}
-      aria-label="출입 관리 핀번호"
-      onClick={() => onChange(!enabled)}
-      className={`relative w-12 h-7 rounded-full transition-colors shrink-0 min-h-[28px] ${
-        enabled ? activeClassName : 'bg-slate-300'
-      }`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
-          enabled ? 'translate-x-5' : ''
-        }`}
-      />
-    </button>
+    <ToggleSwitch
+      enabled={enabled}
+      onChange={onChange}
+      ariaLabel="출입 관리 핀번호"
+      activeClassName={activeClassName}
+    />
   </div>
 );

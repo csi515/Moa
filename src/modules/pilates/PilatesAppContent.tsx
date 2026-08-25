@@ -1,14 +1,14 @@
-import React from 'react';
+import type { FC, ReactNode } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
-  Header,
   PwaInstallPrompt,
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
 } from '@/shared/components';
+import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { PilatesSidebar } from './layout/PilatesSidebar';
@@ -28,51 +28,43 @@ import {
 import { AttendanceManagementView } from '@/core/attendance';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
-export const PilatesAppContent: React.FC = () => {
+const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
+  dashboard: () => <PilatesDashboardView />,
+  bookings: () => <BookingCalendarView />,
+  services: () => <ServiceManagementView />,
+  members: () => <MemberListView />,
+  instructors: () => <InstructorListView />,
+  attendance: () => <AttendanceManagementView />,
+  finance: () => <FinanceOverviewView />,
+  income: () => <IncomeManagementView />,
+  expenses: () => <ExpenseManagementView />,
+  settings: () => <AcademySettingsView />,
+};
+
+export const PilatesAppContent: FC = () => {
   const { activeTab } = useApp();
   const { isOwner } = usePermissions();
 
   useTabGuard();
 
-  const renderView = () => {
-    switch (activeTab) {
-      case 'bookings':
-        return <BookingCalendarView />;
-      case 'services':
-        return <ServiceManagementView />;
-      case 'members':
-        return <MemberListView />;
-      case 'instructors':
-        return <InstructorListView />;
-      case 'attendance':
-        return <AttendanceManagementView />;
-      case 'finance':
-        return <FinanceOverviewView />;
-      case 'income':
-        return <IncomeManagementView />;
-      case 'expenses':
-        return <ExpenseManagementView />;
-      case 'settings':
-        return <AcademySettingsView />;
-      case 'dashboard':
-      default:
-        return <PilatesDashboardView />;
-    }
-  };
+  const renderView = PILATES_VIEW_MAP[activeTab] ?? PILATES_VIEW_MAP.dashboard;
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] text-slate-800 flex flex-col font-sans antialiased selection:bg-teal-500 selection:text-white">
-      {isSupabaseConfigured() && <SupabaseRoleSync />}
-      <Header />
-      <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
-        <PilatesSidebar />
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8">{renderView()}</main>
-      </div>
-      <PilatesBottomNav />
-      {isOwner && <DirectorFloatingFab />}
-      <PwaInstallPrompt />
-      <ConfirmDialog />
-      <ToastContainer />
-    </div>
+    <ModuleAppShell
+      theme="teal"
+      beforeHeader={isSupabaseConfigured() ? <SupabaseRoleSync /> : null}
+      sidebar={<PilatesSidebar />}
+      bottomNav={<PilatesBottomNav />}
+      overlays={
+        <>
+          {isOwner && <DirectorFloatingFab />}
+          <PwaInstallPrompt />
+          <ConfirmDialog />
+          <ToastContainer />
+        </>
+      }
+    >
+      {renderView()}
+    </ModuleAppShell>
   );
 };
