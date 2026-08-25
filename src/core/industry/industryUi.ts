@@ -10,14 +10,14 @@ export function isPilatesIndustry(industry: IndustryType | string | null | undef
   return resolveIndustry(industry) === 'pilates';
 }
 
-export function isTaekwondoIndustry(industry: IndustryType | string | null | undefined): boolean {
-  return resolveIndustry(industry) === 'taekwondo';
+export function isGymIndustry(industry: IndustryType | string | null | undefined): boolean {
+  return resolveIndustry(industry) === 'gym';
 }
 
-/** 클래스(반) 기반 수업 — 피아노·태권도 */
+/** 클래스(반) 기반 수업 — 피아노·체육관 */
 export function usesClassBasedSchedule(industry: IndustryType | string | null | undefined): boolean {
   const type = resolveIndustry(industry);
-  return type === 'piano' || type === 'taekwondo';
+  return type === 'piano' || type === 'gym';
 }
 
 /** 원생/회원 목록 탭 */
@@ -28,7 +28,7 @@ export function getCustomerListTab(industry: IndustryType | string | null | unde
 export function getModuleTheme(industry: IndustryType | string | null | undefined): ModuleTheme {
   const type = resolveIndustry(industry);
   if (type === 'pilates') return 'teal';
-  if (type === 'taekwondo') return 'red';
+  if (type === 'gym') return 'orange';
   return 'indigo';
 }
 
@@ -51,13 +51,13 @@ export function getIndustryAccent(industry: IndustryType | string | null | undef
       ring: 'focus:ring-teal-500 focus:border-teal-300',
     };
   }
-  if (type === 'taekwondo') {
+  if (type === 'gym') {
     return {
-      btn: 'bg-red-600',
-      btnHover: 'hover:bg-red-700',
-      icon: 'text-red-600',
-      hoverBg: 'hover:bg-red-50',
-      ring: 'focus:ring-red-500 focus:border-red-300',
+      btn: 'bg-orange-600',
+      btnHover: 'hover:bg-orange-700',
+      icon: 'text-orange-600',
+      hoverBg: 'hover:bg-orange-50',
+      ring: 'focus:ring-orange-500 focus:border-orange-300',
     };
   }
   return {

@@ -1,4 +1,4 @@
-export type ModuleTheme = 'indigo' | 'teal' | 'red';
+export type ModuleTheme = 'indigo' | 'teal' | 'orange';
 
 export interface ModuleThemeTokens {
   shell: string;
@@ -29,13 +29,13 @@ export const MODULE_THEMES: Record<ModuleTheme, ModuleThemeTokens> = {
     bottomSheetActive: 'bg-teal-50 border-teal-200 text-teal-700',
     bottomSheetActiveIcon: 'bg-teal-600 text-white',
   },
-  red: {
-    shell: 'min-h-screen bg-[#F1F5F9] text-slate-800 flex flex-col font-sans antialiased selection:bg-red-500 selection:text-white',
-    sidebarActive: 'bg-red-50 text-red-700 font-bold',
-    sidebarActiveIcon: 'text-red-600',
-    sidebarBadge: 'bg-red-600 text-white',
-    bottomNavActive: 'text-red-600 font-bold',
-    bottomSheetActive: 'bg-red-50 border-red-200 text-red-700',
-    bottomSheetActiveIcon: 'bg-red-600 text-white',
+  orange: {
+    shell: 'min-h-screen bg-[#F1F5F9] text-slate-800 flex flex-col font-sans antialiased selection:bg-orange-500 selection:text-white',
+    sidebarActive: 'bg-orange-50 text-orange-700 font-bold',
+    sidebarActiveIcon: 'text-orange-600',
+    sidebarBadge: 'bg-orange-600 text-white',
+    bottomNavActive: 'text-orange-600 font-bold',
+    bottomSheetActive: 'bg-orange-50 border-orange-200 text-orange-700',
+    bottomSheetActiveIcon: 'bg-orange-600 text-white',
   },
 };

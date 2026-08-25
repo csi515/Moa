@@ -12,6 +12,8 @@ import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
 import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
+import { getCustomerListTab, getIndustryAccent } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import {
   CheckSquare,
   ChevronLeft,
@@ -31,12 +33,15 @@ const ATTENDANCE_SUB_TABS: { value: AttendanceSubTab; label: string }[] = [
 export const AttendanceManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab } = useApp();
   const { attendanceEnabled, industry } = usePermissions();
+  const labels = useModuleLabels();
   const { isScoped, scopeStudents } = useStaffScope();
 
-  const isTeal = industry === 'pilates';
-  const accentActive = isTeal ? 'bg-teal-600 text-white' : 'bg-indigo-600 text-white';
-  const linkHover = isTeal ? 'hover:text-teal-600' : 'hover:text-indigo-600';
-  const metricVariant = isTeal ? 'teal' : 'indigo';
+  const accent = getIndustryAccent(industry);
+  const accentActive = `${accent.btn} text-white`;
+  const linkHover = accent.icon.replace('text-', 'hover:text-');
+  const metricVariant =
+    industry === 'pilates' ? 'teal' : industry === 'gym' ? 'amber' : 'indigo';
+  const customerTab = getCustomerListTab(industry);
 
   const [subTab, setSubTab] = useState<AttendanceSubTab>('overview');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
@@ -94,9 +99,7 @@ export const AttendanceManagementView: React.FC = () => {
           <button
             type="button"
             onClick={() => setActiveTab('settings')}
-            className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${
-              isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
+            className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${accent.btn} ${accent.btnHover}`}
           >
             <Settings className="w-4 h-4" />
             설정으로 이동
@@ -111,7 +114,7 @@ export const AttendanceManagementView: React.FC = () => {
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<CheckSquare className="w-6 h-6" />}
-        iconClassName={isTeal ? 'text-teal-600' : 'text-indigo-600'}
+        iconClassName={accent.icon}
         title="출입 관리"
         description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
         actions={
@@ -189,14 +192,12 @@ export const AttendanceManagementView: React.FC = () => {
                       type="button"
                       onClick={() => {
                         setSelectedStudentId(null);
-                        setActiveTab(industry === 'pilates' ? 'members' : 'students');
+                        setActiveTab(customerTab);
                       }}
-                      className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${
-                        isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700'
-                      }`}
+                      className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl text-white text-xs font-bold ${accent.btn} ${accent.btnHover}`}
                     >
                       <UserPlus className="w-4 h-4" />
-                      {industry === 'pilates' ? '회원 등록' : '원생 등록'}
+                      {labels.customer.add}
                     </button>
                   ) : undefined
                 }
@@ -236,7 +237,7 @@ export const AttendanceManagementView: React.FC = () => {
                                 type="button"
                                 onClick={() => {
                                   setSelectedStudentId(student.id);
-                                  setActiveTab(industry === 'pilates' ? 'members' : 'students');
+                                  setActiveTab(customerTab);
                                 }}
                                 className={`font-bold text-slate-900 ${linkHover}`}
                               >
@@ -290,7 +291,7 @@ export const AttendanceManagementView: React.FC = () => {
                             type="button"
                             onClick={() => {
                               setSelectedStudentId(student.id);
-                              setActiveTab(industry === 'pilates' ? 'members' : 'students');
+                              setActiveTab(customerTab);
                             }}
                             className={`font-bold text-slate-900 ${linkHover} text-sm text-left min-h-[44px]`}
                           >

@@ -5,6 +5,7 @@ import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../features';
 import type { CheckInMethod } from '../types';
 import { Delete, RotateCcw } from 'lucide-react';
+import { getIndustryAccent } from '@/core/industry/industryUi';
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'enter'] as const;
 
@@ -24,6 +25,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
   const [processing, setProcessing] = useState(false);
 
   const moduleEnabled = isAttendanceModuleEnabled(settings, industry);
+  const accent = getIndustryAccent(industry);
 
   const maskedPin = useMemo(() => (pin ? '●'.repeat(pin.length) : ''), [pin]);
 
@@ -137,9 +139,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
                 onClick={() => handleKey(key)}
                 className={`min-h-[56px] rounded-2xl text-lg font-black transition-all active:scale-95 ${
                   key === 'enter'
-                    ? industry === 'pilates'
-                      ? 'bg-teal-600 text-white hover:bg-teal-700'
-                      : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    ? `${accent.btn} text-white ${accent.btnHover}`
                     : key === 'clear'
                       ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50'

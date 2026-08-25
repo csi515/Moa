@@ -7,7 +7,7 @@ import type { AttendanceModuleSettings } from './types';
 const INDUSTRY_ATTENDANCE_DEFAULT: Record<IndustryType, boolean> = {
   piano: true,
   pilates: false,
-  taekwondo: true,
+  gym: true,
 };
 
 export function getDefaultAttendanceSettings(industry: IndustryType): AttendanceModuleSettings {

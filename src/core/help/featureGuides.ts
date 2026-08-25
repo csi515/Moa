@@ -250,22 +250,22 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
   COMMON_SETTINGS,
 ];
 
-const TAEKWONDO_GUIDE: FeatureGuideSection[] = [
+const GYM_GUIDE: FeatureGuideSection[] = [
   {
     id: 'customers',
-    title: '수련생·보호자',
-    description: '등록 수련생과 보호자 연락처, 띠/급을 관리합니다.',
+    title: '회원·보호자',
+    description: '등록 회원과 보호자 연락처, 수업 레벨을 관리합니다.',
     items: [
       {
         id: 'students',
-        title: '수련생 관리',
-        summary: '수련생 등록, 재원/휴원/퇴원, 담당 사범·반·띠급을 관리합니다.',
-        howTo: '수련생 등록 시 보호자 연락처와 PIN을 함께 설정할 수 있습니다.',
+        title: '회원 관리',
+        summary: '회원 등록, 재적/휴원/퇴원, 담당 강사·반·수업 레벨을 관리합니다.',
+        howTo: '회원 등록 시 보호자 연락처와 PIN을 함께 설정할 수 있습니다.',
       },
       {
         id: 'parents',
         title: '보호자 관리',
-        summary: '보호자 연락처와 연결된 수련생을 관리합니다.',
+        summary: '보호자 연락처와 연결된 회원을 관리합니다.',
       },
     ],
   },
@@ -277,7 +277,7 @@ const TAEKWONDO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'classes',
         title: '수업반 관리',
-        summary: '연령·급수별 수업반(요일·시간·정원·사범)을 만듭니다.',
+        summary: '연령·레벨별 수업반(요일·시간·정원·강사)을 만듭니다.',
       },
       {
         id: 'timetable',
@@ -304,24 +304,24 @@ const TAEKWONDO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'unpaid',
         title: '미납 통합 관리',
-        summary: '미납 수련생을 모아 보고 연락·수납을 이어갑니다.',
+        summary: '미납 회원을 모아 보고 연락·수납을 이어갑니다.',
       },
     ],
   },
   {
     id: 'staff',
     title: '지도진',
-    description: '사범과 도장 일정을 관리합니다.',
+    description: '강사와 체육관 일정을 관리합니다.',
     items: [
       {
         id: 'teachers',
-        title: '사범 관리',
-        summary: '사범 정보와 담당 반을 관리합니다.',
+        title: '강사 관리',
+        summary: '강사 정보와 담당 반을 관리합니다.',
       },
       {
         id: 'calendar',
-        title: '도장 캘린더',
-        summary: '승급·시합·행사 일정을 기록합니다.',
+        title: '체육관 캘린더',
+        summary: '대회·행사·휴관 일정을 기록합니다.',
       },
     ],
   },
@@ -332,7 +332,7 @@ const TAEKWONDO_GUIDE: FeatureGuideSection[] = [
 const GUIDE_BY_INDUSTRY: Record<IndustryType, FeatureGuideSection[]> = {
   piano: PIANO_GUIDE,
   pilates: PILATES_GUIDE,
-  taekwondo: TAEKWONDO_GUIDE,
+  gym: GYM_GUIDE,
 };
 
 const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> = {
@@ -344,9 +344,9 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
     title: '필라테스 스튜디오 기능 안내',
     body: '회원 예약·수업 종류·강사·재무를 중심으로 스튜디오를 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
-  taekwondo: {
-    title: '태권도장 기능 안내',
-    body: '수련생·띠급·출결·수강료를 중심으로 도장을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+  gym: {
+    title: '체육관 기능 안내',
+    body: '회원·수업반·출결·수강료를 중심으로 체육관을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
 };
 

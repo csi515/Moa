@@ -15,35 +15,23 @@ export const PIANO_LEVEL_OPTIONS: StudentLevel[] = [
   '성인 취미',
 ];
 
-export const TAEKWONDO_BELT_OPTIONS: StudentLevel[] = [
-  '흰띠(예비)',
-  '10급',
-  '9급',
-  '8급',
-  '7급',
-  '6급',
-  '5급',
-  '4급',
-  '3급',
-  '2급',
-  '1급',
-  '1단',
-  '2단',
-  '3단',
-  '4단',
-  '5단',
-  '6단',
-  '7단',
-  '8단',
-  '9단',
+/** 체육관 — 수업/프로그램 레벨 */
+export const GYM_LEVEL_OPTIONS: StudentLevel[] = [
+  '어린이',
+  '초급',
+  '중급',
+  '고급',
+  '선수반',
+  '성인',
+  '시니어',
 ];
 
-/** 업종별 수련생/원생 급·레벨 선택지 */
+/** 업종별 회원/원생 레벨 선택지 */
 export function getStudentLevelOptions(
   industry: IndustryType | string | null | undefined
 ): StudentLevel[] {
   const type = normalizeIndustryType(industry);
-  if (type === 'taekwondo') return TAEKWONDO_BELT_OPTIONS;
+  if (type === 'gym') return GYM_LEVEL_OPTIONS;
   return PIANO_LEVEL_OPTIONS;
 }
 
@@ -51,10 +39,10 @@ export function getStudentLevelOptions(
 export function getStudentLevelLabel(
   industry: IndustryType | string | null | undefined
 ): string {
-  return normalizeIndustryType(industry) === 'taekwondo' ? '띠/급' : '레벨';
+  return normalizeIndustryType(industry) === 'gym' ? '수업 레벨' : '레벨';
 }
 
-/** 태권도장은 학교/학년 필드 숨김 */
+/** 체육관은 학교/학년 필드를 기본 숨김 */
 export function showSchoolFields(industry: IndustryType | string | null | undefined): boolean {
-  return normalizeIndustryType(industry) !== 'taekwondo';
+  return normalizeIndustryType(industry) !== 'gym';
 }

@@ -52,8 +52,8 @@ const PIANO_STAFF_TABS: NavTab[] = [
 /** 필라테스 — 강사 접근 가능 탭 */
 const PILATES_STAFF_TABS: NavTab[] = ['dashboard', 'bookings', 'members', 'attendance'];
 
-/** 태권도 — 강사(사범) 접근 가능 탭 */
-const TAEKWONDO_STAFF_TABS: NavTab[] = [
+/** 체육관 — 강사 접근 가능 탭 */
+const GYM_STAFF_TABS: NavTab[] = [
   'dashboard',
   'students',
   'classes',
@@ -95,8 +95,8 @@ const PILATES_ADMIN_TABS: NavTab[] = [
   'settings',
 ];
 
-/** 태권도 — 관리자 탭 (재무 제외) */
-const TAEKWONDO_ADMIN_TABS: NavTab[] = [
+/** 체육관 — 관리자 탭 (재무 제외) */
+const GYM_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'students',
   'parents',
@@ -116,13 +116,13 @@ function resolveIndustryType(industry: IndustryType | string | null | undefined)
 
 function getAdminTabs(industryType: IndustryType): NavTab[] {
   if (industryType === 'pilates') return PILATES_ADMIN_TABS;
-  if (industryType === 'taekwondo') return TAEKWONDO_ADMIN_TABS;
+  if (industryType === 'gym') return GYM_ADMIN_TABS;
   return PIANO_ADMIN_TABS;
 }
 
 function getStaffTabs(industryType: IndustryType): NavTab[] {
   if (industryType === 'pilates') return PILATES_STAFF_TABS;
-  if (industryType === 'taekwondo') return TAEKWONDO_STAFF_TABS;
+  if (industryType === 'gym') return GYM_STAFF_TABS;
   return PIANO_STAFF_TABS;
 }
 

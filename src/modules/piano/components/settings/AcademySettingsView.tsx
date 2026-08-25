@@ -25,6 +25,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
+import { getIndustryAccent } from '@/core/industry/industryUi';
 
 export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh, openConfirmDialog } = useApp();
@@ -32,10 +33,10 @@ export const AcademySettingsView: FC = () => {
   const importInputRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<File | null>(null);
 
-  const isTeal = industry === 'pilates';
-  const accentBtn = isTeal ? 'bg-teal-600 hover:bg-teal-700' : 'bg-indigo-600 hover:bg-indigo-700';
-  const accentIcon = isTeal ? 'text-teal-600' : 'text-indigo-600';
-  const accentHover = isTeal ? 'hover:bg-teal-50' : 'hover:bg-indigo-50';
+  const accent = getIndustryAccent(industry);
+  const accentBtn = `${accent.btn} ${accent.btnHover}`;
+  const accentIcon = accent.icon;
+  const accentHover = accent.hoverBg;
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
   const [isSaving, setIsSaving] = useState(false);
@@ -227,7 +228,7 @@ export const AcademySettingsView: FC = () => {
               <AttendanceFeatureToggle
                 enabled={attendanceEnabled}
                 onChange={(enabled) => setSettings(withAttendanceModuleEnabled(settings, enabled))}
-                activeClassName={isTeal ? 'bg-teal-600' : 'bg-indigo-600'}
+                activeClassName={accent.btn}
                 iconClassName={accentIcon}
               />
             </div>

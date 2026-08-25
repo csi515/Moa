@@ -19,7 +19,7 @@ import {
 
 const icon = (node: ReactNode) => node;
 
-export function getTaekwondoSidebarSections(labels: ModuleLabels): NavMenuSection[] {
+export function getGymSidebarSections(labels: ModuleLabels): NavMenuSection[] {
   return [
     {
       title: '메인',
@@ -69,7 +69,7 @@ export function getTaekwondoSidebarSections(labels: ModuleLabels): NavMenuSectio
           label: labels.staff.management,
           icon: icon(<GraduationCap className="w-4 h-4" />),
         },
-        { tab: 'calendar', label: '도장 캘린더', icon: icon(<Calendar className="w-4 h-4" />) },
+        { tab: 'calendar', label: '체육관 캘린더', icon: icon(<Calendar className="w-4 h-4" />) },
       ],
     },
     {
@@ -82,12 +82,12 @@ export function getTaekwondoSidebarSections(labels: ModuleLabels): NavMenuSectio
     },
     {
       title: '설정',
-      items: [{ tab: 'settings', label: '도장 설정', icon: icon(<Settings className="w-4 h-4" />) }],
+      items: [{ tab: 'settings', label: '체육관 설정', icon: icon(<Settings className="w-4 h-4" />) }],
     },
   ];
 }
 
-export function getTaekwondoMainTabs(labels: ModuleLabels): NavMenuItem[] {
+export function getGymMainTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-5 h-5" />) },
     { tab: 'students', label: labels.customer.singular, icon: icon(<Users className="w-5 h-5" />) },
@@ -95,7 +95,7 @@ export function getTaekwondoMainTabs(labels: ModuleLabels): NavMenuItem[] {
   ];
 }
 
-export function getTaekwondoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
+export function getGymMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'parents', label: labels.contact.management, icon: icon(<UserSquare2 className="w-5 h-5" />) },
     { tab: 'classes', label: '수업반', icon: icon(<GraduationCap className="w-5 h-5" />) },

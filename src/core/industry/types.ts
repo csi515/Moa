@@ -1,5 +1,5 @@
 /** 지원 업종 타입 */
-export type IndustryType = 'piano' | 'pilates' | 'taekwondo';
+export type IndustryType = 'piano' | 'pilates' | 'gym';
 
 export interface IndustryOption {
   value: IndustryType;
@@ -19,15 +19,16 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
     description: '회원·예약·수업 종류·강사 스케줄 중심 운영',
   },
   {
-    value: 'taekwondo',
-    label: '태권도장',
-    description: '수련생·띠급·출결·수강료 중심 운영',
+    value: 'gym',
+    label: '체육관',
+    description: '회원·수업반·출결·수강료 중심 운영',
   },
 ];
 
 export function normalizeIndustryType(value?: string | null): IndustryType {
   if (value === 'pilates') return 'pilates';
-  if (value === 'taekwondo') return 'taekwondo';
+  // 레거시 키 호환 (구 태권도장 → 체육관)
+  if (value === 'gym' || value === 'taekwondo') return 'gym';
   return 'piano';
 }
 

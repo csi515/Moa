@@ -4,18 +4,18 @@ import { useModuleLabels } from '@/core/labels';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavSections } from '@/core/auth/navUtils';
 import { ModuleSidebar } from '@/shared/components/layout/ModuleSidebar';
-import { getTaekwondoSidebarSections } from '../config/nav';
+import { getGymSidebarSections } from '../config/nav';
 
-export const TaekwondoSidebar: FC = () => {
+export const GymSidebar: FC = () => {
   const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
   const { allowedTabs, roleLabel, roleBadge } = usePermissions();
 
-  const sections = filterNavSections(getTaekwondoSidebarSections(labels), allowedTabs);
+  const sections = filterNavSections(getGymSidebarSections(labels), allowedTabs);
 
   return (
     <ModuleSidebar
-      theme="red"
+      theme="orange"
       sections={sections}
       activeTab={activeTab}
       onNavigate={(tab) => {

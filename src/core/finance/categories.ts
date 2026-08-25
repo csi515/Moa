@@ -43,11 +43,12 @@ export const COMMON_INCOME_CATEGORIES: CategoryOption[] = [
   { value: 'other', label: '기타 수입' },
 ];
 
-/** 태권도장 추가 지출 카테고리 */
-export const TAEKWONDO_EXPENSE_CATEGORIES: CategoryOption[] = [
-  { value: 'uniform', label: '도복/장비' },
-  { value: 'competition', label: '시합/승급 비용' },
-  { value: 'instructor_fee', label: '사범료' },
+/** 체육관 추가 지출 카테고리 */
+export const GYM_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'equipment', label: '운동 용품/장비' },
+  { value: 'uniform', label: '유니폼/복장' },
+  { value: 'competition', label: '대회/행사 비용' },
+  { value: 'instructor_fee', label: '강사료' },
 ];
 
 export function getExpenseCategories(industry: IndustryType | string): CategoryOption[] {
@@ -55,8 +56,8 @@ export function getExpenseCategories(industry: IndustryType | string): CategoryO
   if (industry === 'pilates') {
     return [...base, ...PILATES_EXPENSE_CATEGORIES];
   }
-  if (industry === 'taekwondo') {
-    return [...base, ...TAEKWONDO_EXPENSE_CATEGORIES];
+  if (industry === 'gym' || industry === 'taekwondo') {
+    return [...base, ...GYM_EXPENSE_CATEGORIES];
   }
   return [...base, ...PIANO_EXPENSE_CATEGORIES];
 }

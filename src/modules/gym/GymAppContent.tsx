@@ -11,9 +11,9 @@ import {
 import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { TaekwondoSidebar } from './layout/TaekwondoSidebar';
-import { TaekwondoBottomNav } from './layout/TaekwondoBottomNav';
-import { TaekwondoDashboardView } from './components/dashboard/TaekwondoDashboardView';
+import { GymSidebar } from './layout/GymSidebar';
+import { GymBottomNav } from './layout/GymBottomNav';
+import { GymDashboardView } from './components/dashboard/GymDashboardView';
 import { StudentListView } from './components/students/StudentListView';
 import {
   WeeklyTimetableView,
@@ -32,8 +32,8 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 
-const TAEKWONDO_VIEW_MAP: Record<string, () => ReactNode> = {
-  dashboard: () => <TaekwondoDashboardView />,
+const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
+  dashboard: () => <GymDashboardView />,
   students: () => <StudentListView />,
   parents: () => <ParentManagementView />,
   classes: () => <ClassManagementView />,
@@ -49,20 +49,20 @@ const TAEKWONDO_VIEW_MAP: Record<string, () => ReactNode> = {
   settings: () => <AcademySettingsView />,
 };
 
-export const TaekwondoAppContent: FC = () => {
+export const GymAppContent: FC = () => {
   const { activeTab } = useApp();
   const { isOwner } = usePermissions();
 
   useTabGuard();
 
-  const renderView = TAEKWONDO_VIEW_MAP[activeTab] ?? TAEKWONDO_VIEW_MAP.dashboard;
+  const renderView = GYM_VIEW_MAP[activeTab] ?? GYM_VIEW_MAP.dashboard;
 
   return (
     <ModuleAppShell
-      theme="red"
+      theme="orange"
       beforeHeader={isSupabaseConfigured() ? <SupabaseRoleSync /> : null}
-      sidebar={<TaekwondoSidebar />}
-      bottomNav={<TaekwondoBottomNav />}
+      sidebar={<GymSidebar />}
+      bottomNav={<GymBottomNav />}
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
