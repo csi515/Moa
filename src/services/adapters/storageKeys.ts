@@ -31,6 +31,10 @@ export const STORAGE_KEYS = {
   SETTINGS: 'piano_app_settings',
   SCHEDULES: 'core_schedules',
   SERVICE_OFFERINGS: 'core_service_offerings',
+  /** 어린이집 플러그인 — 알림장 */
+  CARE_JOURNALS: 'daycare_care_journals',
+  /** 어린이집 플러그인 — 투약 의뢰 */
+  MEDICATION_REQUESTS: 'daycare_medication_requests',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
 } as const;
@@ -81,6 +85,8 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
 export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
   STORAGE_KEYS.INITIALIZED,
+  STORAGE_KEYS.CARE_JOURNALS,
+  STORAGE_KEYS.MEDICATION_REQUESTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano) */

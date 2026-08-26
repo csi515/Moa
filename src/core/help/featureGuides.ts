@@ -351,7 +351,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
   {
     id: 'classes',
     title: '반·등하원',
-    description: '반 편성, 시간표, PIN 등하원, 상담을 다룹니다.',
+    description: '반 편성, 시간표, PIN 등하원을 다룹니다.',
     items: [
       {
         id: 'classes',
@@ -367,6 +367,25 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         id: 'attendance',
         title: '등·하원 관리',
         summary: 'PIN으로 등원·하원을 기록하고 당일 현황을 봅니다.',
+      },
+    ],
+  },
+  {
+    id: 'care',
+    title: '보육 기록',
+    description: '알림장·투약·상담으로 보호자와 하루 생활을 공유합니다.',
+    items: [
+      {
+        id: 'journals',
+        title: '알림장',
+        summary: '원아별 식사·낮잠·활동·건강과 선생님 한마디를 남깁니다.',
+        howTo: '날짜를 고른 뒤 원아를 선택해 알림장을 작성합니다. 보호자에게 전할 하루 요약을 꼭 남겨 주세요.',
+      },
+      {
+        id: 'medications',
+        title: '투약 관리',
+        summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
+        howTo: '약 이름·용량·시점을 등록한 뒤, 투약하면 「투약 완료」로 표시합니다.',
       },
       {
         id: 'consultations',
@@ -435,7 +454,7 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   },
   daycare: {
     title: '어린이집 기능 안내',
-    body: '원아·연령반·등하원·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+    body: '원아·연령반·등하원·알림장·투약·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
 };
 

@@ -16,6 +16,8 @@ import {
   TrendingUp,
   Receipt,
   MessageSquareText,
+  BookOpen,
+  Pill,
 } from 'lucide-react';
 
 const icon = (node: ReactNode) => node;
@@ -53,6 +55,13 @@ export function getDaycareSidebarSections(labels: ModuleLabels): NavMenuSection[
           icon: icon(<Clock className="w-4 h-4" />),
         },
         { tab: 'attendance', label: '등·하원 관리', icon: icon(<CheckSquare className="w-4 h-4" />) },
+      ],
+    },
+    {
+      title: '보육 기록',
+      items: [
+        { tab: 'journals', label: '알림장', icon: icon(<BookOpen className="w-4 h-4" />) },
+        { tab: 'medications', label: '투약 관리', icon: icon(<Pill className="w-4 h-4" />) },
         {
           tab: 'consultations',
           label: '상담 이력',
@@ -97,12 +106,14 @@ export function getDaycareMainTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-5 h-5" />) },
     { tab: 'students', label: labels.customer.singular, icon: icon(<Users className="w-5 h-5" />) },
-    { tab: 'attendance', label: '등하원', icon: icon(<CheckSquare className="w-5 h-5" />) },
+    { tab: 'journals', label: '알림장', icon: icon(<BookOpen className="w-5 h-5" />) },
   ];
 }
 
 export function getDaycareMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
+    { tab: 'attendance', label: '등하원', icon: icon(<CheckSquare className="w-5 h-5" />) },
+    { tab: 'medications', label: '투약', icon: icon(<Pill className="w-5 h-5" />) },
     { tab: 'parents', label: labels.contact.management, icon: icon(<UserSquare2 className="w-5 h-5" />) },
     { tab: 'classes', label: '반 관리', icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'timetable', label: '시간표', icon: icon(<Clock className="w-5 h-5" />) },

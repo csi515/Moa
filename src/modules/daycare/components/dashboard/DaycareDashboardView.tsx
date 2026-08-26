@@ -5,7 +5,7 @@ import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
-import { Baby, Users, UserPlus, CheckSquare } from 'lucide-react';
+import { Baby, Users, UserPlus, CheckSquare, BookOpen, Pill } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
 
 export const DaycareDashboardView: FC = () => {
@@ -23,6 +23,17 @@ export const DaycareDashboardView: FC = () => {
   const checkedInToday = new Set(sessions.filter((s) => s.checkInAt).map((s) => s.customerId)).size;
   const teachers = StorageService.getTeachers().filter((t) => t.status === 'active');
   const classes = StorageService.getClasses();
+  const todayJournals = useMemo(
+    () => StorageService.getCareJournals().filter((j) => j.journalDate === today).length,
+    [refreshKey, today]
+  );
+  const pendingMeds = useMemo(
+    () =>
+      StorageService.getMedicationRequests().filter(
+        (m) => m.requestDate === today && m.status === 'requested'
+      ).length,
+    [refreshKey, today]
+  );
 
   return (
     <div className="space-y-6 pb-12">
@@ -30,10 +41,10 @@ export const DaycareDashboardView: FC = () => {
         icon={<Baby className="w-6 h-6" />}
         iconClassName="text-sky-600"
         title="어린이집 대시보드"
-        description={`${formatKoreanDate(today)} · 원아·등하원·반 현황`}
+        description={`${formatKoreanDate(today)} · 원아·등하원·보육 기록`}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
         <SummaryMetricCard
           label={`재원 ${labels.customer.singular}`}
           value={`${students.length}명`}
@@ -48,6 +59,18 @@ export const DaycareDashboardView: FC = () => {
           value={`${checkedInToday}명`}
           variant="emerald"
           onClick={() => setActiveTab('attendance')}
+        />
+        <SummaryMetricCard
+          label="오늘 알림장"
+          value={`${todayJournals}건`}
+          variant="teal"
+          onClick={() => setActiveTab('journals')}
+        />
+        <SummaryMetricCard
+          label="투약 대기"
+          value={`${pendingMeds}건`}
+          variant={pendingMeds > 0 ? 'amber' : 'default'}
+          onClick={() => setActiveTab('medications')}
         />
         <SummaryMetricCard
           label={labels.staff.plural}
@@ -127,7 +150,7 @@ export const DaycareDashboardView: FC = () => {
         <div className="bg-white rounded-2xl border border-slate-200 p-5">
           <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-4">
             <CheckSquare className="w-4 h-4 text-emerald-600" />
-            오늘 등하원 요약
+            오늘 등하원·보육
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
@@ -139,13 +162,31 @@ export const DaycareDashboardView: FC = () => {
               <p className="text-2xl font-black text-slate-900 mt-1">{students.length}명</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setActiveTab('attendance')}
-            className="mt-4 w-full py-3 min-h-[44px] rounded-xl border border-sky-200 text-sky-700 text-xs font-bold hover:bg-sky-50 transition-colors"
-          >
-            등·하원 관리 열기
-          </button>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveTab('attendance')}
+              className="py-3 min-h-[44px] rounded-xl border border-sky-200 text-sky-700 text-xs font-bold hover:bg-sky-50 transition-colors"
+            >
+              등·하원
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('journals')}
+              className="inline-flex items-center justify-center gap-1.5 py-3 min-h-[44px] rounded-xl border border-sky-200 text-sky-700 text-xs font-bold hover:bg-sky-50 transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              알림장 {todayJournals}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('medications')}
+              className="inline-flex items-center justify-center gap-1.5 py-3 min-h-[44px] rounded-xl border border-amber-200 text-amber-800 text-xs font-bold hover:bg-amber-50 transition-colors"
+            >
+              <Pill className="w-3.5 h-3.5" />
+              투약 대기 {pendingMeds}
+            </button>
+          </div>
         </div>
       </div>
     </div>

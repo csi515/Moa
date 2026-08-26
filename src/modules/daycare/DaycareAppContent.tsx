@@ -32,10 +32,11 @@ import {
   IncomeManagementView,
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
+import { CareJournalView, MedicationRequestView } from './care';
 
 /**
  * 어린이집 플러그인 셸.
- * 코어(원아·반·출결·수납·재무)를 재사용하고 상담 이력을 기본 메뉴에 포함합니다.
+ * 코어(원아·반·출결·수납·재무) + 보육 기록(알림장·투약·상담).
  */
 const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DaycareDashboardView />,
@@ -44,6 +45,8 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   classes: () => <ClassManagementView />,
   timetable: () => <WeeklyTimetableView />,
   attendance: () => <AttendanceManagementView />,
+  journals: () => <CareJournalView />,
+  medications: () => <MedicationRequestView />,
   consultations: () => <ConsultationRecordsView />,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,

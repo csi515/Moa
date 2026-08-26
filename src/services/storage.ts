@@ -24,6 +24,7 @@ import { createParentEducationStorage } from './storage/parentEducationStorage';
 import { createAttendanceStorage } from './storage/attendanceStorage';
 import { createFinanceStorage } from './storage/financeStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
+import { createDaycareCareStorage } from '@/modules/daycare/care/careStorage';
 import type { StorageApi } from './storage/helpers';
 import { academyEventTypeToVideoType } from '../modules/piano/config/eventLabels';
 import type { Booking, BookingStatus, ServiceOffering } from '../core/types/schedule';
@@ -78,7 +79,9 @@ const storageCore = {
       performanceVideos: this.getPerformanceVideos(),
       notifications: this.getNotifications(),
       settings: this.getSettings(),
-      exportedAt: new Date().toISOString()
+      careJournals: getItem(STORAGE_KEYS.CARE_JOURNALS, []),
+      medicationRequests: getItem(STORAGE_KEYS.MEDICATION_REQUESTS, []),
+      exportedAt: new Date().toISOString(),
     };
     return JSON.stringify(fullDump, null, 2);
   },
@@ -106,6 +109,10 @@ const storageCore = {
       if (data.performanceVideos) setItem(STORAGE_KEYS.PERFORMANCE_VIDEOS, data.performanceVideos);
       if (data.notifications) setItem(STORAGE_KEYS.NOTIFICATIONS, data.notifications);
       if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
+      if (data.careJournals) setItem(STORAGE_KEYS.CARE_JOURNALS, data.careJournals);
+      if (data.medicationRequests) {
+        setItem(STORAGE_KEYS.MEDICATION_REQUESTS, data.medicationRequests);
+      }
       return true;
     } catch (e) {
       console.error('Import failed:', e);
@@ -988,5 +995,6 @@ export const StorageService = Object.assign(
   createParentEducationStorage(storageCore as StorageApi),
   createAttendanceStorage(storageCore as StorageApi),
   createFinanceStorage(storageCore as StorageApi),
-  createTextbookStorage(storageCore as StorageApi)
+  createTextbookStorage(storageCore as StorageApi),
+  createDaycareCareStorage(storageCore as StorageApi)
 );
