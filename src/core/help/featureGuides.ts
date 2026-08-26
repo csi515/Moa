@@ -373,7 +373,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
   {
     id: 'care',
     title: '보육 기록',
-    description: '알림장·투약·상담으로 보호자와 하루 생활을 공유합니다.',
+    description: '알림장·투약·가정통신문·상담으로 보호자와 하루 생활을 공유합니다.',
     items: [
       {
         id: 'journals',
@@ -386,6 +386,12 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         title: '투약 관리',
         summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
         howTo: '약 이름·용량·시점을 등록한 뒤, 투약하면 「투약 완료」로 표시합니다.',
+      },
+      {
+        id: 'notices',
+        title: '가정통신문 · 안내장',
+        summary: '휴원·행사·준비물 등 안내를 작성해 학부모 포털에 게시합니다.',
+        howTo: '전체·반·개별 원아를 고른 뒤 작성하고 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 문자 발송은 하지 않습니다.',
       },
       {
         id: 'consultations',
@@ -454,7 +460,7 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   },
   daycare: {
     title: '어린이집 기능 안내',
-    body: '원아·연령반·등하원·알림장·투약·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+    body: '원아·연령반·등하원·알림장·투약·가정통신문·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
 };
 

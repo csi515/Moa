@@ -7,6 +7,7 @@ import {
   TrendingUp,
   FileText,
   Calendar,
+  Megaphone,
   ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
@@ -24,6 +25,7 @@ import { ParentPortalTabs } from './ParentPortalTabs';
 
 const PORTAL_NAV: { id: ParentPortalTab; label: string; icon: React.ReactNode }[] = [
   { id: 'home', label: '홈', icon: <Home className="w-5 h-5" /> },
+  { id: 'notices', label: '안내', icon: <Megaphone className="w-5 h-5" /> },
   { id: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> },
   { id: 'tuition', label: '수납', icon: <CreditCard className="w-5 h-5" /> },
   { id: 'assignments', label: '과제', icon: <BookOpenCheck className="w-5 h-5" /> },

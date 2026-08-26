@@ -5,8 +5,9 @@ import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
-import { Baby, Users, UserPlus, CheckSquare, BookOpen, Pill } from 'lucide-react';
+import { Baby, Users, UserPlus, CheckSquare, BookOpen, Pill, Megaphone } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
+import { filterParentNotices } from '@/core/notices';
 
 export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
@@ -33,6 +34,13 @@ export const DaycareDashboardView: FC = () => {
         (m) => m.requestDate === today && m.status === 'requested'
       ).length,
     [refreshKey, today]
+  );
+  const draftNotices = useMemo(
+    () =>
+      filterParentNotices(StorageService.getNotifications()).filter(
+        (n) => (n.status || 'pending') === 'pending'
+      ).length,
+    [refreshKey]
   );
 
   return (
@@ -162,7 +170,7 @@ export const DaycareDashboardView: FC = () => {
               <p className="text-2xl font-black text-slate-900 mt-1">{students.length}명</p>
             </div>
           </div>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className="mt-4 grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setActiveTab('attendance')}
@@ -185,6 +193,14 @@ export const DaycareDashboardView: FC = () => {
             >
               <Pill className="w-3.5 h-3.5" />
               투약 대기 {pendingMeds}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('notices')}
+              className="inline-flex items-center justify-center gap-1.5 py-3 min-h-[44px] rounded-xl border border-sky-200 text-sky-700 text-xs font-bold hover:bg-sky-50 transition-colors"
+            >
+              <Megaphone className="w-3.5 h-3.5" />
+              가정통신문{draftNotices > 0 ? ` 임시 ${draftNotices}` : ''}
             </button>
           </div>
         </div>

@@ -8,6 +8,7 @@ import { ParentAssignmentsView } from './views/ParentAssignmentsView';
 import { ParentProgressView } from './views/ParentProgressView';
 import { ParentReportsView } from './views/ParentReportsView';
 import { ParentEventsView } from './views/ParentEventsView';
+import { ParentNoticesView } from './views/ParentNoticesView';
 
 export function ParentPortalTabs({
   tab,
@@ -35,6 +36,8 @@ export function ParentPortalTabs({
       return <ParentReportsView student={student} />;
     case 'events':
       return <ParentEventsView student={student} />;
+    case 'notices':
+      return <ParentNoticesView student={student} />;
     default:
       return null;
   }
