@@ -2,7 +2,13 @@
 export type AuthMode = 'login' | 'signup' | 'forgot' | 'update';
 
 export const AUTH_INPUT_CLASS =
-  'w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white';
+  'w-full min-h-[48px] pl-10 pr-4 py-3 text-base sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-300 focus:bg-white transition-colors';
+
+export const AUTH_PRIMARY_BUTTON_CLASS =
+  'w-full min-h-[48px] py-3.5 bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 disabled:bg-indigo-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 touch-manipulation';
+
+export const AUTH_LINK_BUTTON_CLASS =
+  'inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800 active:text-indigo-900 touch-manipulation';
 
 export const AUTH_COPY = {
   title: '학원 관리 시스템',

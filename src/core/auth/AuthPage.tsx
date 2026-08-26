@@ -1,17 +1,16 @@
 import React from 'react';
+import { Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import {
-  Music,
-  Mail,
-  Lock,
-  User,
-  Loader2,
-  Eye,
-  EyeOff,
-  ArrowLeft,
-  KeyRound,
-} from 'lucide-react';
-import { AUTH_COPY, AUTH_INPUT_CLASS, MIN_PASSWORD_LENGTH } from './authUi';
+  AUTH_COPY,
+  AUTH_INPUT_CLASS,
+  AUTH_LINK_BUTTON_CLASS,
+  AUTH_PRIMARY_BUTTON_CLASS,
+  MIN_PASSWORD_LENGTH,
+} from './authUi';
 import { useAuthPageForm } from './useAuthPageForm';
+import { AuthShell } from './components/AuthShell';
+import { AuthPageHeader } from './components/AuthPageHeader';
+import { AuthModeTabs } from './components/AuthModeTabs';
 import { AuthFormField } from './components/AuthFormField';
 import { AuthFeedback } from './components/AuthFeedback';
 
@@ -24,160 +23,142 @@ export const AuthPage: React.FC = () => {
     <button
       type="button"
       onClick={() => setShowPassword(!showPassword)}
-      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 min-h-[44px] min-w-[44px] flex items-center justify-center"
+      className="absolute right-1 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg touch-manipulation"
       aria-label={showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}
     >
       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
     </button>
   );
 
+  const handleBack =
+    mode === 'forgot'
+      ? () => switchMode('login')
+      : mode === 'update'
+        ? () => void signOut()
+        : undefined;
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        <header className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
-            {mode === 'forgot' || mode === 'update' ? (
-              <KeyRound className="w-7 h-7" />
-            ) : (
-              <Music className="w-7 h-7" />
-            )}
+    <AuthShell>
+      <AuthPageHeader mode={mode} onBack={handleBack} />
+
+      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-5 sm:p-8 lg:shadow-lg">
+        {(mode === 'login' || mode === 'signup') && (
+          <AuthModeTabs mode={mode} onChange={switchMode} />
+        )}
+
+        {(mode === 'forgot' || mode === 'update') && (
+          <div className="mb-6">
+            <h2 className="text-base sm:text-lg font-bold text-slate-900">{AUTH_COPY.heading[mode]}</h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">
+              {AUTH_COPY.description[mode]}
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">{AUTH_COPY.title}</h1>
-          <p className="text-sm text-slate-500 mt-2">{AUTH_COPY.subtitle[mode]}</p>
-        </header>
+        )}
 
-        <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8">
-          {(mode === 'login' || mode === 'signup') && (
-            <div className="flex rounded-xl bg-slate-100 p-1 mb-6">
-              {(['login', 'signup'] as const).map((tab) => (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => switchMode(tab)}
-                  className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-colors min-h-[44px] ${
-                    mode === tab
-                      ? 'bg-white text-indigo-700 shadow-sm'
-                      : 'text-slate-500 hover:text-slate-700'
-                  }`}
-                >
-                  {tab === 'login' ? '로그인' : '회원가입'}
-                </button>
-              ))}
-            </div>
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5" noValidate>
+          {mode === 'signup' && (
+            <AuthFormField
+              label="이름"
+              icon={User}
+              value={form.fullName}
+              onChange={form.setFullName}
+              placeholder="홍길동"
+              autoComplete="name"
+              name="fullName"
+            />
           )}
 
-          {(mode === 'forgot' || mode === 'update') && (
-            <div className="mb-6">
-              <h2 className="text-base font-bold text-slate-900">{AUTH_COPY.heading[mode]}</h2>
-              <p className="text-xs text-slate-500 mt-1 leading-relaxed">
-                {AUTH_COPY.description[mode]}
-              </p>
-            </div>
+          {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
+            <AuthFormField
+              label="이메일"
+              icon={Mail}
+              type="email"
+              value={form.email}
+              onChange={form.setEmail}
+              placeholder="name@example.com"
+              autoComplete="email"
+              inputMode="email"
+              name="email"
+              required
+            />
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {mode === 'signup' && (
-              <AuthFormField
-                label="이름"
-                icon={User}
-                value={form.fullName}
-                onChange={form.setFullName}
-                placeholder="홍길동"
-                autoComplete="name"
-              />
-            )}
-
-            {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
-              <AuthFormField
-                label="이메일"
-                icon={Mail}
-                type="email"
-                value={form.email}
-                onChange={form.setEmail}
-                placeholder="name@example.com"
-                autoComplete="email"
-                required
-              />
-            )}
-
-            {(mode === 'login' || mode === 'signup' || mode === 'update') && (
-              <AuthFormField
-                label={mode === 'update' ? '새 비밀번호' : '비밀번호'}
-                icon={Lock}
-                type={showPassword ? 'text' : 'password'}
-                value={form.password}
-                onChange={form.setPassword}
-                placeholder={mode === 'login' ? '비밀번호' : '6자 이상'}
-                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                required
-                minLength={MIN_PASSWORD_LENGTH}
-                inputClassName={`${AUTH_INPUT_CLASS} pr-11`}
-                trailing={passwordToggle}
-              />
-            )}
-
-            {mode === 'update' && (
-              <AuthFormField
-                label="새 비밀번호 확인"
-                icon={Lock}
-                type={showPassword ? 'text' : 'password'}
-                value={form.confirmPassword}
-                onChange={form.setConfirmPassword}
-                placeholder="비밀번호 다시 입력"
-                autoComplete="new-password"
-                required
-                minLength={MIN_PASSWORD_LENGTH}
-              />
-            )}
-
-            <AuthFeedback error={error} info={info} />
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {AUTH_COPY.submit[mode]}
-            </button>
-          </form>
-
-          {mode === 'login' && (
-            <div className="mt-4 text-center">
-              <button
-                type="button"
-                onClick={() => switchMode('forgot')}
-                className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 min-h-[44px] px-2"
-              >
-                {AUTH_COPY.forgotLink}
-              </button>
-            </div>
-          )}
-
-          {mode === 'forgot' && (
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className="mt-4 w-full inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-600 hover:text-slate-800 min-h-[44px]"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              {AUTH_COPY.backToLogin}
-            </button>
+          {(mode === 'login' || mode === 'signup' || mode === 'update') && (
+            <AuthFormField
+              label={mode === 'update' ? '새 비밀번호' : '비밀번호'}
+              icon={Lock}
+              type={showPassword ? 'text' : 'password'}
+              value={form.password}
+              onChange={form.setPassword}
+              placeholder={mode === 'login' ? '비밀번호' : '6자 이상'}
+              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+              name="password"
+              required
+              minLength={MIN_PASSWORD_LENGTH}
+              inputClassName={`${AUTH_INPUT_CLASS} pr-12`}
+              trailing={passwordToggle}
+            />
           )}
 
           {mode === 'update' && (
+            <AuthFormField
+              label="새 비밀번호 확인"
+              icon={Lock}
+              type={showPassword ? 'text' : 'password'}
+              value={form.confirmPassword}
+              onChange={form.setConfirmPassword}
+              placeholder="비밀번호 다시 입력"
+              autoComplete="new-password"
+              name="confirmPassword"
+              required
+              minLength={MIN_PASSWORD_LENGTH}
+            />
+          )}
+
+          <AuthFeedback error={error} info={info} />
+
+          <button type="submit" disabled={loading} className={AUTH_PRIMARY_BUTTON_CLASS}>
+            {loading && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
+            {AUTH_COPY.submit[mode]}
+          </button>
+        </form>
+
+        {mode === 'login' && (
+          <div className="mt-4 pt-1 text-center border-t border-slate-100">
             <button
               type="button"
-              onClick={() => void signOut()}
-              className="mt-4 w-full text-sm font-semibold text-slate-500 hover:text-slate-700 min-h-[44px]"
+              onClick={() => switchMode('forgot')}
+              className={AUTH_LINK_BUTTON_CLASS}
             >
-              {AUTH_COPY.switchAccount}
+              {AUTH_COPY.forgotLink}
             </button>
-          )}
-        </div>
+          </div>
+        )}
 
-        <p className="text-center text-xs text-slate-400 mt-6">{AUTH_COPY.footer}</p>
+        {mode === 'forgot' && (
+          <button
+            type="button"
+            onClick={() => switchMode('login')}
+            className={`${AUTH_LINK_BUTTON_CLASS} mt-4 w-full text-slate-600 hover:text-slate-800 hidden lg:inline-flex`}
+          >
+            {AUTH_COPY.backToLogin}
+          </button>
+        )}
+
+        {mode === 'update' && (
+          <button
+            type="button"
+            onClick={() => void signOut()}
+            className="mt-4 w-full text-sm font-semibold text-slate-500 hover:text-slate-700 min-h-[44px] touch-manipulation hidden lg:block"
+          >
+            {AUTH_COPY.switchAccount}
+          </button>
+        )}
       </div>
-    </div>
+
+      <p className="text-center text-xs text-slate-400 mt-5 sm:mt-6 leading-relaxed px-4">
+        {AUTH_COPY.footer}
+      </p>
+    </AuthShell>
   );
 };
