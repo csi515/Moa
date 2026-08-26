@@ -357,7 +357,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         id: 'students',
         title: '원아 관리',
         summary: '원아 등록, 재원/휴원/퇴원, 담당 교사·반·연령반을 관리합니다.',
-        howTo: '원아 등록 시 보호자 연락처와 등하원 PIN을 함께 설정할 수 있습니다.',
+        howTo: '원아 등록 시 보호자 연락처, 알레르기·특이사항, 등하원 PIN을 함께 설정할 수 있습니다.',
       },
       {
         id: 'parents',
@@ -384,7 +384,8 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
       {
         id: 'attendance',
         title: '등·하원 관리',
-        summary: 'PIN으로 등원·하원을 기록하고 당일 현황을 봅니다.',
+        summary: 'PIN으로 등원·하원을 기록하고, 알레르기 표시·하원 메모를 남깁니다.',
+        howTo: '현황에서 원아별 특이사항을 확인하고, 당일 세션에 하원·전달 메모를 작성할 수 있습니다.',
       },
     ],
   },
@@ -397,18 +398,26 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         id: 'journals',
         title: '알림장',
         summary: '원아별 식사·낮잠·활동·건강과 선생님 한마디를 남깁니다.',
-        howTo: '날짜를 고른 뒤 원아를 선택해 알림장을 작성합니다. 보호자에게 전할 하루 요약을 꼭 남겨 주세요.',
+        howTo: '날짜를 고른 뒤 원아를 선택해 알림장을 작성합니다. 보호자 포털에서 바로 확인할 수 있습니다.',
       },
       {
         id: 'medications',
         title: '투약 관리',
         summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
-        howTo: '약 이름·용량·시점을 등록한 뒤, 투약하면 「투약 완료」로 표시합니다.',
+        howTo:
+          '원에서 직접 등록하거나, 보호자가 포털에서 의뢰한 건을 확인한 뒤 투약하면 「투약 완료」로 표시합니다.',
       },
       {
         id: 'consultations',
         title: '상담 이력',
         summary: '보호자 상담 내용을 남겨 둡니다.',
+      },
+      {
+        id: 'parent-portal-care',
+        title: '보호자 포털 (알림장·투약)',
+        summary: '보호자가 앱에서 알림장을 보고 투약 의뢰·등하원·안내장을 확인합니다.',
+        howTo:
+          '보호자 계정으로 로그인하면 어린이집 전용 메뉴(알림장·투약·안내·등하원·보육료)가 보입니다.',
       },
     ],
   },
@@ -446,6 +455,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];

@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
-import { useStaffScope } from '@/hooks';
+import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import {
@@ -14,14 +14,17 @@ import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } fro
 import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
 import { getCustomerListTab, getIndustryAccent } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
+import type { Student } from '@/types';
 import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
   Settings,
   UserPlus,
   Users,
 } from 'lucide-react';
+import { AttendanceMemoModal } from './AttendanceMemoModal';
 
 type AttendanceSubTab = 'overview' | 'kiosk';
 
@@ -31,10 +34,11 @@ const ATTENDANCE_SUB_TABS: { value: AttendanceSubTab; label: string }[] = [
 ];
 
 export const AttendanceManagementView: React.FC = () => {
-  const { setSelectedStudentId, setActiveTab } = useApp();
+  const { setSelectedStudentId, setActiveTab, showToast, triggerRefresh } = useApp();
   const { attendanceEnabled, industry } = usePermissions();
   const labels = useModuleLabels();
   const { isScoped, scopeStudents } = useStaffScope();
+  const refreshKey = useStorageRefresh();
 
   const accent = getIndustryAccent(industry);
   const accentActive = `${accent.btn} text-white`;
@@ -48,13 +52,22 @@ export const AttendanceManagementView: React.FC = () => {
           ? 'indigo'
           : 'indigo';
   const customerTab = getCustomerListTab(industry);
+  const isDaycare = industry === 'daycare';
 
   const [subTab, setSubTab] = useState<AttendanceSubTab>('overview');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [searchQuery, setSearchQuery] = useState('');
+  const [memoTarget, setMemoTarget] = useState<{
+    student: Student;
+    session?: AttendanceSession;
+  } | null>(null);
+  const [memoDraft, setMemoDraft] = useState('');
 
-  const students = useMemo(() => scopeStudents(StorageService.getStudents()), [scopeStudents]);
-  const sessions = StorageService.getAttendanceSessions();
+  const students = useMemo(
+    () => scopeStudents(StorageService.getStudents()),
+    [scopeStudents, refreshKey]
+  );
+  const sessions = useMemo(() => StorageService.getAttendanceSessions(), [refreshKey]);
 
   const changeDate = (days: number) => {
     const d = new Date(selectedDate);
@@ -95,6 +108,37 @@ export const AttendanceManagementView: React.FC = () => {
     };
   }, [activeStudents, sessionMap]);
 
+  const openMemoEditor = (student: Student, session?: AttendanceSession) => {
+    setMemoTarget({ student, session });
+    setMemoDraft(session?.memo || '');
+  };
+
+  const saveMemo = () => {
+    if (!memoTarget) return;
+    const now = new Date().toISOString();
+    const existing = memoTarget.session;
+    if (existing) {
+      StorageService.saveAttendanceSession({
+        ...existing,
+        memo: memoDraft.trim() || undefined,
+        updatedAt: now,
+      });
+    } else {
+      StorageService.saveAttendanceSession({
+        id: `att-sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        customerId: memoTarget.student.id,
+        customerName: memoTarget.student.name,
+        sessionDate: selectedDate,
+        memo: memoDraft.trim() || undefined,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    showToast('하원·전달 메모를 저장했습니다.', 'success');
+    setMemoTarget(null);
+    triggerRefresh();
+  };
+
   if (!attendanceEnabled) {
     return (
       <EmptyState
@@ -121,8 +165,12 @@ export const AttendanceManagementView: React.FC = () => {
       <PageHeader
         icon={<CheckSquare className="w-6 h-6" />}
         iconClassName={accent.icon}
-        title="출입 관리"
-        description="PIN 입·퇴실 기록 및 날짜별 현황 확인"
+        title={isDaycare ? '등·하원 관리' : '출입 관리'}
+        description={
+          isDaycare
+            ? 'PIN 등하원 기록, 알레르기 확인, 하원 메모'
+            : 'PIN 입·퇴실 기록 및 날짜별 현황 확인'
+        }
         actions={
           <SegmentedControl
             value={subTab}
@@ -144,8 +192,16 @@ export const AttendanceManagementView: React.FC = () => {
         <div id="attendance-panel-overview" role="tabpanel" aria-labelledby="segment-overview">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant={metricVariant} />
-            <SummaryMetricCard label="입실" value={`${stats.checkedIn}명`} variant="emerald" />
-            <SummaryMetricCard label="퇴실" value={`${stats.checkedOut}명`} variant="amber" />
+            <SummaryMetricCard
+              label={isDaycare ? '등원' : '입실'}
+              value={`${stats.checkedIn}명`}
+              variant="emerald"
+            />
+            <SummaryMetricCard
+              label={isDaycare ? '하원' : '퇴실'}
+              value={`${stats.checkedOut}명`}
+              variant="amber"
+            />
             <SummaryMetricCard label="미출석" value={`${stats.absent}명`} />
           </div>
 
@@ -217,9 +273,10 @@ export const AttendanceManagementView: React.FC = () => {
                       <tr className="bg-slate-50 text-slate-500">
                         <th className="text-left px-4 py-3 font-bold">이름</th>
                         <th className="text-left px-4 py-3 font-bold">상태</th>
-                        <th className="text-left px-4 py-3 font-bold">입실</th>
-                        <th className="text-left px-4 py-3 font-bold">퇴실</th>
+                        <th className="text-left px-4 py-3 font-bold">{isDaycare ? '등원' : '입실'}</th>
+                        <th className="text-left px-4 py-3 font-bold">{isDaycare ? '하원' : '퇴실'}</th>
                         <th className="text-left px-4 py-3 font-bold">PIN</th>
+                        <th className="text-left px-4 py-3 font-bold">메모</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -250,6 +307,11 @@ export const AttendanceManagementView: React.FC = () => {
                                 {student.name}
                               </button>
                               <p className="text-[10px] text-slate-400">{student.grade}</p>
+                              {student.specialNotes && (
+                                <p className="mt-1 text-[10px] font-semibold text-amber-800 bg-amber-50 rounded-lg px-1.5 py-0.5 inline-block max-w-[14rem] truncate">
+                                  주의 · {student.specialNotes}
+                                </p>
+                              )}
                             </td>
                             <td className="px-4 py-3">
                               <span className={`px-2 py-1 rounded-lg text-[10px] font-bold ${toneBg}`}>
@@ -268,6 +330,21 @@ export const AttendanceManagementView: React.FC = () => {
                               >
                                 {pinSet ? '설정됨' : '미설정'}
                               </span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                type="button"
+                                onClick={() => openMemoEditor(student, session)}
+                                className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-indigo-600 min-h-[44px]"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                {session?.memo ? '수정' : '작성'}
+                              </button>
+                              {session?.memo && (
+                                <p className="text-[10px] text-slate-400 mt-0.5 max-w-[10rem] truncate">
+                                  {session.memo}
+                                </p>
+                              )}
                             </td>
                           </tr>
                         );
@@ -308,23 +385,41 @@ export const AttendanceManagementView: React.FC = () => {
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-400">{student.grade}</p>
+                        {student.specialNotes && (
+                          <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 rounded-xl px-2 py-1.5">
+                            주의 · {student.specialNotes}
+                          </p>
+                        )}
                         <div className="grid grid-cols-2 gap-2 text-xs">
                           <div className="bg-slate-50 rounded-xl p-2">
-                            <p className="text-slate-400 font-semibold">입실</p>
+                            <p className="text-slate-400 font-semibold">{isDaycare ? '등원' : '입실'}</p>
                             <p className="font-mono font-bold text-slate-700">
                               {formatSessionTime(session?.checkInAt)}
                             </p>
                           </div>
                           <div className="bg-slate-50 rounded-xl p-2">
-                            <p className="text-slate-400 font-semibold">퇴실</p>
+                            <p className="text-slate-400 font-semibold">{isDaycare ? '하원' : '퇴실'}</p>
                             <p className="font-mono font-bold text-slate-700">
                               {formatSessionTime(session?.checkOutAt)}
                             </p>
                           </div>
                         </div>
-                        <p className={`text-[11px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}>
-                          PIN {pinSet ? '설정됨' : '미설정'}
-                        </p>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className={`text-[11px] font-bold ${pinSet ? 'text-emerald-600' : 'text-rose-500'}`}>
+                            PIN {pinSet ? '설정됨' : '미설정'}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => openMemoEditor(student, session)}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 min-h-[44px]"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            {session?.memo ? '메모 수정' : '하원 메모'}
+                          </button>
+                        </div>
+                        {session?.memo && (
+                          <p className="text-[11px] text-slate-500">메모 · {session.memo}</p>
+                        )}
                       </div>
                     );
                   })}
@@ -334,6 +429,17 @@ export const AttendanceManagementView: React.FC = () => {
           </div>
         </div>
       )}
+
+      <AttendanceMemoModal
+        open={Boolean(memoTarget)}
+        student={memoTarget?.student ?? null}
+        session={memoTarget?.session}
+        draft={memoDraft}
+        onDraftChange={setMemoDraft}
+        onClose={() => setMemoTarget(null)}
+        onSave={saveMemo}
+        saveButtonClassName={accent.btn}
+      />
     </div>
   );
 };

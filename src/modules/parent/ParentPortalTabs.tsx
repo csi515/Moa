@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
+import type { IndustryType } from '@/core/industry/types';
 import { ParentHomeView } from './views/ParentHomeView';
 import { ParentAttendanceView } from './views/ParentAttendanceView';
 import { ParentTuitionView } from './views/ParentTuitionView';
@@ -9,21 +10,29 @@ import { ParentProgressView } from './views/ParentProgressView';
 import { ParentReportsView } from './views/ParentReportsView';
 import { ParentEventsView } from './views/ParentEventsView';
 import { ParentNoticesView } from './views/ParentNoticesView';
+import { ParentCareJournalView } from './views/ParentCareJournalView';
+import { ParentMedicationView } from './views/ParentMedicationView';
 
 export function ParentPortalTabs({
   tab,
   student,
   showToast,
   onRefresh,
+  onNavigate,
+  industryType = 'piano',
 }: {
   tab: ParentPortalTab;
   student: Student;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh: () => void;
+  onNavigate: (t: ParentPortalTab) => void;
+  industryType?: IndustryType | string;
 }) {
   switch (tab) {
     case 'home':
-      return <ParentHomeView student={student} onNavigate={() => {}} />;
+      return (
+        <ParentHomeView student={student} onNavigate={onNavigate} industryType={industryType} />
+      );
     case 'attendance':
       return <ParentAttendanceView student={student} />;
     case 'tuition':
@@ -38,6 +47,12 @@ export function ParentPortalTabs({
       return <ParentEventsView student={student} />;
     case 'notices':
       return <ParentNoticesView student={student} />;
+    case 'journals':
+      return <ParentCareJournalView student={student} />;
+    case 'medications':
+      return (
+        <ParentMedicationView student={student} showToast={showToast} onRefresh={onRefresh} />
+      );
     default:
       return null;
   }

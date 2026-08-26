@@ -27,14 +27,19 @@ export function ParentAttendanceView({ student }: { student: Student }) {
         sessions.map((s) => {
           const status = getSessionStatusLabel(s);
           return (
-            <div key={s.id} className="flex justify-between items-center py-2 border-b border-slate-50 text-sm">
-              <span className="font-mono">{s.sessionDate}</span>
-              <div className="text-right">
-                <span className="text-xs font-bold text-slate-700">{status.label}</span>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  {formatSessionTime(s.checkInAt)} → {formatSessionTime(s.checkOutAt)}
-                </p>
+            <div key={s.id} className="py-2 border-b border-slate-50 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="font-mono">{s.sessionDate}</span>
+                <div className="text-right">
+                  <span className="text-xs font-bold text-slate-700">{status.label}</span>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    {formatSessionTime(s.checkInAt)} → {formatSessionTime(s.checkOutAt)}
+                  </p>
+                </div>
               </div>
+              {s.memo && (
+                <p className="text-[11px] text-slate-500 mt-1">메모 · {s.memo}</p>
+              )}
             </div>
           );
         })
