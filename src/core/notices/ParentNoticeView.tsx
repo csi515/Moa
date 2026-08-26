@@ -155,7 +155,7 @@ export const ParentNoticeView: FC = () => {
       return null;
     }
     const recipients = resolveNoticeRecipients(students, form.targetMode, targetId || undefined);
-    if (recipients.length === 0) {
+    if (recipients.length === 0 && form.targetMode !== 'all') {
       showToast('발송 대상 원아가 없습니다.', 'error');
       return null;
     }
