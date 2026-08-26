@@ -1,4 +1,5 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
+import { withNoticesTabs } from '@/core/industry/pluginTypes';
 
 /** 피아노학원 플러그인 매니페스트 (풀 기능) */
 export const pianoPluginManifest: IndustryPluginManifest = {
@@ -21,7 +22,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
   customerListTab: 'students',
   showSchoolFields: true,
   levelLabel: '레벨',
-  adminTabs: [
+  adminTabs: withNoticesTabs([
     'dashboard',
     'students',
     'parents',
@@ -32,7 +33,6 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'lessons',
     'practice',
     'consultations',
-    'notices',
     'resources',
     'tuition',
     'unpaid',
@@ -45,8 +45,8 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'assignments',
     'achievements',
     'reports',
-  ],
-  staffTabs: [
+  ]),
+  staffTabs: withNoticesTabs([
     'dashboard',
     'students',
     'timetable',
@@ -55,12 +55,11 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'lessons',
     'practice',
     'consultations',
-    'notices',
     'calendar',
     'recitals',
     'curriculum',
     'assignments',
     'achievements',
     'reports',
-  ],
+  ]),
 };

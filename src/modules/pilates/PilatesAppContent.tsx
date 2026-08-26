@@ -26,7 +26,7 @@ import {
   IncomeManagementView,
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
-import { ParentNoticeView } from '@/core/notices';
+import { noticesViewEntry } from '@/core/notices';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
@@ -36,7 +36,7 @@ const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   members: () => <MemberListView />,
   instructors: () => <InstructorListView />,
   attendance: () => <AttendanceManagementView />,
-  notices: () => <ParentNoticeView />,
+  ...noticesViewEntry,
   finance: () => <FinanceOverviewView />,
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,

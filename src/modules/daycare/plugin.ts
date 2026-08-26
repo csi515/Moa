@@ -27,13 +27,11 @@ export const daycarePluginManifest: IndustryPluginManifest = {
     'consultations',
     'journals',
     'medications',
-    'notices',
   ],
   staffTabs: [
     ...CLASS_BASED_CORE_STAFF_TABS,
     'consultations',
     'journals',
     'medications',
-    'notices',
   ],
 };

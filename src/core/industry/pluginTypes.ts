@@ -41,6 +41,7 @@ export const CLASS_BASED_CORE_ADMIN_TABS: NavTab[] = [
   'classes',
   'timetable',
   'attendance',
+  'notices',
   'tuition',
   'unpaid',
   'teachers',
@@ -54,7 +55,14 @@ export const CLASS_BASED_CORE_STAFF_TABS: NavTab[] = [
   'classes',
   'timetable',
   'attendance',
+  'notices',
 ];
+
+/** 탭 목록에 안내장(notices) 포함 */
+export function withNoticesTabs(tabs: NavTab[]): NavTab[] {
+  if (tabs.includes('notices')) return tabs;
+  return [...tabs, 'notices'];
+}
 
 export function withOwnerFinanceTabs(tabs: NavTab[]): NavTab[] {
   const merged = [...tabs];

@@ -1,12 +1,13 @@
 import type { AppNotification, Student } from '@/types';
-import { isParentNoticeType, parseNoticeTarget } from './types';
+import { isParentNoticeType } from './types';
+import { parseNoticeTarget } from './noticeTarget';
 
 /** 가정통신문·안내장만 추림 */
 export function filterParentNotices(list: AppNotification[]): AppNotification[] {
   return list.filter((n) => isParentNoticeType(n.type));
 }
 
-/** 학부모 포털 — 해당 원아에게 보이는 게시된 안내 */
+/** 학부모 포털 — 해당 원아/회원에게 보이는 게시된 안내 */
 export function getNoticesForStudent(
   list: AppNotification[],
   student: Student
@@ -28,7 +29,7 @@ export function getNoticesForStudent(
     .sort((a, b) => (b.sentAt || b.createdAt || '').localeCompare(a.sentAt || a.createdAt || ''));
 }
 
-/** 발송 대상 원아 목록 */
+/** 발송 대상 목록 */
 export function resolveNoticeRecipients(
   students: Student[],
   mode: 'all' | 'class' | 'student',

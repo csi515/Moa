@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks';
 import type { Student } from '@/types';
-import { PARENT_NOTICE_KIND_LABEL, getNoticesForStudent, type ParentNoticeKind } from '@/core/notices';
+import { NOTICE_COPY, PARENT_NOTICE_KIND_LABEL, getNoticesForStudent, type ParentNoticeKind } from '@/core/notices';
 import { Section } from './shared';
 
 export function ParentNoticesView({ student }: { student: Student }) {
@@ -13,9 +13,9 @@ export function ParentNoticesView({ student }: { student: Student }) {
   );
 
   return (
-    <Section title="가정통신문 · 안내장">
+    <Section title={NOTICE_COPY.parentSectionTitle}>
       {notices.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">게시된 안내가 없습니다.</p>
+        <p className="text-sm text-slate-400 text-center py-6">{NOTICE_COPY.parentEmpty}</p>
       ) : (
         <div className="space-y-3">
           {notices.map((n) => (

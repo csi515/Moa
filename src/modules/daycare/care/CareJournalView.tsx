@@ -2,17 +2,19 @@ import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { PageHeader, FilterBar, SearchField, EmptyState, Modal } from '@/shared/components';
+import { PageHeader, EmptyState, Modal } from '@/shared/components';
 import { FormField, FORM_CONTROL_CLASS, SegmentedControl } from '@/shared/components/ui';
 import {
   BookOpen,
   Plus,
   Trash2,
   Save,
-  Calendar,
 } from 'lucide-react';
 import type { CareJournal, CareJournalMood } from './types';
 import { CARE_JOURNAL_MOOD_LABEL } from './types';
+import { CARE_JOURNAL_DEFAULTS } from './careDefaults';
+import { CareDateSearchBar } from './components/CareDateSearchBar';
+import { useModuleLabels } from '@/core/labels';
 
 const MOOD_OPTIONS: CareJournalMood[] = ['good', 'normal', 'tired', 'sick'];
 
@@ -20,6 +22,7 @@ export const CareJournalView: FC = () => {
   const { showToast, openConfirmDialog, currentUser } = useApp();
   const { scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
+  const labels = useModuleLabels();
 
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
@@ -62,9 +65,9 @@ export const CareJournalView: FC = () => {
     setForm({
       studentId: students[0]?.id || '',
       mood: 'good',
-      meals: '오전·오후 간식 잘 먹음',
-      nap: '낮잠 40분',
-      activities: '실내 자유놀이, 산책',
+      meals: CARE_JOURNAL_DEFAULTS.meals,
+      nap: CARE_JOURNAL_DEFAULTS.nap,
+      activities: CARE_JOURNAL_DEFAULTS.activities,
       bowel: '',
       healthNote: '',
       teacherNote: '',
@@ -91,7 +94,7 @@ export const CareJournalView: FC = () => {
     e.preventDefault();
     const student = students.find((s) => s.id === form.studentId);
     if (!student) {
-      showToast('원아를 선택해 주세요.', 'error');
+      showToast(`${labels.customer.singular}을(를) 선택해 주세요.`, 'error');
       return;
     }
     if (!form.teacherNote.trim()) {
@@ -152,23 +155,13 @@ export const CareJournalView: FC = () => {
       />
 
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100">
-          <div className="flex items-center gap-2">
-            <Calendar className="w-4 h-4 text-slate-400" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
-            />
-          </div>
-          <SearchField
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="원아·내용 검색"
-            className="w-full sm:flex-1 sm:max-w-xs"
-          />
-        </FilterBar>
+        <CareDateSearchBar
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={`${labels.customer.singular}·내용 검색`}
+        />
 
         {dayJournals.length === 0 ? (
           <EmptyState
@@ -244,7 +237,7 @@ export const CareJournalView: FC = () => {
         title={editing ? '알림장 수정' : '알림장 작성'}
       >
         <form onSubmit={handleSave} className="space-y-4 p-5">
-          <FormField label="원아" required>
+          <FormField label={labels.customer.singular} required>
             <select
               required
               value={form.studentId}

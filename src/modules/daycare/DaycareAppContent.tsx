@@ -33,7 +33,7 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 import { CareJournalView, MedicationRequestView } from './care';
-import { ParentNoticeView } from '@/core/notices';
+import { noticesViewEntry } from '@/core/notices';
 
 /**
  * 어린이집 플러그인 셸.
@@ -48,7 +48,7 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   attendance: () => <AttendanceManagementView />,
   journals: () => <CareJournalView />,
   medications: () => <MedicationRequestView />,
-  notices: () => <ParentNoticeView />,
+  ...noticesViewEntry,
   consultations: () => <ConsultationRecordsView />,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,

@@ -2,11 +2,14 @@ import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { PageHeader, FilterBar, SearchField, EmptyState, Modal } from '@/shared/components';
+import { PageHeader, EmptyState, Modal } from '@/shared/components';
 import { FormField, FORM_CONTROL_CLASS, FilterTabs } from '@/shared/components/ui';
 import { Pill, Plus, Trash2, Save, CheckCircle2 } from 'lucide-react';
 import type { MedicationRequest, MedicationStatus } from './types';
 import { MEDICATION_STATUS_LABEL } from './types';
+import { MEDICATION_DEFAULTS } from './careDefaults';
+import { CareDateSearchBar } from './components/CareDateSearchBar';
+import { useModuleLabels } from '@/core/labels';
 
 type StatusFilter = 'ALL' | MedicationStatus;
 
@@ -14,6 +17,7 @@ export const MedicationRequestView: FC = () => {
   const { showToast, openConfirmDialog, currentUser } = useApp();
   const { scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
+  const labels = useModuleLabels();
 
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
@@ -58,7 +62,7 @@ export const MedicationRequestView: FC = () => {
       studentId: students[0]?.id || '',
       medicineName: '',
       dosage: '',
-      times: '점심 후 1회',
+      times: MEDICATION_DEFAULTS.times,
       reason: '',
       guardianName: '',
       note: '',
@@ -84,7 +88,7 @@ export const MedicationRequestView: FC = () => {
     e.preventDefault();
     const student = students.find((s) => s.id === form.studentId);
     if (!student) {
-      showToast('원아를 선택해 주세요.', 'error');
+      showToast(`${labels.customer.singular}을(를) 선택해 주세요.`, 'error');
       return;
     }
     if (!form.medicineName.trim() || !form.dosage.trim()) {
@@ -161,31 +165,26 @@ export const MedicationRequestView: FC = () => {
       />
 
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
-          />
-          <FilterTabs
-            tabs={[
-              { id: 'ALL', label: '전체' },
-              { id: 'requested', label: '대기' },
-              { id: 'administered', label: '완료' },
-              { id: 'cancelled', label: '취소' },
-            ]}
-            active={statusFilter}
-            onChange={(id) => setStatusFilter(id)}
-            activeClassName="bg-sky-600 text-white"
-          />
-          <SearchField
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="원아·약 이름 검색"
-            className="w-full sm:flex-1 sm:max-w-xs"
-          />
-        </FilterBar>
+        <CareDateSearchBar
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          searchPlaceholder={`${labels.customer.singular}·약 이름 검색`}
+          leading={
+            <FilterTabs
+              tabs={[
+                { id: 'ALL', label: '전체' },
+                { id: 'requested', label: MEDICATION_STATUS_LABEL.requested },
+                { id: 'administered', label: MEDICATION_STATUS_LABEL.administered },
+                { id: 'cancelled', label: MEDICATION_STATUS_LABEL.cancelled },
+              ]}
+              active={statusFilter}
+              onChange={(id) => setStatusFilter(id)}
+              activeClassName="bg-sky-600 text-white"
+            />
+          }
+        />
 
         {filtered.length === 0 ? (
           <EmptyState
@@ -265,7 +264,7 @@ export const MedicationRequestView: FC = () => {
         title={editing ? '투약 의뢰 수정' : '투약 의뢰 등록'}
       >
         <form onSubmit={handleSave} className="space-y-4 p-5">
-          <FormField label="원아" required>
+          <FormField label={labels.customer.singular} required>
             <select
               required
               value={form.studentId}

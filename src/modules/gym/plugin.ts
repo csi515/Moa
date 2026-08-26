@@ -23,6 +23,6 @@ export const gymPluginManifest: IndustryPluginManifest = {
   customerListTab: 'students',
   showSchoolFields: false,
   levelLabel: '수업 레벨',
-  adminTabs: [...CLASS_BASED_CORE_ADMIN_TABS, 'notices'],
-  staffTabs: [...CLASS_BASED_CORE_STAFF_TABS, 'notices'],
+  adminTabs: [...CLASS_BASED_CORE_ADMIN_TABS],
+  staffTabs: [...CLASS_BASED_CORE_STAFF_TABS],
 };

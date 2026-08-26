@@ -18,8 +18,8 @@ import {
   MessageSquareText,
   BookOpen,
   Pill,
-  Megaphone,
 } from 'lucide-react';
+import { NOTICE_COPY, noticesNavItem } from '@/core/notices';
 
 const icon = (node: ReactNode) => node;
 
@@ -63,11 +63,7 @@ export function getDaycareSidebarSections(labels: ModuleLabels): NavMenuSection[
       items: [
         { tab: 'journals', label: '알림장', icon: icon(<BookOpen className="w-4 h-4" />) },
         { tab: 'medications', label: '투약 관리', icon: icon(<Pill className="w-4 h-4" />) },
-        {
-          tab: 'notices',
-          label: '가정통신문',
-          icon: icon(<Megaphone className="w-4 h-4" />),
-        },
+        noticesNavItem('sm', NOTICE_COPY.daycareNavLabel),
         {
           tab: 'consultations',
           label: '상담 이력',
@@ -120,7 +116,7 @@ export function getDaycareMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'attendance', label: '등하원', icon: icon(<CheckSquare className="w-5 h-5" />) },
     { tab: 'medications', label: '투약', icon: icon(<Pill className="w-5 h-5" />) },
-    { tab: 'notices', label: '가정통신문', icon: icon(<Megaphone className="w-5 h-5" />) },
+    noticesNavItem('lg', NOTICE_COPY.daycareNavLabel),
     { tab: 'parents', label: labels.contact.management, icon: icon(<UserSquare2 className="w-5 h-5" />) },
     { tab: 'classes', label: '반 관리', icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'timetable', label: '시간표', icon: icon(<Clock className="w-5 h-5" />) },
