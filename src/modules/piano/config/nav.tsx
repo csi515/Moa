@@ -24,6 +24,7 @@ import {
   TrendingUp,
   FileText,
 } from 'lucide-react';
+import { noticesNavItem } from '@/core/notices';
 
 const icon = (node: ReactNode) => node;
 
@@ -74,6 +75,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
           label: '상담 이력',
           icon: icon(<MessageSquareText className="w-4 h-4" />),
         },
+        noticesNavItem('sm'),
         { tab: 'resources', label: '교재 및 곡 관리', icon: icon(<Music2 className="w-4 h-4" />) },
       ],
     },
@@ -163,6 +165,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       label: '상담 이력',
       icon: icon(<MessageSquareText className="w-5 h-5" />),
     },
+    noticesNavItem('lg'),
     { tab: 'resources', label: '교재/곡 자료실', icon: icon(<Music2 className="w-5 h-5" />) },
     {
       tab: 'teachers',

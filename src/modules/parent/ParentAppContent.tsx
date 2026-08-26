@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useParentScope } from '@/hooks';
 import { Header, ToastContainer, ConfirmDialog } from '@/shared/components';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
@@ -9,6 +10,7 @@ import { ParentAcademyPortal } from './ParentAcademyPortal';
 /** 레거시: org 선택 후 학부모 역할 진입 (IndustryAppRouter) */
 export const ParentAppContent: React.FC = () => {
   const { myStudents } = useParentScope();
+  const { currentOrganization } = useOrganization();
   const [selectedStudentId, setSelectedStudentId] = useState<string>(myStudents[0]?.id || '');
 
   useEffect(() => {
@@ -38,7 +40,8 @@ export const ParentAppContent: React.FC = () => {
   return (
     <ParentAcademyPortal
       student={selectedStudent}
-      organizationName="학원"
+      organizationName={currentOrganization?.name || '학원'}
+      industryType={currentOrganization?.industry_type}
     />
   );
 };

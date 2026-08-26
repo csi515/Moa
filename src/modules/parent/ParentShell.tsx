@@ -183,6 +183,7 @@ function ParentPortalHydrated() {
         customerId={selectedEnrollment.customerId}
         organizationName={selectedEnrollment.organizationName}
         enrollmentStatus={selectedEnrollment.status}
+        industryType={selectedEnrollment.industryType}
         onBack={handleBack}
       />
     </StorageHydrator>
@@ -193,11 +194,13 @@ function ParentPortalWithStudent({
   customerId,
   organizationName,
   enrollmentStatus,
+  industryType,
   onBack,
 }: {
   customerId: string;
   organizationName: string;
   enrollmentStatus: import('@/core/parent/types/globalParent').EnrollmentStatus;
+  industryType: string;
   onBack: () => void;
 }) {
   const student = useStudentFromEnrollment(customerId);
@@ -215,6 +218,7 @@ function ParentPortalWithStudent({
       student={student}
       organizationName={organizationName}
       enrollmentStatus={enrollmentStatus}
+      industryType={industryType}
       onBack={onBack}
     />
   );

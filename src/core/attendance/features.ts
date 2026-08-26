@@ -1,17 +1,11 @@
 import type { IndustryType } from '@/core/industry/types';
 import { normalizeIndustryType } from '@/core/industry/types';
+import { getIndustryPlugin } from '@/core/industry/registry';
 import type { AcademySettings } from '@/types';
 import type { AttendanceModuleSettings } from './types';
 
-/** 업종별 출입(PIN) 모듈 기본값 — 사업장 설정으로 덮어씀 */
-const INDUSTRY_ATTENDANCE_DEFAULT: Record<IndustryType, boolean> = {
-  piano: true,
-  pilates: false,
-  gym: true,
-};
-
 export function getDefaultAttendanceSettings(industry: IndustryType): AttendanceModuleSettings {
-  return { enabled: INDUSTRY_ATTENDANCE_DEFAULT[industry] ?? false };
+  return { enabled: getIndustryPlugin(industry).attendanceDefault };
 }
 
 export function isAttendanceModuleEnabled(
@@ -21,7 +15,7 @@ export function isAttendanceModuleEnabled(
   const industryType = normalizeIndustryType(industry);
   const featureFlag = settings?.features?.attendance?.enabled;
   if (typeof featureFlag === 'boolean') return featureFlag;
-  return INDUSTRY_ATTENDANCE_DEFAULT[industryType];
+  return getIndustryPlugin(industryType).attendanceDefault;
 }
 
 /** settings 객체에 출입(PIN) on/off 반영 (불변) */

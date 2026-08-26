@@ -58,6 +58,21 @@ const COMMON_SETTINGS: FeatureGuideSection = {
   ],
 };
 
+/** 공통 — 학부모 안내장 (전 업종) */
+const COMMON_NOTICES: FeatureGuideSection = {
+  id: 'notices',
+  title: '안내장',
+  description: '학부모(보호자) 포털에 안내장·가정통신문을 게시합니다.',
+  items: [
+    {
+      id: 'notices',
+      title: '안내장 · 가정통신문',
+      summary: '전체·반·개별 대상으로 안내를 작성해 포털에 게시합니다.',
+      howTo: '작성 후 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 문자 발송은 하지 않습니다.',
+    },
+  ],
+};
+
 const PIANO_GUIDE: FeatureGuideSection[] = [
   {
     id: 'customers',
@@ -201,6 +216,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -246,6 +262,7 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -325,6 +342,120 @@ const GYM_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
+  COMMON_FINANCE,
+  COMMON_SETTINGS,
+];
+
+const DAYCARE_GUIDE: FeatureGuideSection[] = [
+  {
+    id: 'customers',
+    title: '원아·보호자',
+    description: '등록 원아와 보호자 연락처, 연령반을 관리합니다.',
+    items: [
+      {
+        id: 'students',
+        title: '원아 관리',
+        summary: '원아 등록, 재원/휴원/퇴원, 담당 교사·반·연령반을 관리합니다.',
+        howTo: '원아 등록 시 보호자 연락처, 알레르기·특이사항, 등하원 PIN을 함께 설정할 수 있습니다.',
+      },
+      {
+        id: 'parents',
+        title: '보호자 관리',
+        summary: '보호자 연락처와 연결된 원아를 관리합니다.',
+      },
+    ],
+  },
+  {
+    id: 'classes',
+    title: '반·등하원',
+    description: '반 편성, 시간표, PIN 등하원을 다룹니다.',
+    items: [
+      {
+        id: 'classes',
+        title: '반 관리',
+        summary: '연령별 반(요일·시간·정원·교사)을 만듭니다.',
+      },
+      {
+        id: 'timetable',
+        title: '주간 시간표',
+        summary: '요일별 일과·수업 일정을 한 화면에서 확인합니다.',
+      },
+      {
+        id: 'attendance',
+        title: '등·하원 관리',
+        summary: 'PIN으로 등원·하원을 기록하고, 알레르기 표시·하원 메모를 남깁니다.',
+        howTo: '현황에서 원아별 특이사항을 확인하고, 당일 세션에 하원·전달 메모를 작성할 수 있습니다.',
+      },
+    ],
+  },
+  {
+    id: 'care',
+    title: '보육 기록',
+    description: '알림장·투약·상담으로 보호자와 하루 생활을 공유합니다.',
+    items: [
+      {
+        id: 'journals',
+        title: '알림장',
+        summary: '원아별 식사·낮잠·활동·건강과 선생님 한마디를 남깁니다.',
+        howTo: '날짜를 고른 뒤 원아를 선택해 알림장을 작성합니다. 보호자 포털에서 바로 확인할 수 있습니다.',
+      },
+      {
+        id: 'medications',
+        title: '투약 관리',
+        summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
+        howTo:
+          '원에서 직접 등록하거나, 보호자가 포털에서 의뢰한 건을 확인한 뒤 투약하면 「투약 완료」로 표시합니다.',
+      },
+      {
+        id: 'consultations',
+        title: '상담 이력',
+        summary: '보호자 상담 내용을 남겨 둡니다.',
+      },
+      {
+        id: 'parent-portal-care',
+        title: '보호자 포털 (알림장·투약)',
+        summary: '보호자가 앱에서 알림장을 보고 투약 의뢰·등하원·안내장을 확인합니다.',
+        howTo:
+          '보호자 계정으로 로그인하면 어린이집 전용 메뉴(알림장·투약·안내·등하원·보육료)가 보입니다.',
+      },
+    ],
+  },
+  {
+    id: 'billing',
+    title: '수납',
+    description: '보육료 청구·미납을 관리합니다.',
+    items: [
+      {
+        id: 'tuition',
+        title: '보육료 및 수납',
+        summary: '월 보육료 청구서를 만들고 입금을 기록합니다.',
+      },
+      {
+        id: 'unpaid',
+        title: '미납 통합 관리',
+        summary: '미납 원아를 모아 보고 연락·수납을 이어갑니다.',
+      },
+    ],
+  },
+  {
+    id: 'staff',
+    title: '보육 인력',
+    description: '교사와 원 일정을 관리합니다.',
+    items: [
+      {
+        id: 'teachers',
+        title: '교사 관리',
+        summary: '교사 정보와 담당 반을 관리합니다.',
+      },
+      {
+        id: 'calendar',
+        title: '원 캘린더',
+        summary: '행사·휴원·체험학습 일정을 기록합니다.',
+      },
+    ],
+  },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -333,6 +464,7 @@ const GUIDE_BY_INDUSTRY: Record<IndustryType, FeatureGuideSection[]> = {
   piano: PIANO_GUIDE,
   pilates: PILATES_GUIDE,
   gym: GYM_GUIDE,
+  daycare: DAYCARE_GUIDE,
 };
 
 const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> = {
@@ -347,6 +479,10 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   gym: {
     title: '체육관 기능 안내',
     body: '회원·수업반·출결·수강료를 중심으로 체육관을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+  },
+  daycare: {
+    title: '어린이집 기능 안내',
+    body: '원아·연령반·등하원·알림장·투약·가정통신문·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
 };
 

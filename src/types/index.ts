@@ -28,7 +28,15 @@ export type StudentLevel =
   | '고급'
   | '선수반'
   | '성인'
-  | '시니어';
+  | '시니어'
+  | '0세반'
+  | '1세반'
+  | '2세반'
+  | '3세반'
+  | '4세반'
+  | '5세반'
+  | '혼합반'
+  | '방과후';
 
 export interface Student {
   id: string;

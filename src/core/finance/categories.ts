@@ -51,6 +51,14 @@ export const GYM_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'instructor_fee', label: '강사료' },
 ];
 
+/** 어린이집 추가 지출 카테고리 */
+export const DAYCARE_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'meals', label: '급식/간식' },
+  { value: 'toys', label: '교구/완구' },
+  { value: 'field_trip', label: '체험학습/행사' },
+  { value: 'teacher_salary', label: '교사 인건비' },
+];
+
 export function getExpenseCategories(industry: IndustryType | string): CategoryOption[] {
   const base = [...COMMON_EXPENSE_CATEGORIES];
   if (industry === 'pilates') {
@@ -58,6 +66,9 @@ export function getExpenseCategories(industry: IndustryType | string): CategoryO
   }
   if (industry === 'gym' || industry === 'taekwondo') {
     return [...base, ...GYM_EXPENSE_CATEGORIES];
+  }
+  if (industry === 'daycare') {
+    return [...base, ...DAYCARE_EXPENSE_CATEGORIES];
   }
   return [...base, ...PIANO_EXPENSE_CATEGORIES];
 }

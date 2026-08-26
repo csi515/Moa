@@ -8,6 +8,7 @@ import {
   Sparkles,
   Activity,
   Dumbbell,
+  Baby,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
@@ -17,6 +18,7 @@ const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: str
   piano: Piano,
   pilates: Activity,
   gym: Dumbbell,
+  daycare: Baby,
 };
 
 export const OrganizationSelector: React.FC = () => {

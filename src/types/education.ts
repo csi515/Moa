@@ -113,4 +113,9 @@ export type ParentPortalTab =
   | 'assignments'
   | 'progress'
   | 'reports'
-  | 'events';
+  | 'events'
+  | 'notices'
+  | 'journals'
+  | 'medications'
+  | 'schedule'
+  | 'bookings';

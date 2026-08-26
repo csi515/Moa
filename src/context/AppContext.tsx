@@ -31,6 +31,9 @@ export type NavTab =
   | 'services'
   | 'members'
   | 'instructors'
+  | 'journals'
+  | 'medications'
+  | 'notices'
   | 'settings';
 
 export type StudentDetailTab =

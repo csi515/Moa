@@ -21,6 +21,7 @@ import {
   IncomeManagementView,
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
+import { noticesViewEntry } from '@/core/notices';
 import {
   DashboardView,
   StudentListView,
@@ -62,6 +63,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   lessons: () => <LessonRecordsView />,
   practice: () => <PracticeRecordsView />,
   consultations: () => <ConsultationRecordsView />,
+  ...noticesViewEntry,
   resources: () => <ResourceManagementView />,
   teachers: () => <TeacherManagementView />,
   calendar: () => <AcademyCalendarView />,
