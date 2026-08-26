@@ -19,6 +19,18 @@ export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type NotificationChannel = 'app' | 'email' | 'sms' | 'kakao';
 export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
 export type GuardianRelationship = 'father' | 'mother' | 'other';
+export type CareJournalMood = 'good' | 'normal' | 'tired' | 'sick';
+export type MedicationStatus = 'requested' | 'administered' | 'cancelled';
+export type CurriculumProgressStatus = 'not_started' | 'in_progress' | 'completed';
+export type AssignmentStatus = 'assigned' | 'in_progress' | 'submitted' | 'reviewed';
+export type AchievementType =
+  | 'exam'
+  | 'competition'
+  | 'certificate'
+  | 'grade'
+  | 'recital'
+  | 'other';
+export type LearningReportStatus = 'draft' | 'published' | 'archived';
 
 export interface Database {
   core: {
@@ -236,6 +248,84 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['core']['Tables']['attendance_sessions']['Insert']>;
+        Relationships: [];
+      };
+      care_journals: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          journal_date: string;
+          mood: CareJournalMood;
+          meals: string;
+          nap: string;
+          activities: string;
+          bowel: string | null;
+          health_note: string | null;
+          teacher_note: string;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          journal_date: string;
+          mood?: CareJournalMood;
+          meals?: string;
+          nap?: string;
+          activities?: string;
+          bowel?: string | null;
+          health_note?: string | null;
+          teacher_note?: string;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_journals']['Insert']>;
+        Relationships: [];
+      };
+      medication_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          request_date: string;
+          medicine_name: string;
+          dosage: string;
+          times: string;
+          reason: string;
+          guardian_name: string | null;
+          status: MedicationStatus;
+          administered_at: string | null;
+          administered_by: string | null;
+          note: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          request_date: string;
+          medicine_name: string;
+          dosage?: string;
+          times?: string;
+          reason?: string;
+          guardian_name?: string | null;
+          status?: MedicationStatus;
+          administered_at?: string | null;
+          administered_by?: string | null;
+          note?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['medication_requests']['Insert']>;
         Relationships: [];
       };
       customer_contacts: {
@@ -1232,6 +1322,238 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['piano']['Tables']['performance_videos']['Insert']>;
+        Relationships: [];
+      };
+      curriculum_levels: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          sort_order: number;
+          description: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          sort_order?: number;
+          description?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['curriculum_levels']['Insert']>;
+        Relationships: [];
+      };
+      curriculum_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          level_id: string;
+          song_id: string | null;
+          title: string;
+          sort_order: number;
+          required: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          level_id: string;
+          song_id?: string | null;
+          title: string;
+          sort_order?: number;
+          required?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['curriculum_items']['Insert']>;
+        Relationships: [];
+      };
+      student_curriculum_progress: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          curriculum_item_id: string;
+          status: CurriculumProgressStatus;
+          completed_at: string | null;
+          notes: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          curriculum_item_id: string;
+          status?: CurriculumProgressStatus;
+          completed_at?: string | null;
+          notes?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['student_curriculum_progress']['Insert']>;
+        Relationships: [];
+      };
+      weekly_assignments: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id: string | null;
+          week_start: string;
+          title: string | null;
+          status: AssignmentStatus;
+          teacher_notes: string | null;
+          parent_notes: string | null;
+          due_date: string | null;
+          published_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id?: string | null;
+          week_start: string;
+          title?: string | null;
+          status?: AssignmentStatus;
+          teacher_notes?: string | null;
+          parent_notes?: string | null;
+          due_date?: string | null;
+          published_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['weekly_assignments']['Insert']>;
+        Relationships: [];
+      };
+      assignment_items: {
+        Row: {
+          id: string;
+          assignment_id: string;
+          organization_id: string;
+          song_title: string;
+          target_minutes: number | null;
+          instructions: string;
+          sort_order: number;
+          parent_confirmed: boolean;
+          parent_confirmed_at: string | null;
+          completed: boolean;
+          completed_at: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          assignment_id: string;
+          organization_id: string;
+          song_title: string;
+          target_minutes?: number | null;
+          instructions?: string;
+          sort_order?: number;
+          parent_confirmed?: boolean;
+          parent_confirmed_at?: string | null;
+          completed?: boolean;
+          completed_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['assignment_items']['Insert']>;
+        Relationships: [];
+      };
+      achievements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          type: AchievementType;
+          title: string;
+          event_date: string | null;
+          result: string | null;
+          level_label: string | null;
+          song_title: string | null;
+          certificate_url: string | null;
+          staff_id: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          type: AchievementType;
+          title: string;
+          event_date?: string | null;
+          result?: string | null;
+          level_label?: string | null;
+          song_title?: string | null;
+          certificate_url?: string | null;
+          staff_id?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['achievements']['Insert']>;
+        Relationships: [];
+      };
+      learning_reports: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id: string | null;
+          year_month: string;
+          status: LearningReportStatus;
+          summary: string | null;
+          strengths: string | null;
+          improvements: string | null;
+          goals_next_month: string | null;
+          attendance_rate: number | null;
+          practice_minutes: number | null;
+          lessons_count: number | null;
+          songs_completed: number | null;
+          published_at: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          staff_id?: string | null;
+          year_month: string;
+          status?: LearningReportStatus;
+          summary?: string | null;
+          strengths?: string | null;
+          improvements?: string | null;
+          goals_next_month?: string | null;
+          attendance_rate?: number | null;
+          practice_minutes?: number | null;
+          lessons_count?: number | null;
+          songs_completed?: number | null;
+          published_at?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['piano']['Tables']['learning_reports']['Insert']>;
         Relationships: [];
       };
     };

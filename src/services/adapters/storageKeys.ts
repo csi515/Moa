@@ -81,16 +81,21 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.LEARNING_REPORTS,
 ]);
 
-/** 클라이언트 전용 localStorage 키 (Supabase sync 제외) */
-export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
-  STORAGE_KEYS.ACTIVE_USER,
-  STORAGE_KEYS.INITIALIZED,
+/** 어린이집 플러그인 Supabase 동기화 */
+export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.CARE_JOURNALS,
   STORAGE_KEYS.MEDICATION_REQUESTS,
 ]);
 
-/** 전체 Supabase sync 키 (Core + Piano) */
+/** 클라이언트 전용 localStorage 키 (Supabase sync 제외) */
+export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.ACTIVE_USER,
+  STORAGE_KEYS.INITIALIZED,
+]);
+
+/** 전체 Supabase sync 키 (Core + Piano + Daycare) */
 export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   ...CORE_SYNC_KEYS,
   ...PIANO_SYNC_KEYS,
+  ...DAYCARE_SYNC_KEYS,
 ]);

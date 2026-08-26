@@ -1,13 +1,17 @@
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
 import { getOrganizationId, setIndustryType, setOrganizationId } from './storageContext';
+import { normalizeIndustryType } from '../../core/industry/types';
 import {
   CORE_SYNC_KEYS,
+  DAYCARE_SYNC_KEYS,
   PIANO_SYNC_KEYS,
   STORAGE_KEYS,
   SUPABASE_SYNC_KEYS,
   type StorageKey,
 } from './storageKeys';
 import { hydrateCoreEntities, persistCoreEntity } from './sync/coreEntitySync';
+import { hydrateDaycareEntities, persistDaycareEntity } from './sync/daycareEntitySync';
+import { hydrateEducationEntities, persistEducationEntity } from './sync/educationEntitySync';
 import { hydratePianoEntities, persistPianoEntity } from './sync/pianoEntitySync';
 import type { IStorageAdapter, StorageListener } from './types';
 
@@ -66,6 +70,10 @@ export class SupabaseAdapter implements IStorageAdapter {
     try {
       await hydrateCoreEntities(organizationId, cacheAdapter, industryType);
       await hydratePianoEntities(organizationId, cacheAdapter);
+      await hydrateEducationEntities(organizationId, cacheAdapter);
+      if (normalizeIndustryType(industryType) === 'daycare') {
+        await hydrateDaycareEntities(organizationId, cacheAdapter);
+      }
       this.hydrated = true;
       this.notify();
     } finally {
@@ -122,6 +130,11 @@ export class SupabaseAdapter implements IStorageAdapter {
 
     if (PIANO_SYNC_KEYS.has(key)) {
       await persistPianoEntity(key, orgId, cacheAdapter);
+      await persistEducationEntity(key, orgId, cacheAdapter);
+    }
+
+    if (DAYCARE_SYNC_KEYS.has(key)) {
+      await persistDaycareEntity(key, orgId, cacheAdapter);
     }
   }
 
