@@ -12,6 +12,8 @@ import { ParentEventsView } from './views/ParentEventsView';
 import { ParentNoticesView } from './views/ParentNoticesView';
 import { ParentCareJournalView } from './views/ParentCareJournalView';
 import { ParentMedicationView } from './views/ParentMedicationView';
+import { ParentScheduleView } from './views/ParentScheduleView';
+import { ParentBookingsView } from './views/ParentBookingsView';
 
 export function ParentPortalTabs({
   tab,
@@ -34,9 +36,9 @@ export function ParentPortalTabs({
         <ParentHomeView student={student} onNavigate={onNavigate} industryType={industryType} />
       );
     case 'attendance':
-      return <ParentAttendanceView student={student} />;
+      return <ParentAttendanceView student={student} industryType={industryType} />;
     case 'tuition':
-      return <ParentTuitionView student={student} />;
+      return <ParentTuitionView student={student} industryType={industryType} />;
     case 'assignments':
       return <ParentAssignmentsView student={student} showToast={showToast} onRefresh={onRefresh} />;
     case 'progress':
@@ -44,7 +46,7 @@ export function ParentPortalTabs({
     case 'reports':
       return <ParentReportsView student={student} />;
     case 'events':
-      return <ParentEventsView student={student} />;
+      return <ParentEventsView student={student} industryType={industryType} />;
     case 'notices':
       return <ParentNoticesView student={student} />;
     case 'journals':
@@ -53,6 +55,10 @@ export function ParentPortalTabs({
       return (
         <ParentMedicationView student={student} showToast={showToast} onRefresh={onRefresh} />
       );
+    case 'schedule':
+      return <ParentScheduleView student={student} />;
+    case 'bookings':
+      return <ParentBookingsView student={student} />;
     default:
       return null;
   }

@@ -1,17 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  Home,
-  CheckSquare,
-  CreditCard,
-  BookOpenCheck,
-  TrendingUp,
-  FileText,
-  Calendar,
-  Megaphone,
-  ArrowLeft,
-  BookOpen,
-  Pill,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { ToastContainer, ConfirmDialog } from '@/shared/components';
@@ -25,26 +13,7 @@ import { normalizeIndustryType, type IndustryType } from '@/core/industry/types'
 import type { Student } from '@/types';
 import type { ParentPortalTab } from '@/types/education';
 import { ParentPortalTabs } from './ParentPortalTabs';
-
-const ACADEMY_PORTAL_NAV: { id: ParentPortalTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'home', label: '홈', icon: <Home className="w-5 h-5" /> },
-  { id: 'notices', label: '안내', icon: <Megaphone className="w-5 h-5" /> },
-  { id: 'attendance', label: '출결', icon: <CheckSquare className="w-5 h-5" /> },
-  { id: 'tuition', label: '수납', icon: <CreditCard className="w-5 h-5" /> },
-  { id: 'assignments', label: '과제', icon: <BookOpenCheck className="w-5 h-5" /> },
-  { id: 'progress', label: '진도', icon: <TrendingUp className="w-5 h-5" /> },
-  { id: 'reports', label: '리포트', icon: <FileText className="w-5 h-5" /> },
-  { id: 'events', label: '행사', icon: <Calendar className="w-5 h-5" /> },
-];
-
-const DAYCARE_PORTAL_NAV: { id: ParentPortalTab; label: string; icon: React.ReactNode }[] = [
-  { id: 'home', label: '홈', icon: <Home className="w-5 h-5" /> },
-  { id: 'journals', label: '알림장', icon: <BookOpen className="w-5 h-5" /> },
-  { id: 'medications', label: '투약', icon: <Pill className="w-5 h-5" /> },
-  { id: 'notices', label: '안내', icon: <Megaphone className="w-5 h-5" /> },
-  { id: 'attendance', label: '등하원', icon: <CheckSquare className="w-5 h-5" /> },
-  { id: 'tuition', label: '보육료', icon: <CreditCard className="w-5 h-5" /> },
-];
+import { getParentPortalNav, getParentPortalRoleLabel, getParentPortalSecondaryTabs } from './parentPortalNav';
 
 export interface ParentAcademyPortalProps {
   student: Student;
@@ -63,9 +32,15 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
 }) => {
   const { currentUser, showToast, triggerRefresh } = useApp();
   const industryType = normalizeIndustryType(industryTypeProp);
-  const isDaycare = industryType === 'daycare';
-  const portalNav = isDaycare ? DAYCARE_PORTAL_NAV : ACADEMY_PORTAL_NAV;
-  const allowedTabs = useMemo(() => new Set(portalNav.map((t) => t.id)), [portalNav]);
+  const portalNav = useMemo(() => getParentPortalNav(industryType), [industryType]);
+  const allowedTabs = useMemo(
+    () =>
+      new Set([
+        ...portalNav.map((t) => t.id),
+        ...getParentPortalSecondaryTabs(industryType),
+      ]),
+    [portalNav, industryType]
+  );
 
   const [activeTab, setActiveTab] = useState<ParentPortalTab>('home');
 
@@ -104,7 +79,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
 
       <div className="flex-1 max-w-3xl w-full mx-auto p-4 pb-24">
         <div className="mb-4">
-          <p className="text-xs text-slate-500">{isDaycare ? '보호자 포털' : '학부모 포털'}</p>
+          <p className="text-xs text-slate-500">{getParentPortalRoleLabel(industryType)}</p>
           <p className="text-sm text-slate-600">안녕하세요, {currentUser.name}님</p>
         </div>
 
