@@ -83,9 +83,8 @@ export async function signOut(): Promise<void> {
 
 /** 비밀번호 재설정 메일 발송 (Supabase Auth) */
 export async function resetPasswordForEmail(email: string): Promise<void> {
-  const redirectTo = `${window.location.origin}${window.location.pathname || '/'}`;
   const { error } = await getCoreClient().auth.resetPasswordForEmail(email, {
-    redirectTo,
+    redirectTo: getPasswordResetRedirectUrl(),
   });
   if (error) throw error;
 }
@@ -108,6 +107,17 @@ export function hasPasswordRecoveryInUrl(): boolean {
     search.includes('type=recovery') ||
     hash.includes('type%3Drecovery')
   );
+}
+
+/** 복구 링크 해시 제거 (재진입 방지) */
+export function clearPasswordRecoveryFromUrl(): void {
+  if (typeof window === 'undefined' || !window.location.hash) return;
+  window.history.replaceState(null, '', window.location.pathname + window.location.search);
+}
+
+export function getPasswordResetRedirectUrl(): string {
+  if (typeof window === 'undefined') return '/';
+  return `${window.location.origin}${window.location.pathname || '/'}`;
 }
 
 export function onAuthStateChange(

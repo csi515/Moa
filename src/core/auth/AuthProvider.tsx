@@ -13,10 +13,17 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
-  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+async function runAuthAction<T>(fallback: string, action: () => Promise<T>): Promise<T> {
+  try {
+    return await action();
+  } catch (err) {
+    throw new Error(authService.toAuthErrorMessage(err, fallback));
+  }
+}
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -56,27 +63,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    try {
-      const newSession = await authService.signIn({ email, password });
-      setSession(newSession);
-      setPasswordRecoveryPending(false);
-    } catch (err) {
-      throw new Error(authService.toAuthErrorMessage(err, '로그인에 실패했습니다.'));
-    }
+    const newSession = await runAuthAction('로그인에 실패했습니다.', () =>
+      authService.signIn({ email, password })
+    );
+    setSession(newSession);
+    setPasswordRecoveryPending(false);
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {
-    try {
-      const { session: newSession } = await authService.signUp({ email, password, fullName });
-      if (newSession) {
-        setSession(newSession);
-        return;
-      }
-      const signedIn = await authService.signIn({ email, password });
-      setSession(signedIn);
-    } catch (err) {
-      throw new Error(authService.toAuthErrorMessage(err, '회원가입에 실패했습니다.'));
-    }
+    const newSession = await runAuthAction('회원가입에 실패했습니다.', async () => {
+      const { session: created } = await authService.signUp({ email, password, fullName });
+      if (created) return created;
+      return authService.signIn({ email, password });
+    });
+    setSession(newSession);
   };
 
   const signOut = async () => {
@@ -86,30 +86,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const requestPasswordReset = async (email: string) => {
-    try {
-      await authService.resetPasswordForEmail(email);
-    } catch (err) {
-      throw new Error(
-        authService.toAuthErrorMessage(err, '비밀번호 재설정 메일 발송에 실패했습니다.')
-      );
-    }
+    await runAuthAction('비밀번호 재설정 메일 발송에 실패했습니다.', () =>
+      authService.resetPasswordForEmail(email)
+    );
   };
 
   const updatePassword = async (password: string) => {
-    try {
-      await authService.updatePassword(password);
-      setPasswordRecoveryPending(false);
-      // 복구 URL 해시 정리 (새로고침 시 재진입 방지)
-      if (typeof window !== 'undefined' && window.location.hash) {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-      }
-    } catch (err) {
-      throw new Error(authService.toAuthErrorMessage(err, '비밀번호 변경에 실패했습니다.'));
-    }
-  };
-
-  const clearPasswordRecovery = () => {
+    await runAuthAction('비밀번호 변경에 실패했습니다.', () =>
+      authService.updatePassword(password)
+    );
     setPasswordRecoveryPending(false);
+    authService.clearPasswordRecoveryFromUrl();
   };
 
   return (
@@ -124,7 +111,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signOut,
         requestPasswordReset,
         updatePassword,
-        clearPasswordRecovery,
       }}
     >
       {children}
