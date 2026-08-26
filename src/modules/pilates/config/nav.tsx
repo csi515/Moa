@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Receipt,
   KeyRound,
+  Megaphone,
 } from 'lucide-react';
 
 const icon = (node: ReactNode) => node;
@@ -54,6 +55,7 @@ export function getPilatesSidebarSections(labels: ModuleLabels): NavMenuSection[
           icon: icon(<Activity className="w-4 h-4" />),
         },
         { tab: 'attendance', label: '출입 관리', icon: icon(<KeyRound className="w-4 h-4" />) },
+        { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-4 h-4" />) },
       ],
     },
     {
@@ -86,6 +88,7 @@ export function getPilatesMoreTabs(): NavMenuItem[] {
     { tab: 'services', label: '수업 종류', icon: icon(<Dumbbell className="w-5 h-5" />) },
     { tab: 'instructors', label: '강사', icon: icon(<Activity className="w-5 h-5" />) },
     { tab: 'attendance', label: '출입 관리', icon: icon(<KeyRound className="w-5 h-5" />) },
+    { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-5 h-5" />) },
     { tab: 'finance', label: '재무 요약', icon: icon(<BarChart3 className="w-5 h-5" />) },
     { tab: 'income', label: '수입 관리', icon: icon(<TrendingUp className="w-5 h-5" />) },
     { tab: 'expenses', label: '지출 관리', icon: icon(<Receipt className="w-5 h-5" />) },

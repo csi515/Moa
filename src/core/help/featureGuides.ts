@@ -58,6 +58,21 @@ const COMMON_SETTINGS: FeatureGuideSection = {
   ],
 };
 
+/** 공통 — 학부모 안내장 (전 업종) */
+const COMMON_NOTICES: FeatureGuideSection = {
+  id: 'notices',
+  title: '안내장',
+  description: '학부모(보호자) 포털에 안내장·가정통신문을 게시합니다.',
+  items: [
+    {
+      id: 'notices',
+      title: '안내장 · 가정통신문',
+      summary: '전체·반·개별 대상으로 안내를 작성해 포털에 게시합니다.',
+      howTo: '작성 후 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 문자 발송은 하지 않습니다.',
+    },
+  ],
+};
+
 const PIANO_GUIDE: FeatureGuideSection[] = [
   {
     id: 'customers',
@@ -201,6 +216,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -246,6 +262,7 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -325,6 +342,7 @@ const GYM_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
+  COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
@@ -373,7 +391,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
   {
     id: 'care',
     title: '보육 기록',
-    description: '알림장·투약·가정통신문·상담으로 보호자와 하루 생활을 공유합니다.',
+    description: '알림장·투약·상담으로 보호자와 하루 생활을 공유합니다.',
     items: [
       {
         id: 'journals',
@@ -386,12 +404,6 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         title: '투약 관리',
         summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
         howTo: '약 이름·용량·시점을 등록한 뒤, 투약하면 「투약 완료」로 표시합니다.',
-      },
-      {
-        id: 'notices',
-        title: '가정통신문 · 안내장',
-        summary: '휴원·행사·준비물 등 안내를 작성해 학부모 포털에 게시합니다.',
-        howTo: '전체·반·개별 원아를 고른 뒤 작성하고 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 문자 발송은 하지 않습니다.',
       },
       {
         id: 'consultations',

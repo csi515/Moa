@@ -1,16 +1,20 @@
 import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar, SearchField, EmptyState, Modal } from '@/shared/components';
 import { FormField, FORM_CONTROL_CLASS, FilterTabs, SegmentedControl } from '@/shared/components/ui';
 import { Megaphone, Plus, Trash2, Send, Save, CheckCircle2, FileText } from 'lucide-react';
 import type { AppNotification } from '@/types';
+import { useModuleLabels } from '@/core/labels';
+import { getIndustryAccent, usesClassBasedSchedule } from '@/core/industry/industryUi';
 import {
   PARENT_NOTICE_KIND_LABEL,
-  NOTICE_TARGET_MODE_LABEL,
   encodeNoticeTarget,
   parseNoticeTarget,
+  getNoticeTargetModeLabel,
+  noticeAccentClasses,
   type ParentNoticeKind,
   type NoticeTargetMode,
 } from './types';
@@ -18,51 +22,59 @@ import { filterParentNotices, resolveNoticeRecipients } from './noticeHelpers';
 
 type StatusFilter = 'ALL' | 'pending' | 'sent';
 
-const TEMPLATES: {
-  id: string;
-  label: string;
-  kind: ParentNoticeKind;
-  title: string;
-  message: string;
-}[] = [
-  {
-    id: 'prepare',
-    label: '준비물 안내',
-    kind: 'announcement',
-    title: '내일 준비물 안내',
-    message:
-      '안녕하세요. 내일 원에서 체험 활동이 있어 아래 준비물을 챙겨 주세요.\n· 여벌 옷\n· 물티슈\n협조해 주셔서 감사합니다.',
-  },
-  {
-    id: 'holiday',
-    label: '휴원·일정 안내',
-    kind: 'notice',
-    title: '휴원 일정 가정통신문',
-    message:
-      '안녕하세요. 아래 일정에 휴원합니다.\n· 휴원일: (날짜 입력)\n· 사유: (사유 입력)\n문의는 원으로 연락 부탁드립니다.',
-  },
-  {
-    id: 'event',
-    label: '행사 안내',
-    kind: 'announcement',
-    title: '원 행사 안내장',
-    message:
-      '안녕하세요. 원 행사 일정을 안내드립니다.\n· 일시: (날짜·시간)\n· 장소: (장소)\n보호자 참석이 가능하니 많은 관심 부탁드립니다.',
-  },
-  {
-    id: 'tuition',
-    label: '보육료 안내',
-    kind: 'notice',
-    title: '보육료 납부 안내',
-    message:
-      '안녕하세요. 이번 달 보육료 납부 안내드립니다.\n납부 기한 내 수납 부탁드리며, 문의는 원으로 연락 주세요.',
-  },
-];
+function buildTemplates(placeWord: string, feeWord: string) {
+  return [
+    {
+      id: 'prepare',
+      label: '준비물 안내',
+      kind: 'announcement' as ParentNoticeKind,
+      title: '준비물 안내',
+      message: `안녕하세요. 아래 준비물을 챙겨 주세요.\n· (준비물 입력)\n협조해 주셔서 감사합니다.`,
+    },
+    {
+      id: 'holiday',
+      label: '휴강·일정 안내',
+      kind: 'notice' as ParentNoticeKind,
+      title: '휴강 일정 안내',
+      message: `안녕하세요. 아래 일정에 ${placeWord}이(가) 쉽니다.\n· 휴강일: (날짜 입력)\n· 사유: (사유 입력)\n문의는 ${placeWord}으로 연락 부탁드립니다.`,
+    },
+    {
+      id: 'event',
+      label: '행사 안내',
+      kind: 'announcement' as ParentNoticeKind,
+      title: '행사 안내장',
+      message: `안녕하세요. ${placeWord} 행사 일정을 안내드립니다.\n· 일시: (날짜·시간)\n· 장소: (장소)\n많은 관심 부탁드립니다.`,
+    },
+    {
+      id: 'tuition',
+      label: `${feeWord} 안내`,
+      kind: 'notice' as ParentNoticeKind,
+      title: `${feeWord} 납부 안내`,
+      message: `안녕하세요. 이번 달 ${feeWord} 납부 안내드립니다.\n납부 기한 내 수납 부탁드리며, 문의는 ${placeWord}으로 연락 주세요.`,
+    },
+  ];
+}
 
 export const ParentNoticeView: FC = () => {
   const { showToast, openConfirmDialog } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const accent = getIndustryAccent(industry);
+  const tone = noticeAccentClasses(accent.icon);
+  const classBased = usesClassBasedSchedule(industry);
   const { scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
+
+  const placeWord =
+    industry === 'daycare'
+      ? '어린이집'
+      : industry === 'pilates'
+        ? '스튜디오'
+        : industry === 'gym'
+          ? '체육관'
+          : '학원';
+  const feeWord = industry === 'daycare' ? '보육료' : '수강료';
+  const templates = useMemo(() => buildTemplates(placeWord, feeWord), [placeWord, feeWord]);
 
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
@@ -79,7 +91,7 @@ export const ParentNoticeView: FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<AppNotification | null>(null);
   const [form, setForm] = useState({
-    kind: 'notice' as ParentNoticeKind,
+    kind: 'announcement' as ParentNoticeKind,
     title: '',
     message: '',
     targetMode: 'all' as NoticeTargetMode,
@@ -103,10 +115,19 @@ export const ParentNoticeView: FC = () => {
     return resolveNoticeRecipients(students, form.targetMode, id || undefined);
   }, [students, form.targetMode, form.classId, form.studentId]);
 
+  const targetModeOptions = useMemo(() => {
+    const opts: { value: NoticeTargetMode; label: string }[] = [
+      { value: 'all', label: '전체' },
+    ];
+    if (classBased) opts.push({ value: 'class', label: labels.service.singular });
+    opts.push({ value: 'student', label: '개별' });
+    return opts;
+  }, [classBased, labels.service.singular]);
+
   const openCreate = () => {
     setEditing(null);
     setForm({
-      kind: 'notice',
+      kind: 'announcement',
       title: '',
       message: '',
       targetMode: 'all',
@@ -118,12 +139,14 @@ export const ParentNoticeView: FC = () => {
 
   const openEdit = (item: AppNotification) => {
     const parsed = parseNoticeTarget(item.targetGroup);
+    const mode =
+      parsed.mode === 'class' && !classBased ? 'all' : parsed.mode;
     setEditing(item);
     setForm({
       kind: (item.type === 'announcement' ? 'announcement' : 'notice') as ParentNoticeKind,
       title: item.title,
       message: item.message,
-      targetMode: parsed.mode,
+      targetMode: mode,
       classId: parsed.mode === 'class' ? parsed.id || '' : classes[0]?.id || '',
       studentId:
         parsed.mode === 'student'
@@ -134,7 +157,7 @@ export const ParentNoticeView: FC = () => {
   };
 
   const applyTemplate = (templateId: string) => {
-    const t = TEMPLATES.find((x) => x.id === templateId);
+    const t = templates.find((x) => x.id === templateId);
     if (!t) return;
     setForm((prev) => ({
       ...prev,
@@ -147,16 +170,16 @@ export const ParentNoticeView: FC = () => {
   const buildPayload = (status: 'pending' | 'sent') => {
     const targetId = form.targetMode === 'class' ? form.classId : form.studentId;
     if (form.targetMode === 'class' && !form.classId) {
-      showToast('반을 선택해 주세요.', 'error');
+      showToast(`${labels.service.singular}을(를) 선택해 주세요.`, 'error');
       return null;
     }
     if (form.targetMode === 'student' && !form.studentId) {
-      showToast('원아를 선택해 주세요.', 'error');
+      showToast(`${labels.customer.singular}을(를) 선택해 주세요.`, 'error');
       return null;
     }
     const recipients = resolveNoticeRecipients(students, form.targetMode, targetId || undefined);
     if (recipients.length === 0 && form.targetMode !== 'all') {
-      showToast('발송 대상 원아가 없습니다.', 'error');
+      showToast(`발송 대상 ${labels.customer.singular}이(가) 없습니다.`, 'error');
       return null;
     }
     if (!form.title.trim() || !form.message.trim()) {
@@ -189,7 +212,7 @@ export const ParentNoticeView: FC = () => {
     const payload = buildPayload('pending');
     if (!payload) return;
     StorageService.saveNotification(payload);
-    showToast('임시저장되었습니다. 게시하면 학부모 포털에 표시됩니다.', 'success');
+    showToast(`임시저장되었습니다. 게시하면 ${labels.contact.singular} 포털에 표시됩니다.`, 'success');
     setIsModalOpen(false);
   };
 
@@ -199,7 +222,7 @@ export const ParentNoticeView: FC = () => {
     if (!payload) return;
     StorageService.saveNotification(payload);
     showToast(
-      `학부모 포털에 게시되었습니다. (대상 ${payload.recipientCount}명)`,
+      `${labels.contact.singular} 포털에 게시되었습니다. (대상 ${payload.recipientCount}명)`,
       'success'
     );
     setIsModalOpen(false);
@@ -211,7 +234,7 @@ export const ParentNoticeView: FC = () => {
       status: 'sent',
       sentAt: new Date().toISOString(),
     });
-    showToast('학부모 포털에 게시되었습니다.', 'success');
+    showToast(`${labels.contact.singular} 포털에 게시되었습니다.`, 'success');
   };
 
   const handleDelete = (item: AppNotification) => {
@@ -231,28 +254,30 @@ export const ParentNoticeView: FC = () => {
     const { mode, id } = parseNoticeTarget(item.targetGroup);
     if (mode === 'class' && id) {
       const cls = classes.find((c) => c.id === id);
-      return cls ? `반 · ${cls.name}` : NOTICE_TARGET_MODE_LABEL.class;
+      return cls
+        ? `${labels.service.singular} · ${cls.name}`
+        : getNoticeTargetModeLabel('class', labels);
     }
     if (mode === 'student') {
       return item.targetStudentName
         ? `개별 · ${item.targetStudentName}`
-        : NOTICE_TARGET_MODE_LABEL.student;
+        : getNoticeTargetModeLabel('student', labels);
     }
-    return NOTICE_TARGET_MODE_LABEL.all;
+    return getNoticeTargetModeLabel('all', labels);
   };
 
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Megaphone className="w-6 h-6" />}
-        iconClassName="text-sky-600"
-        title="가정통신문 · 안내장"
-        description="보호자 포털에 가정통신문·안내장을 게시합니다 (앱 내 알림)"
+        iconClassName={accent.icon}
+        title="안내장 · 가정통신문"
+        description={`${labels.contact.singular} 포털에 안내장·가정통신문을 게시합니다 (앱 내 알림)`}
         actions={
           <button
             type="button"
             onClick={openCreate}
-            className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold"
+            className={`inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl ${accent.btn} ${accent.btnHover} text-white text-xs font-bold`}
           >
             <Plus className="w-4 h-4" />
             작성
@@ -270,7 +295,7 @@ export const ParentNoticeView: FC = () => {
             ]}
             active={statusFilter}
             onChange={(id) => setStatusFilter(id)}
-            activeClassName="bg-sky-600 text-white"
+            activeClassName={tone.active}
           />
           <SearchField
             value={searchQuery}
@@ -284,12 +309,12 @@ export const ParentNoticeView: FC = () => {
           <EmptyState
             icon={<Megaphone className="w-10 h-10" />}
             title="등록된 안내가 없습니다"
-            description="휴원·행사·준비물 등 가정통신문이나 안내장을 작성해 보세요."
+            description="휴강·행사·준비물 등 안내장이나 가정통신문을 작성해 보세요."
             action={
               <button
                 type="button"
                 onClick={openCreate}
-                className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold"
+                className={`inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl ${accent.btn} ${accent.btnHover} text-white text-xs font-bold`}
               >
                 <Plus className="w-4 h-4" />
                 작성
@@ -306,7 +331,7 @@ export const ParentNoticeView: FC = () => {
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-sky-50 text-sky-700">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${tone.soft}`}>
                           {PARENT_NOTICE_KIND_LABEL[item.type as ParentNoticeKind] || '안내'}
                         </span>
                         <span
@@ -348,7 +373,7 @@ export const ParentNoticeView: FC = () => {
                     <button
                       type="button"
                       onClick={() => openEdit(item)}
-                      className="px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold text-sky-700 hover:bg-sky-50"
+                      className={`px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold ${tone.edit}`}
                     >
                       수정
                     </button>
@@ -371,7 +396,7 @@ export const ParentNoticeView: FC = () => {
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={editing ? '안내 수정' : '가정통신문 · 안내장 작성'}
+        title={editing ? '안내 수정' : '안내장 · 가정통신문 작성'}
         maxWidth="lg"
       >
         <form onSubmit={handlePublish} className="space-y-4 p-5">
@@ -380,11 +405,11 @@ export const ParentNoticeView: FC = () => {
             <SegmentedControl
               value={form.kind}
               options={[
-                { value: 'notice', label: '가정통신문' },
                 { value: 'announcement', label: '안내장' },
+                { value: 'notice', label: '가정통신문' },
               ]}
               onChange={(kind) => setForm({ ...form, kind })}
-              activeClassName="bg-sky-600 text-white"
+              activeClassName={tone.active}
               fullWidth
               aria-label="안내 유형"
             />
@@ -393,15 +418,15 @@ export const ParentNoticeView: FC = () => {
           <div>
             <p className="text-xs font-semibold text-slate-700 mb-2">빠른 템플릿</p>
             <div className="grid grid-cols-2 gap-2">
-              {TEMPLATES.map((t) => (
+              {templates.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => applyTemplate(t.id)}
-                  className="text-left p-3 min-h-[44px] rounded-xl border border-slate-200 hover:border-sky-200 hover:bg-sky-50/50 transition-colors"
+                  className={`text-left p-3 min-h-[44px] rounded-xl border border-slate-200 transition-colors ${tone.softHover}`}
                 >
                   <p className="text-xs font-bold text-slate-800 flex items-center gap-1">
-                    <FileText className="w-3.5 h-3.5 text-sky-600" />
+                    <FileText className={`w-3.5 h-3.5 ${accent.icon}`} />
                     {t.label}
                   </p>
                 </button>
@@ -413,27 +438,25 @@ export const ParentNoticeView: FC = () => {
             <p className="text-xs font-semibold text-slate-700 mb-2">대상</p>
             <SegmentedControl
               value={form.targetMode}
-              options={[
-                { value: 'all', label: '전체' },
-                { value: 'class', label: '반' },
-                { value: 'student', label: '개별' },
-              ]}
+              options={targetModeOptions}
               onChange={(targetMode) => setForm({ ...form, targetMode })}
-              activeClassName="bg-sky-600 text-white"
+              activeClassName={tone.active}
               fullWidth
               aria-label="발송 대상"
             />
           </div>
 
           {form.targetMode === 'class' && (
-            <FormField label="반" required>
+            <FormField label={labels.service.singular} required>
               <select
                 required
                 value={form.classId}
                 onChange={(e) => setForm({ ...form, classId: e.target.value })}
                 className={FORM_CONTROL_CLASS}
               >
-                {classes.length === 0 && <option value="">등록된 반 없음</option>}
+                {classes.length === 0 && (
+                  <option value="">등록된 {labels.service.singular} 없음</option>
+                )}
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -444,14 +467,16 @@ export const ParentNoticeView: FC = () => {
           )}
 
           {form.targetMode === 'student' && (
-            <FormField label="원아" required>
+            <FormField label={labels.customer.singular} required>
               <select
                 required
                 value={form.studentId}
                 onChange={(e) => setForm({ ...form, studentId: e.target.value })}
                 className={FORM_CONTROL_CLASS}
               >
-                {students.length === 0 && <option value="">등록된 원아 없음</option>}
+                {students.length === 0 && (
+                  <option value="">등록된 {labels.customer.singular} 없음</option>
+                )}
                 {students.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -462,7 +487,8 @@ export const ParentNoticeView: FC = () => {
           )}
 
           <p className="text-[11px] text-slate-500">
-            예상 대상 {recipientPreview.length}명 · 학부모 포털에만 표시됩니다 (문자 발송 없음)
+            예상 대상 {recipientPreview.length}명 · {labels.contact.singular} 포털에만 표시됩니다
+            (문자 발송 없음)
           </p>
 
           <FormField label="제목" required>
@@ -471,7 +497,7 @@ export const ParentNoticeView: FC = () => {
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className={FORM_CONTROL_CLASS}
-              placeholder="예: 봄 나들이 준비물 안내"
+              placeholder="예: 봄 행사 준비물 안내"
             />
           </FormField>
 
@@ -482,7 +508,7 @@ export const ParentNoticeView: FC = () => {
               value={form.message}
               onChange={(e) => setForm({ ...form, message: e.target.value })}
               className={FORM_CONTROL_CLASS}
-              placeholder="보호자에게 전할 내용을 입력하세요"
+              placeholder={`${labels.contact.singular}에게 전할 내용을 입력하세요`}
             />
           </FormField>
 
@@ -504,7 +530,7 @@ export const ParentNoticeView: FC = () => {
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold"
+              className={`inline-flex items-center gap-2 px-5 py-2.5 min-h-[44px] rounded-xl ${accent.btn} ${accent.btnHover} text-white text-xs font-bold`}
             >
               <CheckCircle2 className="w-4 h-4" />
               포털에 게시

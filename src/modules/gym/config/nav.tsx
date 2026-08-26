@@ -15,6 +15,7 @@ import {
   BarChart3,
   TrendingUp,
   Receipt,
+  Megaphone,
 } from 'lucide-react';
 
 const icon = (node: ReactNode) => node;
@@ -52,6 +53,12 @@ export function getGymSidebarSections(labels: ModuleLabels): NavMenuSection[] {
           icon: icon(<Clock className="w-4 h-4" />),
         },
         { tab: 'attendance', label: '출입 관리', icon: icon(<CheckSquare className="w-4 h-4" />) },
+      ],
+    },
+    {
+      title: '안내',
+      items: [
+        { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-4 h-4" />) },
       ],
     },
     {
@@ -98,6 +105,7 @@ export function getGymMainTabs(labels: ModuleLabels): NavMenuItem[] {
 export function getGymMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'parents', label: labels.contact.management, icon: icon(<UserSquare2 className="w-5 h-5" />) },
+    { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-5 h-5" />) },
     { tab: 'classes', label: '수업반', icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'timetable', label: '시간표', icon: icon(<Clock className="w-5 h-5" />) },
     { tab: 'tuition', label: '수강료/수납', icon: icon(<CreditCard className="w-5 h-5" />) },

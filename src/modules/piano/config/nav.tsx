@@ -23,6 +23,7 @@ import {
   BarChart3,
   TrendingUp,
   FileText,
+  Megaphone,
 } from 'lucide-react';
 
 const icon = (node: ReactNode) => node;
@@ -74,6 +75,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
           label: '상담 이력',
           icon: icon(<MessageSquareText className="w-4 h-4" />),
         },
+        { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-4 h-4" />) },
         { tab: 'resources', label: '교재 및 곡 관리', icon: icon(<Music2 className="w-4 h-4" />) },
       ],
     },
@@ -163,6 +165,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       label: '상담 이력',
       icon: icon(<MessageSquareText className="w-5 h-5" />),
     },
+    { tab: 'notices', label: '안내장', icon: icon(<Megaphone className="w-5 h-5" />) },
     { tab: 'resources', label: '교재/곡 자료실', icon: icon(<Music2 className="w-5 h-5" />) },
     {
       tab: 'teachers',
