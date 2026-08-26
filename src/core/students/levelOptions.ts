@@ -1,5 +1,6 @@
 import type { IndustryType } from '@/core/industry/types';
 import { normalizeIndustryType } from '@/core/industry/types';
+import { getIndustryPlugin } from '@/core/industry/registry';
 import type { StudentLevel } from '@/types';
 
 export const PIANO_LEVEL_OPTIONS: StudentLevel[] = [
@@ -15,7 +16,6 @@ export const PIANO_LEVEL_OPTIONS: StudentLevel[] = [
   '성인 취미',
 ];
 
-/** 체육관 — 수업/프로그램 레벨 */
 export const GYM_LEVEL_OPTIONS: StudentLevel[] = [
   '어린이',
   '초급',
@@ -26,23 +26,40 @@ export const GYM_LEVEL_OPTIONS: StudentLevel[] = [
   '시니어',
 ];
 
+/** 어린이집 — 연령반 */
+export const DAYCARE_LEVEL_OPTIONS: StudentLevel[] = [
+  '0세반',
+  '1세반',
+  '2세반',
+  '3세반',
+  '4세반',
+  '5세반',
+  '혼합반',
+  '방과후',
+];
+
+const LEVELS_BY_INDUSTRY: Partial<Record<IndustryType, StudentLevel[]>> = {
+  piano: PIANO_LEVEL_OPTIONS,
+  gym: GYM_LEVEL_OPTIONS,
+  daycare: DAYCARE_LEVEL_OPTIONS,
+};
+
 /** 업종별 회원/원생 레벨 선택지 */
 export function getStudentLevelOptions(
   industry: IndustryType | string | null | undefined
 ): StudentLevel[] {
   const type = normalizeIndustryType(industry);
-  if (type === 'gym') return GYM_LEVEL_OPTIONS;
-  return PIANO_LEVEL_OPTIONS;
+  return LEVELS_BY_INDUSTRY[type] ?? PIANO_LEVEL_OPTIONS;
 }
 
 /** 업종별 레벨 필드 라벨 */
 export function getStudentLevelLabel(
   industry: IndustryType | string | null | undefined
 ): string {
-  return normalizeIndustryType(industry) === 'gym' ? '수업 레벨' : '레벨';
+  return getIndustryPlugin(industry).levelLabel;
 }
 
-/** 체육관은 학교/학년 필드를 기본 숨김 */
+/** 학교/학년 필드 표시 여부 */
 export function showSchoolFields(industry: IndustryType | string | null | undefined): boolean {
-  return normalizeIndustryType(industry) !== 'gym';
+  return getIndustryPlugin(industry).showSchoolFields;
 }

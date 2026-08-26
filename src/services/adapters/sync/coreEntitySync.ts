@@ -148,9 +148,9 @@ export async function hydrateCoreEntities(
 
   const serviceRows = servicesResult.data || [];
   const classes =
-    industryType === 'piano' || industryType === 'gym'
-      ? serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass)
-      : [];
+    industryType === 'pilates'
+      ? []
+      : serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass);
   const serviceOfferings =
     industryType === 'pilates'
       ? serviceRows.map(serviceRowToOffering)

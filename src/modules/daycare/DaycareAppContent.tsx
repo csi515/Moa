@@ -1,0 +1,84 @@
+import type { FC, ReactNode } from 'react';
+import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { useTabGuard } from '@/core/auth/useTabGuard';
+import {
+  PwaInstallPrompt,
+  DirectorFloatingFab,
+  ToastContainer,
+  ConfirmDialog,
+} from '@/shared/components';
+import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
+import { SupabaseRoleSync } from '@/SupabaseRoleSync';
+import { isSupabaseConfigured } from '@/lib/supabase';
+import { DaycareSidebar } from './layout/DaycareSidebar';
+import { DaycareBottomNav } from './layout/DaycareBottomNav';
+import { DaycareDashboardView } from './components/dashboard/DaycareDashboardView';
+import { StudentListView } from './components/students/StudentListView';
+import {
+  WeeklyTimetableView,
+  TuitionManagementView,
+  UnpaidManagementView,
+  ClassManagementView,
+  ParentManagementView,
+  TeacherManagementView,
+  AcademyCalendarView,
+  AcademySettingsView,
+  ConsultationRecordsView,
+} from '@/modules/piano';
+import {
+  FinanceOverviewView,
+  ExpenseManagementView,
+  IncomeManagementView,
+} from '@/core/finance';
+import { AttendanceManagementView } from '@/core/attendance';
+
+/**
+ * 어린이집 플러그인 셸.
+ * 코어(원아·반·출결·수납·재무)를 재사용하고 상담 이력을 기본 메뉴에 포함합니다.
+ */
+const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
+  dashboard: () => <DaycareDashboardView />,
+  students: () => <StudentListView />,
+  parents: () => <ParentManagementView />,
+  classes: () => <ClassManagementView />,
+  timetable: () => <WeeklyTimetableView />,
+  attendance: () => <AttendanceManagementView />,
+  consultations: () => <ConsultationRecordsView />,
+  tuition: () => <TuitionManagementView />,
+  unpaid: () => <UnpaidManagementView />,
+  teachers: () => <TeacherManagementView />,
+  calendar: () => <AcademyCalendarView />,
+  finance: () => <FinanceOverviewView />,
+  income: () => <IncomeManagementView />,
+  expenses: () => <ExpenseManagementView />,
+  settings: () => <AcademySettingsView />,
+};
+
+export const DaycareAppContent: FC = () => {
+  const { activeTab } = useApp();
+  const { isOwner } = usePermissions();
+
+  useTabGuard();
+
+  const renderView = DAYCARE_VIEW_MAP[activeTab] ?? DAYCARE_VIEW_MAP.dashboard;
+
+  return (
+    <ModuleAppShell
+      theme="sky"
+      beforeHeader={isSupabaseConfigured() ? <SupabaseRoleSync /> : null}
+      sidebar={<DaycareSidebar />}
+      bottomNav={<DaycareBottomNav />}
+      overlays={
+        <>
+          {isOwner && <DirectorFloatingFab />}
+          <PwaInstallPrompt />
+          <ConfirmDialog />
+          <ToastContainer />
+        </>
+      }
+    >
+      {renderView()}
+    </ModuleAppShell>
+  );
+};

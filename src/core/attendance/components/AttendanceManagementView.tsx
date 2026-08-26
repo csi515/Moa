@@ -40,7 +40,13 @@ export const AttendanceManagementView: React.FC = () => {
   const accentActive = `${accent.btn} text-white`;
   const linkHover = accent.icon.replace('text-', 'hover:text-');
   const metricVariant =
-    industry === 'pilates' ? 'teal' : industry === 'gym' ? 'amber' : 'indigo';
+    industry === 'pilates'
+      ? 'teal'
+      : industry === 'gym'
+        ? 'amber'
+        : industry === 'daycare'
+          ? 'indigo'
+          : 'indigo';
   const customerTab = getCustomerListTab(industry);
 
   const [subTab, setSubTab] = useState<AttendanceSubTab>('overview');

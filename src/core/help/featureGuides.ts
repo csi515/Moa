@@ -329,10 +329,95 @@ const GYM_GUIDE: FeatureGuideSection[] = [
   COMMON_SETTINGS,
 ];
 
+const DAYCARE_GUIDE: FeatureGuideSection[] = [
+  {
+    id: 'customers',
+    title: '원아·보호자',
+    description: '등록 원아와 보호자 연락처, 연령반을 관리합니다.',
+    items: [
+      {
+        id: 'students',
+        title: '원아 관리',
+        summary: '원아 등록, 재원/휴원/퇴원, 담당 교사·반·연령반을 관리합니다.',
+        howTo: '원아 등록 시 보호자 연락처와 등하원 PIN을 함께 설정할 수 있습니다.',
+      },
+      {
+        id: 'parents',
+        title: '보호자 관리',
+        summary: '보호자 연락처와 연결된 원아를 관리합니다.',
+      },
+    ],
+  },
+  {
+    id: 'classes',
+    title: '반·등하원',
+    description: '반 편성, 시간표, PIN 등하원, 상담을 다룹니다.',
+    items: [
+      {
+        id: 'classes',
+        title: '반 관리',
+        summary: '연령별 반(요일·시간·정원·교사)을 만듭니다.',
+      },
+      {
+        id: 'timetable',
+        title: '주간 시간표',
+        summary: '요일별 일과·수업 일정을 한 화면에서 확인합니다.',
+      },
+      {
+        id: 'attendance',
+        title: '등·하원 관리',
+        summary: 'PIN으로 등원·하원을 기록하고 당일 현황을 봅니다.',
+      },
+      {
+        id: 'consultations',
+        title: '상담 이력',
+        summary: '보호자 상담 내용을 남겨 둡니다.',
+      },
+    ],
+  },
+  {
+    id: 'billing',
+    title: '수납',
+    description: '보육료 청구·미납을 관리합니다.',
+    items: [
+      {
+        id: 'tuition',
+        title: '보육료 및 수납',
+        summary: '월 보육료 청구서를 만들고 입금을 기록합니다.',
+      },
+      {
+        id: 'unpaid',
+        title: '미납 통합 관리',
+        summary: '미납 원아를 모아 보고 연락·수납을 이어갑니다.',
+      },
+    ],
+  },
+  {
+    id: 'staff',
+    title: '보육 인력',
+    description: '교사와 원 일정을 관리합니다.',
+    items: [
+      {
+        id: 'teachers',
+        title: '교사 관리',
+        summary: '교사 정보와 담당 반을 관리합니다.',
+      },
+      {
+        id: 'calendar',
+        title: '원 캘린더',
+        summary: '행사·휴원·체험학습 일정을 기록합니다.',
+      },
+    ],
+  },
+  COMMON_FINANCE,
+  COMMON_SETTINGS,
+];
+
 const GUIDE_BY_INDUSTRY: Record<IndustryType, FeatureGuideSection[]> = {
   piano: PIANO_GUIDE,
   pilates: PILATES_GUIDE,
   gym: GYM_GUIDE,
+  daycare: DAYCARE_GUIDE,
 };
 
 const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> = {
@@ -347,6 +432,10 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   gym: {
     title: '체육관 기능 안내',
     body: '회원·수업반·출결·수강료를 중심으로 체육관을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+  },
+  daycare: {
+    title: '어린이집 기능 안내',
+    body: '원아·연령반·등하원·보육료를 중심으로 어린이집을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
 };
 
