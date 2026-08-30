@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import { StorageService } from '@/services/storage';
 import { ToastContainer, ConfirmDialog } from '@/shared/components';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
@@ -117,7 +118,8 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
 
 /** StorageHydrator 이후 customer_id로 Student 조회 */
 export function useStudentFromEnrollment(customerId: string): Student | null {
+  const refreshKey = useStorageRefresh();
   return useMemo(() => {
     return StorageService.getStudents().find((s) => s.id === customerId) ?? null;
-  }, [customerId]);
+  }, [customerId, refreshKey]);
 }

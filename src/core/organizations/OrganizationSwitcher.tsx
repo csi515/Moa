@@ -3,7 +3,6 @@ import { Building2, ChevronDown, LogOut, CheckCircle2 } from 'lucide-react';
 import { useOptionalAuth } from '../../core/auth/AuthProvider';
 import { useOptionalOrganization } from '../../core/organizations/OrganizationProvider';
 import { getRoleLabel } from '../../core/organizations/services/organizationService';
-import { clearStoredOrganizationId } from '../../core/organizations/services/organizationService';
 
 export const OrganizationSwitcher: React.FC = () => {
   const auth = useOptionalAuth();
@@ -20,7 +19,7 @@ export const OrganizationSwitcher: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    clearStoredOrganizationId();
+    clearOrganization();
     setOpen(false);
     await auth.signOut();
   };

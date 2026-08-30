@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { Session, User } from '@supabase/supabase-js';
+import { StorageService } from '../../services/storage';
 import * as authService from './services/authService';
 
 interface AuthContextType {
@@ -42,6 +43,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
+    StorageService.clearOrganization();
     await authService.signOut();
     setSession(null);
   };

@@ -80,6 +80,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const refreshOrganizations = useCallback(async () => {
     if (!user) {
+      StorageService.clearOrganization();
       setOrganizations([]);
       setCurrentOrganization(null);
       setCurrentRole(null);
@@ -153,9 +154,12 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const selectOrganization = useCallback(
     (organizationId: string) => {
+      if (currentOrganization?.id !== organizationId) {
+        StorageService.clearOrganization();
+      }
       applySelection(organizations, organizationId);
     },
-    [organizations, applySelection]
+    [organizations, applySelection, currentOrganization?.id]
   );
 
   const clearOrganization = useCallback(() => {

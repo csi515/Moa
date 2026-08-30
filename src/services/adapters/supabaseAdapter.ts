@@ -23,11 +23,18 @@ export class SupabaseAdapter implements IStorageAdapter {
   private cache = new Map<string, unknown>();
   private hydrated = false;
   private hydrating = false;
+  private hydrateGeneration = 0;
   private persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   getItem<T>(key: StorageKey, defaultValue: T): T {
-    if (SUPABASE_SYNC_KEYS.has(key) && this.cache.has(key)) {
-      return this.cache.get(key) as T;
+    if (SUPABASE_SYNC_KEYS.has(key)) {
+      if (this.cache.has(key)) {
+        return this.cache.get(key) as T;
+      }
+      // hydrate 완료 전 org 스코프 sync 키는 localStorage fallback 금지 (org 전환 시 이전 데이터 노출 방지)
+      if (getOrganizationId() && !this.hydrated) {
+        return defaultValue;
+      }
     }
     return readLocal(key, defaultValue);
   }
@@ -58,26 +65,45 @@ export class SupabaseAdapter implements IStorageAdapter {
   }
 
   async hydrate(organizationId: string, industryType?: string | null): Promise<void> {
-    if (this.hydrating) return;
+    const generation = ++this.hydrateGeneration;
 
     setOrganizationId(organizationId);
     setIndustryType(industryType ?? null);
-    this.hydrating = true;
+    this.cache.clear();
+    this.persistTimers.forEach((timer) => clearTimeout(timer));
+    this.persistTimers.clear();
     this.hydrated = false;
+    this.hydrating = true;
 
     const cacheAdapter = this.createCacheAdapter();
+    const isStale = () => generation !== this.hydrateGeneration;
 
     try {
       await hydrateCoreEntities(organizationId, cacheAdapter, industryType);
+      if (isStale()) return;
+
       await hydratePianoEntities(organizationId, cacheAdapter);
+      if (isStale()) return;
+
       await hydrateEducationEntities(organizationId, cacheAdapter);
+      if (isStale()) return;
+
       if (normalizeIndustryType(industryType) === 'daycare') {
         await hydrateDaycareEntities(organizationId, cacheAdapter);
+        if (isStale()) return;
       }
+
       this.hydrated = true;
       this.notify();
+    } catch (error) {
+      if (!isStale()) {
+        this.hydrated = false;
+      }
+      throw error;
     } finally {
-      this.hydrating = false;
+      if (!isStale()) {
+        this.hydrating = false;
+      }
     }
   }
 
