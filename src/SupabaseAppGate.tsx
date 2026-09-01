@@ -2,9 +2,14 @@ import React, { useEffect } from 'react';
 import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
 import { parseGuardianLinkFromUrl, storePendingGuardianLink } from './core/parent/services/guardianLinkService';
+import {
+  parseStaffLinkFromUrl,
+  storePendingStaffLink,
+} from './core/staff/services/staffInviteLinkService';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
+import { StaffLinkRedeemToastEffect } from './core/staff/components/StaffLinkRedeemToastEffect';
 import { ParentShell } from './modules/parent/ParentShell';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
@@ -17,6 +22,9 @@ export const SupabaseAppGate: React.FC = () => {
   useEffect(() => {
     const urlToken = parseGuardianLinkFromUrl();
     if (urlToken) storePendingGuardianLink(urlToken);
+
+    const staffLink = parseStaffLinkFromUrl();
+    if (staffLink) storePendingStaffLink(staffLink);
   }, []);
 
   if (authLoading || (session && orgLoading)) {
@@ -40,6 +48,7 @@ export const SupabaseAppGate: React.FC = () => {
       organizationId={currentOrganization.id}
       industryType={currentOrganization.industry_type}
     >
+      <StaffLinkRedeemToastEffect />
       <IndustryAppRouter />
     </StorageHydrator>
   );

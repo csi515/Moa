@@ -822,6 +822,18 @@ export interface Database {
         Args: { p_org_id: string; p_staff_id: string; p_status: string };
         Returns: Json;
       };
+      create_staff_invite_link_token: {
+        Args: { p_org_id: string; p_staff_id: string; p_expires_days?: number };
+        Returns: Json;
+      };
+      redeem_staff_invite_link_token: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      revoke_staff_invite_link_token: {
+        Args: { p_org_id: string; p_token_id: string };
+        Returns: boolean;
+      };
       connect_parent_on_login: {
         Args: Record<string, never>;
         Returns: Json;
