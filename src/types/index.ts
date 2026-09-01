@@ -503,4 +503,8 @@ export interface AcademySettings {
       enabled?: boolean;
     };
   };
+  /** 피아노 대시보드 표시 위젯 ID (미설정 시 전체 표시) */
+  dashboard?: {
+    widgets?: string[];
+  };
 }
