@@ -48,9 +48,11 @@ export const ParentPortalProvider: React.FC<{ children: ReactNode }> = ({ childr
   const selectStudent = useCallback((student: GlobalStudent) => {
     setSelectedStudent(student);
     setSelectedEnrollment(null);
-    setStep(student.enrollments.length === 1 ? 'portal' : 'academies');
     if (student.enrollments.length === 1) {
       setSelectedEnrollment(student.enrollments[0]);
+      setStep('portal');
+    } else {
+      setStep('academies');
     }
   }, []);
 
