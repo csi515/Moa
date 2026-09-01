@@ -264,25 +264,41 @@ function AchievementsPanel({
   onRefresh: () => void;
 }) {
   const [title, setTitle] = useState('');
-  const [type, setType] = useState<AchievementType>('exam');
+  const [type, setType] = useState<AchievementType>('competition');
   const [result, setResult] = useState('');
+  const [levelLabel, setLevelLabel] = useState('');
+  const [songTitle, setSongTitle] = useState('');
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
   const achievements = StorageService.getAchievements(studentId);
 
   const handleAdd = () => {
     if (!title.trim()) return;
-    StorageService.saveAchievement({ studentId, type, title: title.trim(), result, eventDate });
+    StorageService.saveAchievement({
+      studentId,
+      type,
+      title: title.trim(),
+      result: result.trim() || undefined,
+      levelLabel: levelLabel.trim() || undefined,
+      songTitle: songTitle.trim() || undefined,
+      eventDate,
+    });
     setTitle('');
     setResult('');
+    setLevelLabel('');
+    setSongTitle('');
     showToast('성취 기록이 추가되었습니다.', 'success');
     onRefresh();
   };
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
-        <h3 className="font-bold text-sm">성취 기록 추가</h3>
-        <select value={type} onChange={(e) => setType(e.target.value as AchievementType)} className="w-full px-3 py-2 text-sm border rounded-xl">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 space-y-3">
+        <h3 className="font-bold text-sm sm:text-base">성취 기록 추가</h3>
+        <select
+          value={type}
+          onChange={(e) => setType(e.target.value as AchievementType)}
+          className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+        >
           <option value="exam">시험/급수</option>
           <option value="competition">콩쿠르</option>
           <option value="certificate">자격증</option>
@@ -290,18 +306,83 @@ function AchievementsPanel({
           <option value="recital">연주회</option>
           <option value="other">기타</option>
         </select>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목 (예: ABRSM Grade 3 Piano)" className="w-full px-3 py-2 text-sm border rounded-xl" />
-        <input value={result} onChange={(e) => setResult(e.target.value)} placeholder="결과 (예: Distinction, 2등)" className="w-full px-3 py-2 text-sm border rounded-xl" />
-        <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-3 py-2 text-sm border rounded-xl" />
-        <button onClick={handleAdd} className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">추가</button>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="제목 (예: 전국 소년소녀 피아노 콩쿠르)"
+          className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            value={result}
+            onChange={(e) => setResult(e.target.value)}
+            placeholder="결과 (예: 금상)"
+            className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+          />
+          <input
+            type="date"
+            value={eventDate}
+            onChange={(e) => setEventDate(e.target.value)}
+            className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+          />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <input
+            value={levelLabel}
+            onChange={(e) => setLevelLabel(e.target.value)}
+            placeholder="부문/연령 (선택)"
+            className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+          />
+          <input
+            value={songTitle}
+            onChange={(e) => setSongTitle(e.target.value)}
+            placeholder="연주곡 (선택)"
+            className="w-full px-3 py-3 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAdd}
+          className="w-full sm:w-auto px-5 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
+        >
+          추가
+        </button>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 p-4">
-        {achievements.map((a) => (
-          <div key={a.id} className="py-2 border-b border-slate-50 text-sm">
-            <p className="font-bold">{a.title}</p>
-            <p className="text-xs text-slate-500">{a.eventDate} · {a.result}</p>
+
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5">
+        <h3 className="font-bold text-sm sm:text-base mb-3">기록 목록</h3>
+        {achievements.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-8">기록이 없습니다.</p>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] lg:max-h-none overflow-y-auto">
+            {achievements.map((a) => (
+              <div
+                key={a.id}
+                className="py-3 px-3 rounded-xl bg-slate-50 border border-slate-100 text-sm flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+              >
+                <div className="min-w-0">
+                  <p className="font-bold break-words">{a.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 break-words">
+                    {a.eventDate} · {a.result || a.type}
+                    {a.levelLabel ? ` · ${a.levelLabel}` : ''}
+                    {a.songTitle ? ` · ${a.songTitle}` : ''}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    StorageService.deleteAchievement(a.id);
+                    showToast('기록이 삭제되었습니다.', 'success');
+                    onRefresh();
+                  }}
+                  className="shrink-0 px-4 py-2.5 text-sm font-bold text-rose-600 bg-white border border-rose-200 rounded-xl min-h-[44px] w-full sm:w-auto"
+                >
+                  삭제
+                </button>
+              </div>
+            ))}
           </div>
-        ))}
+        )}
       </div>
     </div>
   );

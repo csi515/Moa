@@ -255,6 +255,7 @@ export function weeklyAssignmentToRow(assignment: WeeklyAssignment, orgId: strin
 }
 
 export function rowToAchievement(row: AchievementRow): Achievement {
+  const metadata = (row.metadata ?? {}) as Record<string, unknown>;
   return {
     id: row.id,
     studentId: row.customer_id,
@@ -267,10 +268,16 @@ export function rowToAchievement(row: AchievementRow): Achievement {
     certificateUrl: row.certificate_url || undefined,
     staffId: row.staff_id || undefined,
     memo: row.memo || undefined,
+    eventId: typeof metadata.eventId === 'string' ? metadata.eventId : undefined,
+    eventTitle: typeof metadata.eventTitle === 'string' ? metadata.eventTitle : undefined,
   };
 }
 
 export function achievementToRow(ach: Achievement, orgId: string) {
+  const metadata: Record<string, string> = {};
+  if (ach.eventId) metadata.eventId = ach.eventId;
+  if (ach.eventTitle) metadata.eventTitle = ach.eventTitle;
+
   return {
     id: ach.id,
     organization_id: orgId,
@@ -284,7 +291,7 @@ export function achievementToRow(ach: Achievement, orgId: string) {
     certificate_url: ach.certificateUrl || null,
     staff_id: ach.staffId || null,
     memo: ach.memo || null,
-    metadata: {} as Json,
+    metadata: metadata as Json,
   };
 }
 
