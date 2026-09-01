@@ -56,8 +56,8 @@ export const NOTICE_COPY = {
     `${contactSingular} 포털에 안내장·가정통신문을 게시합니다 (앱 내 알림)`,
   emptyTitle: '등록된 안내가 없습니다',
   emptyDescription: '휴강·행사·준비물 등 안내장이나 가정통신문을 작성해 보세요.',
-  parentSectionTitle: '가정통신문 · 안내장',
-  parentEmpty: '게시된 안내가 없습니다.',
+  parentSectionTitle: '알림 · 가정통신문',
+  parentEmpty: '게시된 알림이 없습니다.',
   navLabel: '안내장',
   daycareNavLabel: '가정통신문',
 } as const;

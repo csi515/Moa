@@ -105,7 +105,11 @@ export function GymParentHome({
         )}
       </Section>
 
-      <ParentNoticePreview student={student} onNavigate={onNavigate} />
+      <ParentNoticePreview
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }

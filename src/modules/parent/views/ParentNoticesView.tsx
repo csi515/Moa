@@ -1,31 +1,50 @@
-import { useMemo } from 'react';
-import { StorageService } from '@/services/storage';
-import { useStorageRefresh } from '@/hooks';
+import { useParentPortalNotifications } from '@/core/parent/hooks/useParentPortalNotifications';
+import {
+  NOTICE_COPY,
+  PARENT_PORTAL_NOTIFICATION_LABEL,
+  type ParentPortalNotificationKind,
+} from '@/core/notices';
+import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
-import { NOTICE_COPY, PARENT_NOTICE_KIND_LABEL, getNoticesForStudent, type ParentNoticeKind } from '@/core/notices';
 import { Section } from './shared';
 
-export function ParentNoticesView({ student }: { student: Student }) {
-  const refreshKey = useStorageRefresh();
-  const notices = useMemo(
-    () => getNoticesForStudent(StorageService.getNotifications(), student),
-    [student, refreshKey]
-  );
+export function ParentNoticesView({
+  student,
+  organizationId,
+}: {
+  student: Student;
+  organizationId: string;
+}) {
+  const { notifications, loading, error } = useParentPortalNotifications(organizationId, student);
 
   return (
     <Section title={NOTICE_COPY.parentSectionTitle}>
-      {notices.length === 0 ? (
+      {error && (
+        <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 mb-3">
+          {error}
+        </p>
+      )}
+      {loading && notifications.length === 0 ? (
+        <p className="text-sm text-slate-400 text-center py-6">알림을 불러오는 중...</p>
+      ) : notifications.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-6">{NOTICE_COPY.parentEmpty}</p>
       ) : (
         <div className="space-y-3">
-          {notices.map((n) => (
+          {notifications.map((n) => (
             <article
               key={n.id}
               className="p-4 rounded-2xl border border-slate-100 bg-slate-50/80"
             >
               <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-indigo-50 text-indigo-700">
-                  {PARENT_NOTICE_KIND_LABEL[n.type as ParentNoticeKind] || '안내'}
+                <span
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${
+                    n.type === 'attendance'
+                      ? 'bg-emerald-50 text-emerald-700'
+                      : 'bg-indigo-50 text-indigo-700'
+                  }`}
+                >
+                  {PARENT_PORTAL_NOTIFICATION_LABEL[n.type as ParentPortalNotificationKind] ||
+                    '안내'}
                 </span>
                 <span className="text-[11px] text-slate-400">
                   {(n.sentAt || n.createdAt || '').slice(0, 10)}

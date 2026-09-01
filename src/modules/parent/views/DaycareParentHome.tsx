@@ -6,7 +6,7 @@ import {
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
 import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
-import { getNoticesForStudent, NOTICE_COPY } from '@/core/notices';
+import { ParentNoticePreview } from './parentHomeShared';
 import { CARE_JOURNAL_MOOD_LABEL, MEDICATION_STATUS_LABEL } from '@/modules/daycare/care';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
@@ -40,11 +40,6 @@ export function DaycareParentHome({
         (r) => r.studentId === student.id && r.status === 'requested'
       ),
     [student.id]
-  );
-
-  const recentNotices = React.useMemo(
-    () => getNoticesForStudent(StorageService.getNotifications(), student).slice(0, 3),
-    [student]
   );
 
   const sessionStatus = getSessionStatusLabel(todaySession);
@@ -137,28 +132,11 @@ export function DaycareParentHome({
         )}
       </Section>
 
-      <Section title={NOTICE_COPY.parentSectionTitle}>
-        {recentNotices.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-4">{NOTICE_COPY.parentEmpty}</p>
-        ) : (
-          <ul className="space-y-2">
-            {recentNotices.map((n) => (
-              <li key={n.id}>
-                <button
-                  type="button"
-                  onClick={() => onNavigate('notices')}
-                  className="w-full text-left"
-                >
-                  <p className="text-sm font-bold text-slate-800 truncate">{n.title}</p>
-                  <p className="text-[11px] text-slate-400">
-                    {(n.sentAt || n.createdAt || '').slice(0, 10)}
-                  </p>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </Section>
+      <ParentNoticePreview
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
