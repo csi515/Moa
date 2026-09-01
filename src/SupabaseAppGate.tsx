@@ -9,15 +9,15 @@ import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
 
 export const SupabaseAppGate: React.FC = () => {
-  const { session, loading: authLoading } = useAuth();
+  const { session, loading: authLoading, passwordRecoveryPending } = useAuth();
   const { currentOrganization, loading: orgLoading, isParentOnly, parentPortalActive } =
     useOrganization();
 
-  if (authLoading || (session && orgLoading)) {
+  if (authLoading || (session && orgLoading && !passwordRecoveryPending)) {
     return <LoadingScreen />;
   }
 
-  if (!session) {
+  if (!session || passwordRecoveryPending) {
     return <AuthPage />;
   }
 
