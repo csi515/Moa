@@ -3,6 +3,8 @@ import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
+import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
+import type { StudentRegistrationInviteResult } from '@/core/students/services/studentRegistrationService';
 import {
   registerStudentWithParent,
   updateStudentWithParent,
@@ -83,6 +85,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [revealedPin, setRevealedPin] = useState<string | null>(null);
+  const [inviteModal, setInviteModal] = useState<StudentRegistrationInviteResult | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -340,7 +343,15 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       showToast(message, 'success');
       result.inviteErrors.forEach((err) => showToast(err, 'warning'));
       onSaved(result.student);
-      if (!result.generatedPin) onClose();
+
+      const invitedWithCodes = result.inviteResults.find(
+        (item) => item.result.linkCodes.length > 0
+      );
+      if (invitedWithCodes) {
+        setInviteModal(invitedWithCodes);
+      } else if (!result.generatedPin) {
+        onClose();
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.', 'error');
     } finally {
@@ -465,6 +476,23 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {inviteModal && (
+        <ParentInviteResultModal
+          parentName={inviteModal.parentName}
+          email={inviteModal.email}
+          organizationName={
+            inviteModal.result.organizationName || org?.currentOrganization?.name || '학원'
+          }
+          linkCodes={inviteModal.result.linkCodes}
+          emailSent={inviteModal.emailSent}
+          emailMessage={inviteModal.emailMessage}
+          onClose={() => {
+            setInviteModal(null);
+            if (!revealedPin) onClose();
+          }}
+        />
+      )}
     </div>
   );
 };

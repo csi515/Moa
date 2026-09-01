@@ -7,6 +7,8 @@ export * from './services/parentInviteService';
 export * from './services/parentAttendanceService';
 export * from './services/guardianLinkService';
 export * from './services/appModeService';
+export * from './services/parentChildService';
 export * from './services/parentNotificationService';
+export * from './hooks/useParentAttendanceSessions';
 export * from './hooks/useParentPortalNotifications';
 export * from './context/ParentPortalContext';

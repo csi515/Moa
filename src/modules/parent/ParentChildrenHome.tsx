@@ -36,6 +36,7 @@ const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ c
   const inactiveCount = child.enrollments.filter((e) =>
     INACTIVE_ENROLLMENT_STATUSES.includes(e.status)
   ).length;
+  const unlinked = academyCount === 0;
 
   return (
     <button
@@ -51,9 +52,11 @@ const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ c
         </p>
         <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
           <Building2 className="w-3 h-3" />
-          {academyCount > 0
-            ? `학원 ${activeCount}/${academyCount}${inactiveCount > 0 ? ` · 기록 ${inactiveCount}` : ''}`
-            : '등록 학원 없음'}
+          {unlinked
+            ? '학원 미연결 · 코드로 연결 가능'
+            : academyCount > 0
+              ? `학원 ${activeCount}/${academyCount}${inactiveCount > 0 ? ` · 기록 ${inactiveCount}` : ''}`
+              : '등록 학원 없음'}
         </p>
       </div>
       <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
