@@ -22,7 +22,7 @@ export const INDUSTRY_OPTIONS: IndustryOption[] = [
   {
     value: 'gym',
     label: '체육관',
-    description: '회원·수업반·출결·수강료 중심 운영',
+    description: '회원·수업반·픽업/하원·출결·수강료 중심 운영',
   },
   {
     value: 'daycare',
