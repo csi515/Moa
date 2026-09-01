@@ -5,7 +5,7 @@ import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import {
-  inviteParentMember,
+  inviteParentWithSync,
   syncAllParentStudentLinks,
 } from '@/core/parent/services/parentAccountService';
 import { getIndustryType } from '@/services/adapters/storageContext';
@@ -74,7 +74,7 @@ export async function registerStudentWithParent(
       organizationId !== 'local-org'
     ) {
       try {
-        await inviteParentMember(organizationId, parent.id, guardian.email.trim());
+        await inviteParentWithSync(organizationId, parent.id, guardian.email.trim());
         invitesSent++;
       } catch (e) {
         inviteErrors.push(

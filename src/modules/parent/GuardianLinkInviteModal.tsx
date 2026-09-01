@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Copy, Link2, Loader2, X, Check } from 'lucide-react';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { createGuardianLinkToken } from '@/core/parent/services/guardianLinkService';
+import { buildParentInviteUrl } from '@/core/parent/services/parentInviteService';
 
 interface GuardianLinkInviteModalProps {
   studentId: string;
@@ -42,7 +43,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
 
   const handleCopy = async () => {
     if (!token) return;
-    const link = `${window.location.origin}${window.location.pathname}?link=${token}`;
+    const link = buildParentInviteUrl(token);
     await navigator.clipboard.writeText(link);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);

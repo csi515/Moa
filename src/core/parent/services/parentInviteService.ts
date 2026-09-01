@@ -25,11 +25,15 @@ export function parseInviteLinkCodesFromResult(data: unknown): ParentInviteLinkC
   return parseLinkCodes(root.link_codes ?? root.linkCodes);
 }
 
-export function buildParentInviteUrl(token: string): string {
-  const base =
+export function getAppBaseUrl(): string {
+  return (
     (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') ||
-    (typeof window !== 'undefined' ? window.location.origin : '');
-  return `${base}/?link=${encodeURIComponent(token)}`;
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  );
+}
+
+export function buildParentInviteUrl(token: string): string {
+  return `${getAppBaseUrl()}/?link=${encodeURIComponent(token)}`;
 }
 
 export async function sendParentInvitationEmail(params: {
@@ -49,9 +53,7 @@ export async function sendParentInvitationEmail(params: {
         customer_id: c.customerId,
         expires_at: c.expiresAt,
       })),
-      appUrl:
-        (import.meta.env.VITE_APP_URL as string | undefined) ||
-        (typeof window !== 'undefined' ? window.location.origin : undefined),
+      appUrl: getAppBaseUrl() || undefined,
     },
   });
 

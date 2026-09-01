@@ -3,16 +3,16 @@ import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import {
   fetchParentAccountStatuses,
-  inviteParentMember,
+  inviteParentWithSync,
   revokeParentInvitation,
-  syncAllParentStudentLinks,
   type ParentAccountStatus,
   type ParentAccountStatusItem,
   type InviteParentResult,
 } from '@/core/parent/services/parentAccountService';
 import { sendParentInvitationEmail } from '@/core/parent/services/parentInviteService';
 import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
-import { formatGuardianRelationship } from '@/core/parent';
+import { formatGuardianRelationship, searchParents } from '@/core/parent';
+import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
@@ -26,20 +26,6 @@ import {
   Loader2,
   X,
 } from 'lucide-react';
-
-function getAccountStatusLabel(status: ParentAccountStatus): string {
-  const labels = { none: '미연결', invited: '초대됨', connected: '연결됨' };
-  return labels[status];
-}
-
-function getAccountStatusClass(status: ParentAccountStatus): string {
-  const classes = {
-    none: 'bg-slate-100 text-slate-600',
-    invited: 'bg-amber-50 text-amber-700',
-    connected: 'bg-emerald-50 text-emerald-700',
-  };
-  return classes[status];
-}
 
 export const ParentManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab, showToast, refreshKey } = useApp();
@@ -87,19 +73,7 @@ export const ParentManagementView: React.FC = () => {
     [accountStatuses]
   );
 
-  const filteredParents = parents.filter((p) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    const childNames = p.studentIds
-      .map((id) => students.find((s) => s.id === id)?.name || '')
-      .join(' ');
-    return (
-      p.name.toLowerCase().includes(q) ||
-      p.phone.includes(q) ||
-      (p.email || '').toLowerCase().includes(q) ||
-      childNames.toLowerCase().includes(q)
-    );
-  });
+  const filteredParents = searchParents(searchQuery);
 
   const resolveStatus = (parent: Parent): ParentAccountStatus => {
     return statusMap.get(parent.id)?.status || 'none';
@@ -110,8 +84,7 @@ export const ParentManagementView: React.FC = () => {
     setInviting(true);
     try {
       const parentName = inviteTarget.name;
-      await syncAllParentStudentLinks(currentOrganization.id);
-      const result = await inviteParentMember(
+      const result = await inviteParentWithSync(
         currentOrganization.id,
         inviteTarget.id,
         inviteEmail.trim()

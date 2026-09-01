@@ -2,9 +2,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState, Rea
 import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
-import { connectStaffOnLogin } from '../staff/services/staffAccountService';
-import { syncAuthProvidersOnLogin } from '../auth/services/authProviderService';
-import { connectParentOnLogin } from '../parent/services/parentAccountService';
+import { runLoginAccountSync } from '../accounts/loginBootstrapService';
 import { ensureGlobalParentProfile, fetchParentPortalTree } from '../parent/services/parentPortalService';
 import {
   isParentPortalModeActive,
@@ -97,9 +95,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     setLoading(true);
     try {
-      await connectStaffOnLogin();
-      await syncAuthProvidersOnLogin();
-      await connectParentOnLogin();
+      await runLoginAccountSync();
 
       let portalChildren = 0;
       let parentId: string | null = null;
