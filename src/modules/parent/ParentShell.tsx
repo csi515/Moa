@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, LogOut, Link2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, LogOut, Link2, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -17,6 +17,7 @@ import { ParentAcademyPicker } from './ParentAcademyPicker';
 import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPortal';
 import { ParentAddChildModal } from './ParentAddChildModal';
 import { ParentLinkConsentModal } from './ParentLinkConsentModal';
+import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 
 export const ParentShell: React.FC = () => {
   return (
@@ -37,6 +38,7 @@ function ParentShellContent() {
   const [showAddChild, setShowAddChild] = useState(false);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [showConsent, setShowConsent] = useState(false);
+  const [showQrScanner, setShowQrScanner] = useState(false);
 
   const runRedeem = async (token: string) => {
     setRedeeming(true);
@@ -141,13 +143,24 @@ function ParentShellContent() {
                 학원 연결 코드
               </div>
               {!showLinkForm ? (
-                <button
-                  type="button"
-                  onClick={() => setShowLinkForm(true)}
-                  className="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
-                >
-                  코드 입력하기
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkForm(true)}
+                    className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
+                  >
+                    코드 입력하기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrScanner(true)}
+                    className="px-4 py-2.5 bg-white border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-1"
+                    aria-label="QR 스캔"
+                  >
+                    <Camera className="w-4 h-4" />
+                    QR
+                  </button>
+                </div>
               ) : (
                 <div className="flex gap-2">
                   <input
@@ -206,6 +219,12 @@ function ParentShellContent() {
           setPendingToken(null);
           setShowConsent(false);
         }}
+      />
+
+      <GuardianLinkQrScanner
+        isOpen={showQrScanner}
+        onClose={() => setShowQrScanner(false)}
+        onScan={(token) => requestRedeem(token)}
       />
     </div>
   );

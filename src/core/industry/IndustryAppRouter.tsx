@@ -9,7 +9,7 @@ import { PianoAppContent } from '@/modules/piano/PianoAppContent';
 import { PilatesAppContent } from '@/modules/pilates/PilatesAppContent';
 import { GymAppContent } from '@/modules/gym/GymAppContent';
 import { DaycareAppContent } from '@/modules/daycare/DaycareAppContent';
-import { ParentAppContent } from '@/modules/parent/ParentAppContent';
+import { ParentShell } from '@/modules/parent/ParentShell';
 
 /** 업종 플러그인 → 앱 셸 등록표 */
 const APP_BY_INDUSTRY: Record<
@@ -27,7 +27,7 @@ export const IndustryAppRouter: React.FC = () => {
   const { currentOrganization, currentRole } = useOrganization();
 
   if (currentRole === 'parent') {
-    return <ParentAppContent />;
+    return <ParentShell />;
   }
 
   const industry = normalizeIndustryType(currentOrganization?.industry_type);

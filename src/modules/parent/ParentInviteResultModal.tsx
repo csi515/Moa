@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Check, Copy, Link2, Mail, X } from 'lucide-react';
 import type { ParentInviteLinkCode } from '@/core/parent/services/parentInviteService';
 import { buildParentInviteUrl } from '@/core/parent/services/parentInviteService';
+import { GuardianLinkQrDisplay } from '@/modules/parent/components/GuardianLinkQrDisplay';
 
 interface ParentInviteResultModalProps {
   parentName: string;
@@ -70,8 +71,9 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
         </div>
 
         {primary && (
-          <div className="mb-4">
-            <p className="text-xs font-bold text-slate-500 mb-2">빠른 연결 링크</p>
+          <div className="mb-4 space-y-3">
+            <p className="text-xs font-bold text-slate-500">빠른 연결 링크</p>
+            <GuardianLinkQrDisplay url={buildParentInviteUrl(primary.token)} />
             <button
               type="button"
               onClick={() => void handleCopy('link', buildParentInviteUrl(primary.token))}
