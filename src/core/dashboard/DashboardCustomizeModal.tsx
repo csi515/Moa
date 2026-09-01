@@ -1,48 +1,51 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { LayoutDashboard, RotateCcw, Sparkles } from 'lucide-react';
 import { Modal } from '@/shared/components/ui/Modal';
 import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
 import type { AcademySettings } from '@/types';
+import type { IndustryType } from '@/core/industry/types';
 import {
-  ALL_PIANO_DASHBOARD_WIDGET_IDS,
-  PIANO_DASHBOARD_WIDGET_GROUP_LABELS,
-  RECOMMENDED_PIANO_DASHBOARD_WIDGETS,
-  type PianoDashboardWidgetGroup,
-  type PianoDashboardWidgetId,
+  DASHBOARD_HEADER_HINT,
+  DASHBOARD_WIDGET_GROUP_LABELS,
+  getAllWidgetIds,
+  GROUP_ORDER,
+  RECOMMENDED_DASHBOARD_WIDGETS,
+  saveDashboardWidgets,
   widgetsByGroup,
-} from './dashboardWidgets';
+} from './widgetCatalog';
 
 interface DashboardCustomizeModalProps {
   isOpen: boolean;
   onClose: () => void;
   settings: AcademySettings;
+  industry: IndustryType;
 }
-
-const GROUP_ORDER: PianoDashboardWidgetGroup[] = ['metrics', 'charts', 'panels'];
 
 export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = ({
   isOpen,
   onClose,
   settings,
+  industry,
 }) => {
   const { triggerRefresh } = useApp();
+  const allIds = getAllWidgetIds(industry);
+  const recommended = RECOMMENDED_DASHBOARD_WIDGETS[industry];
+
   const initial = useMemo(() => {
-    const configured = settings.dashboard?.widgets;
-    return new Set(
-      configured === undefined ? ALL_PIANO_DASHBOARD_WIDGET_IDS : configured
-    );
-  }, [settings.dashboard?.widgets, isOpen]);
+    const stored = settings.dashboard?.widgetsByIndustry?.[industry];
+    const legacyPiano = industry === 'piano' ? settings.dashboard?.widgets : undefined;
+    const configured = stored ?? legacyPiano;
+    return new Set(configured === undefined ? allIds : configured);
+  }, [settings.dashboard, industry, allIds, isOpen]);
 
-  const [selected, setSelected] = useState<Set<PianoDashboardWidgetId>>(initial);
+  const [selected, setSelected] = useState<Set<string>>(initial);
 
-  React.useEffect(() => {
-    if (isOpen) {
-      setSelected(initial);
-    }
+  useEffect(() => {
+    if (isOpen) setSelected(initial);
   }, [isOpen, initial]);
 
-  const toggle = (id: PianoDashboardWidgetId) => {
+  const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
@@ -51,36 +54,32 @@ export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = (
     });
   };
 
-  const applyPreset = (ids: PianoDashboardWidgetId[]) => {
-    setSelected(new Set(ids));
-  };
-
   const handleSave = () => {
-    StorageService.updateSettings({
-      dashboard: { widgets: Array.from(selected) },
-    });
+    StorageService.updateSettings(saveDashboardWidgets(industry, Array.from(selected), settings));
     triggerRefresh();
     onClose();
   };
+
+  const visibleGroups = GROUP_ORDER.filter((g) => widgetsByGroup(industry, g).length > 0);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="대시보드 편집" maxWidth="2xl">
       <div className="flex flex-col gap-5 p-4 sm:p-6 overflow-y-auto">
         <p className="text-sm text-slate-600 leading-relaxed">
-          대시보드에 표시할 항목을 선택하세요. 상단 환영 배너는 항상 표시됩니다.
+          대시보드에 표시할 항목을 선택하세요. {DASHBOARD_HEADER_HINT[industry]}
         </p>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => applyPreset([...ALL_PIANO_DASHBOARD_WIDGET_IDS])}
+            onClick={() => setSelected(new Set(allIds))}
             className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 min-h-[44px]"
           >
             전체 선택
           </button>
           <button
             type="button"
-            onClick={() => applyPreset([...RECOMMENDED_PIANO_DASHBOARD_WIDGETS])}
+            onClick={() => setSelected(new Set(recommended))}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-indigo-200 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 min-h-[44px]"
           >
             <Sparkles className="w-3.5 h-3.5" />
@@ -88,7 +87,7 @@ export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = (
           </button>
           <button
             type="button"
-            onClick={() => applyPreset([])}
+            onClick={() => setSelected(new Set())}
             className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 min-h-[44px]"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -96,44 +95,41 @@ export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = (
           </button>
         </div>
 
-        {GROUP_ORDER.map((group) => {
-          const items = widgetsByGroup(group);
+        {visibleGroups.map((group) => {
+          const items = widgetsByGroup(industry, group);
           const groupSelected = items.filter((w) => selected.has(w.id)).length;
           return (
             <section key={group} className="space-y-2">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  {PIANO_DASHBOARD_WIDGET_GROUP_LABELS[group]}
+                  {DASHBOARD_WIDGET_GROUP_LABELS[group]}
                 </h3>
                 <span className="text-[11px] text-slate-400">
                   {groupSelected}/{items.length}개 선택
                 </span>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {items.map((widget) => {
-                  const checked = selected.has(widget.id);
-                  return (
-                    <label
-                      key={widget.id}
-                      className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer min-h-[44px] transition-colors ${
-                        checked
-                          ? 'border-indigo-300 bg-indigo-50/60'
-                          : 'border-slate-200 hover:border-slate-300'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggle(widget.id)}
-                        className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                      <span className="min-w-0">
-                        <span className="block text-sm font-bold text-slate-800">{widget.label}</span>
-                        <span className="block text-[11px] text-slate-500 mt-0.5">{widget.description}</span>
-                      </span>
-                    </label>
-                  );
-                })}
+                {items.map((widget) => (
+                  <label
+                    key={widget.id}
+                    className={`flex items-start gap-3 p-3 rounded-xl border cursor-pointer min-h-[44px] transition-colors ${
+                      selected.has(widget.id)
+                        ? 'border-indigo-300 bg-indigo-50/60'
+                        : 'border-slate-200 hover:border-slate-300'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected.has(widget.id)}
+                      onChange={() => toggle(widget.id)}
+                      className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-bold text-slate-800">{widget.label}</span>
+                      <span className="block text-[11px] text-slate-500 mt-0.5">{widget.description}</span>
+                    </span>
+                  </label>
+                ))}
               </div>
             </section>
           );
@@ -141,7 +137,7 @@ export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = (
 
         {selected.size === 0 && (
           <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-            선택된 항목이 없으면 환영 배너만 표시됩니다.
+            선택된 항목이 없으면 상단 영역만 표시됩니다.
           </p>
         )}
 
