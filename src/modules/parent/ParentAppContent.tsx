@@ -40,6 +40,7 @@ export const ParentAppContent: React.FC = () => {
   return (
     <ParentAcademyPortal
       student={selectedStudent}
+      organizationId={currentOrganization?.id || ''}
       organizationName={currentOrganization?.name || '학원'}
       industryType={currentOrganization?.industry_type}
     />

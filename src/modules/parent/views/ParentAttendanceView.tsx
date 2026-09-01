@@ -1,11 +1,14 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { StorageService } from '@/services/storage';
 import { getAttendanceBadge } from '@/utils/formatters';
 import {
   formatSessionTime,
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
+import { fetchParentAttendanceSessions } from '@/core/parent/services/parentAttendanceService';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import type { AttendanceSession } from '@/core/attendance/types';
 import type { MakeupStatus, Student } from '@/types';
 import { Section } from './shared';
 
@@ -17,16 +20,39 @@ const MAKEUP_STATUS_LABEL: Record<MakeupStatus, string> = {
 
 export function ParentAttendanceView({
   student,
+  organizationId,
   industryType = 'piano',
 }: {
   student: Student;
+  organizationId: string;
   industryType?: IndustryType | string;
 }) {
   const industry = normalizeIndustryType(industryType);
-  const sessions = StorageService.getAttendanceSessions()
+  const [remoteSessions, setRemoteSessions] = useState<AttendanceSession[] | null>(null);
+
+  useEffect(() => {
+    if (!isSupabaseConfigured() || !organizationId) return;
+
+    let cancelled = false;
+    void fetchParentAttendanceSessions(organizationId, student.id)
+      .then((rows) => {
+        if (!cancelled) setRemoteSessions(rows);
+      })
+      .catch(() => {
+        if (!cancelled) setRemoteSessions(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [organizationId, student.id]);
+
+  const localSessions = StorageService.getAttendanceSessions()
     .filter((s) => s.customerId === student.id)
     .sort((a, b) => b.sessionDate.localeCompare(a.sessionDate))
     .slice(0, 30);
+
+  const sessions = remoteSessions ?? localSessions;
 
   const legacyRecords = StorageService.getAttendance()
     .filter((a) => a.studentId === student.id)

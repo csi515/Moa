@@ -1,5 +1,7 @@
 import type { GuardianRelationship, ParentStudentLink } from '@/core/parent/types';
 import { getCoreClient } from '@/lib/supabase';
+import { getStorageAdapter } from '@/services/adapters';
+import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import { StorageService } from '@/services/storage';
 import { linkToRow } from '@/services/adapters/sync/parentLinkEntityMappers';
 
@@ -98,6 +100,13 @@ export async function fetchParentAccountStatuses(
 /** 조직 전체 parent_student_links 동기화 (storage → Supabase) */
 export async function syncAllParentStudentLinks(organizationId: string): Promise<void> {
   const client = getCoreClient();
+  const adapter = getStorageAdapter();
+
+  // customers가 먼저 DB에 반영되어야 enrollment/guardian 트리거가 동작함
+  if (adapter.flushPersist) {
+    await adapter.flushPersist([STORAGE_KEYS.STUDENTS, STORAGE_KEYS.PARENTS]);
+  }
+
   const links = StorageService.getParentStudentLinks();
 
   const { error: deleteError } = await client
@@ -106,11 +115,19 @@ export async function syncAllParentStudentLinks(organizationId: string): Promise
     .eq('organization_id', organizationId);
   if (deleteError) throw deleteError;
 
-  if (links.length === 0) return;
+  if (links.length > 0) {
+    const rows = links.map((l) => linkToRow(l, organizationId));
+    const { error } = await client.from('parent_student_links').insert(rows);
+    if (error) throw error;
+  }
 
-  const rows = links.map((l) => linkToRow(l, organizationId));
-  const { error } = await client.from('parent_student_links').insert(rows);
-  if (error) throw error;
+  // 링크 삽입 순서/타이밍 이슈 대비 org 단위 브리지 동기화
+  const { error: bridgeError } = await client.rpc('sync_org_parent_student_bridge', {
+    p_org_id: organizationId,
+  });
+  if (bridgeError) {
+    console.warn('sync_org_parent_student_bridge failed:', bridgeError.message);
+  }
 }
 
 /** 특정 학부모의 links만 동기화 (legacy 호환) */
