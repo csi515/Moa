@@ -4,6 +4,7 @@ import {
   formatSessionTime,
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
+import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
 import { Section, StatCard } from './shared';
@@ -12,16 +13,16 @@ import { ParentHeroCard, ParentNoticePreview } from './parentHomeShared';
 /** 체육관 학부모 홈 */
 export function GymParentHome({
   student,
+  organizationId,
   onNavigate,
 }: {
   student: Student;
+  organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const summary = StorageService.getStudentBillingSummary(student.id);
-  const todaySession = StorageService.getAttendanceSessions().find(
-    (s) => s.customerId === student.id && s.sessionDate === today
-  );
+  const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
   const classes = StorageService.getClasses().filter((c) =>
     (student.classIds || []).includes(c.id)
   );
