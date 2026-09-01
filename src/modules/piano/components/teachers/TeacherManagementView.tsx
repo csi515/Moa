@@ -6,9 +6,12 @@ import {
   fetchStaffAccountStatuses,
   inviteStaffMember,
   revokeStaffInvitation,
+  updateStaffEmploymentStatus,
   type StaffAccountStatus,
   type StaffAccountStatusItem,
+  type StaffEmploymentStatus,
 } from '@/core/staff/services/staffAccountService';
+import { isSupabaseConfigured } from '@/lib/supabase';
 import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
@@ -47,6 +50,19 @@ export const TeacherManagementView: React.FC = () => {
   const [accountStatuses, setAccountStatuses] = useState<StaffAccountStatusItem[]>([]);
   const [statusLoading, setStatusLoading] = useState(false);
   const [invitingStaffId, setInvitingStaffId] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
+  const [saving, setSaving] = useState(false);
+
+  const visibleTeachers = useMemo(() => {
+    if (statusFilter === 'all') return teachers;
+    return teachers.filter((t) => t.status === 'active');
+  }, [teachers, statusFilter]);
+
+  const employmentStatusLabel: Record<StaffEmploymentStatus, string> = {
+    active: '재직',
+    inactive: '휴직',
+    resigned: '퇴사',
+  };
 
   const statusMap = useMemo(
     () => new Map(accountStatuses.map((s) => [s.staffId, s])),
@@ -83,7 +99,7 @@ export const TeacherManagementView: React.FC = () => {
     email: '',
     hireDate: new Date().toISOString().slice(0, 10),
     specialty: '클래식 피아노, 기초 테크닉',
-    status: 'active' as 'active' | 'inactive',
+    status: 'active' as StaffEmploymentStatus,
     color: '#4f46e5'
   });
 
@@ -128,27 +144,51 @@ export const TeacherManagementView: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
 
-    StorageService.saveTeacher({
-      ...(editingTeacher ? { id: editingTeacher.id } : {}),
-      name: formData.name.trim(),
-      phone: formData.phone.trim(),
-      email: formData.email.trim(),
-      hireDate: formData.hireDate,
-      specialty: formData.specialty.trim(),
-      status: formData.status,
-      color: formData.color
-    } as any);
+    const previousStatus = editingTeacher?.status;
+    const nextStatus = formData.status;
 
-    showToast(
-      editingTeacher ? '강사 정보가 수정되었습니다.' : '신규 강사가 등록되었습니다.',
-      'success'
-    );
-    setIsModalOpen(false);
-    loadAccountStatuses();
+    setSaving(true);
+    try {
+      StorageService.saveTeacher({
+        ...(editingTeacher ? { id: editingTeacher.id } : {}),
+        name: formData.name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email.trim(),
+        hireDate: formData.hireDate,
+        specialty: formData.specialty.trim(),
+        status: formData.status,
+        color: formData.color,
+      } as any);
+
+      if (
+        editingTeacher &&
+        currentOrganization?.id &&
+        isSupabaseConfigured() &&
+        previousStatus !== nextStatus
+      ) {
+        await updateStaffEmploymentStatus(
+          currentOrganization.id,
+          editingTeacher.id,
+          nextStatus
+        );
+      }
+
+      showToast(
+        editingTeacher ? '강사 정보가 수정되었습니다.' : '신규 강사가 등록되었습니다.',
+        'success'
+      );
+      setIsModalOpen(false);
+      await loadAccountStatuses();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '저장에 실패했습니다.';
+      showToast(message, 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleInvite = async (teacher: Teacher) => {
@@ -208,19 +248,37 @@ export const TeacherManagementView: React.FC = () => {
         title={labels.staff.management}
         description="학원 전임 및 파트타임 강사 명단, 담당 클래스 배정"
         actions={
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            신규 강사 등록
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex rounded-xl border border-slate-200 bg-white p-0.5">
+              {(['active', 'all'] as const).map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setStatusFilter(key)}
+                  className={`px-3 py-2 min-h-[44px] text-xs font-bold rounded-lg transition-colors ${
+                    statusFilter === key
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  {key === 'active' ? '재직 중' : '전체'}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              신규 강사 등록
+            </button>
+          </div>
         }
       />
 
       {/* Teachers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {teachers.map((t) => {
+        {visibleTeachers.map((t) => {
           const teacherClasses = classes.filter((c) => c.teacherId === t.id);
           const teacherStudents = students.filter((s) => s.status === 'active' && s.teacherId === t.id);
           const accountStatus = resolveStatus(t);
@@ -246,8 +304,14 @@ export const TeacherManagementView: React.FC = () => {
                         {t.status === 'active' ? (
                           <span className="w-2 h-2 rounded-full bg-emerald-500" />
                         ) : (
-                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded">
-                            휴직
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded ${
+                              t.status === 'resigned'
+                                ? 'text-rose-600 bg-rose-50'
+                                : 'text-slate-500 bg-slate-100'
+                            }`}
+                          >
+                            {employmentStatusLabel[t.status]}
                           </span>
                         )}
                         {canManageAccounts && (
@@ -306,7 +370,7 @@ export const TeacherManagementView: React.FC = () => {
                   </div>
                 </div>
 
-                {canManageAccounts && (
+                {canManageAccounts && t.status === 'active' && (
                   <div className="pt-1">
                     {accountStatus === 'connected' ? (
                       <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
@@ -428,6 +492,26 @@ export const TeacherManagementView: React.FC = () => {
               </div>
 
               <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">재직 상태</label>
+                <select
+                  value={formData.status}
+                  onChange={(e) =>
+                    setFormData({ ...formData, status: e.target.value as StaffEmploymentStatus })
+                  }
+                  className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+                >
+                  <option value="active">재직</option>
+                  <option value="inactive">휴직</option>
+                  <option value="resigned">퇴사</option>
+                </select>
+                {formData.status !== 'active' && (
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    휴직·퇴사 시 로그인 접근이 제한되며, 담당 기록은 유지됩니다.
+                  </p>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">대표 색상</label>
                 <div className="flex gap-2">
                   {['#4f46e5', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#06b6d4'].map((c) => (
@@ -454,9 +538,10 @@ export const TeacherManagementView: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md"
+                  disabled={saving}
+                  className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md disabled:opacity-60"
                 >
-                  저장
+                  {saving ? '저장 중...' : '저장'}
                 </button>
               </div>
             </form>
