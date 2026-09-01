@@ -449,18 +449,20 @@ export const TeacherManagementView: React.FC = () => {
                             이메일 초대
                           </button>
                         )}
-                        <button
-                          onClick={() => handleCreateInviteLink(t)}
-                          disabled={isLinking}
-                          className="w-full px-3 py-2 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-60 min-h-[44px]"
-                        >
-                          {isLinking ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <Share2 className="w-3.5 h-3.5" />
-                          )}
-                          초대 링크 · SNS 공유
-                        </button>
+                        {accountStatus !== 'connected' && (
+                          <button
+                            onClick={() => handleCreateInviteLink(t)}
+                            disabled={isLinking}
+                            className="w-full px-3 py-2 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-60 min-h-[44px]"
+                          >
+                            {isLinking ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <Share2 className="w-3.5 h-3.5" />
+                            )}
+                            초대 링크 · SNS 공유
+                          </button>
+                        )}
                       </>
                     )}
                   </div>
