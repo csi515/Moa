@@ -76,6 +76,8 @@ export interface Achievement {
   certificateUrl?: string;
   staffId?: string;
   memo?: string;
+  eventId?: string;
+  eventTitle?: string;
 }
 
 export type LearningReportStatus = 'draft' | 'published' | 'archived';

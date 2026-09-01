@@ -48,8 +48,13 @@ export function ParentProgressView({ student }: { student: Student }) {
                 <Award className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="font-bold text-sm">{a.title}</p>
-                  <p className="text-xs text-slate-500">
-                    {a.eventDate} · {a.result || a.type}
+                  <p className="text-xs text-amber-700 font-semibold">
+                    {a.result || (a.type === 'competition' ? '수상' : a.type)}
+                    {a.levelLabel ? ` · ${a.levelLabel}` : ''}
+                  </p>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {a.eventDate || '일정 미정'}
+                    {a.songTitle ? ` · ${a.songTitle}` : ''}
                   </p>
                 </div>
               </div>

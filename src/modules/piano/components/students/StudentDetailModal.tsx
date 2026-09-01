@@ -24,6 +24,7 @@ import { StudentDetailTextbooksTab } from './detail/StudentDetailTextbooksTab';
 import { StudentDetailConsultationsTab } from './detail/StudentDetailConsultationsTab';
 import { StudentDetailPracticeTab } from './detail/StudentDetailPracticeTab';
 import { StudentDetailVideosTab } from './detail/StudentDetailVideosTab';
+import { StudentDetailAchievementsTab } from './detail/StudentDetailAchievementsTab';
 import { StudentDetailMemoTab } from './detail/StudentDetailMemoTab';
 
 export type { DetailTab } from './detail/types';
@@ -108,6 +109,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
   const recitalEvents = RecitalService.getRecitalEvents();
+  const competitionEvents = recitalEvents.filter((ev) => ev.type === 'competition');
+  const competitionCount = StorageService.getAchievements(student.id).filter(
+    (a) => a.type === 'competition'
+  ).length;
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(student.id);
   const guardians = getGuardiansForStudent(student.id);
@@ -291,6 +296,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
     consultationCount: allConsultations.length,
     practiceCount: allPractice.length,
     videoCount: allVideos.length,
+    competitionCount,
   });
 
   return (
@@ -538,6 +544,15 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               onSaveVideo={handleSaveVideo}
               onVideoEventChange={handleVideoEventChange}
               onDeleteVideo={handleDeleteVideo}
+            />
+          )}
+
+          {currentTab === 'achievements' && (
+            <StudentDetailAchievementsTab
+              studentId={student.id}
+              competitionEvents={competitionEvents}
+              showToast={showToast}
+              openConfirmDialog={openConfirmDialog}
             />
           )}
 

@@ -8,6 +8,7 @@ import {
   Piano,
   Video,
   FileText,
+  Award,
 } from 'lucide-react';
 
 export type DetailTab =
@@ -19,6 +20,7 @@ export type DetailTab =
   | 'consultations'
   | 'practice'
   | 'videos'
+  | 'achievements'
   | 'memo';
 
 export interface DetailTabCounts {
@@ -29,6 +31,7 @@ export interface DetailTabCounts {
   consultationCount: number;
   practiceCount: number;
   videoCount: number;
+  competitionCount: number;
 }
 
 export interface DetailTabConfigItem {
@@ -76,6 +79,11 @@ export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem
       id: 'videos',
       label: `연주영상 (${counts.videoCount})`,
       icon: React.createElement(Video, { className: iconClass }),
+    },
+    {
+      id: 'achievements',
+      label: `콩쿨 수상 (${counts.competitionCount})`,
+      icon: React.createElement(Award, { className: iconClass }),
     },
     { id: 'memo', label: '메모/특이사항', icon: React.createElement(FileText, { className: iconClass }) },
   ];

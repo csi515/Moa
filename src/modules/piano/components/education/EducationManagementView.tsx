@@ -264,16 +264,28 @@ function AchievementsPanel({
   onRefresh: () => void;
 }) {
   const [title, setTitle] = useState('');
-  const [type, setType] = useState<AchievementType>('exam');
+  const [type, setType] = useState<AchievementType>('competition');
   const [result, setResult] = useState('');
+  const [levelLabel, setLevelLabel] = useState('');
+  const [songTitle, setSongTitle] = useState('');
   const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
   const achievements = StorageService.getAchievements(studentId);
 
   const handleAdd = () => {
     if (!title.trim()) return;
-    StorageService.saveAchievement({ studentId, type, title: title.trim(), result, eventDate });
+    StorageService.saveAchievement({
+      studentId,
+      type,
+      title: title.trim(),
+      result: result.trim() || undefined,
+      levelLabel: levelLabel.trim() || undefined,
+      songTitle: songTitle.trim() || undefined,
+      eventDate,
+    });
     setTitle('');
     setResult('');
+    setLevelLabel('');
+    setSongTitle('');
     showToast('성취 기록이 추가되었습니다.', 'success');
     onRefresh();
   };
@@ -290,18 +302,40 @@ function AchievementsPanel({
           <option value="recital">연주회</option>
           <option value="other">기타</option>
         </select>
-        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목 (예: ABRSM Grade 3 Piano)" className="w-full px-3 py-2 text-sm border rounded-xl" />
-        <input value={result} onChange={(e) => setResult(e.target.value)} placeholder="결과 (예: Distinction, 2등)" className="w-full px-3 py-2 text-sm border rounded-xl" />
+        <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="제목 (예: 전국 소년소녀 피아노 콩쿠르)" className="w-full px-3 py-2 text-sm border rounded-xl" />
+        <input value={result} onChange={(e) => setResult(e.target.value)} placeholder="결과 (예: 금상, Distinction)" className="w-full px-3 py-2 text-sm border rounded-xl" />
+        <input value={levelLabel} onChange={(e) => setLevelLabel(e.target.value)} placeholder="부문/연령 (선택)" className="w-full px-3 py-2 text-sm border rounded-xl" />
+        <input value={songTitle} onChange={(e) => setSongTitle(e.target.value)} placeholder="연주곡 (선택)" className="w-full px-3 py-2 text-sm border rounded-xl" />
         <input type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} className="w-full px-3 py-2 text-sm border rounded-xl" />
         <button onClick={handleAdd} className="px-4 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">추가</button>
       </div>
-      <div className="bg-white rounded-2xl border border-slate-200 p-4">
-        {achievements.map((a) => (
-          <div key={a.id} className="py-2 border-b border-slate-50 text-sm">
-            <p className="font-bold">{a.title}</p>
-            <p className="text-xs text-slate-500">{a.eventDate} · {a.result}</p>
-          </div>
-        ))}
+      <div className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
+        {achievements.length === 0 ? (
+          <p className="text-sm text-slate-400 text-center py-4">기록이 없습니다.</p>
+        ) : (
+          achievements.map((a) => (
+            <div key={a.id} className="py-2 border-b border-slate-50 text-sm flex justify-between gap-2">
+              <div>
+                <p className="font-bold">{a.title}</p>
+                <p className="text-xs text-slate-500">
+                  {a.eventDate} · {a.result || a.type}
+                  {a.songTitle ? ` · ${a.songTitle}` : ''}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  StorageService.deleteAchievement(a.id);
+                  showToast('기록이 삭제되었습니다.', 'success');
+                  onRefresh();
+                }}
+                className="text-xs text-rose-600 font-bold shrink-0"
+              >
+                삭제
+              </button>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
