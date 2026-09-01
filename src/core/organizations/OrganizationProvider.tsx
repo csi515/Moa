@@ -3,6 +3,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { connectStaffOnLogin } from '../staff/services/staffAccountService';
+import { syncAuthProvidersOnLogin } from '../auth/services/authProviderService';
 import { connectParentOnLogin } from '../parent/services/parentAccountService';
 import { ensureGlobalParentProfile, fetchParentPortalTree } from '../parent/services/parentPortalService';
 import {
@@ -97,6 +98,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setLoading(true);
     try {
       await connectStaffOnLogin();
+      await syncAuthProvidersOnLogin();
       await connectParentOnLogin();
 
       let portalChildren = 0;

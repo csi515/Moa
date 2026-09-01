@@ -822,6 +822,20 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      sync_auth_providers_on_login: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      register_auth_provider: {
+        Args: {
+          p_provider: string;
+          p_provider_user_id: string;
+          p_email?: string | null;
+          p_phone?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
       invite_parent_member: {
         Args: { p_org_id: string; p_parent_customer_id: string; p_email: string };
         Returns: Json;
