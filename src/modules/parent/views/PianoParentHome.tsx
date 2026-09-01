@@ -1,5 +1,10 @@
 import { StorageService } from '@/services/storage';
-import { formatCurrency, getAttendanceBadge } from '@/utils/formatters';
+import { formatCurrency } from '@/utils/formatters';
+import {
+  formatSessionTime,
+  getSessionStatusLabel,
+} from '@/core/attendance/services/attendanceService';
+import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
 import { Section, StatCard } from './shared';
@@ -8,9 +13,11 @@ import { ParentHeroCard, ParentNoticePreview } from './parentHomeShared';
 /** 피아노학원 학부모 홈 */
 export function PianoParentHome({
   student,
+  organizationId,
   onNavigate,
 }: {
   student: Student;
+  organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
   const summary = StorageService.getStudentBillingSummary(student.id);
@@ -22,9 +29,7 @@ export function PianoParentHome({
   const pendingMakeup = StorageService.getMakeupItems().filter(
     (m) => m.studentId === student.id && m.status !== 'completed'
   ).length;
-  const recentAtt = StorageService.getAttendance()
-    .filter((a) => a.studentId === student.id)
-    .slice(0, 5);
+  const { sessions: recentSessions } = useParentAttendanceSessions(organizationId, student.id, 5);
 
   return (
     <div className="space-y-4">
@@ -98,20 +103,27 @@ export function PianoParentHome({
         </Section>
       )}
 
-      {recentAtt.length > 0 && (
+      {recentSessions.length > 0 && (
         <Section title="최근 출결">
           <button type="button" onClick={() => onNavigate('attendance')} className="w-full text-left">
-            {recentAtt.map((a) => (
-              <div key={a.id} className="flex justify-between text-sm py-1">
-                <span>{a.date}</span>
-                <span>{getAttendanceBadge(a.status).label}</span>
-              </div>
-            ))}
+            {recentSessions.map((s) => {
+              const status = getSessionStatusLabel(s);
+              return (
+                <div key={s.id} className="flex justify-between text-sm py-1">
+                  <span className="font-mono">{s.sessionDate}</span>
+                  <span>{status.label}</span>
+                </div>
+              );
+            })}
           </button>
         </Section>
       )}
 
-      <ParentNoticePreview student={student} onNavigate={onNavigate} />
+      <ParentNoticePreview
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }

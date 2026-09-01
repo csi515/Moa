@@ -1,4 +1,5 @@
-import type { GuardianRelationship, ParentStudentLink } from '@/core/parent/types';
+import type { ParentInviteLinkCode } from '@/core/parent/services/parentInviteService';
+import { parseInviteLinkCodesFromResult } from '@/core/parent/services/parentInviteService';
 import { getCoreClient } from '@/lib/supabase';
 import { getStorageAdapter } from '@/services/adapters';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
@@ -20,6 +21,8 @@ export interface InviteParentResult {
   userId?: string;
   invitationId?: string;
   email?: string;
+  organizationName?: string;
+  linkCodes: ParentInviteLinkCode[];
 }
 
 export interface ConnectParentResult {
@@ -58,6 +61,7 @@ export async function inviteParentMember(
     user_id?: string;
     invitation_id?: string;
     email?: string;
+    organization_name?: string;
   };
 
   return {
@@ -66,7 +70,19 @@ export async function inviteParentMember(
     userId: result.user_id,
     invitationId: result.invitation_id,
     email: result.email,
+    organizationName: result.organization_name,
+    linkCodes: parseInviteLinkCodesFromResult(data),
   };
+}
+
+/** links 동기화 후 학부모 초대 (관리자 UI·등록 플로우 공통) */
+export async function inviteParentWithSync(
+  organizationId: string,
+  parentCustomerId: string,
+  email: string
+): Promise<InviteParentResult> {
+  await syncAllParentStudentLinks(organizationId);
+  return inviteParentMember(organizationId, parentCustomerId, email);
 }
 
 export async function revokeParentInvitation(
@@ -88,12 +104,18 @@ export async function fetchParentAccountStatuses(
   });
   if (error) throw error;
 
-  const rows = (data as unknown as ParentAccountStatusItem[] | null) ?? [];
-  return rows.map((r) => ({
-    parentCustomerId: (r as any).parent_customer_id ?? r.parentCustomerId,
-    status: r.status,
-    email: r.email,
-    invitedAt: (r as any).invited_at ?? r.invitedAt,
+  const rows = (data ?? []) as Array<{
+    parent_customer_id: string;
+    status: ParentAccountStatus;
+    email: string | null;
+    invited_at: string | null;
+  }>;
+
+  return rows.map((row) => ({
+    parentCustomerId: row.parent_customer_id,
+    status: row.status,
+    email: row.email,
+    invitedAt: row.invited_at,
   }));
 }
 
@@ -130,42 +152,27 @@ export async function syncAllParentStudentLinks(organizationId: string): Promise
   }
 }
 
-/** 특정 학부모의 links만 동기화 (legacy 호환) */
-export async function syncParentStudentLinks(
+/** 포털→관리자 역방향: guardians + enrollments → parent_student_links */
+export async function syncParentStudentLinksReverse(
   organizationId: string,
-  parentCustomerId: string,
-  studentIds?: string[]
-): Promise<void> {
-  if (studentIds) {
-    const links = StorageService.getParentStudentLinks();
-    const existing = links.filter((l) => l.parentId === parentCustomerId);
-    for (const sid of studentIds) {
-      if (!existing.some((l) => l.studentId === sid)) {
-        StorageService.linkParentToStudent({
-          parentId: parentCustomerId,
-          studentId: sid,
-          relationship: 'other',
-          isPrimary: existing.length === 0,
-        });
-      }
-    }
+  parentId?: string
+): Promise<number> {
+  const client = getCoreClient();
+
+  if (parentId) {
+    const { data, error } = await client.rpc('sync_parent_student_links_for_parent_org', {
+      p_parent_id: parentId,
+      p_org_id: organizationId,
+    });
+    if (error) throw error;
+    return data ?? 0;
   }
-  await syncAllParentStudentLinks(organizationId);
-}
 
-/** 전체 links 재구성 */
-export async function rebuildAllParentStudentLinks(organizationId: string): Promise<void> {
-  StorageService.rebuildParentStudentIdsFromLinks();
-  await syncAllParentStudentLinks(organizationId);
-}
+  const { data, error } = await client.rpc('sync_org_parent_student_links_reverse', {
+    p_org_id: organizationId,
+  });
+  if (error) throw error;
 
-/** links에서 관계 포함 row 생성 (내부용) */
-export function getLinkRowsForParent(
-  organizationId: string,
-  parentId: string,
-  links: ParentStudentLink[]
-): ReturnType<typeof linkToRow>[] {
-  return links.filter((l) => l.parentId === parentId).map((l) => linkToRow(l, organizationId));
+  const result = data as { links_synced?: number } | null;
+  return result?.links_synced ?? 0;
 }
-
-export type { GuardianRelationship, ParentStudentLink };

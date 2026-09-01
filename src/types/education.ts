@@ -97,15 +97,6 @@ export interface LearningReport {
   publishedAt?: string;
 }
 
-export type ParentAccountStatus = 'none' | 'invited' | 'connected';
-
-export interface ParentAccountStatusItem {
-  parentCustomerId: string;
-  status: ParentAccountStatus;
-  email: string | null;
-  invitedAt: string | null;
-}
-
 export type ParentPortalTab =
   | 'home'
   | 'attendance'

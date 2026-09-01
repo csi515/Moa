@@ -5,9 +5,11 @@ import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import {
-  inviteParentMember,
+  inviteParentWithSync,
   syncAllParentStudentLinks,
+  type InviteParentResult,
 } from '@/core/parent/services/parentAccountService';
+import { sendParentInvitationEmail } from '@/core/parent/services/parentInviteService';
 import { getIndustryType } from '@/services/adapters/storageContext';
 
 /** 등록 시 보호자 1명 입력 */
@@ -29,6 +31,15 @@ export interface StudentRegistrationOptions {
   organizationId?: string;
 }
 
+export interface StudentRegistrationInviteResult {
+  parentId: string;
+  parentName: string;
+  email: string;
+  result: InviteParentResult;
+  emailSent: boolean;
+  emailMessage?: string;
+}
+
 export interface StudentRegistrationResult {
   student: Student;
   parents: Parent[];
@@ -36,6 +47,7 @@ export interface StudentRegistrationResult {
   generatedPin?: string;
   invitesSent: number;
   inviteErrors: string[];
+  inviteResults: StudentRegistrationInviteResult[];
 }
 
 /** 학생 + 보호자 links + PIN + 초대 */
@@ -53,6 +65,7 @@ export async function registerStudentWithParent(
 
   const parents: Parent[] = [];
   const inviteErrors: string[] = [];
+  const inviteResults: StudentRegistrationInviteResult[] = [];
   let invitesSent = 0;
 
   for (const guardian of options.guardians) {
@@ -74,7 +87,35 @@ export async function registerStudentWithParent(
       organizationId !== 'local-org'
     ) {
       try {
-        await inviteParentMember(organizationId, parent.id, guardian.email.trim());
+        const inviteResult = await inviteParentWithSync(
+          organizationId,
+          parent.id,
+          guardian.email.trim()
+        );
+        let emailSent = false;
+        let emailMessage: string | undefined;
+
+        if (inviteResult.status === 'invited' && inviteResult.linkCodes.length > 0) {
+          const orgName =
+            inviteResult.organizationName || StorageService.getSettings().name || '학원';
+          const emailResult = await sendParentInvitationEmail({
+            organizationName: orgName,
+            parentName: parent.name,
+            email: guardian.email.trim(),
+            linkCodes: inviteResult.linkCodes,
+          });
+          emailSent = emailResult.emailSent;
+          emailMessage = emailResult.message;
+        }
+
+        inviteResults.push({
+          parentId: parent.id,
+          parentName: parent.name,
+          email: guardian.email.trim(),
+          result: inviteResult,
+          emailSent,
+          emailMessage,
+        });
         invitesSent++;
       } catch (e) {
         inviteErrors.push(
@@ -127,6 +168,7 @@ export async function registerStudentWithParent(
     generatedPin,
     invitesSent,
     inviteErrors,
+    inviteResults,
   };
 }
 

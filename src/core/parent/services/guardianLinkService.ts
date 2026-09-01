@@ -24,6 +24,8 @@ export interface RedeemLinkResult {
   studentName: string;
   organizationName: string;
   organizationId: string;
+  studentId?: string;
+  mergedDuplicates?: number;
 }
 
 export async function createGuardianLinkToken(
@@ -82,9 +84,19 @@ export async function revokeGuardianLinkToken(
   if (error) throw error;
 }
 
-export async function redeemGuardianLinkToken(token: string): Promise<RedeemLinkResult> {
+import type { Json } from '@/lib/supabase/database.types';
+import {
+  DEFAULT_ACADEMY_SHARED_FIELDS,
+  type AcademySharedField,
+} from '@/core/parent/services/parentChildService';
+
+export async function redeemGuardianLinkToken(
+  token: string,
+  sharedFields: AcademySharedField[] = [...DEFAULT_ACADEMY_SHARED_FIELDS]
+): Promise<RedeemLinkResult> {
   const { data, error } = await getCoreClient().rpc('redeem_guardian_link_token', {
     p_token: token.trim(),
+    p_shared_fields: sharedFields as unknown as Json,
   });
   if (error) throw error;
 
@@ -94,6 +106,8 @@ export async function redeemGuardianLinkToken(token: string): Promise<RedeemLink
     studentName: String(raw.student_name ?? ''),
     organizationName: String(raw.organization_name ?? ''),
     organizationId: String(raw.organization_id ?? ''),
+    studentId: raw.student_id ? String(raw.student_id) : undefined,
+    mergedDuplicates: Number(raw.merged_duplicates ?? 0),
   };
 }
 

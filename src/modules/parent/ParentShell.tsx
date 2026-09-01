@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Loader2, LogOut, Link2 } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, LogOut, Link2, UserPlus } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -15,6 +15,9 @@ import { StorageHydrator } from '@/StorageHydrator';
 import { ParentChildrenHome } from './ParentChildrenHome';
 import { ParentAcademyPicker } from './ParentAcademyPicker';
 import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPortal';
+import { ParentAddChildModal } from './ParentAddChildModal';
+import { ParentLinkConsentModal } from './ParentLinkConsentModal';
+import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 
 export const ParentShell: React.FC = () => {
   return (
@@ -32,6 +35,38 @@ function ParentShellContent() {
   const [redeeming, setRedeeming] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [showLinkForm, setShowLinkForm] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [showConsent, setShowConsent] = useState(false);
+  const [showQrScanner, setShowQrScanner] = useState(false);
+
+  const runRedeem = async (token: string) => {
+    setRedeeming(true);
+    try {
+      const result = await redeemGuardianLinkToken(token);
+      const mergeNote =
+        result.mergedDuplicates && result.mergedDuplicates > 0
+          ? ' (기존 자녀 정보와 통합됨)'
+          : '';
+      showToast(`${result.organizationName} · ${result.studentName} 연결 완료${mergeNote}`, 'success');
+      setLinkInput('');
+      setShowLinkForm(false);
+      await refreshPortalTree();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
+    } finally {
+      setRedeeming(false);
+      setPendingToken(null);
+      setShowConsent(false);
+    }
+  };
+
+  const requestRedeem = (token: string) => {
+    const code = token.trim().toUpperCase();
+    if (!code) return;
+    setPendingToken(code);
+    setShowConsent(true);
+  };
 
   useEffect(() => {
     const urlToken = parseGuardianLinkFromUrl();
@@ -40,33 +75,11 @@ function ParentShellContent() {
     const pending = consumePendingGuardianLink();
     if (!pending) return;
 
-    setRedeeming(true);
-    void redeemGuardianLinkToken(pending)
-      .then((result) => {
-        showToast(`${result.organizationName} · ${result.studentName} 연결 완료`, 'success');
-        return refreshPortalTree();
-      })
-      .catch((err) => {
-        showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
-      })
-      .finally(() => setRedeeming(false));
-  }, [refreshPortalTree, showToast]);
+    requestRedeem(pending);
+  }, []);
 
-  const handleManualRedeem = async () => {
-    const code = linkInput.trim().toUpperCase();
-    if (!code) return;
-    setRedeeming(true);
-    try {
-      const result = await redeemGuardianLinkToken(code);
-      showToast(`${result.organizationName} · ${result.studentName} 연결 완료`, 'success');
-      setLinkInput('');
-      setShowLinkForm(false);
-      await refreshPortalTree();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
-    } finally {
-      setRedeeming(false);
-    }
+  const handleManualRedeem = () => {
+    requestRedeem(linkInput);
   };
 
   if ((loading && !portalTree) || redeeming) {
@@ -113,40 +126,67 @@ function ParentShellContent() {
           </div>
         )}
 
-        {step === 'children' && childCount === 0 && (
-          <div className="mb-4 bg-white rounded-2xl p-4 border border-indigo-100">
-            <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-2">
-              <Link2 className="w-4 h-4" />
-              학원 연결 코드
-            </div>
-            {!showLinkForm ? (
-              <button
-                type="button"
-                onClick={() => setShowLinkForm(true)}
-                className="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
-              >
-                코드 입력하기
-              </button>
-            ) : (
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={linkInput}
-                  onChange={(e) => setLinkInput(e.target.value.toUpperCase())}
-                  placeholder="8자리 코드"
-                  maxLength={8}
-                  className="flex-1 px-3 py-2 text-sm font-mono uppercase border border-slate-200 rounded-xl tracking-widest"
-                />
-                <button
-                  type="button"
-                  onClick={() => void handleManualRedeem()}
-                  disabled={redeeming || linkInput.length < 6}
-                  className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50"
-                >
-                  연결
-                </button>
+        {step === 'children' && (
+          <div className="mb-4 space-y-3">
+            <button
+              type="button"
+              onClick={() => setShowAddChild(true)}
+              className="w-full py-2.5 bg-white border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              <UserPlus className="w-4 h-4" />
+              내 자녀 등록
+            </button>
+
+            <div className="bg-white rounded-2xl p-4 border border-indigo-100">
+              <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-2">
+                <Link2 className="w-4 h-4" />
+                학원 연결 코드
               </div>
-            )}
+              {!showLinkForm ? (
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkForm(true)}
+                    className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
+                  >
+                    코드 입력하기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrScanner(true)}
+                    className="px-4 py-2.5 bg-white border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-1"
+                    aria-label="QR 스캔"
+                  >
+                    <Camera className="w-4 h-4" />
+                    QR
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value.toUpperCase())}
+                    placeholder="8자리 코드"
+                    maxLength={8}
+                    className="flex-1 px-3 py-2 text-sm font-mono uppercase border border-slate-200 rounded-xl tracking-widest"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleManualRedeem}
+                    disabled={redeeming || linkInput.length < 6}
+                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50"
+                  >
+                    연결
+                  </button>
+                </div>
+              )}
+              {childCount === 0 && (
+                <p className="mt-2 text-xs text-slate-500">
+                  자녀를 먼저 등록하거나, 학원에서 받은 코드로 바로 연결할 수 있습니다.
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -160,6 +200,32 @@ function ParentShellContent() {
           <Loader2 className="w-5 h-5 text-indigo-600 animate-spin" />
         </div>
       )}
+
+      <ParentAddChildModal
+        isOpen={showAddChild}
+        onClose={() => setShowAddChild(false)}
+        onSuccess={(message) => {
+          showToast(message, 'success');
+          void refreshPortalTree();
+        }}
+      />
+
+      <ParentLinkConsentModal
+        isOpen={showConsent}
+        onConfirm={() => {
+          if (pendingToken) void runRedeem(pendingToken);
+        }}
+        onCancel={() => {
+          setPendingToken(null);
+          setShowConsent(false);
+        }}
+      />
+
+      <GuardianLinkQrScanner
+        isOpen={showQrScanner}
+        onClose={() => setShowQrScanner(false)}
+        onScan={(token) => requestRedeem(token)}
+      />
     </div>
   );
 }
@@ -184,6 +250,7 @@ function ParentPortalHydrated() {
         organizationId={selectedEnrollment.organizationId}
         organizationName={selectedEnrollment.organizationName}
         enrollmentStatus={selectedEnrollment.status}
+        enrollmentLeftAt={selectedEnrollment.leftAt}
         industryType={selectedEnrollment.industryType}
         onBack={handleBack}
       />
@@ -196,6 +263,7 @@ function ParentPortalWithStudent({
   organizationId,
   organizationName,
   enrollmentStatus,
+  enrollmentLeftAt,
   industryType,
   onBack,
 }: {
@@ -203,6 +271,7 @@ function ParentPortalWithStudent({
   organizationId: string;
   organizationName: string;
   enrollmentStatus: import('@/core/parent/types/globalParent').EnrollmentStatus;
+  enrollmentLeftAt?: string | null;
   industryType: string;
   onBack: () => void;
 }) {
@@ -222,6 +291,7 @@ function ParentPortalWithStudent({
       organizationId={organizationId}
       organizationName={organizationName}
       enrollmentStatus={enrollmentStatus}
+      enrollmentLeftAt={enrollmentLeftAt}
       industryType={industryType}
       onBack={onBack}
     />

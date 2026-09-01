@@ -822,6 +822,20 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      sync_auth_providers_on_login: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      register_auth_provider: {
+        Args: {
+          p_provider: string;
+          p_provider_user_id: string;
+          p_email?: string | null;
+          p_phone?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
       invite_parent_member: {
         Args: { p_org_id: string; p_parent_customer_id: string; p_email: string };
         Returns: Json;
@@ -860,8 +874,21 @@ export interface Database {
         Returns: undefined;
       };
       redeem_guardian_link_token: {
-        Args: { p_token: string };
+        Args: { p_token: string; p_shared_fields?: Json };
         Returns: Json;
+      };
+      parent_register_child: {
+        Args: {
+          p_display_name: string;
+          p_birth_date?: string | null;
+          p_relationship?: string;
+          p_is_primary?: boolean;
+        };
+        Returns: Json;
+      };
+      ensure_org_parent_customer: {
+        Args: { p_parent_id: string; p_org_id: string };
+        Returns: string;
       };
       sync_org_parent_student_bridge: {
         Args: { p_org_id: string };
@@ -870,6 +897,22 @@ export interface Database {
       sync_guardians_for_parent_org: {
         Args: { p_parent_id: string; p_org_id: string };
         Returns: number;
+      };
+      sync_parent_student_links_for_parent_org: {
+        Args: { p_parent_id: string; p_org_id: string };
+        Returns: number;
+      };
+      sync_org_parent_student_links_reverse: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
+      create_parent_invite_link_tokens: {
+        Args: {
+          p_org_id: string;
+          p_parent_customer_id: string;
+          p_expires_days?: number;
+        };
+        Returns: Json;
       };
     };
     Enums: {

@@ -9,6 +9,7 @@ import {
   type StaffAccountStatus,
   type StaffAccountStatusItem,
 } from '@/core/staff/services/staffAccountService';
+import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { Teacher } from '@/types';
@@ -29,24 +30,6 @@ import {
 
 function isOrgAdmin(role: string | null): boolean {
   return role === 'owner' || role === 'admin' || role === 'manager';
-}
-
-function getAccountStatusLabel(status: StaffAccountStatus): string {
-  const labels: Record<StaffAccountStatus, string> = {
-    none: '미연결',
-    invited: '초대됨',
-    connected: '연결됨',
-  };
-  return labels[status];
-}
-
-function getAccountStatusClass(status: StaffAccountStatus): string {
-  const classes: Record<StaffAccountStatus, string> = {
-    none: 'bg-slate-100 text-slate-600',
-    invited: 'bg-amber-50 text-amber-700',
-    connected: 'bg-emerald-50 text-emerald-700',
-  };
-  return classes[status];
 }
 
 export const TeacherManagementView: React.FC = () => {

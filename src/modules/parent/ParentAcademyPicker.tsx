@@ -38,7 +38,8 @@ export const ParentAcademyPicker: React.FC = () => {
 
       {selectedStudent.enrollments.length === 0 && (
         <div className="bg-white rounded-2xl p-8 text-center text-slate-500 border border-slate-200">
-          등록된 학원이 없습니다.
+          <p className="font-bold text-slate-700">연결된 학원이 없습니다</p>
+          <p className="text-sm mt-2">학원에서 받은 연결 코드를 입력하면 학원과 연결됩니다.</p>
         </div>
       )}
     </div>
