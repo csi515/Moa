@@ -19,11 +19,13 @@ import { PilatesParentHome } from './PilatesParentHome';
 export function ParentHomeView({
   student,
   organizationId,
+  readOnly = false,
   onNavigate,
   industryType = 'piano',
 }: {
   student: Student;
   organizationId: string;
+  readOnly?: boolean;
   onNavigate: (t: ParentPortalTab) => void;
   industryType?: IndustryType | string;
 }) {
@@ -33,6 +35,7 @@ export function ParentHomeView({
       <DaycareParentHome
         student={student}
         organizationId={organizationId}
+        readOnly={readOnly}
         onNavigate={onNavigate}
       />
     );
@@ -61,13 +64,14 @@ export function ParentHomeView({
 function DaycareParentHome({
   student,
   organizationId,
+  readOnly = false,
   onNavigate,
 }: {
   student: Student;
   organizationId: string;
+  readOnly?: boolean;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
-  const today = new Date().toISOString().slice(0, 10);
   const summary = StorageService.getStudentBillingSummary(student.id);
   const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
 
@@ -151,13 +155,17 @@ function DaycareParentHome({
 
       <Section title="투약 대기">
         {pendingMeds.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => onNavigate('medications')}
-            className="w-full text-sm text-slate-500 py-2"
-          >
-            대기 중인 투약 의뢰가 없습니다 · 의뢰하기
-          </button>
+          readOnly ? (
+            <p className="text-sm text-slate-400 text-center py-4">투약 기록이 없습니다.</p>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onNavigate('medications')}
+              className="w-full text-sm text-slate-500 py-2"
+            >
+              대기 중인 투약 의뢰가 없습니다 · 의뢰하기
+            </button>
+          )
         ) : (
           <ul className="space-y-2">
             {pendingMeds.slice(0, 3).map((m) => (

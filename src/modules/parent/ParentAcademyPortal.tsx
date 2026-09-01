@@ -8,12 +8,14 @@ import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import {
   ENROLLMENT_STATUS_LABELS,
+  isReadOnlyEnrollment,
   type EnrollmentStatus,
 } from '@/core/parent/types/globalParent';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 import type { Student } from '@/types';
 import type { ParentPortalTab } from '@/types/education';
 import { ParentPortalTabs } from './ParentPortalTabs';
+import { ParentReadOnlyBanner } from './ParentReadOnlyBanner';
 import { getParentPortalNav, getParentPortalRoleLabel, getParentPortalSecondaryTabs } from './parentPortalNav';
 
 export interface ParentAcademyPortalProps {
@@ -21,6 +23,7 @@ export interface ParentAcademyPortalProps {
   organizationId: string;
   organizationName: string;
   enrollmentStatus?: EnrollmentStatus;
+  enrollmentLeftAt?: string | null;
   industryType?: IndustryType | string;
   onBack?: () => void;
 }
@@ -29,12 +32,14 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   student,
   organizationId,
   organizationName,
-  enrollmentStatus = 'active',
+  enrollmentStatus = 'active' as EnrollmentStatus,
+  enrollmentLeftAt,
   industryType: industryTypeProp,
   onBack,
 }) => {
   const { currentUser, showToast, triggerRefresh } = useApp();
   const industryType = normalizeIndustryType(industryTypeProp);
+  const readOnly = isReadOnlyEnrollment(enrollmentStatus);
   const portalNav = useMemo(() => getParentPortalNav(industryType), [industryType]);
   const allowedTabs = useMemo(
     () =>
@@ -54,6 +59,11 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   }, [allowedTabs, activeTab]);
 
   const statusLabel = ENROLLMENT_STATUS_LABELS[enrollmentStatus];
+  const statusBadgeClass = readOnly
+    ? 'bg-slate-100 text-slate-600'
+    : enrollmentStatus === 'leave'
+      ? 'bg-amber-50 text-amber-700'
+      : 'bg-indigo-50 text-indigo-700';
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] text-slate-800 flex flex-col">
@@ -74,7 +84,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
             <p className="text-xs text-slate-500 truncate">{organizationName}</p>
             <h1 className="text-base font-black text-slate-900 truncate">{student.name}</h1>
           </div>
-          <span className="text-[10px] font-bold px-2 py-1 rounded-lg bg-indigo-50 text-indigo-700 shrink-0">
+          <span className={`text-[10px] font-bold px-2 py-1 rounded-lg shrink-0 ${statusBadgeClass}`}>
             {statusLabel}
           </span>
         </div>
@@ -86,10 +96,13 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
           <p className="text-sm text-slate-600">안녕하세요, {currentUser.name}님</p>
         </div>
 
+        <ParentReadOnlyBanner status={enrollmentStatus} leftAt={enrollmentLeftAt} />
+
         <ParentPortalTabs
           tab={activeTab}
           student={student}
           organizationId={organizationId}
+          readOnly={readOnly}
           showToast={showToast}
           onRefresh={triggerRefresh}
           onNavigate={setActiveTab}
