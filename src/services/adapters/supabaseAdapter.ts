@@ -124,6 +124,17 @@ export class SupabaseAdapter implements IStorageAdapter {
     return this.hydrating;
   }
 
+  async flushPersist(keys: StorageKey[]): Promise<void> {
+    for (const key of keys) {
+      const existing = this.persistTimers.get(key);
+      if (existing) {
+        clearTimeout(existing);
+        this.persistTimers.delete(key);
+      }
+      await this.persistKey(key);
+    }
+  }
+
   private createCacheAdapter() {
     return {
       get: <T>(key: StorageKey) => this.cache.get(key) as T | undefined,

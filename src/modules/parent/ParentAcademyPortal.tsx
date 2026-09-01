@@ -18,6 +18,7 @@ import { getParentPortalNav, getParentPortalRoleLabel, getParentPortalSecondaryT
 
 export interface ParentAcademyPortalProps {
   student: Student;
+  organizationId: string;
   organizationName: string;
   enrollmentStatus?: EnrollmentStatus;
   industryType?: IndustryType | string;
@@ -26,6 +27,7 @@ export interface ParentAcademyPortalProps {
 
 export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   student,
+  organizationId,
   organizationName,
   enrollmentStatus = 'active',
   industryType: industryTypeProp,
@@ -87,6 +89,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
         <ParentPortalTabs
           tab={activeTab}
           student={student}
+          organizationId={organizationId}
           showToast={showToast}
           onRefresh={triggerRefresh}
           onNavigate={setActiveTab}

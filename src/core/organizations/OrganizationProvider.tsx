@@ -4,7 +4,7 @@ import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { connectStaffOnLogin } from '../staff/services/staffAccountService';
 import { connectParentOnLogin } from '../parent/services/parentAccountService';
-import { fetchParentPortalTree } from '../parent/services/parentPortalService';
+import { ensureGlobalParentProfile, fetchParentPortalTree } from '../parent/services/parentPortalService';
 import {
   isParentPortalModeActive,
   setParentPortalModeActive,
@@ -107,6 +107,14 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         parentId = tree.parent?.id ?? null;
       } catch {
         /* offline */
+      }
+
+      if (parentId === null) {
+        try {
+          parentId = await ensureGlobalParentProfile();
+        } catch {
+          /* offline */
+        }
       }
 
       setGlobalParentId(parentId);

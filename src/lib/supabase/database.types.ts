@@ -863,6 +863,14 @@ export interface Database {
         Args: { p_token: string };
         Returns: Json;
       };
+      sync_org_parent_student_bridge: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
+      sync_guardians_for_parent_org: {
+        Args: { p_parent_id: string; p_org_id: string };
+        Returns: number;
+      };
     };
     Enums: {
       member_role: MemberRole;

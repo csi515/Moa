@@ -21,6 +21,9 @@ export interface IStorageAdapter {
 
   isHydrated(): boolean;
   isHydrating(): boolean;
+
+  /** 지정 키의 debounce persist를 즉시 실행 (고객→링크 동기화 순서 보장) */
+  flushPersist?(keys: StorageKey[]): Promise<void>;
 }
 
 /** Supabase staff ↔ Teacher 매핑용 metadata */

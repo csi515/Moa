@@ -181,6 +181,7 @@ function ParentPortalHydrated() {
     >
       <ParentPortalWithStudent
         customerId={selectedEnrollment.customerId}
+        organizationId={selectedEnrollment.organizationId}
         organizationName={selectedEnrollment.organizationName}
         enrollmentStatus={selectedEnrollment.status}
         industryType={selectedEnrollment.industryType}
@@ -192,12 +193,14 @@ function ParentPortalHydrated() {
 
 function ParentPortalWithStudent({
   customerId,
+  organizationId,
   organizationName,
   enrollmentStatus,
   industryType,
   onBack,
 }: {
   customerId: string;
+  organizationId: string;
   organizationName: string;
   enrollmentStatus: import('@/core/parent/types/globalParent').EnrollmentStatus;
   industryType: string;
@@ -216,6 +219,7 @@ function ParentPortalWithStudent({
   return (
     <ParentAcademyPortal
       student={student}
+      organizationId={organizationId}
       organizationName={organizationName}
       enrollmentStatus={enrollmentStatus}
       industryType={industryType}

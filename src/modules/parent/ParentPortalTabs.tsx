@@ -18,6 +18,7 @@ import { ParentBookingsView } from './views/ParentBookingsView';
 export function ParentPortalTabs({
   tab,
   student,
+  organizationId,
   showToast,
   onRefresh,
   onNavigate,
@@ -25,6 +26,7 @@ export function ParentPortalTabs({
 }: {
   tab: ParentPortalTab;
   student: Student;
+  organizationId: string;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh: () => void;
   onNavigate: (t: ParentPortalTab) => void;
@@ -36,7 +38,13 @@ export function ParentPortalTabs({
         <ParentHomeView student={student} onNavigate={onNavigate} industryType={industryType} />
       );
     case 'attendance':
-      return <ParentAttendanceView student={student} industryType={industryType} />;
+      return (
+        <ParentAttendanceView
+          student={student}
+          organizationId={organizationId}
+          industryType={industryType}
+        />
+      );
     case 'tuition':
       return <ParentTuitionView student={student} industryType={industryType} />;
     case 'assignments':
