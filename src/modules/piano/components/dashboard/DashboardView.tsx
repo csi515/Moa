@@ -1,24 +1,18 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
-import { DashboardEditToolbar } from '@/core/dashboard';
+import { DashboardEditToolbar, useDashboardWidgetVisibility } from '@/core/dashboard';
 import { StorageService } from '@/services/storage';
 import { StaffDashboardView } from './StaffDashboardView';
 import { DashboardWelcomeSection } from './DashboardWelcomeSection';
 import { DashboardStatsSection } from './DashboardStatsSection';
 import { DashboardChartsSection } from './DashboardChartsSection';
 import { DashboardPanelsSection } from './DashboardPanelsSection';
-import { isDashboardWidgetVisible } from './dashboardWidgets';
 
 export const DashboardView: React.FC = () => {
   const { setActiveTab, currentUser } = useApp();
-  const { isStaff, settings } = usePermissions();
-
-  const isVisible = useMemo(
-    () => (id: Parameters<typeof isDashboardWidgetVisible>[0]) =>
-      isDashboardWidgetVisible(id, settings),
-    [settings]
-  );
+  const { isStaff } = usePermissions();
+  const isVisible = useDashboardWidgetVisibility('piano');
 
   if (isStaff) {
     return <StaffDashboardView />;

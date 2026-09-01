@@ -10,6 +10,14 @@ export interface DashboardWidgetDef {
   group: DashboardWidgetGroup;
 }
 
+export type DashboardWidgetId<I extends IndustryType> =
+  (typeof DASHBOARD_WIDGET_CATALOG)[I][number]['id'];
+
+export type PianoDashboardWidgetId = DashboardWidgetId<'piano'>;
+export type GymDashboardWidgetId = DashboardWidgetId<'gym'>;
+export type PilatesDashboardWidgetId = DashboardWidgetId<'pilates'>;
+export type DaycareDashboardWidgetId = DashboardWidgetId<'daycare'>;
+
 export const DASHBOARD_WIDGET_GROUP_LABELS: Record<DashboardWidgetGroup, string> = {
   metrics: '핵심 지표 카드',
   charts: '차트·분석',

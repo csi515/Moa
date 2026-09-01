@@ -16,7 +16,7 @@ import {
 import { StatCard } from '@/shared/components/StatCard';
 import { formatCurrency } from '@/utils/formatters';
 import type { NavTab } from '@/context/AppContext';
-import type { PianoDashboardWidgetId } from './dashboardWidgets';
+import type { PianoDashboardWidgetId } from '@/core/dashboard';
 
 import type { PianoDashboardStats } from './dashboardTypes';
 

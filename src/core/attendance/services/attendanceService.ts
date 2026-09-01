@@ -207,3 +207,13 @@ export function formatSessionTime(iso?: string): string {
   const d = new Date(iso);
   return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
+
+/** 당일 입실(체크인) 완료 고객 수 */
+export function countTodayCheckedInCustomers(
+  sessions: AttendanceSession[],
+  date: string = todayDateString()
+): number {
+  const daySessions = sessions.filter((session) => session.sessionDate === date);
+  return new Set(daySessions.filter((session) => session.checkInAt).map((session) => session.customerId))
+    .size;
+}

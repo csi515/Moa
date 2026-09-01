@@ -9,6 +9,7 @@ import {
   DASHBOARD_HEADER_HINT,
   DASHBOARD_WIDGET_GROUP_LABELS,
   getAllWidgetIds,
+  getConfiguredDashboardWidgets,
   GROUP_ORDER,
   RECOMMENDED_DASHBOARD_WIDGETS,
   saveDashboardWidgets,
@@ -33,11 +34,9 @@ export const DashboardCustomizeModal: React.FC<DashboardCustomizeModalProps> = (
   const recommended = RECOMMENDED_DASHBOARD_WIDGETS[industry];
 
   const initial = useMemo(() => {
-    const stored = settings.dashboard?.widgetsByIndustry?.[industry];
-    const legacyPiano = industry === 'piano' ? settings.dashboard?.widgets : undefined;
-    const configured = stored ?? legacyPiano;
-    return new Set(configured === undefined ? allIds : configured);
-  }, [settings.dashboard, industry, allIds, isOpen]);
+    const configured = getConfiguredDashboardWidgets(settings, industry);
+    return new Set(configured ?? allIds);
+  }, [settings, industry, allIds, isOpen]);
 
   const [selected, setSelected] = useState<Set<string>>(initial);
 

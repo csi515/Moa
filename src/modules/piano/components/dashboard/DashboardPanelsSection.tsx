@@ -3,7 +3,7 @@ import { Clock, ArrowRight, BookOpen, Package, CheckCircle2 } from 'lucide-react
 import { formatCurrency } from '@/utils/formatters';
 import type { NavTab } from '@/context/AppContext';
 import type { Student, Textbook, TuitionInvoice } from '@/types';
-import type { PianoDashboardWidgetId } from './dashboardWidgets';
+import type { PianoDashboardWidgetId } from '@/core/dashboard';
 
 import type { PianoDashboardStats, PianoTextbookStats, PianoTextbookSale } from './dashboardTypes';
 
