@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight, Users, Building2 } from 'lucide-react';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
-import type { GlobalStudent } from '@/core/parent/types/globalParent';
+import { INACTIVE_ENROLLMENT_STATUSES, type GlobalStudent } from '@/core/parent/types/globalParent';
 
 export const ParentChildrenHome: React.FC = () => {
   const { portalTree, selectStudent } = useParentPortal();
@@ -31,6 +31,9 @@ export const ParentChildrenHome: React.FC = () => {
 const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ child, onSelect }) => {
   const academyCount = child.enrollments.length;
   const activeCount = child.enrollments.filter((e) => e.status === 'active' || e.status === 'leave').length;
+  const inactiveCount = child.enrollments.filter((e) =>
+    INACTIVE_ENROLLMENT_STATUSES.includes(e.status)
+  ).length;
 
   return (
     <button
@@ -46,7 +49,9 @@ const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ c
         </p>
         <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
           <Building2 className="w-3 h-3" />
-          {academyCount > 0 ? `학원 ${activeCount}/${academyCount}` : '등록 학원 없음'}
+          {academyCount > 0
+            ? `학원 ${activeCount}/${academyCount}${inactiveCount > 0 ? ` · 기록 ${inactiveCount}` : ''}`
+            : '등록 학원 없음'}
         </p>
       </div>
       <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />

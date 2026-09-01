@@ -12,10 +12,12 @@ import { Section } from './shared';
 
 export function ParentMedicationView({
   student,
+  readOnly = false,
   showToast,
   onRefresh,
 }: {
   student: Student;
+  readOnly?: boolean;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh: () => void;
 }) {
@@ -103,19 +105,23 @@ export function ParentMedicationView({
   return (
     <>
       <Section title={`${student.name} 투약`}>
-        <div className="flex justify-end mb-3">
-          <button
-            type="button"
-            onClick={openCreate}
-            className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-sky-600 text-white text-xs font-bold"
-          >
-            <Plus className="w-4 h-4" />
-            투약 의뢰
-          </button>
-        </div>
+        {!readOnly && (
+          <div className="flex justify-end mb-3">
+            <button
+              type="button"
+              onClick={openCreate}
+              className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[44px] rounded-xl bg-sky-600 text-white text-xs font-bold"
+            >
+              <Plus className="w-4 h-4" />
+              투약 의뢰
+            </button>
+          </div>
+        )}
         {requests.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-6">
-            투약 의뢰 내역이 없습니다. 약이 필요하면 의뢰해 주세요.
+            {readOnly
+              ? '투약 의뢰 기록이 없습니다.'
+              : '투약 의뢰 내역이 없습니다. 약이 필요하면 의뢰해 주세요.'}
           </p>
         ) : (
           <div className="space-y-3">
@@ -140,7 +146,7 @@ export function ParentMedicationView({
                     {r.administeredBy ? ` · ${r.administeredBy}` : ''}
                   </p>
                 )}
-                {r.status === 'requested' && (
+                {r.status === 'requested' && !readOnly && (
                   <button
                     type="button"
                     onClick={() => cancelRequest(r)}
@@ -156,7 +162,7 @@ export function ParentMedicationView({
       </Section>
 
       <Modal
-        isOpen={isModalOpen}
+        isOpen={!readOnly && isModalOpen}
         onClose={() => setIsModalOpen(false)}
         title="투약 의뢰"
         maxWidth="md"

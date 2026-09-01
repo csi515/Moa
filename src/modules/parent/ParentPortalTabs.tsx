@@ -19,6 +19,7 @@ export function ParentPortalTabs({
   tab,
   student,
   organizationId,
+  readOnly = false,
   showToast,
   onRefresh,
   onNavigate,
@@ -27,6 +28,7 @@ export function ParentPortalTabs({
   tab: ParentPortalTab;
   student: Student;
   organizationId: string;
+  readOnly?: boolean;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh: () => void;
   onNavigate: (t: ParentPortalTab) => void;
@@ -38,6 +40,7 @@ export function ParentPortalTabs({
         <ParentHomeView
           student={student}
           organizationId={organizationId}
+          readOnly={readOnly}
           onNavigate={onNavigate}
           industryType={industryType}
         />
@@ -53,7 +56,7 @@ export function ParentPortalTabs({
     case 'tuition':
       return <ParentTuitionView student={student} industryType={industryType} />;
     case 'assignments':
-      return <ParentAssignmentsView student={student} showToast={showToast} onRefresh={onRefresh} />;
+      return <ParentAssignmentsView student={student} readOnly={readOnly} showToast={showToast} onRefresh={onRefresh} />;
     case 'progress':
       return <ParentProgressView student={student} />;
     case 'reports':
@@ -66,7 +69,12 @@ export function ParentPortalTabs({
       return <ParentCareJournalView student={student} />;
     case 'medications':
       return (
-        <ParentMedicationView student={student} showToast={showToast} onRefresh={onRefresh} />
+        <ParentMedicationView
+          student={student}
+          readOnly={readOnly}
+          showToast={showToast}
+          onRefresh={onRefresh}
+        />
       );
     case 'schedule':
       return <ParentScheduleView student={student} />;

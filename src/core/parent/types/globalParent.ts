@@ -13,6 +13,20 @@ export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
 export const ACTIVE_ENROLLMENT_STATUSES: EnrollmentStatus[] = ['active', 'leave'];
 export const INACTIVE_ENROLLMENT_STATUSES: EnrollmentStatus[] = ['withdrawn', 'alumni'];
 
+export function isReadOnlyEnrollment(status: EnrollmentStatus): boolean {
+  return INACTIVE_ENROLLMENT_STATUSES.includes(status);
+}
+
+export function getReadOnlyEnrollmentMessage(status: EnrollmentStatus): string {
+  if (status === 'alumni') {
+    return '졸업 처리된 기록입니다. 조회만 가능하며 새 요청은 보낼 수 없습니다.';
+  }
+  if (status === 'withdrawn') {
+    return '퇴원 처리된 기록입니다. 조회만 가능하며 새 요청은 보낼 수 없습니다.';
+  }
+  return '';
+}
+
 /** 전역 학부모 프로필 */
 export interface GlobalParent {
   id: string;

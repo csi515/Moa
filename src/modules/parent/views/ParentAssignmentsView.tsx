@@ -6,10 +6,12 @@ import { Section } from './shared';
 
 export function ParentAssignmentsView({
   student,
+  readOnly = false,
   showToast,
   onRefresh,
 }: {
   student: Student;
+  readOnly?: boolean;
   showToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh: () => void;
 }) {
@@ -42,6 +44,8 @@ export function ParentAssignmentsView({
                   <p className="text-xs text-emerald-600 mt-2 flex items-center gap-1">
                     <CheckCircle2 className="w-3.5 h-3.5" /> 확인 완료
                   </p>
+                ) : readOnly ? (
+                  <p className="text-xs text-slate-500 mt-2">퇴원·졸업 기록은 확인만 가능합니다.</p>
                 ) : (
                   <button
                     onClick={() => handleConfirm(a.id, it.id)}
