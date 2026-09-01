@@ -818,6 +818,10 @@ export interface Database {
         Args: { p_org_id: string };
         Returns: Json;
       };
+      update_staff_employment_status: {
+        Args: { p_org_id: string; p_staff_id: string; p_status: string };
+        Returns: Json;
+      };
       connect_parent_on_login: {
         Args: Record<string, never>;
         Returns: Json;

@@ -13,17 +13,28 @@ export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
   const refreshKey = useStorageRefresh();
-  const { scopeStudents } = useStaffScope();
+  const { isScoped, scopeStudents, scopeClasses } = useStaffScope();
 
   const today = new Date().toISOString().slice(0, 10);
+  const dayIndex = new Date().getDay();
+  const dayMap: Record<number, string> = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토' };
+  const todayKorean = dayMap[dayIndex] || '월';
+
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
     [scopeStudents, refreshKey]
   );
+  const classes = useMemo(
+    () => scopeClasses(StorageService.getClasses()),
+    [scopeClasses, refreshKey]
+  );
+  const todayClasses = useMemo(
+    () => classes.filter((c) => c.daysOfWeek.includes(todayKorean as (typeof c.daysOfWeek)[number])),
+    [classes, todayKorean]
+  );
   const sessions = StorageService.getAttendanceSessions().filter((s) => s.sessionDate === today);
   const checkedInToday = new Set(sessions.filter((s) => s.checkInAt).map((s) => s.customerId)).size;
   const teachers = StorageService.getTeachers().filter((t) => t.status === 'active');
-  const classes = StorageService.getClasses();
   const todayJournals = useMemo(
     () => StorageService.getCareJournals().filter((j) => j.journalDate === today).length,
     [refreshKey, today]
@@ -80,11 +91,20 @@ export const DaycareDashboardView: FC = () => {
           variant={pendingMeds > 0 ? 'amber' : 'default'}
           onClick={() => setActiveTab('medications')}
         />
-        <SummaryMetricCard
-          label={labels.staff.plural}
-          value={`${teachers.length}명`}
-          onClick={() => setActiveTab('teachers')}
-        />
+        {isScoped ? (
+          <SummaryMetricCard
+            label="오늘 반"
+            value={`${todayClasses.length}개`}
+            variant="teal"
+            onClick={() => setActiveTab('timetable')}
+          />
+        ) : (
+          <SummaryMetricCard
+            label={labels.staff.plural}
+            value={`${teachers.length}명`}
+            onClick={() => setActiveTab('teachers')}
+          />
+        )}
         <SummaryMetricCard
           label="운영 반"
           value={`${classes.length}개`}

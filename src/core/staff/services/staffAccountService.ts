@@ -78,6 +78,22 @@ export async function revokeStaffInvitation(
   if (error) throw error;
 }
 
+export type StaffEmploymentStatus = 'active' | 'inactive' | 'resigned';
+
+/** 재직 상태 변경 — organization_members.is_active 동기화 (기록 보존) */
+export async function updateStaffEmploymentStatus(
+  organizationId: string,
+  staffId: string,
+  status: StaffEmploymentStatus
+): Promise<void> {
+  const { error } = await getCoreClient().rpc('update_staff_employment_status', {
+    p_org_id: organizationId,
+    p_staff_id: staffId,
+    p_status: status,
+  });
+  if (error) throw error;
+}
+
 /** 조직 내 강사별 계정 연결 상태 조회 */
 export async function fetchStaffAccountStatuses(
   organizationId: string

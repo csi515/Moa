@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
@@ -21,8 +22,10 @@ const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const { isScoped, scopeClasses } = useStaffScope();
 
-  const classes = StorageService.getClasses();
+  const allClasses = StorageService.getClasses();
+  const classes = useMemo(() => scopeClasses(allClasses), [allClasses, scopeClasses]);
   const teachers = StorageService.getTeachers();
   const students = StorageService.getStudents();
 
@@ -44,6 +47,7 @@ export const ClassManagementView: React.FC = () => {
   });
 
   const handleOpenCreate = () => {
+    if (isScoped) return;
     setEditingClass(null);
     setFormData({
       name: '',
@@ -146,13 +150,15 @@ export const ClassManagementView: React.FC = () => {
         title="반 / 수업 관리"
         description={`개설된 피아노 정규 및 특별 클래스 ${classes.length}개`}
         actions={
-          <button
-            onClick={handleOpenCreate}
-            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            신규 반 개설
-          </button>
+          !isScoped ? (
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              신규 반 개설
+            </button>
+          ) : undefined
         }
       />
 
@@ -240,18 +246,22 @@ export const ClassManagementView: React.FC = () => {
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-                <button
-                  onClick={() => handleOpenEdit(cls)}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <Edit className="w-3.5 h-3.5" /> 수정
-                </button>
-                <button
-                  onClick={() => handleDelete(cls)}
-                  className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> 삭제
-                </button>
+                {!isScoped && (
+                  <>
+                    <button
+                      onClick={() => handleOpenEdit(cls)}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-600 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> 수정
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cls)}
+                      className="px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> 삭제
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           );
