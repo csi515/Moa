@@ -27,6 +27,7 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 import { noticesViewEntry } from '@/core/notices';
+import { OwnerGuideOverlays, OwnerGuideView } from '@/core/onboarding';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
@@ -40,6 +41,7 @@ const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   finance: () => <FinanceOverviewView />,
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
+  guide: () => <OwnerGuideView />,
   settings: () => <AcademySettingsView />,
 };
 
@@ -61,6 +63,7 @@ export const PilatesAppContent: FC = () => {
         <>
           {isOwner && <DirectorFloatingFab />}
           <PwaInstallPrompt />
+          <OwnerGuideOverlays />
           <ConfirmDialog />
           <ToastContainer />
         </>

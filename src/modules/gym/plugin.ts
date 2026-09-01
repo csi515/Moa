@@ -1,5 +1,5 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
-import { CLASS_BASED_CORE_ADMIN_TABS, CLASS_BASED_CORE_STAFF_TABS } from '@/core/industry/pluginTypes';
+import { CLASS_BASED_CORE_ADMIN_TABS, CLASS_BASED_CORE_STAFF_TABS, withOwnerGuideTab } from '@/core/industry/pluginTypes';
 
 /** 체육관 플러그인 매니페스트 */
 export const gymPluginManifest: IndustryPluginManifest = {
@@ -24,6 +24,6 @@ export const gymPluginManifest: IndustryPluginManifest = {
   showSchoolFields: false,
   showPickupFields: true,
   levelLabel: '수업 레벨',
-  adminTabs: [...CLASS_BASED_CORE_ADMIN_TABS],
+  adminTabs: withOwnerGuideTab([...CLASS_BASED_CORE_ADMIN_TABS]),
   staffTabs: [...CLASS_BASED_CORE_STAFF_TABS],
 };

@@ -32,6 +32,7 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 import { noticesViewEntry } from '@/core/notices';
+import { OwnerGuideOverlays, OwnerGuideView } from '@/core/onboarding';
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
@@ -48,6 +49,7 @@ const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   finance: () => <FinanceOverviewView />,
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
+  guide: () => <OwnerGuideView />,
   settings: () => <AcademySettingsView />,
 };
 
@@ -69,6 +71,7 @@ export const GymAppContent: FC = () => {
         <>
           {isOwner && <DirectorFloatingFab />}
           <PwaInstallPrompt />
+          <OwnerGuideOverlays />
           <ConfirmDialog />
           <ToastContainer />
         </>

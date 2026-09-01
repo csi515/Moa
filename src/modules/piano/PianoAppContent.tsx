@@ -1,4 +1,4 @@
-import { useState, useEffect, type FC, type ReactNode } from 'react';
+import type { FC, ReactNode } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
@@ -7,14 +7,13 @@ import {
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
-  OnboardingWizard,
 } from '@/shared/components';
+import { OwnerGuideOverlays, OwnerGuideView } from '@/core/onboarding';
 import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
 import { PianoSidebar } from './layout/PianoSidebar';
 import { PianoBottomNav } from './layout/PianoBottomNav';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { StorageService } from '@/services/storage';
 import {
   ExpenseManagementView,
   FinanceOverviewView,
@@ -72,21 +71,15 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   assignments: () => <AssignmentsManagementView />,
   achievements: () => <AchievementsManagementView />,
   reports: () => <ReportsManagementView />,
+  guide: () => <OwnerGuideView />,
   settings: () => <AcademySettingsView />,
 };
 
 export const PianoAppContent: FC = () => {
   const { activeTab } = useApp();
-  const { isAdmin, isOwner } = usePermissions();
-  const [showOnboarding, setShowOnboarding] = useState(false);
+  const { isOwner } = usePermissions();
 
   useTabGuard();
-
-  useEffect(() => {
-    if (isAdmin) {
-      setShowOnboarding(StorageService.shouldShowOnboarding());
-    }
-  }, [isAdmin]);
 
   const renderView = PIANO_VIEW_MAP[activeTab] ?? PIANO_VIEW_MAP.dashboard;
 
@@ -100,7 +93,7 @@ export const PianoAppContent: FC = () => {
         <>
           {isOwner && <DirectorFloatingFab />}
           <PwaInstallPrompt />
-          {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
+          <OwnerGuideOverlays includeSetupWizard />
           <ConfirmDialog />
           <ToastContainer />
         </>

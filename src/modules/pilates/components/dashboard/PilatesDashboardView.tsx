@@ -7,6 +7,7 @@ import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
 import { Activity, Calendar, Users, Dumbbell, Plus } from 'lucide-react';
+import { OwnerGuideDashboardSection } from '@/core/onboarding';
 
 /** 필라테스 강사 전용 축소 대시보드 */
 const PilatesStaffDashboard: React.FC = () => {
@@ -153,6 +154,8 @@ const PilatesAdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      <OwnerGuideDashboardSection />
+
       <PageHeader
         icon={<Activity className="w-6 h-6" />}
         iconClassName="text-teal-600"
