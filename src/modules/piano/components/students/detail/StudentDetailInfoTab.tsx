@@ -3,8 +3,14 @@ import { Student } from '@/types';
 import { CustomerPinPanel } from '@/core/attendance';
 import { formatGuardianRelationship } from '@/core/parent';
 import type { GuardianInfo } from '@/core/parent/types';
+import {
+  formatPickupAddressLine,
+  formatShuttleDirection,
+  getDefaultPickupAddress,
+  studentUsesShuttleService,
+} from '@/core/transport';
 import { formatCurrency, formatPhone, getLevelColor } from '@/utils/formatters';
-import { Award, Link2 } from 'lucide-react';
+import { Award, Bus, Link2, MapPin, Star } from 'lucide-react';
 
 interface StudentDetailInfoTabProps {
   student: Student;
@@ -13,6 +19,8 @@ interface StudentDetailInfoTabProps {
   attendanceEnabled: boolean;
   isAdmin: boolean;
   isSupabaseConfigured: boolean;
+  levelLabel?: string;
+  showPickupFields?: boolean;
   onEdit: (student: Student) => void;
   onOpenGuardianLink: () => void;
 }
@@ -24,6 +32,8 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
   attendanceEnabled,
   isAdmin,
   isSupabaseConfigured,
+  levelLabel = '레벨',
+  showPickupFields = false,
   onEdit,
   onOpenGuardianLink,
 }) => (
@@ -117,6 +127,64 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
       </div>
     </div>
 
+    {showPickupFields && (
+      <div className="md:col-span-2 bg-sky-50/60 rounded-2xl p-5 border border-sky-100 space-y-3">
+        <h4 className="text-xs font-bold text-sky-800 uppercase tracking-wider flex items-center gap-1.5">
+          <Bus className="w-4 h-4" />
+          픽업·하원 셔틀
+        </h4>
+        {studentUsesShuttleService(student) ? (
+          <div className="space-y-2">
+            {(student.pickupAddresses || [])
+              .filter((a) => a.address.trim())
+              .map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-white rounded-xl px-3 py-2.5 border border-sky-100 text-xs"
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-slate-800">{item.label}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold">
+                      {formatShuttleDirection(item.shuttleDirection)}
+                    </span>
+                    {item.isDefault && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-50 text-amber-700 font-bold inline-flex items-center gap-0.5">
+                        <Star className="w-3 h-3 fill-current" />
+                        기본
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-700 flex items-start gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
+                    {formatPickupAddressLine(item)}
+                  </p>
+                  {(item.contactName || item.contactPhone) && (
+                    <p className="text-slate-500 mt-1">
+                      {[item.contactName, item.contactPhone && formatPhone(item.contactPhone)]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </p>
+                  )}
+                  {item.directions && (
+                    <p className="text-slate-500 mt-1 whitespace-pre-wrap">{item.directions}</p>
+                  )}
+                </div>
+              ))}
+            {!getDefaultPickupAddress(student) && (
+              <p className="text-xs text-slate-500">등록된 픽업·하원 주소가 없습니다.</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-slate-500">셔틀 서비스 미이용</p>
+        )}
+        {student.address && (
+          <p className="text-xs text-slate-600 pt-1 border-t border-sky-100">
+            거주지: {student.address}
+          </p>
+        )}
+      </div>
+    )}
+
     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-3">
       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
         수강 및 수납 설정
@@ -127,7 +195,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
           <span className="font-bold text-slate-800">{student.teacherName}</span>
         </div>
         <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-          <span className="text-slate-500">피아노 과정/레벨</span>
+          <span className="text-slate-500">{levelLabel}</span>
           <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${getLevelColor(student.level)}`}>
             {student.level}
           </span>

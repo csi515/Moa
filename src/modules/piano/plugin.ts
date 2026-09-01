@@ -21,6 +21,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
   usesClassBasedSchedule: true,
   customerListTab: 'students',
   showSchoolFields: true,
+  showPickupFields: false,
   levelLabel: '레벨',
   adminTabs: withNoticesTabs([
     'dashboard',

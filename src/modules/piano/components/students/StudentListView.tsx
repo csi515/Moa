@@ -1,6 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getIndustryPlugin } from '@/core/industry/registry';
 import { useModuleLabels } from '@/core/labels';
+import { studentUsesShuttleService } from '@/core/transport';
 import { useStaffScope } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
@@ -24,11 +27,14 @@ import {
   CreditCard,
   ChevronRight,
   Sparkles,
-  School
+  School,
+  Bus,
 } from 'lucide-react';
 
 export const StudentListView: React.FC = () => {
   const { selectedStudentId, setSelectedStudentId, selectedStudentDetailTab, setSelectedStudentDetailTab, refreshKey } = useApp();
+  const { industry } = usePermissions();
+  const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const labels = useModuleLabels();
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
@@ -45,6 +51,7 @@ export const StudentListView: React.FC = () => {
   const [teacherFilter, setTeacherFilter] = useState('ALL');
   const [classFilter, setClassFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [shuttleFilter, setShuttleFilter] = useState<'ALL' | 'SHUTTLE'>('ALL');
   const [sortBy, setSortBy] = useState<'joinDateDesc' | 'joinDateAsc' | 'name' | 'paymentDay'>('joinDateDesc');
 
   // Modal states
@@ -84,6 +91,10 @@ export const StudentListView: React.FC = () => {
           return false;
         }
 
+        if (shuttleFilter === 'SHUTTLE' && !studentUsesShuttleService(s)) {
+          return false;
+        }
+
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchName = s.name.toLowerCase().includes(q);
@@ -93,7 +104,13 @@ export const StudentListView: React.FC = () => {
           const matchSchool = s.school.toLowerCase().includes(q);
           const matchParent = studentMatchesGuardianQuery(s.id, searchQuery);
           const matchNum = s.studentNumber.toLowerCase().includes(q);
-          if (!matchName && !matchPhone && !matchSchool && !matchParent && !matchNum) {
+          const matchPickup = (s.pickupAddresses || []).some(
+            (a) =>
+              a.label.toLowerCase().includes(q) ||
+              a.address.toLowerCase().includes(q) ||
+              (a.detail || '').toLowerCase().includes(q)
+          );
+          if (!matchName && !matchPhone && !matchSchool && !matchParent && !matchNum && !matchPickup) {
             return false;
           }
         }
@@ -107,11 +124,12 @@ export const StudentListView: React.FC = () => {
         if (sortBy === 'paymentDay') return (a.paymentDay || 0) - (b.paymentDay || 0);
         return 0;
       });
-  }, [students, searchQuery, teacherFilter, classFilter, statusFilter, sortBy]);
+  }, [students, searchQuery, teacherFilter, classFilter, statusFilter, shuttleFilter, sortBy]);
 
   const activeCount = students.filter((s) => s.status === 'active').length;
   const leaveCount = students.filter((s) => s.status === 'leave').length;
   const withdrawnCount = students.filter((s) => s.status === 'withdrawn').length;
+  const shuttleCount = students.filter((s) => studentUsesShuttleService(s)).length;
 
   const handleOpenDetail = (student: Student) => {
     setDetailStudent(student);
@@ -203,6 +221,17 @@ export const StudentListView: React.FC = () => {
             <option value="leave">휴원 ({leaveCount})</option>
             <option value="withdrawn">퇴원 ({withdrawnCount})</option>
           </select>
+
+          {showPickupFields && (
+            <select
+              value={shuttleFilter}
+              onChange={(e) => setShuttleFilter(e.target.value as 'ALL' | 'SHUTTLE')}
+              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
+            >
+              <option value="ALL">셔틀 전체</option>
+              <option value="SHUTTLE">셔틀 이용 ({shuttleCount})</option>
+            </select>
+          )}
         </div>
 
         <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 w-full">
@@ -272,6 +301,12 @@ export const StudentListView: React.FC = () => {
                             <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
                               {st.name}
                             </span>
+                            {showPickupFields && studentUsesShuttleService(st) && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
+                                <Bus className="w-3 h-3" />
+                                셔틀
+                              </span>
+                            )}
                             <span className="text-[10px] text-slate-400">
                               ({st.gender === 'F' ? '여' : '남'})
                             </span>
@@ -347,9 +382,15 @@ export const StudentListView: React.FC = () => {
                         {st.name.slice(0, 1)}
                       </div>
                       <div>
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="font-bold text-sm text-slate-900">{st.name}</h4>
                           <span className="text-[10px] text-slate-400">({st.gender === 'F' ? '여' : '남'})</span>
+                          {showPickupFields && studentUsesShuttleService(st) && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
+                              <Bus className="w-3 h-3" />
+                              셔틀
+                            </span>
+                          )}
                           <span className={`px-2 py-0.2 rounded-full font-bold text-[10px] ${badge.bg}`}>
                             {badge.label}
                           </span>

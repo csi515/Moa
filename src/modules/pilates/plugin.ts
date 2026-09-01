@@ -21,6 +21,7 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
   usesClassBasedSchedule: false,
   customerListTab: 'members',
   showSchoolFields: true,
+  showPickupFields: true,
   levelLabel: '레벨',
   adminTabs: withNoticesTabs([
     'dashboard',

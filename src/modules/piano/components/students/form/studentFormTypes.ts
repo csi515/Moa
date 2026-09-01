@@ -1,4 +1,5 @@
 import type { GuardianRelationship } from '@/core/parent/types';
+import type { PickupAddress } from '@/core/transport/types';
 import type { StudentLevel, StudentStatus } from '@/types';
 
 export interface GuardianFormEntry {
@@ -31,6 +32,9 @@ export interface StudentFormData {
   paymentDay: number;
   specialNotes: string;
   memo: string;
+  address: string;
+  usesShuttleService: boolean;
+  pickupAddresses: PickupAddress[];
   checkInPin: string;
   autoGeneratePin: boolean;
 }

@@ -1,3 +1,5 @@
+import type { PickupAddress } from '@/core/transport/types';
+
 /** 조직 멤버 역할 (Supabase member_role과 동일) */
 export type UserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'parent';
 
@@ -56,6 +58,10 @@ export interface Student {
   phone?: string;
   emergencyContact?: string;
   address?: string;
+  /** 셔틀 픽업·하원 서비스 이용 여부 */
+  usesShuttleService?: boolean;
+  /** 픽업·하원 주소 목록 (집, 할머니댁 등) */
+  pickupAddresses?: PickupAddress[];
   joinDate: string; // YYYY-MM-DD
   leaveDate?: string; // YYYY-MM-DD
   status: StudentStatus;

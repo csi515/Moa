@@ -11,6 +11,7 @@ import type { Json, PaymentMethod as DbPaymentMethod, PaymentStatus } from '../.
 import type { StaffMetadata } from '../types';
 import type { AcademySettings, Teacher } from '../../../types';
 import type { Booking, ServiceOffering } from '../../../core/types/schedule';
+import type { PickupAddress } from '../../../core/transport/types';
 
 // ─── Staff (Teachers) ───────────────────────────────────────────────
 
@@ -100,6 +101,8 @@ interface CustomerMetadata {
   studentPhone?: string;
   studentIds?: string[];
   notes?: string;
+  usesShuttleService?: boolean;
+  pickupAddresses?: PickupAddress[];
 }
 
 export function studentToCustomerRow(student: Student, organizationId: string) {
@@ -123,6 +126,8 @@ export function studentToCustomerRow(student: Student, organizationId: string) {
     emergencyContact: student.emergencyContact,
     address: student.address,
     studentPhone: student.phone,
+    usesShuttleService: student.usesShuttleService,
+    pickupAddresses: student.pickupAddresses,
   };
 
   return {
@@ -165,6 +170,8 @@ export function customerRowToStudent(
     phone: meta.studentPhone || undefined,
     emergencyContact: meta.emergencyContact,
     address: meta.address,
+    usesShuttleService: meta.usesShuttleService,
+    pickupAddresses: meta.pickupAddresses,
     joinDate: meta.joinDate || row.created_at.slice(0, 10),
     leaveDate: meta.leaveDate,
     status: (row.status as Student['status']) || 'active',

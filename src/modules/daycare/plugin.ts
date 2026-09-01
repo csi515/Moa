@@ -21,6 +21,7 @@ export const daycarePluginManifest: IndustryPluginManifest = {
   usesClassBasedSchedule: true,
   customerListTab: 'students',
   showSchoolFields: false,
+  showPickupFields: true,
   levelLabel: '연령반',
   adminTabs: [
     ...CLASS_BASED_CORE_ADMIN_TABS,

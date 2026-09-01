@@ -9,6 +9,8 @@ import {
   type GuardianRegistrationInput,
 } from '@/core/students';
 import { getStudentLevelOptions } from '@/core/students/levelOptions';
+import { getIndustryPlugin } from '@/core/industry/registry';
+import { createPickupAddress, normalizePickupAddresses, sanitizePickupAddressesForSave } from '@/core/transport';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -18,6 +20,7 @@ import { StudentBasicInfoSection } from './form/StudentBasicInfoSection';
 import { GuardianSection } from './form/GuardianSection';
 import { StudentPinSection } from './form/StudentPinSection';
 import { StudentAdvancedSection } from './form/StudentAdvancedSection';
+import { StudentPickupSection } from './form/StudentPickupSection';
 import {
   newGuardianEntry,
   type GuardianFormEntry,
@@ -47,6 +50,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const settings = StorageService.getSettings();
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
   const defaultLevel = getStudentLevelOptions(industry)[0];
+  const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const canInviteParent = isSupabaseConfigured() && organizationId !== 'local-org';
   const isEdit = Boolean(student?.id);
 
@@ -67,6 +71,9 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     paymentDay: 10,
     specialNotes: '',
     memo: '',
+    address: '',
+    usesShuttleService: false,
+    pickupAddresses: [createPickupAddress({ isDefault: true })],
     checkInPin: '',
     autoGeneratePin: true,
   });
@@ -99,6 +106,12 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         paymentDay: student.paymentDay || 10,
         specialNotes: student.specialNotes || '',
         memo: student.memo || '',
+        address: student.address || '',
+        usesShuttleService: student.usesShuttleService ?? false,
+        pickupAddresses:
+          student.pickupAddresses && student.pickupAddresses.length > 0
+            ? normalizePickupAddresses(student.pickupAddresses)
+            : [createPickupAddress({ isDefault: true })],
         checkInPin: '',
         autoGeneratePin: false,
       });
@@ -137,6 +150,9 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         paymentDay: settings.defaultPaymentDay || 10,
         specialNotes: '',
         memo: '',
+        address: '',
+        usesShuttleService: false,
+        pickupAddresses: [createPickupAddress({ isDefault: true })],
         checkInPin: '',
         autoGeneratePin: attendanceEnabled,
       });
@@ -234,7 +250,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       school: formData.school.trim(),
       grade: formData.grade.trim(),
       emergencyContact: undefined,
-      address: undefined,
+      address: formData.address.trim() || undefined,
+      usesShuttleService: showPickupFields ? formData.usesShuttleService : undefined,
+      pickupAddresses: showPickupFields
+        ? sanitizePickupAddressesForSave(formData.pickupAddresses, formData.usesShuttleService)
+        : undefined,
       joinDate: formData.joinDate,
       leaveDate: formData.leaveDate || undefined,
       status: formData.status,
@@ -279,6 +299,14 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     if (new Set(parentKeys).size !== parentKeys.length) {
       showToast('같은 보호자가 중복 등록되어 있습니다.', 'warning');
       return;
+    }
+
+    if (showPickupFields && formData.usesShuttleService) {
+      const hasAddress = formData.pickupAddresses.some((a) => a.address.trim());
+      if (!hasAddress) {
+        showToast('셔틀 이용 시 픽업·하원 주소를 1곳 이상 입력해 주세요.', 'warning');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -371,6 +399,23 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
           {attendanceEnabled && !isEdit && (
             <StudentPinSection formData={formData} onChange={updateFormData} />
+          )}
+
+          {showPickupFields && (
+            <StudentPickupSection
+              address={formData.address}
+              usesShuttleService={formData.usesShuttleService}
+              pickupAddresses={formData.pickupAddresses}
+              onAddressChange={(address) => updateFormData({ address })}
+              onUsesShuttleChange={(usesShuttleService) => {
+                const pickupAddresses =
+                  usesShuttleService && formData.pickupAddresses.length === 0
+                    ? [createPickupAddress({ isDefault: true })]
+                    : formData.pickupAddresses;
+                updateFormData({ usesShuttleService, pickupAddresses });
+              }}
+              onPickupAddressesChange={(pickupAddresses) => updateFormData({ pickupAddresses })}
+            />
           )}
 
           <section className="space-y-3">

@@ -7,7 +7,7 @@ export const gymPluginManifest: IndustryPluginManifest = {
   option: {
     value: 'gym',
     label: '체육관',
-    description: '회원·수업반·출결·수강료 중심 운영',
+    description: '태권도·체육 회원, 수업반, 픽업/하원, 출결·수강료',
   },
   aliases: ['taekwondo'],
   theme: 'orange',
@@ -22,6 +22,7 @@ export const gymPluginManifest: IndustryPluginManifest = {
   usesClassBasedSchedule: true,
   customerListTab: 'students',
   showSchoolFields: false,
+  showPickupFields: true,
   levelLabel: '수업 레벨',
   adminTabs: [...CLASS_BASED_CORE_ADMIN_TABS],
   staffTabs: [...CLASS_BASED_CORE_STAFF_TABS],

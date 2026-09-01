@@ -26,6 +26,8 @@ export interface IndustryPluginManifest {
   usesClassBasedSchedule: boolean;
   customerListTab: NavTab;
   showSchoolFields: boolean;
+  /** 픽업·하원 셔틀 주소 관리 UI */
+  showPickupFields: boolean;
   levelLabel: string;
   adminTabs: NavTab[];
   staffTabs: NavTab[];

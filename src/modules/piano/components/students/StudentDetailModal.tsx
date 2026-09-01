@@ -8,6 +8,7 @@ import { isValidYouTubeUrl } from '@/utils/youtube';
 import { NewSaleModal } from '../textbooks/NewSaleModal';
 import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '../textbooks/TextbookPaymentModal';
@@ -45,7 +46,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   onInitialTabApplied,
 }) => {
   const { showToast, openConfirmDialog, currentUser, triggerRefresh } = useApp();
-  const { attendanceEnabled, isAdmin } = usePermissions();
+  const { attendanceEnabled, isAdmin, industry } = usePermissions();
+  const industryPlugin = getIndustryPlugin(industry);
   const [currentTab, setCurrentTab] = useState<DetailTab>('info');
   const [guardianLinkOpen, setGuardianLinkOpen] = useState(false);
 
@@ -412,6 +414,8 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
               attendanceEnabled={attendanceEnabled}
               isAdmin={isAdmin}
               isSupabaseConfigured={isSupabaseConfigured()}
+              levelLabel={industryPlugin.levelLabel}
+              showPickupFields={industryPlugin.showPickupFields}
               onEdit={onEdit}
               onOpenGuardianLink={() => setGuardianLinkOpen(true)}
             />
