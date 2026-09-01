@@ -52,10 +52,8 @@ export const AuthPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
             <Music className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">학원 관리 시스템</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            {mode === 'login' ? '계정으로 로그인하세요' : '새 계정을 만들어 시작하세요'}
-          </p>
+          <h1 className="text-2xl font-bold text-slate-900">모아</h1>
+          <p className="text-sm text-slate-500 mt-2">모아 — 모든 운영을 한곳에</p>
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8">
