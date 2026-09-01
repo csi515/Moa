@@ -41,7 +41,7 @@ export function ParentHomeView({
     );
   }
   if (industry === 'pilates') {
-    return <PilatesParentHome student={student} onNavigate={onNavigate} />;
+    return <PilatesParentHome student={student} organizationId={organizationId} onNavigate={onNavigate} />;
   }
   return (
     <PianoParentHome

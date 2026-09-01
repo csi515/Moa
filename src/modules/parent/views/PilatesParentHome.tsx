@@ -15,9 +15,11 @@ function formatBookingWhen(iso: string): string {
 /** 필라테스 학부모/회원 홈 */
 export function PilatesParentHome({
   student,
+  organizationId,
   onNavigate,
 }: {
   student: Student;
+  organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
   const summary = StorageService.getStudentBillingSummary(student.id);
@@ -74,7 +76,11 @@ export function PilatesParentHome({
         )}
       </Section>
 
-      <ParentNoticePreview student={student} onNavigate={onNavigate} />
+      <ParentNoticePreview
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }

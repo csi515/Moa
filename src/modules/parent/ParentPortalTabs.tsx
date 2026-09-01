@@ -64,7 +64,7 @@ export function ParentPortalTabs({
     case 'events':
       return <ParentEventsView student={student} industryType={industryType} />;
     case 'notices':
-      return <ParentNoticesView student={student} />;
+      return <ParentNoticesView student={student} organizationId={organizationId} />;
     case 'journals':
       return <ParentCareJournalView student={student} />;
     case 'medications':

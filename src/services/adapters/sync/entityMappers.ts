@@ -517,6 +517,12 @@ interface NotificationMetadata {
   recipientCount?: number;
   targetStudentName?: string;
   targetParentPhone?: string;
+  sessionId?: string;
+  action?: 'check_in' | 'check_out';
+  at?: string;
+  customerName?: string;
+  method?: string;
+  sessionDate?: string;
 }
 
 export function notificationToRow(notif: AppNotification, organizationId: string) {

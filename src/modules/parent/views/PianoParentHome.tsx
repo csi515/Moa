@@ -119,7 +119,11 @@ export function PianoParentHome({
         </Section>
       )}
 
-      <ParentNoticePreview student={student} onNavigate={onNavigate} />
+      <ParentNoticePreview
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
     </div>
   );
 }
