@@ -302,17 +302,17 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   return (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden sm:my-4 flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-4">
+        <div className="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col gap-4 shrink-0">
+          <div className="flex items-start gap-3 sm:gap-4 min-w-0">
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-extrabold shadow-md shrink-0"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center text-white text-lg sm:text-xl font-extrabold shadow-md shrink-0"
               style={{ backgroundColor: student.avatarColor || '#4f46e5' }}
             >
               {student.name.slice(0, 1)}
             </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <h3 className="text-lg sm:text-2xl font-black text-slate-900 tracking-tight break-words">
                   {student.name}
                 </h3>
                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${statusBadge.bg}`}>
@@ -325,13 +325,15 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                   {student.studentNumber}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 mt-1">
-                {student.school} {student.grade} | 담당: <strong>{student.teacherName}</strong> | 생년월일: {student.birthDate}
+              <p className="text-xs text-slate-500 mt-1 break-words">
+                {student.school} {student.grade} | 담당: <strong>{student.teacherName}</strong>
+                <span className="hidden sm:inline"> | 생년월일: {student.birthDate}</span>
               </p>
+              <p className="text-xs text-slate-400 sm:hidden mt-0.5">생년월일: {student.birthDate}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-center">
+          <div className="flex items-center gap-2 self-stretch sm:self-center justify-end flex-wrap">
             {primaryGuardian?.parentPhone && (
               <a
                 href={`tel:${primaryGuardian.parentPhone}`}
@@ -368,15 +370,16 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* 데스크톱 세로 탭 */}
-          <nav className="hidden lg:flex flex-col w-52 shrink-0 border-r border-slate-200 bg-slate-50/60 overflow-y-auto py-2">
+          {/* 태블릿·데스크톱 세로 탭 */}
+          <nav className="hidden md:flex flex-col w-44 lg:w-52 shrink-0 border-r border-slate-200 bg-slate-50/60 overflow-y-auto py-2">
             {tabConfig.map((tab) => {
               const isActive = currentTab === tab.id;
               return (
                 <button
                   key={tab.id}
+                  type="button"
                   onClick={() => setCurrentTab(tab.id)}
-                  className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left ${
+                  className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left min-h-[44px] ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-xs'
                       : 'text-slate-600 hover:bg-white hover:text-slate-900'
@@ -391,27 +394,28 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
 
           <div className="flex-1 flex flex-col min-w-0">
             {/* 모바일 가로 탭 */}
-            <div className="lg:hidden flex items-center gap-1 px-4 sm:px-6 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none">
+            <div className="md:hidden flex items-center gap-1 px-3 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none snap-x snap-mandatory">
               {tabConfig.map((tab) => {
                 const isActive = currentTab === tab.id;
                 return (
                   <button
                     key={tab.id}
+                    type="button"
                     onClick={() => setCurrentTab(tab.id)}
-                    className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                    className={`py-3 px-3 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer min-h-[44px] snap-start shrink-0 ${
                       isActive
                         ? 'border-indigo-600 text-indigo-600'
                         : 'border-transparent text-slate-500 hover:text-slate-900'
                     }`}
                   >
                     {tab.icon}
-                    <span>{tab.label}</span>
+                    <span>{tab.shortLabel}</span>
                   </button>
                 );
               })}
             </div>
 
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
+            <div className="flex-1 p-4 sm:p-5 lg:p-6 overflow-y-auto overscroll-contain space-y-6">
           {currentTab === 'info' && (
             <StudentDetailInfoTab
               student={student}

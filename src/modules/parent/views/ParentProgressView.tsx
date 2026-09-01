@@ -43,16 +43,16 @@ export function ParentProgressView({ student }: { student: Student }) {
           <p className="text-sm text-slate-400 text-center py-4">기록이 없습니다.</p>
         ) : (
           achievements.map((a) => (
-            <div key={a.id} className="py-2 border-b border-slate-50">
+            <div key={a.id} className="py-3 border-b border-slate-50 last:border-0">
               <div className="flex items-start gap-2">
                 <Award className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
-                <div>
-                  <p className="font-bold text-sm">{a.title}</p>
-                  <p className="text-xs text-amber-700 font-semibold">
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-sm break-words">{a.title}</p>
+                  <p className="text-xs text-amber-700 font-semibold mt-0.5 break-words">
                     {a.result || (a.type === 'competition' ? '수상' : a.type)}
                     {a.levelLabel ? ` · ${a.levelLabel}` : ''}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 mt-1 break-words">
                     {a.eventDate || '일정 미정'}
                     {a.songTitle ? ` · ${a.songTitle}` : ''}
                   </p>
