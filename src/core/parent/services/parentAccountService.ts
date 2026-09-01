@@ -151,3 +151,28 @@ export async function syncAllParentStudentLinks(organizationId: string): Promise
     console.warn('sync_org_parent_student_bridge failed:', bridgeError.message);
   }
 }
+
+/** 포털→관리자 역방향: guardians + enrollments → parent_student_links */
+export async function syncParentStudentLinksReverse(
+  organizationId: string,
+  parentId?: string
+): Promise<number> {
+  const client = getCoreClient();
+
+  if (parentId) {
+    const { data, error } = await client.rpc('sync_parent_student_links_for_parent_org', {
+      p_parent_id: parentId,
+      p_org_id: organizationId,
+    });
+    if (error) throw error;
+    return data ?? 0;
+  }
+
+  const { data, error } = await client.rpc('sync_org_parent_student_links_reverse', {
+    p_org_id: organizationId,
+  });
+  if (error) throw error;
+
+  const result = data as { links_synced?: number } | null;
+  return result?.links_synced ?? 0;
+}

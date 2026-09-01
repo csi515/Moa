@@ -898,6 +898,14 @@ export interface Database {
         Args: { p_parent_id: string; p_org_id: string };
         Returns: number;
       };
+      sync_parent_student_links_for_parent_org: {
+        Args: { p_parent_id: string; p_org_id: string };
+        Returns: number;
+      };
+      sync_org_parent_student_links_reverse: {
+        Args: { p_org_id: string };
+        Returns: Json;
+      };
       create_parent_invite_link_tokens: {
         Args: {
           p_org_id: string;
