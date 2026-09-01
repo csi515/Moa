@@ -99,7 +99,10 @@ export function getDaycareSidebarSections(labels: ModuleLabels): NavMenuSection[
     },
     {
       title: '설정',
-      items: [{ tab: 'settings', label: '어린이집 설정', icon: icon(<Settings className="w-4 h-4" />) }],
+      items: [
+        { tab: 'guide', label: '사용 가이드', icon: icon(<BookOpen className="w-4 h-4" />) },
+        { tab: 'settings', label: '어린이집 설정', icon: icon(<Settings className="w-4 h-4" />) },
+      ],
     },
   ];
 }

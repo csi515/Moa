@@ -8,6 +8,7 @@ import { formatKoreanDate } from '@/utils/formatters';
 import { Baby, Users, UserPlus, CheckSquare, BookOpen, Pill, Megaphone } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
 import { filterParentNotices } from '@/core/notices';
+import { OwnerGuideDashboardSection } from '@/core/onboarding';
 
 export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
@@ -45,6 +46,8 @@ export const DaycareDashboardView: FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      <OwnerGuideDashboardSection />
+
       <PageHeader
         icon={<Baby className="w-6 h-6" />}
         iconClassName="text-sky-600"

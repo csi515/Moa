@@ -1,5 +1,5 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
-import { withNoticesTabs } from '@/core/industry/pluginTypes';
+import { withNoticesTabs, withOwnerGuideTab } from '@/core/industry/pluginTypes';
 
 /** 필라테스 플러그인 매니페스트 (예약·수업 종류 중심) */
 export const pilatesPluginManifest: IndustryPluginManifest = {
@@ -23,7 +23,7 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
   showSchoolFields: true,
   showPickupFields: true,
   levelLabel: '레벨',
-  adminTabs: withNoticesTabs([
+  adminTabs: withOwnerGuideTab(withNoticesTabs([
     'dashboard',
     'bookings',
     'services',
@@ -31,6 +31,6 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
     'instructors',
     'attendance',
     'settings',
-  ]),
+  ])),
   staffTabs: withNoticesTabs(['dashboard', 'bookings', 'members', 'attendance']),
 };

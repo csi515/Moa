@@ -73,3 +73,15 @@ export function withOwnerFinanceTabs(tabs: NavTab[]): NavTab[] {
   }
   return merged;
 }
+
+/** 관리자 메뉴에 사용 가이드 탭 추가 (settings 앞) */
+export function withOwnerGuideTab(tabs: NavTab[]): NavTab[] {
+  if (tabs.includes('guide')) return tabs;
+  const settingsIdx = tabs.indexOf('settings');
+  if (settingsIdx >= 0) {
+    const next = [...tabs];
+    next.splice(settingsIdx, 0, 'guide');
+    return next;
+  }
+  return [...tabs, 'guide'];
+}

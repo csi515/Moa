@@ -502,5 +502,10 @@ export interface AcademySettings {
     attendance?: {
       enabled?: boolean;
     };
+    /** 사업주 온보딩·사용 가이드 */
+    ownerGuide?: {
+      wizardCompleted?: boolean;
+      wizardSkipped?: boolean;
+    };
   };
 }

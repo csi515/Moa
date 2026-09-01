@@ -7,6 +7,7 @@ import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
 import { Dumbbell, Users, UserPlus, CheckSquare } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
+import { OwnerGuideDashboardSection } from '@/core/onboarding';
 
 export const GymDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
@@ -26,6 +27,8 @@ export const GymDashboardView: FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      <OwnerGuideDashboardSection />
+
       <PageHeader
         icon={<Dumbbell className="w-6 h-6" />}
         iconClassName="text-orange-600"

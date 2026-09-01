@@ -34,6 +34,7 @@ import {
 import { AttendanceManagementView } from '@/core/attendance';
 import { CareJournalView, MedicationRequestView } from './care';
 import { noticesViewEntry } from '@/core/notices';
+import { OwnerGuideOverlays, OwnerGuideView } from '@/core/onboarding';
 
 /**
  * 어린이집 플러그인 셸.
@@ -57,6 +58,7 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   finance: () => <FinanceOverviewView />,
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
+  guide: () => <OwnerGuideView />,
   settings: () => <AcademySettingsView />,
 };
 
@@ -78,6 +80,7 @@ export const DaycareAppContent: FC = () => {
         <>
           {isOwner && <DirectorFloatingFab />}
           <PwaInstallPrompt />
+          <OwnerGuideOverlays />
           <ConfirmDialog />
           <ToastContainer />
         </>

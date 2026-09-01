@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { OwnerGuideDashboardSection } from '@/core/onboarding';
 import { StorageService } from '@/services/storage';
 import { StaffDashboardView } from './StaffDashboardView';
 import { StatCard } from '@/shared/components/StatCard';
@@ -73,6 +74,8 @@ export const DashboardView: React.FC = () => {
 
   return (
     <div className="space-y-6 pb-12">
+      <OwnerGuideDashboardSection />
+
       {/* Top Banner / Welcome */}
       <div className="bg-gradient-to-r from-indigo-900 via-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-8 -translate-y-8 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />

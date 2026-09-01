@@ -122,6 +122,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         },
         { tab: 'calendar', label: '학원 캘린더', icon: icon(<Calendar className="w-4 h-4" />) },
         { tab: 'recitals', label: '연주회·콩쿠르', icon: icon(<Award className="w-4 h-4" />) },
+        { tab: 'guide', label: '사용 가이드', icon: icon(<BookOpen className="w-4 h-4" />) },
         { tab: 'settings', label: '학원 설정', icon: icon(<Settings className="w-4 h-4" />) },
       ],
     },
@@ -178,6 +179,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'assignments', label: '주간 과제', icon: icon(<BookOpenCheck className="w-5 h-5" />) },
     { tab: 'achievements', label: '시험·콩쿠르', icon: icon(<Award className="w-5 h-5" />) },
     { tab: 'reports', label: '학습 리포트', icon: icon(<FileText className="w-5 h-5" />) },
+    { tab: 'guide', label: '사용 가이드', icon: icon(<BookOpen className="w-5 h-5" />) },
     { tab: 'settings', label: '학원 설정', icon: icon(<Settings className="w-5 h-5" />) },
   ];
 }
