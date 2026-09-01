@@ -871,6 +871,14 @@ export interface Database {
         Args: { p_parent_id: string; p_org_id: string };
         Returns: number;
       };
+      create_parent_invite_link_tokens: {
+        Args: {
+          p_org_id: string;
+          p_parent_customer_id: string;
+          p_expires_days?: number;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       member_role: MemberRole;
