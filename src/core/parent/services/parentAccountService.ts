@@ -1,4 +1,6 @@
 import type { GuardianRelationship, ParentStudentLink } from '@/core/parent/types';
+import type { ParentInviteLinkCode } from '@/core/parent/services/parentInviteService';
+import { parseInviteLinkCodesFromResult } from '@/core/parent/services/parentInviteService';
 import { getCoreClient } from '@/lib/supabase';
 import { getStorageAdapter } from '@/services/adapters';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
@@ -20,6 +22,8 @@ export interface InviteParentResult {
   userId?: string;
   invitationId?: string;
   email?: string;
+  organizationName?: string;
+  linkCodes: ParentInviteLinkCode[];
 }
 
 export interface ConnectParentResult {
@@ -58,6 +62,7 @@ export async function inviteParentMember(
     user_id?: string;
     invitation_id?: string;
     email?: string;
+    organization_name?: string;
   };
 
   return {
@@ -66,6 +71,8 @@ export async function inviteParentMember(
     userId: result.user_id,
     invitationId: result.invitation_id,
     email: result.email,
+    organizationName: result.organization_name,
+    linkCodes: parseInviteLinkCodesFromResult(data),
   };
 }
 

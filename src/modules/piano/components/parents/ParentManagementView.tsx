@@ -8,7 +8,10 @@ import {
   syncAllParentStudentLinks,
   type ParentAccountStatus,
   type ParentAccountStatusItem,
+  type InviteParentResult,
 } from '@/core/parent/services/parentAccountService';
+import { sendParentInvitationEmail } from '@/core/parent/services/parentInviteService';
+import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
 import { formatGuardianRelationship } from '@/core/parent';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
@@ -48,6 +51,9 @@ export const ParentManagementView: React.FC = () => {
   const [inviteTarget, setInviteTarget] = useState<Parent | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const [inviteResult, setInviteResult] = useState<InviteParentResult | null>(null);
+  const [inviteEmailSent, setInviteEmailSent] = useState(false);
+  const [inviteEmailMessage, setInviteEmailMessage] = useState<string | undefined>();
 
   useEffect(() => {
     StorageService.syncParentsFromStudents();
@@ -103,11 +109,45 @@ export const ParentManagementView: React.FC = () => {
     if (!inviteTarget || !currentOrganization?.id || !inviteEmail.trim()) return;
     setInviting(true);
     try {
+      const parentName = inviteTarget.name;
       await syncAllParentStudentLinks(currentOrganization.id);
-      await inviteParentMember(currentOrganization.id, inviteTarget.id, inviteEmail.trim());
-      showToast(`${inviteTarget.name} 학부모에게 초대가 등록되었습니다.`, 'success');
+      const result = await inviteParentMember(
+        currentOrganization.id,
+        inviteTarget.id,
+        inviteEmail.trim()
+      );
+
+      let emailSent = false;
+      let emailMessage: string | undefined;
+
+      if (result.status === 'invited' && result.linkCodes.length > 0) {
+        const emailResult = await sendParentInvitationEmail({
+          organizationName: result.organizationName || currentOrganization.name,
+          parentName,
+          email: inviteEmail.trim(),
+          linkCodes: result.linkCodes,
+        });
+        emailSent = emailResult.emailSent;
+        emailMessage = emailResult.message;
+      } else if (result.status === 'connected') {
+        showToast(`${parentName} 학부모 계정이 연결되었습니다.`, 'success');
+      }
+
+      setInviteResult(result);
+      setInviteEmailSent(emailSent);
+      setInviteEmailMessage(emailMessage);
       setInviteTarget(null);
       setInviteEmail('');
+
+      if (result.status === 'invited') {
+        showToast(
+          emailSent
+            ? `${parentName} 학부모에게 초대 이메일을 보냈습니다.`
+            : `${parentName} 학부모 초대가 등록되었습니다. 연결 코드를 전달해 주세요.`,
+          'success'
+        );
+      }
+
       await loadStatuses();
     } catch (e: any) {
       showToast(e?.message || '초대에 실패했습니다.', 'error');
@@ -248,7 +288,10 @@ export const ParentManagementView: React.FC = () => {
               <h3 className="font-bold">학부모 포털 초대</h3>
               <button onClick={() => setInviteTarget(null)}><X className="w-5 h-5" /></button>
             </div>
-            <p className="text-sm text-slate-600 mb-3">{inviteTarget.name} — 같은 이메일로 가입하면 자동 연결됩니다.</p>
+            <p className="text-sm text-slate-600 mb-3">
+              {inviteTarget.name} — 같은 이메일로 가입하면 자동 연결되며, 연결 코드도 함께
+              생성됩니다.
+            </p>
             <label className="text-xs font-semibold text-slate-700">이메일</label>
             <input
               type="email"
@@ -267,6 +310,20 @@ export const ParentManagementView: React.FC = () => {
             </button>
           </div>
         </div>
+      )}
+
+      {inviteResult && inviteResult.status === 'invited' && (
+        <ParentInviteResultModal
+          parentName={
+            parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || '학부모'
+          }
+          email={inviteResult.email || ''}
+          organizationName={inviteResult.organizationName || currentOrganization?.name || '학원'}
+          linkCodes={inviteResult.linkCodes}
+          emailSent={inviteEmailSent}
+          emailMessage={inviteEmailMessage}
+          onClose={() => setInviteResult(null)}
+        />
       )}
     </div>
   );
