@@ -1,4 +1,5 @@
 import { getCoreClient } from '../../../lib/supabase';
+import { parseStaffLinkCodeFromResult, type StaffInviteLinkCode } from './staffInviteLinkService';
 
 export type StaffAccountStatus = 'none' | 'invited' | 'connected';
 
@@ -15,6 +16,8 @@ export interface InviteStaffResult {
   userId?: string;
   invitationId?: string;
   email?: string;
+  organizationName?: string;
+  linkCode?: StaffInviteLinkCode | null;
 }
 
 export interface ConnectStaffResult {
@@ -55,6 +58,8 @@ export async function inviteStaffMember(
     user_id?: string;
     invitation_id?: string;
     email?: string;
+    organization_name?: string;
+    link_code?: unknown;
   };
 
   return {
@@ -63,6 +68,8 @@ export async function inviteStaffMember(
     userId: result.user_id,
     invitationId: result.invitation_id,
     email: result.email,
+    organizationName: result.organization_name,
+    linkCode: parseStaffLinkCodeFromResult({ link_code: result.link_code }),
   };
 }
 

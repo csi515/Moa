@@ -11,6 +11,11 @@ import {
   type StaffAccountStatusItem,
   type StaffEmploymentStatus,
 } from '@/core/staff/services/staffAccountService';
+import {
+  createStaffInviteLinkToken,
+  type StaffInviteLinkCode,
+} from '@/core/staff/services/staffInviteLinkService';
+import { StaffInviteResultModal } from './StaffInviteResultModal';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
 import { StorageService } from '@/services/storage';
@@ -29,6 +34,7 @@ import {
   Link2,
   Clock,
   Loader2,
+  Share2,
 } from 'lucide-react';
 
 function isOrgAdmin(role: string | null): boolean {
@@ -52,6 +58,12 @@ export const TeacherManagementView: React.FC = () => {
   const [invitingStaffId, setInvitingStaffId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<'active' | 'all'>('active');
   const [saving, setSaving] = useState(false);
+  const [inviteLinkModal, setInviteLinkModal] = useState<{
+    teacher: Teacher;
+    linkCode: StaffInviteLinkCode;
+    email?: string;
+  } | null>(null);
+  const [linkingStaffId, setLinkingStaffId] = useState<string | null>(null);
 
   const visibleTeachers = useMemo(() => {
     if (statusFilter === 'all') return teachers;
@@ -191,6 +203,18 @@ export const TeacherManagementView: React.FC = () => {
     }
   };
 
+  const openInviteLinkModal = (
+    teacher: Teacher,
+    linkCode: StaffInviteLinkCode,
+    email?: string
+  ) => {
+    setInviteLinkModal({
+      teacher,
+      linkCode,
+      email,
+    });
+  };
+
   const handleInvite = async (teacher: Teacher) => {
     if (!currentOrganization?.id) return;
 
@@ -206,6 +230,8 @@ export const TeacherManagementView: React.FC = () => {
       const result = await inviteStaffMember(currentOrganization.id, teacher.id, email);
       if (result.status === 'connected') {
         showToast(`${teacher.name} 강사 계정이 연결되었습니다.`, 'success');
+      } else if (result.linkCode) {
+        openInviteLinkModal(teacher, result.linkCode, email);
       } else {
         showToast(
           `${teacher.name} 강사에게 초대가 등록되었습니다. (${email}로 가입 시 자동 연결)`,
@@ -218,6 +244,22 @@ export const TeacherManagementView: React.FC = () => {
       showToast(message, 'error');
     } finally {
       setInvitingStaffId(null);
+    }
+  };
+
+  const handleCreateInviteLink = async (teacher: Teacher) => {
+    if (!currentOrganization?.id) return;
+
+    setLinkingStaffId(teacher.id);
+    try {
+      const linkCode = await createStaffInviteLinkToken(currentOrganization.id, teacher.id);
+      openInviteLinkModal(teacher, linkCode, teacher.email || undefined);
+      await loadAccountStatuses();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '초대 링크 생성에 실패했습니다.';
+      showToast(message, 'error');
+    } finally {
+      setLinkingStaffId(null);
     }
   };
 
@@ -283,6 +325,7 @@ export const TeacherManagementView: React.FC = () => {
           const teacherStudents = students.filter((s) => s.status === 'active' && s.teacherId === t.id);
           const accountStatus = resolveStatus(t);
           const isInviting = invitingStaffId === t.id;
+          const isLinking = linkingStaffId === t.id;
 
           return (
             <div
@@ -370,39 +413,55 @@ export const TeacherManagementView: React.FC = () => {
                   </div>
                 </div>
 
-                {canManageAccounts && t.status === 'active' && (
-                  <div className="pt-1">
+                {canManageAccounts && isSupabaseConfigured() && t.status === 'active' && (
+                  <div className="pt-1 space-y-2">
                     {accountStatus === 'connected' ? (
                       <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-semibold">
                         <Link2 className="w-3.5 h-3.5" />
                         로그인 계정 연결됨
                       </div>
-                    ) : accountStatus === 'invited' ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-[11px] text-amber-700 font-semibold flex-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          가입 대기 중
-                        </div>
-                        <button
-                          onClick={() => handleRevokeInvite(t)}
-                          className="text-[10px] font-bold text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-slate-100"
-                        >
-                          취소
-                        </button>
-                      </div>
                     ) : (
-                      <button
-                        onClick={() => handleInvite(t)}
-                        disabled={isInviting}
-                        className="w-full mt-1 px-3 py-2 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-60"
-                      >
-                        {isInviting ? (
-                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <>
+                        {accountStatus === 'invited' ? (
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1.5 text-[11px] text-amber-700 font-semibold flex-1">
+                              <Clock className="w-3.5 h-3.5" />
+                              가입 대기 중
+                            </div>
+                            <button
+                              onClick={() => handleRevokeInvite(t)}
+                              className="text-[10px] font-bold text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-slate-100"
+                            >
+                              취소
+                            </button>
+                          </div>
                         ) : (
-                          <UserPlus className="w-3.5 h-3.5" />
+                          <button
+                            onClick={() => handleInvite(t)}
+                            disabled={isInviting}
+                            className="w-full px-3 py-2 text-[11px] font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-60 min-h-[44px]"
+                          >
+                            {isInviting ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <UserPlus className="w-3.5 h-3.5" />
+                            )}
+                            이메일 초대
+                          </button>
                         )}
-                        계정 초대
-                      </button>
+                        <button
+                          onClick={() => handleCreateInviteLink(t)}
+                          disabled={isLinking}
+                          className="w-full px-3 py-2 text-[11px] font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl flex items-center justify-center gap-1.5 disabled:opacity-60 min-h-[44px]"
+                        >
+                          {isLinking ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Share2 className="w-3.5 h-3.5" />
+                          )}
+                          초대 링크 · SNS 공유
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
@@ -547,6 +606,18 @@ export const TeacherManagementView: React.FC = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {inviteLinkModal && currentOrganization && (
+        <StaffInviteResultModal
+          staffName={inviteLinkModal.teacher.name}
+          organizationName={
+            inviteLinkModal.linkCode.organizationName || currentOrganization.name
+          }
+          email={inviteLinkModal.email}
+          linkCode={inviteLinkModal.linkCode}
+          onClose={() => setInviteLinkModal(null)}
+        />
       )}
     </div>
   );
