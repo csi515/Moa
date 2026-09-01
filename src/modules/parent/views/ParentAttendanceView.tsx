@@ -1,14 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { StorageService } from '@/services/storage';
 import { getAttendanceBadge } from '@/utils/formatters';
 import {
   formatSessionTime,
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
-import { fetchParentAttendanceSessions } from '@/core/parent/services/parentAttendanceService';
-import { isSupabaseConfigured } from '@/lib/supabase';
+import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
-import type { AttendanceSession } from '@/core/attendance/types';
 import type { MakeupStatus, Student } from '@/types';
 import { Section } from './shared';
 
@@ -28,31 +27,12 @@ export function ParentAttendanceView({
   industryType?: IndustryType | string;
 }) {
   const industry = normalizeIndustryType(industryType);
-  const [remoteSessions, setRemoteSessions] = useState<AttendanceSession[] | null>(null);
-
-  useEffect(() => {
-    if (!isSupabaseConfigured() || !organizationId) return;
-
-    let cancelled = false;
-    void fetchParentAttendanceSessions(organizationId, student.id)
-      .then((rows) => {
-        if (!cancelled) setRemoteSessions(rows);
-      })
-      .catch(() => {
-        if (!cancelled) setRemoteSessions(null);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [organizationId, student.id]);
-
-  const localSessions = StorageService.getAttendanceSessions()
-    .filter((s) => s.customerId === student.id)
-    .sort((a, b) => b.sessionDate.localeCompare(a.sessionDate))
-    .slice(0, 30);
-
-  const sessions = remoteSessions ?? localSessions;
+  const { sessions, loading, error, refresh } = useParentAttendanceSessions(
+    organizationId,
+    student.id,
+    30
+  );
+  const [refreshing, setRefreshing] = useState(false);
 
   const legacyRecords = StorageService.getAttendance()
     .filter((a) => a.studentId === student.id)
@@ -74,8 +54,40 @@ export function ParentAttendanceView({
         ? `${student.name} 출입 기록`
         : `${student.name} 출결 기록`;
 
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await refresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-xs text-slate-500">실시간 출결 기록</p>
+        <button
+          type="button"
+          onClick={() => void handleRefresh()}
+          disabled={loading || refreshing}
+          className="flex items-center gap-1 text-xs font-bold text-indigo-600 min-h-[44px] px-2"
+        >
+          {loading || refreshing ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            <RefreshCw className="w-3.5 h-3.5" />
+          )}
+          새로고침
+        </button>
+      </div>
+
+      {error && (
+        <div className="p-3 rounded-xl bg-amber-50 border border-amber-100 text-xs text-amber-800">
+          {error} (저장된 기록을 표시합니다)
+        </div>
+      )}
+
       {makeups.length > 0 && (
         <Section title="보강 현황">
           {makeups.map((m) => (
@@ -109,7 +121,11 @@ export function ParentAttendanceView({
       )}
 
       <Section title={title}>
-        {hasSessions ? (
+        {loading && sessions.length === 0 ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+          </div>
+        ) : hasSessions ? (
           sessions.map((s) => {
             const status = getSessionStatusLabel(s);
             return (

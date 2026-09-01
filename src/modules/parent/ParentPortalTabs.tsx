@@ -35,7 +35,12 @@ export function ParentPortalTabs({
   switch (tab) {
     case 'home':
       return (
-        <ParentHomeView student={student} onNavigate={onNavigate} industryType={industryType} />
+        <ParentHomeView
+          student={student}
+          organizationId={organizationId}
+          onNavigate={onNavigate}
+          industryType={industryType}
+        />
       );
     case 'attendance':
       return (

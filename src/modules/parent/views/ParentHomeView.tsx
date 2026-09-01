@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { StorageService } from '@/services/storage';
 import { formatCurrency } from '@/utils/formatters';
 import {
   formatSessionTime,
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
+import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import { getNoticesForStudent, NOTICE_COPY } from '@/core/notices';
 import { CARE_JOURNAL_MOOD_LABEL, MEDICATION_STATUS_LABEL } from '@/modules/daycare/care';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
@@ -17,45 +18,60 @@ import { PilatesParentHome } from './PilatesParentHome';
 
 export function ParentHomeView({
   student,
+  organizationId,
   onNavigate,
   industryType = 'piano',
 }: {
   student: Student;
+  organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
   industryType?: IndustryType | string;
 }) {
   const industry = normalizeIndustryType(industryType);
   if (industry === 'daycare') {
-    return <DaycareParentHome student={student} onNavigate={onNavigate} />;
+    return (
+      <DaycareParentHome
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
+    );
   }
   if (industry === 'gym') {
-    return <GymParentHome student={student} onNavigate={onNavigate} />;
+    return (
+      <GymParentHome
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
+    );
   }
   if (industry === 'pilates') {
     return <PilatesParentHome student={student} onNavigate={onNavigate} />;
   }
-  return <PianoParentHome student={student} onNavigate={onNavigate} />;
+  return (
+    <PianoParentHome
+      student={student}
+      organizationId={organizationId}
+      onNavigate={onNavigate}
+    />
+  );
 }
 
 function DaycareParentHome({
   student,
+  organizationId,
   onNavigate,
 }: {
   student: Student;
+  organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const summary = StorageService.getStudentBillingSummary(student.id);
+  const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
 
-  const todaySession = useMemo(
-    () =>
-      StorageService.getAttendanceSessions().find(
-        (s) => s.customerId === student.id && s.sessionDate === today
-      ),
-    [student.id, today]
-  );
-
-  const latestJournal = useMemo(
+  const latestJournal = React.useMemo(
     () =>
       StorageService.getCareJournals()
         .filter((j) => j.studentId === student.id)
@@ -63,7 +79,7 @@ function DaycareParentHome({
     [student.id]
   );
 
-  const pendingMeds = useMemo(
+  const pendingMeds = React.useMemo(
     () =>
       StorageService.getMedicationRequests().filter(
         (r) => r.studentId === student.id && r.status === 'requested'
@@ -71,7 +87,7 @@ function DaycareParentHome({
     [student.id]
   );
 
-  const recentNotices = useMemo(
+  const recentNotices = React.useMemo(
     () => getNoticesForStudent(StorageService.getNotifications(), student).slice(0, 3),
     [student]
   );
