@@ -503,4 +503,10 @@ export interface AcademySettings {
       enabled?: boolean;
     };
   };
+  /** 업종별 대시보드 표시 위젯 ID (미설정 시 전체 표시) */
+  dashboard?: {
+    /** @deprecated piano 레거시 — widgetsByIndustry.piano 사용 권장 */
+    widgets?: string[];
+    widgetsByIndustry?: Partial<Record<import('@/core/industry/types').IndustryType, string[]>>;
+  };
 }
