@@ -783,6 +783,7 @@ export interface Database {
           p_name: string;
           p_industry_type?: string;
           p_slug?: string | null;
+          p_settings?: Record<string, unknown> | null;
         };
         Returns: string;
       };

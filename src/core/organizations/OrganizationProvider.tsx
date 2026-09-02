@@ -1,4 +1,13 @@
-import React, { createContext, useCallback, useContext, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react';
+import type { AcademySettings } from '@/types';
+import type { IndustryType } from '../industry/types';
 import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
@@ -26,7 +35,11 @@ interface OrganizationContextType {
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
   clearOrganization: () => void;
-  createOrganization: (name: string, industryType?: string) => Promise<void>;
+  createOrganization: (
+    name: string,
+    industryType?: IndustryType | string,
+    settings?: Partial<AcademySettings>
+  ) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
   enterParentPortal: () => void;
   exitParentPortal: () => void;
@@ -178,8 +191,12 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const createOrganization = useCallback(
-    async (name: string, industryType = 'piano') => {
-      const orgId = await orgService.createOrganization(name, industryType);
+    async (
+      name: string,
+      industryType: IndustryType | string = 'piano',
+      settings?: Partial<AcademySettings>
+    ) => {
+      const orgId = await orgService.createOrganization({ name, industryType, settings });
       await refreshOrganizations();
       selectOrganization(orgId);
     },

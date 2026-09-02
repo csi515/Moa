@@ -1,15 +1,24 @@
 import { useState, type FormEvent } from 'react';
+import type { IndustryType } from '@/core/industry/types';
+import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
+import { validateSignUpBusiness } from '../utils/validateSignup';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function useAuthForm() {
   const { signIn, signUp } = useAuth();
+  const { createOrganization } = useOrganization();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [industryType, setIndustryType] = useState<IndustryType>('piano');
+  const [businessName, setBusinessName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [address, setAddress] = useState('');
+  const [businessNumber, setBusinessNumber] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -49,7 +58,24 @@ export function useAuthForm() {
       if (!agreedToTerms) {
         throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
       }
-      await signUp(email.trim(), password, fullName.trim());
+
+      const business = {
+        industryType,
+        businessName: businessName.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        businessNumber: businessNumber.trim() || undefined,
+      };
+      validateSignUpBusiness(business);
+
+      await signUp(email.trim(), password, fullName.trim(), business);
+      await createOrganization(business.businessName, business.industryType, {
+        name: business.businessName,
+        directorName: fullName.trim(),
+        phone: business.phone,
+        address: business.address,
+        businessNumber: business.businessNumber,
+      });
     } catch (err) {
       const message =
         err instanceof Error ? err.message : '인증 처리 중 오류가 발생했습니다.';
@@ -67,6 +93,16 @@ export function useAuthForm() {
     setPassword,
     fullName,
     setFullName,
+    industryType,
+    setIndustryType,
+    businessName,
+    setBusinessName,
+    phone,
+    setPhone,
+    address,
+    setAddress,
+    businessNumber,
+    setBusinessNumber,
     showPassword,
     setShowPassword,
     agreedToTerms,

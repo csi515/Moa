@@ -1,7 +1,15 @@
+import type { IndustryType } from '@/core/industry/types';
+import type { AcademySettings } from '@/types';
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
 
 const ORG_STORAGE_KEY = 'moa_current_organization_id';
+
+export interface CreateOrganizationOptions {
+  name: string;
+  industryType?: IndustryType | string;
+  settings?: Partial<AcademySettings>;
+}
 
 export interface OrganizationMembership {
   id: string;
@@ -64,20 +72,28 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
 }
 
 export async function createOrganization(
-  name: string,
-  industryType = 'piano'
+  nameOrOptions: string | CreateOrganizationOptions,
+  industryType = 'piano',
+  settings?: Partial<AcademySettings>
 ): Promise<string> {
+  const options: CreateOrganizationOptions =
+    typeof nameOrOptions === 'string'
+      ? { name: nameOrOptions, industryType, settings }
+      : nameOrOptions;
+
+  const name = options.name.trim();
+  const resolvedIndustryType = options.industryType ?? 'piano';
   const slug = name
-    .trim()
     .toLowerCase()
     .replace(/[^a-z0-9가-힣]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 40) || `org-${Date.now()}`;
 
   const { data, error } = await getCoreClient().rpc('create_organization', {
-    p_name: name.trim(),
-    p_industry_type: industryType,
+    p_name: name,
+    p_industry_type: resolvedIndustryType,
     p_slug: slug,
+    p_settings: (options.settings ?? {}) as Record<string, unknown>,
   });
 
   if (error) throw error;
