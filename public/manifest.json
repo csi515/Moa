@@ -1,9 +1,11 @@
 {
-  "name": "피아노학원 원생 및 학원 관리",
-  "short_name": "피아노학원",
-  "description": "실제 피아노학원을 위한 실사용 올인원 관리 시스템",
-  "start_url": "/",
+  "name": "Moa — 학원·체육관·어린이집 통합 관리",
+  "short_name": "Moa",
+  "description": "원생·출결·수납·강사·학부모 포털을 한곳에서 관리하는 올인원 SaaS",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#ffffff",
   "theme_color": "#4f46e5",
   "icons": [

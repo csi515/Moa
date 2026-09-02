@@ -1,0 +1,189 @@
+# Moa 모바일 배포 가이드
+
+웹(PWA) · Google Play · Apple App Store를 **하나의 React 코드베이스**로 운영합니다.
+
+## 아키텍처
+
+| 채널 | 기술 | 산출물 |
+|------|------|--------|
+| 웹 / PWA | Vite `dist/` + HTTPS 배포 | `manifest.json`, `sw.js` |
+| Google Play | Capacitor Android | `android/` → AAB |
+| App Store | Capacitor iOS | `ios/` → IPA (Mac + Xcode) |
+
+앱 ID: `com.moa.academy`  
+앱 이름: **Moa**
+
+---
+
+## 개발 워크플로
+
+```bash
+# 1. 웹 빌드
+npm run build:web
+
+# 2. 네이티브 프로젝트에 동기화
+npm run build:mobile   # build:web + cap sync
+
+# 3. IDE에서 열기
+npm run cap:android    # Android Studio
+npm run cap:ios        # Xcode (macOS 필요)
+```
+
+코드 수정 후에는 항상 `npm run build:mobile`을 실행한 뒤 네이티브에서 다시 실행하세요.
+
+---
+
+## 환경 변수
+
+`.env` (웹 빌드 시 번들에 포함):
+
+| 변수 | 용도 |
+|------|------|
+| `VITE_SUPABASE_URL` | Supabase 프로젝트 URL |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
+| `VITE_APP_URL` | 초대 링크·OAuth redirect 기준 URL |
+
+> 네이티브 앱은 빌드 시점에 env가 고정됩니다. 스토어용은 **프로덕션 값**으로 빌드하세요.
+
+### Supabase Auth Redirect URLs
+
+Dashboard → Authentication → URL Configuration:
+
+```
+https://YOUR_PRODUCTION_DOMAIN
+com.moa.academy://login-callback
+```
+
+---
+
+## 딥링크 (초대·학부모 연결)
+
+| 파라미터 | 예시 | 용도 |
+|----------|------|------|
+| `staff_link` | `?staff_link=AB12CD34` | 강사 계정 초대 |
+| `link` | `?link=XY98ZW76` | 학부모·자녀 연결 |
+
+### 커스텀 URL 스킴 (설정 완료)
+
+```
+moa://open?staff_link=AB12CD34
+moa://open?link=XY98ZW76
+```
+
+### HTTPS 유니버설 링크 (프로덕션 도메인 확정 후)
+
+1. `android/app/src/main/AndroidManifest.xml`의 HTTPS intent-filter 주석 해제 + 도메인 교체
+2. `https://YOUR_DOMAIN/.well-known/assetlinks.json` 배포 (Android)
+3. `https://YOUR_DOMAIN/.well-known/apple-app-site-association` 배포 (iOS)
+4. Xcode → Signing & Capabilities → Associated Domains: `applinks:YOUR_DOMAIN`
+
+---
+
+## Google Play 스토어 체크리스트
+
+### 계정·빌드
+- [ ] Google Play Console 개발자 등록 ($25 1회)
+- [ ] 앱 서명 키(Upload key / Play App Signing)
+- [ ] `npm run build:mobile` 후 Android Studio에서 **AAB** 빌드
+- [ ] `targetSdkVersion` 최신 요구사항 충족 (Android Studio 권장값 적용)
+
+### 스토어 등록 정보
+- [ ] 앱 이름: Moa
+- [ ] 짧은 설명 / 전체 설명 (한국어)
+- [ ] 스크린샷 (휴대폰 최소 2장, 7인치 태블릿 권장)
+- [ ] 고해상도 아이콘 **512×512 PNG** (`@capacitor/assets`로 생성 권장)
+- [ ] Feature graphic 1024×500
+
+### 정책·법무
+- [ ] **개인정보처리방침 URL** (필수 — 학생·보호자 정보 수집)
+- [ ] 데이터 안전성(Data safety) 설문 작성
+- [ ] 콘텐츠 등급 설문
+- [ ] 계정 생성 앱 → **테스트 계정** 심사용 제공
+
+### 기능 검증
+- [ ] Supabase 로그인/회원가입
+- [ ] 강사·학부모 초대 링크 (`staff_link`, `link`)
+- [ ] QR 스캔 (카메라 권한)
+- [ ] 오프라인 시 적절한 안내 (완전 오프라인 미지원)
+
+---
+
+## Apple App Store 체크리스트
+
+### 계정·빌드
+- [ ] Apple Developer Program ($99/년)
+- [ ] **Mac + Xcode** (Linux CI만으로는 Archive 불가)
+- [ ] `npm run build:mobile` → Xcode Archive → App Store Connect 업로드
+- [ ] Bundle ID: `com.moa.academy`
+
+### 스토어 등록 정보
+- [ ] 앱 이름·부제·키워드·설명
+- [ ] 스크린샷 (6.7", 6.5", 5.5" 등 필수 크기)
+- [ ] 앱 아이콘 1024×1024 PNG (알파 채널 없음)
+
+### 정책·법무
+- [ ] **개인정보처리방침 URL** (필수)
+- [ ] App Privacy (데이터 수집 유형) 설문
+- [ ] **계정 삭제** 경로 제공 (Guideline 5.1.1 — 계정 앱 필수)
+- [ ] 심사용 **데모 계정** (원장 + 학부모 등)
+
+### iOS 특이사항
+- [ ] Sign in with Apple (타사 소셜 로그인 추가 시 Apple 로그인도 필요할 수 있음)
+- [ ] 카메라 사용 목적 문자열 (`NSCameraUsageDescription` — 설정됨)
+- [ ] Safe area / 노치 대응 (`env(safe-area-inset-*)` — 적용됨)
+
+---
+
+## PWA (웹 설치) 체크리스트
+
+- [ ] HTTPS 프로덕션 배포
+- [ ] `VITE_APP_URL` = 실제 배포 URL
+- [ ] Lighthouse PWA audit 통과 권장
+- [ ] PNG 아이콘 192/512 추가 권장 (현재 SVG만 있음)
+
+---
+
+## 앱 아이콘·스플래시 생성 (권장)
+
+```bash
+npm install -D @capacitor/assets
+# resources/icon.png (1024×1024), resources/splash.png 준비 후
+npx capacitor-assets generate
+```
+
+---
+
+## 플랫폼 분기 (코드)
+
+```ts
+import { isNativeApp, isWebApp, shareLink } from '@/core/platform';
+
+if (isWebApp()) {
+  // PWA 설치 버튼 등
+}
+```
+
+- `PwaInstallPrompt` — 네이티브 앱에서 자동 숨김
+- `MobileBootstrap` — 상태바·스플래시·딥링크 처리
+
+---
+
+## 출시 전 최종 확인
+
+1. 프로덕션 Supabase + env로 `npm run build:mobile`
+2. 실기기에서 로그인 → 조직 선택 → 출결/학생 CRUD
+3. 초대 링크 실기기 테스트 (Android + iOS)
+4. 개인정보처리방침·계정 삭제 페이지 URL 스토어에 등록
+5. 내부 테스트(Play) / TestFlight(iOS) → 프로덕션 심사 제출
+
+---
+
+## 관련 파일
+
+| 파일 | 설명 |
+|------|------|
+| `capacitor.config.ts` | Capacitor 앱 설정 |
+| `android/` | Android Studio 프로젝트 |
+| `ios/` | Xcode 프로젝트 |
+| `src/core/platform/` | 네이티브/웹 분기·딥링크 |
+| `public/manifest.json` | PWA 매니페스트 |

@@ -5,6 +5,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    // Capacitor WebView에서 정적 자산 로딩 안정화
+    base: './',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {

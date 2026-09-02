@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
 import { parseGuardianLinkFromUrl, storePendingGuardianLink } from './core/parent/services/guardianLinkService';
+import { parseStaffLinkFromUrl, storePendingStaffLink } from './core/platform/pendingStaffLink';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
@@ -17,6 +18,9 @@ export const SupabaseAppGate: React.FC = () => {
   useEffect(() => {
     const urlToken = parseGuardianLinkFromUrl();
     if (urlToken) storePendingGuardianLink(urlToken);
+
+    const staffLink = parseStaffLinkFromUrl();
+    if (staffLink) storePendingStaffLink(staffLink);
   }, []);
 
   if (authLoading || (session && orgLoading)) {

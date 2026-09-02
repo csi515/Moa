@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Download, Sparkles, X } from 'lucide-react';
+import { isWebApp } from '@/core/platform';
 
 export const PwaInstallPrompt: React.FC = () => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [showPrompt, setShowPrompt] = useState(false);
 
   useEffect(() => {
+    if (!isWebApp()) return;
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -15,6 +17,9 @@ export const PwaInstallPrompt: React.FC = () => {
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
+
+  // 네이티브 앱(Capacitor)에서는 PWA 설치 UI 숨김
+  if (!isWebApp()) return null;
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
@@ -49,7 +54,7 @@ export const PwaInstallPrompt: React.FC = () => {
           <Sparkles className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="text-sm font-bold">피아노학원 앱 설치</h4>
+          <h4 className="text-sm font-bold">Moa 앱 설치</h4>
           <p className="text-xs text-indigo-200 mt-0.5">홈 화면에 추가하여 앱처럼 빠르게 사용하세요</p>
         </div>
       </div>

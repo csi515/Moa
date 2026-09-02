@@ -5,6 +5,7 @@ import { AuthProvider } from './core/auth/AuthProvider';
 import { OrganizationProvider } from './core/organizations/OrganizationProvider';
 import { SupabaseRequiredScreen } from './shared/components/SupabaseRequiredScreen';
 import { isSupabaseConfigured } from './lib/supabase';
+import { MobileBootstrap } from './core/platform';
 
 export default function App() {
   if (!isSupabaseConfigured()) {
@@ -15,6 +16,7 @@ export default function App() {
     <AuthProvider>
       <OrganizationProvider>
         <AppProvider>
+          <MobileBootstrap />
           <SupabaseAppGate />
         </AppProvider>
       </OrganizationProvider>
