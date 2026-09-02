@@ -27,8 +27,11 @@ interface IndustryDashboardShellProps {
   recentSectionTitle: string;
   recentEmptyDescription: string;
   attendanceCheckedInLabel: string;
+  attendanceCheckInShortLabel?: string;
   attendanceActiveLabel: string;
-  attendanceButtonLabel: string;
+  attendanceButtonLabel?: string;
+  attendanceActions?: ReactNode;
+  recentJoinDatePrefix?: string;
   accentClassName: string;
   accentBorderClassName: string;
   accentHoverClassName: string;
@@ -54,8 +57,11 @@ export function IndustryDashboardShell({
   recentSectionTitle,
   recentEmptyDescription,
   attendanceCheckedInLabel,
+  attendanceCheckInShortLabel = '입실',
   attendanceActiveLabel,
   attendanceButtonLabel,
+  attendanceActions,
+  recentJoinDatePrefix = '등록',
   accentClassName,
   accentBorderClassName,
   accentHoverClassName,
@@ -135,7 +141,7 @@ export function IndustryDashboardShell({
                 >
                   <p className="font-bold text-slate-900 text-sm">{student.name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    {student.level} · 등록 {student.joinDate.slice(0, 10)}
+                    {student.level} · {recentJoinDatePrefix} {student.joinDate.slice(0, 10)}
                   </p>
                 </button>
               ))}
@@ -150,7 +156,7 @@ export function IndustryDashboardShell({
           </h3>
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-              <p className="text-xs text-emerald-700 font-semibold">입실</p>
+              <p className="text-xs text-emerald-700 font-semibold">{attendanceCheckInShortLabel}</p>
               <p className="text-2xl font-black text-emerald-900 mt-1">{checkedInToday}명</p>
             </div>
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-100">
@@ -158,13 +164,15 @@ export function IndustryDashboardShell({
               <p className="text-2xl font-black text-slate-900 mt-1">{students.length}명</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onOpenAttendance}
-            className={`mt-4 w-full py-3 min-h-[44px] rounded-xl border text-xs font-bold transition-colors ${accentBorderClassName}`}
-          >
-            {attendanceButtonLabel}
-          </button>
+          {attendanceActions ?? (
+            <button
+              type="button"
+              onClick={onOpenAttendance}
+              className={`mt-4 w-full py-3 min-h-[44px] rounded-xl border text-xs font-bold transition-colors ${accentBorderClassName}`}
+            >
+              {attendanceButtonLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

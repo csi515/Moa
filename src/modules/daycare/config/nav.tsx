@@ -2,22 +2,30 @@ import type { ReactNode } from 'react';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
 import {
-  LayoutDashboard,
-  Users,
-  UserSquare2,
-  Clock,
+  buildBillingNavSection,
+  buildClassAttendanceNavSection,
+  buildCustomerNavSection,
+  buildDashboardNavSection,
+  buildFinanceMoreTabs,
+  buildFinanceNavSection,
+  buildNavSection,
+  buildSettingsNavSection,
+  buildStaffNavSection,
+} from '@/core/auth/navBuilders';
+import {
+  AlertCircle,
+  BookOpen,
+  Calendar,
   CheckSquare,
+  Clock,
   CreditCard,
   GraduationCap,
-  Calendar,
-  Settings,
-  AlertCircle,
-  BarChart3,
-  TrendingUp,
-  Receipt,
+  LayoutDashboard,
   MessageSquareText,
-  BookOpen,
   Pill,
+  Settings,
+  UserSquare2,
+  Users,
 } from 'lucide-react';
 import { NOTICE_COPY, noticesNavItem } from '@/core/notices';
 import { accountNavItem } from '@/core/account';
@@ -26,85 +34,26 @@ const icon = (node: ReactNode) => node;
 
 export function getDaycareSidebarSections(labels: ModuleLabels): NavMenuSection[] {
   return [
-    {
-      title: '메인',
-      items: [
-        { tab: 'dashboard', label: '대시보드', icon: icon(<LayoutDashboard className="w-4 h-4" />) },
-      ],
-    },
-    {
-      title: labels.customer.section,
-      items: [
-        { tab: 'students', label: labels.customer.management, icon: icon(<Users className="w-4 h-4" />) },
-        {
-          tab: 'parents',
-          label: labels.contact.management,
-          icon: icon(<UserSquare2 className="w-4 h-4" />),
-        },
-      ],
-    },
-    {
-      title: labels.service.section ?? '반·출결',
-      items: [
-        {
-          tab: 'classes',
-          label: labels.service.management,
-          icon: icon(<GraduationCap className="w-4 h-4" />),
-        },
-        {
-          tab: 'timetable',
-          label: labels.schedule.management,
-          icon: icon(<Clock className="w-4 h-4" />),
-        },
-        { tab: 'attendance', label: '등·하원 관리', icon: icon(<CheckSquare className="w-4 h-4" />) },
-      ],
-    },
-    {
-      title: '보육 기록',
-      items: [
-        { tab: 'journals', label: '알림장', icon: icon(<BookOpen className="w-4 h-4" />) },
-        { tab: 'medications', label: '투약 관리', icon: icon(<Pill className="w-4 h-4" />) },
-        noticesNavItem('sm', NOTICE_COPY.daycareNavLabel),
-        {
-          tab: 'consultations',
-          label: '상담 이력',
-          icon: icon(<MessageSquareText className="w-4 h-4" />),
-        },
-      ],
-    },
-    {
-      title: '수납',
-      items: [
-        { tab: 'tuition', label: '보육료 및 수납', icon: icon(<CreditCard className="w-4 h-4" />) },
-        { tab: 'unpaid', label: '미납 통합 관리', icon: icon(<AlertCircle className="w-4 h-4" />) },
-      ],
-    },
-    {
-      title: labels.staff.section ?? '보육 인력',
-      items: [
-        {
-          tab: 'teachers',
-          label: labels.staff.management,
-          icon: icon(<GraduationCap className="w-4 h-4" />),
-        },
-        { tab: 'calendar', label: '원 캘린더', icon: icon(<Calendar className="w-4 h-4" />) },
-      ],
-    },
-    {
-      title: '재무 관리',
-      items: [
-        { tab: 'finance', label: '재무 요약', icon: icon(<BarChart3 className="w-4 h-4" />) },
-        { tab: 'income', label: '수입 관리', icon: icon(<TrendingUp className="w-4 h-4" />) },
-        { tab: 'expenses', label: '지출 관리', icon: icon(<Receipt className="w-4 h-4" />) },
-      ],
-    },
-    {
-      title: '설정',
-      items: [
-        { tab: 'settings', label: '어린이집 설정', icon: icon(<Settings className="w-4 h-4" />) },
-        accountNavItem('sm'),
-      ],
-    },
+    buildDashboardNavSection(),
+    buildCustomerNavSection(labels),
+    buildClassAttendanceNavSection(labels, {
+      sectionTitle: labels.service.section ?? '반·출결',
+      attendanceLabel: '등·하원 관리',
+    }),
+    buildNavSection('보육 기록', [
+      { tab: 'journals', label: '알림장', icon: icon(<BookOpen className="w-4 h-4" />) },
+      { tab: 'medications', label: '투약 관리', icon: icon(<Pill className="w-4 h-4" />) },
+      noticesNavItem('sm', NOTICE_COPY.daycareNavLabel),
+      {
+        tab: 'consultations',
+        label: '상담 이력',
+        icon: icon(<MessageSquareText className="w-4 h-4" />),
+      },
+    ]),
+    buildBillingNavSection({ tuitionLabel: '보육료 및 수납' }),
+    buildStaffNavSection(labels, '원 캘린더'),
+    buildFinanceNavSection(),
+    buildSettingsNavSection('어린이집 설정'),
   ];
 }
 
@@ -133,9 +82,7 @@ export function getDaycareMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'unpaid', label: '미납 통합', icon: icon(<AlertCircle className="w-5 h-5" />) },
     { tab: 'teachers', label: labels.staff.singular, icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'calendar', label: '캘린더', icon: icon(<Calendar className="w-5 h-5" />) },
-    { tab: 'finance', label: '재무 요약', icon: icon(<BarChart3 className="w-5 h-5" />) },
-    { tab: 'income', label: '수입', icon: icon(<TrendingUp className="w-5 h-5" />) },
-    { tab: 'expenses', label: '지출', icon: icon(<Receipt className="w-5 h-5" />) },
+    ...buildFinanceMoreTabs(),
     { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
     accountNavItem('lg'),
   ];

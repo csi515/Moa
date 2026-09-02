@@ -3,6 +3,7 @@ import {
   buildBillingSection,
   buildClassesSection,
   buildCustomerSection,
+  buildGuideSection,
   buildStaffSection,
   type FeatureGuideSection,
 } from './guideBuilders';
@@ -69,25 +70,21 @@ const COMMON_NOTICES: FeatureGuideSection = {
 };
 
 const PIANO_GUIDE: FeatureGuideSection[] = [
-  {
-    id: 'customers',
+  buildCustomerSection({
     title: '원생·학부모',
     description: '등록 원생과 보호자 연락처를 관리합니다.',
-    items: [
-      {
-        id: 'students',
-        title: '원생 관리',
-        summary: '원생 등록, 재원/휴원/퇴원, 담당 강사·반을 관리합니다.',
-      },
-      {
-        id: 'parents',
-        title: '학부모 관리',
-        summary: '학부모 연락처와 연결된 원생을 관리합니다.',
-      },
-    ],
-  },
-  {
-    id: 'classes',
+    customerItem: {
+      id: 'students',
+      title: '원생 관리',
+      summary: '원생 등록, 재원/휴원/퇴원, 담당 강사·반을 관리합니다.',
+    },
+    parentItem: {
+      id: 'parents',
+      title: '학부모 관리',
+      summary: '학부모 연락처와 연결된 원생을 관리합니다.',
+    },
+  }),
+  buildClassesSection({
     title: '수업·출결',
     description: '반 편성, 시간표, PIN 출입, 보강 수업을 다룹니다.',
     items: [
@@ -112,8 +109,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '결석한 원생의 보강 일정을 잡습니다.',
       },
     ],
-  },
-  {
+  }),
+  buildGuideSection({
     id: 'education',
     title: '교육·일지',
     description: '레슨·연습·상담·교재 자료를 남깁니다.',
@@ -139,30 +136,21 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '교재·곡 자료를 정리합니다.',
       },
     ],
-  },
-  {
-    id: 'billing',
-    title: '수납',
+  }),
+  buildBillingSection({
     description: '수강료 청구·미납·교재비를 관리합니다.',
-    items: [
-      {
-        id: 'tuition',
-        title: '수강료 및 수납',
-        summary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
-      },
-      {
-        id: 'unpaid',
-        title: '미납 통합 관리',
-        summary: '미납 원생을 모아 보고 연락·수납을 이어갑니다.',
-      },
+    tuitionTitle: '수강료 및 수납',
+    tuitionSummary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
+    unpaidSummary: '미납 원생을 모아 보고 연락·수납을 이어갑니다.',
+    extraItems: [
       {
         id: 'textbooks',
         title: '교재 판매·재고',
         summary: '교재 판매와 재고를 관리합니다.',
       },
     ],
-  },
-  {
+  }),
+  buildGuideSection({
     id: 'quality',
     title: '교육 품질',
     description: '커리큘럼·과제·시험·리포트로 학습 품질을 봅니다.',
@@ -188,8 +176,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '학부모에게 전달할 학습 요약을 만듭니다.',
       },
     ],
-  },
-  {
+  }),
+  buildGuideSection({
     id: 'ops',
     title: '학원 운영',
     description: '강사·일정·행사 운영에 사용합니다.',
@@ -210,7 +198,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '연주회·콩쿠르 참가와 영상 현황을 관리합니다.',
       },
     ],
-  },
+  }),
   COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,

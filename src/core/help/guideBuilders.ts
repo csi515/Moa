@@ -41,12 +41,28 @@ export function buildClassesSection(options: {
   };
 }
 
+/** 업종 공통 — 임의 섹션 */
+export function buildGuideSection(options: {
+  id: string;
+  title: string;
+  description: string;
+  items: FeatureGuideItem[];
+}): FeatureGuideSection {
+  return {
+    id: options.id,
+    title: options.title,
+    description: options.description,
+    items: options.items,
+  };
+}
+
 /** 업종 공통 — 수납·미납 섹션 */
 export function buildBillingSection(options: {
   description: string;
   tuitionTitle: string;
   tuitionSummary: string;
   unpaidSummary: string;
+  extraItems?: FeatureGuideItem[];
 }): FeatureGuideSection {
   return {
     id: 'billing',
@@ -63,6 +79,7 @@ export function buildBillingSection(options: {
         title: '미납 통합 관리',
         summary: options.unpaidSummary,
       },
+      ...(options.extraItems ?? []),
     ],
   };
 }
