@@ -1,29 +1,20 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh, useStaffScope } from '@/hooks';
-import { StorageService } from '@/services/storage';
+import { useIndustryDashboardMetrics } from '@/core/dashboard/useIndustryDashboardMetrics';
+import { useModuleLabels } from '@/core/labels';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
 import { Baby, Users, UserPlus, CheckSquare, BookOpen, Pill, Megaphone } from 'lucide-react';
-import { useModuleLabels } from '@/core/labels';
 import { filterParentNotices } from '@/core/notices';
+import { StorageService } from '@/services/storage';
+import { useStorageRefresh } from '@/hooks';
 
 export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
   const refreshKey = useStorageRefresh();
-  const { scopeStudents } = useStaffScope();
-
-  const today = new Date().toISOString().slice(0, 10);
-  const students = useMemo(
-    () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
-    [scopeStudents, refreshKey]
-  );
-  const sessions = StorageService.getAttendanceSessions().filter((s) => s.sessionDate === today);
-  const checkedInToday = new Set(sessions.filter((s) => s.checkInAt).map((s) => s.customerId)).size;
-  const teachers = StorageService.getTeachers().filter((t) => t.status === 'active');
-  const classes = StorageService.getClasses();
+  const { today, students, checkedInToday, teachers, classes } = useIndustryDashboardMetrics();
   const todayJournals = useMemo(
     () => StorageService.getCareJournals().filter((j) => j.journalDate === today).length,
     [refreshKey, today]

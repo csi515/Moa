@@ -12,7 +12,7 @@ import {
 import { sendParentInvitationEmail } from '@/core/parent/services/parentInviteService';
 import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
 import { formatGuardianRelationship, searchParents } from '@/core/parent';
-import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
+import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
@@ -184,9 +184,9 @@ export const ParentManagementView: React.FC = () => {
                     <p className="font-mono text-xs text-indigo-600 font-semibold mt-0.5">
                       {formatPhone(parent.phone)}
                     </p>
-                    <span className={`inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${getAccountStatusClass(status)}`}>
-                      {getAccountStatusLabel(status)}
-                    </span>
+                    <div className="mt-1">
+                      <AccountStatusBadge status={status} />
+                    </div>
                   </div>
                 </div>
                 <a
