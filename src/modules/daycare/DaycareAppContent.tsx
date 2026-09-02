@@ -25,7 +25,7 @@ import {
   AcademyCalendarView,
   AcademySettingsView,
   ConsultationRecordsView,
-} from '@/modules/piano';
+} from '@/core/academy';
 import {
   accountViewEntry,
   attendanceViewEntry,

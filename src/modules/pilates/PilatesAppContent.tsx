@@ -26,7 +26,7 @@ import {
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
-import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
+import { AcademySettingsView } from '@/core/academy';
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <PilatesDashboardView />,

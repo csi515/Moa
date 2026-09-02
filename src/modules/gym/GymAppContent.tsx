@@ -24,7 +24,7 @@ import {
   TeacherManagementView,
   AcademyCalendarView,
   AcademySettingsView,
-} from '@/modules/piano';
+} from '@/core/academy';
 import {
   accountViewEntry,
   attendanceViewEntry,
