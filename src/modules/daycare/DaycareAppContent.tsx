@@ -34,6 +34,7 @@ import {
 import { AttendanceManagementView } from '@/core/attendance';
 import { CareJournalView, MedicationRequestView } from './care';
 import { noticesViewEntry } from '@/core/notices';
+import { MyAccountView } from '@/core/account';
 
 /**
  * 어린이집 플러그인 셸.
@@ -58,6 +59,7 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
   settings: () => <AcademySettingsView />,
+  account: () => <MyAccountView />,
 };
 
 export const DaycareAppContent: FC = () => {

@@ -22,6 +22,7 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 import { noticesViewEntry } from '@/core/notices';
+import { MyAccountView } from '@/core/account';
 import {
   DashboardView,
   StudentListView,
@@ -73,6 +74,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   achievements: () => <AchievementsManagementView />,
   reports: () => <ReportsManagementView />,
   settings: () => <AcademySettingsView />,
+  account: () => <MyAccountView />,
 };
 
 export const PianoAppContent: FC = () => {

@@ -20,6 +20,7 @@ import {
   Pill,
 } from 'lucide-react';
 import { NOTICE_COPY, noticesNavItem } from '@/core/notices';
+import { accountNavItem } from '@/core/account';
 
 const icon = (node: ReactNode) => node;
 
@@ -99,7 +100,10 @@ export function getDaycareSidebarSections(labels: ModuleLabels): NavMenuSection[
     },
     {
       title: '설정',
-      items: [{ tab: 'settings', label: '어린이집 설정', icon: icon(<Settings className="w-4 h-4" />) }],
+      items: [
+        { tab: 'settings', label: '어린이집 설정', icon: icon(<Settings className="w-4 h-4" />) },
+        accountNavItem('sm'),
+      ],
     },
   ];
 }
@@ -133,5 +137,6 @@ export function getDaycareMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'income', label: '수입', icon: icon(<TrendingUp className="w-5 h-5" />) },
     { tab: 'expenses', label: '지출', icon: icon(<Receipt className="w-5 h-5" />) },
     { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
+    accountNavItem('lg'),
   ];
 }

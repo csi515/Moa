@@ -12,7 +12,7 @@
     "cap:android": "npx cap open android",
     "cap:ios": "npx cap open ios",
     "icons:generate": "node scripts/generate-app-icons.mjs",
-    "icons:capacitor": "npm run icons:generate && npx @capacitor/assets generate --assetPath resources --iconBackgroundColor '#4f46e5' --splashBackgroundColor '#4f46e5'",
+    "icons:capacitor": "npm run icons:generate && npx @capacitor/assets generate --assetPath resources --iconBackgroundColor '#4f46e5' --splashBackgroundColor '#4f46e5' && node scripts/sync-pwa-manifest.mjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",

@@ -14,6 +14,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { noticesNavItem } from '@/core/notices';
+import { accountNavItem } from '@/core/account';
 
 const icon = (node: ReactNode) => node;
 
@@ -68,7 +69,10 @@ export function getPilatesSidebarSections(labels: ModuleLabels): NavMenuSection[
     },
     {
       title: '설정',
-      items: [{ tab: 'settings', label: '스튜디오 설정', icon: icon(<Settings className="w-4 h-4" />) }],
+      items: [
+        { tab: 'settings', label: '스튜디오 설정', icon: icon(<Settings className="w-4 h-4" />) },
+        accountNavItem('sm'),
+      ],
     },
   ];
 }
@@ -93,5 +97,6 @@ export function getPilatesMoreTabs(): NavMenuItem[] {
     { tab: 'income', label: '수입 관리', icon: icon(<TrendingUp className="w-5 h-5" />) },
     { tab: 'expenses', label: '지출 관리', icon: icon(<Receipt className="w-5 h-5" />) },
     { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
+    accountNavItem('lg'),
   ];
 }

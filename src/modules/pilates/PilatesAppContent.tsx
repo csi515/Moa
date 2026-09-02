@@ -28,6 +28,7 @@ import {
 import { AttendanceManagementView } from '@/core/attendance';
 import { noticesViewEntry } from '@/core/notices';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
+import { MyAccountView } from '@/core/account';
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <PilatesDashboardView />,
@@ -41,6 +42,7 @@ const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
   settings: () => <AcademySettingsView />,
+  account: () => <MyAccountView />,
 };
 
 export const PilatesAppContent: FC = () => {

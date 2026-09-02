@@ -40,6 +40,11 @@ function filterAttendancePinTab(tabs: NavTab[], attendanceEnabled: boolean): Nav
   return tabs.filter((t) => t !== ATTENDANCE_PIN_TAB);
 }
 
+function appendAccountTab(tabs: NavTab[]): NavTab[] {
+  if (tabs.length === 0) return tabs;
+  return tabs.includes('account') ? tabs : [...tabs, 'account'];
+}
+
 export function getAllowedTabs(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined,
@@ -53,18 +58,18 @@ export function getAllowedTabs(
     const base = isOrgOwner(role)
       ? withOwnerFinanceTabs(plugin.adminTabs)
       : plugin.adminTabs;
-    return filterAttendancePinTab(base, attendanceEnabled);
+    return appendAccountTab(filterAttendancePinTab(base, attendanceEnabled));
   }
 
   if (isStaffRole(role)) {
-    return filterAttendancePinTab(plugin.staffTabs, attendanceEnabled);
+    return appendAccountTab(filterAttendancePinTab(plugin.staffTabs, attendanceEnabled));
   }
 
   if (isParentRole(role)) {
     return [];
   }
 
-  return filterAttendancePinTab(withOwnerFinanceTabs(plugin.adminTabs), attendanceEnabled);
+  return appendAccountTab(filterAttendancePinTab(withOwnerFinanceTabs(plugin.adminTabs), attendanceEnabled));
 }
 
 export function canAccessTab(

@@ -1,3 +1,5 @@
+import { isNativeApp } from '@/core/platform';
+
 export type LegalPageId = 'privacy' | 'terms';
 
 export function getPublicLegalPage(): LegalPageId | null {
@@ -13,6 +15,13 @@ export function getPublicLegalPage(): LegalPageId | null {
   return null;
 }
 
-export function legalPageHref(page: LegalPageId): string {
+/** 스토어 등록·외부 공유용 공개 URL */
+export function legalPagePublicHref(page: LegalPageId): string {
   return `/${page}`;
+}
+
+/** 앱 내 링크 — 네이티브는 hash, 웹은 pathname */
+export function legalPageHref(page: LegalPageId): string {
+  if (isNativeApp()) return `#/${page}`;
+  return legalPagePublicHref(page);
 }

@@ -17,6 +17,7 @@ import type { ParentPortalTab } from '@/types/education';
 import { ParentPortalTabs } from './ParentPortalTabs';
 import { ParentReadOnlyBanner } from './ParentReadOnlyBanner';
 import { getParentPortalNav, getParentPortalRoleLabel, getParentPortalSecondaryTabs } from './parentPortalNav';
+import { ParentAccountSection } from './ParentAccountSection';
 
 export interface ParentAcademyPortalProps {
   student: Student;
@@ -108,6 +109,8 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
           onNavigate={setActiveTab}
           industryType={industryType}
         />
+
+        <ParentAccountSection />
       </div>
 
       <nav className="fixed bottom-0 inset-x-0 bg-white border-t border-slate-200 px-1 py-1 flex justify-around z-40">

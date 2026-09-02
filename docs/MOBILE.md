@@ -136,7 +136,7 @@ moa://open?link=XY98ZW76
 ### 정책·법무
 - [x] **개인정보처리방침 URL** — 앱 내 `/privacy` + 배포 URL 등록
 - [ ] App Privacy (데이터 수집 유형) 설문
-- [x] **계정 삭제** 경로 제공 — 설정 > 계정 탈퇴 (`delete_my_account` RPC)
+- [x] **계정 삭제** 경로 제공 — 더보기 > **내 계정** + 학부모 포털 하단 (`delete_my_account` RPC)
 - [ ] 심사용 **데모 계정** (원장 + 학부모 등)
 
 ### iOS 특이사항
@@ -151,7 +151,7 @@ moa://open?link=XY98ZW76
 - [ ] HTTPS 프로덕션 배포
 - [ ] `VITE_APP_URL` = 실제 배포 URL
 - [ ] Lighthouse PWA audit 통과 권장
-- [x] PNG 아이콘 192/512 (`public/icons/`, `manifest.json` 반영)
+- [x] PNG 아이콘 192/512 (`public/icons/`, `manifest.json` — `icons:capacitor` 후 `sync-pwa-manifest` 자동 복원)
 - [x] `vercel.json` SPA rewrite + `.well-known` 템플릿 배포
 
 ---

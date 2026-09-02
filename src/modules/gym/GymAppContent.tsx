@@ -32,6 +32,7 @@ import {
 } from '@/core/finance';
 import { AttendanceManagementView } from '@/core/attendance';
 import { noticesViewEntry } from '@/core/notices';
+import { MyAccountView } from '@/core/account';
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
@@ -49,6 +50,7 @@ const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   income: () => <IncomeManagementView />,
   expenses: () => <ExpenseManagementView />,
   settings: () => <AcademySettingsView />,
+  account: () => <MyAccountView />,
 };
 
 export const GymAppContent: FC = () => {

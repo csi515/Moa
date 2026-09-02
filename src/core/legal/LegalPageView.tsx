@@ -11,6 +11,10 @@ interface LegalPageViewProps {
 }
 
 function goBack() {
+  if (window.location.hash) {
+    window.location.hash = '';
+    return;
+  }
   if (window.history.length > 1) {
     window.history.back();
     return;

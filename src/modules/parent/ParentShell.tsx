@@ -18,8 +18,7 @@ import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPo
 import { ParentAddChildModal } from './ParentAddChildModal';
 import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
-import { AccountDeletionCard } from '@/core/account';
-import { LegalLinks } from '@/core/legal';
+import { ParentAccountSection } from './ParentAccountSection';
 
 export const ParentShell: React.FC = () => {
   return (
@@ -196,10 +195,9 @@ function ParentShellContent() {
         {step === 'academies' && <ParentAcademyPicker />}
         {step === 'portal' && <ParentPortalHydrated />}
 
-        {(step === 'children' || step === 'academies') && (
-          <div className="mt-8 space-y-4">
-            <AccountDeletionCard description="학부모 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 학원에 등록된 원생 정보는 학원 데이터로 남을 수 있습니다." />
-            <LegalLinks />
+        {step !== 'portal' && (
+          <div className="mt-8">
+            <ParentAccountSection />
           </div>
         )}
       </main>

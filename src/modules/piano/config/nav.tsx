@@ -25,6 +25,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { noticesNavItem } from '@/core/notices';
+import { accountNavItem } from '@/core/account';
 
 const icon = (node: ReactNode) => node;
 
@@ -123,6 +124,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         { tab: 'calendar', label: '학원 캘린더', icon: icon(<Calendar className="w-4 h-4" />) },
         { tab: 'recitals', label: '연주회·콩쿠르', icon: icon(<Award className="w-4 h-4" />) },
         { tab: 'settings', label: '학원 설정', icon: icon(<Settings className="w-4 h-4" />) },
+        accountNavItem('sm'),
       ],
     },
   ];
@@ -179,5 +181,6 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'achievements', label: '시험·콩쿠르', icon: icon(<Award className="w-5 h-5" />) },
     { tab: 'reports', label: '학습 리포트', icon: icon(<FileText className="w-5 h-5" />) },
     { tab: 'settings', label: '학원 설정', icon: icon(<Settings className="w-5 h-5" />) },
+    accountNavItem('lg'),
   ];
 }
