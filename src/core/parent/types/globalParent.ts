@@ -45,6 +45,7 @@ export interface StudentEnrollment {
   status: EnrollmentStatus;
   enrolledAt: string | null;
   leftAt: string | null;
+  checkInPinSet?: boolean;
 }
 
 /** 전역 자녀 + 등록 목록 */

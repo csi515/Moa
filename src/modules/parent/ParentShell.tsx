@@ -18,6 +18,7 @@ import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPo
 import { ParentAddChildModal } from './ParentAddChildModal';
 import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
+import { ParentChildPinSection } from './components/ParentChildPinSection';
 
 export const ParentShell: React.FC = () => {
   return (
@@ -193,6 +194,16 @@ function ParentShellContent() {
         {step === 'children' && <ParentChildrenHome />}
         {step === 'academies' && <ParentAcademyPicker />}
         {step === 'portal' && <ParentPortalHydrated />}
+
+        {step === 'children' && portalTree && portalTree.children.length > 0 && (
+          <div className="mt-8">
+            <ParentChildPinSection
+              children={portalTree.children}
+              onRefresh={refreshPortalTree}
+              showToast={showToast}
+            />
+          </div>
+        )}
       </main>
 
       {loading && portalTree && (
