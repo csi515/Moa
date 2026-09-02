@@ -1,21 +1,10 @@
-import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
-import { StorageService } from '@/services/storage';
-import { RecitalService } from '@/modules/piano/services/recitalService';
-import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
-import { Student, TuitionInvoice, PerformanceVideo, TextbookSale } from '@/types';
-import { isValidYouTubeUrl } from '@/utils/youtube';
+import React from 'react';
+import type { Student } from '@/types';
 import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal';
-import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
-import { usePermissions } from '@/core/auth/usePermissions';
-import { getIndustryPlugin } from '@/core/industry/registry';
-import { isSupabaseConfigured } from '@/lib/supabase';
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
-import { getLevelColor, getStudentStatusBadge, formatPhone } from '@/utils/formatters';
 import { X, Phone, Edit, Trash2 } from 'lucide-react';
-import { DetailTab, getDetailTabConfig } from './detail/types';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
 import { StudentDetailAttendanceTab } from './detail/StudentDetailAttendanceTab';
@@ -25,6 +14,8 @@ import { StudentDetailConsultationsTab } from './detail/StudentDetailConsultatio
 import { StudentDetailPracticeTab } from './detail/StudentDetailPracticeTab';
 import { StudentDetailVideosTab } from './detail/StudentDetailVideosTab';
 import { StudentDetailMemoTab } from './detail/StudentDetailMemoTab';
+import { useStudentDetailModal } from './useStudentDetailModal';
+import type { DetailTab } from './detail/types';
 
 export type { DetailTab } from './detail/types';
 
@@ -37,7 +28,14 @@ interface StudentDetailModalProps {
   onInitialTabApplied?: () => void;
 }
 
-export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
+export const StudentDetailModal: React.FC<StudentDetailModalProps> = (props) => {
+  if (!props.isOpen || !props.student) return null;
+  return <StudentDetailModalContent {...props} student={props.student} />;
+};
+
+const StudentDetailModalContent: React.FC<
+  Omit<StudentDetailModalProps, 'student'> & { student: Student }
+> = ({
   student,
   isOpen,
   onClose,
@@ -45,256 +43,17 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
   initialTab,
   onInitialTabApplied,
 }) => {
-  const { showToast, openConfirmDialog, currentUser, triggerRefresh } = useApp();
-  const { attendanceEnabled, isAdmin, industry } = usePermissions();
-  const industryPlugin = getIndustryPlugin(industry);
-  const [currentTab, setCurrentTab] = useState<DetailTab>('info');
-  const [guardianLinkOpen, setGuardianLinkOpen] = useState(false);
-
-  React.useEffect(() => {
-    if (isOpen && initialTab) {
-      setCurrentTab(initialTab);
-      onInitialTabApplied?.();
-    }
-  }, [isOpen, initialTab, onInitialTabApplied]);
-
-  const [isAddAttOpen, setIsAddAttOpen] = useState(false);
-  const [newAttStatus, setNewAttStatus] = useState<any>('present');
-  const [newAttDate, setNewAttDate] = useState(new Date().toISOString().slice(0, 10));
-  const [newAttMemo, setNewAttMemo] = useState('');
-
-  const [isAddCstOpen, setIsAddCstOpen] = useState(false);
-  const [newCstType, setNewCstType] = useState<any>('learning');
-  const [newCstContent, setNewCstContent] = useState('');
-  const [newCstResult, setNewCstResult] = useState('');
-  const [newCstNextDate, setNewCstNextDate] = useState('');
-
-  const [isAddPrOpen, setIsAddPrOpen] = useState(false);
-  const [newPrDate, setNewPrDate] = useState(new Date().toISOString().slice(0, 10));
-  const [newPrMinutes, setNewPrMinutes] = useState(40);
-  const [newPrSong, setNewPrSong] = useState('');
-  const [newPrDifficulty, setNewPrDifficulty] = useState('');
-  const [newPrHomework, setNewPrHomework] = useState('');
-
-  const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
-  const [newVideoTitle, setNewVideoTitle] = useState('');
-  const [newVideoUrl, setNewVideoUrl] = useState('');
-  const [newVideoDate, setNewVideoDate] = useState(new Date().toISOString().slice(0, 10));
-  const [newVideoType, setNewVideoType] = useState<PerformanceVideo['eventType']>('recital');
-  const [newVideoEventId, setNewVideoEventId] = useState('');
-  const [newVideoSong, setNewVideoSong] = useState('');
-  const [newVideoMemo, setNewVideoMemo] = useState('');
-  const [previewVideoId, setPreviewVideoId] = useState<string | null>(null);
-
-  const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
-  const [payAmount, setPayAmount] = useState(0);
-  const [payMethod, setPayMethod] = useState<'card' | 'transfer' | 'cash' | 'other'>('card');
-  const [payMemo, setPayMemo] = useState('');
-
-  const [isStudentSaleModalOpen, setIsStudentSaleModalOpen] = useState(false);
-  const [isStudentTbPaymentModalOpen, setIsStudentTbPaymentModalOpen] = useState(false);
-  const [selectedStudentSaleForPay, setSelectedStudentSaleForPay] = useState<TextbookSale | null>(null);
-  const [isTbReceiptOpen, setIsTbReceiptOpen] = useState(false);
-  const [tbReceiptSale, setTbReceiptSale] = useState<TextbookSale | null>(null);
-
-  if (!isOpen || !student) return null;
-
-  const allClasses = StorageService.getClasses();
-  const enrolledClasses = allClasses.filter((c) => student.classIds?.includes(c.id));
-  const allAttendance = StorageService.getAttendance().filter((a) => a.studentId === student.id);
-  const allInvoices = StorageService.getInvoices().filter((i) => i.studentId === student.id);
-  const allConsultations = StorageService.getConsultations().filter((c) => c.studentId === student.id);
-  const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
-  const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
-  const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
-  const recitalEvents = RecitalService.getRecitalEvents();
-  const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
-  const billingSummary = StorageService.getStudentBillingSummary(student.id);
-  const guardians = getGuardiansForStudent(student.id);
-  const primaryGuardian = guardians.find((g) => g.isPrimary) || guardians[0];
-
-  const totalAttCount = allAttendance.length;
-  const presentCount = allAttendance.filter((a) => a.status === 'present' || a.status === 'make_up').length;
-  const attRate = totalAttCount > 0 ? Math.round((presentCount / totalAttCount) * 100) : 100;
-
-  const totalPracticeMinutes = allPractice.reduce((sum, p) => sum + p.minutes, 0);
-
-  const handleDelete = () => {
-    openConfirmDialog({
-      title: '원생 정보 삭제',
-      message: `${student.name} 원생을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
-      isDestructive: true,
-      confirmText: '삭제하기',
-      onConfirm: () => {
-        StorageService.deleteStudent(student.id);
-        showToast(`${student.name} 원생이 삭제되었습니다.`, 'info');
-        onClose();
-      }
-    });
-  };
-
-  const handleSaveAttendance = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetClass = enrolledClasses[0] || allClasses[0];
-    StorageService.saveAttendanceRecord({
-      date: newAttDate,
-      studentId: student.id,
-      studentName: student.name,
-      classId: targetClass ? targetClass.id : 'c-default',
-      className: targetClass ? targetClass.name : '일반 레슨',
-      status: newAttStatus,
-      memo: newAttMemo,
-      createdBy: currentUser.name
-    });
-    showToast('출결 기록이 저장되었습니다.', 'success');
-    setIsAddAttOpen(false);
-    setNewAttMemo('');
-  };
-
-  const handleSaveConsultation = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newCstContent.trim()) {
-      showToast('상담 내용을 입력해주세요.', 'warning');
-      return;
-    }
-    StorageService.saveConsultation({
-      studentId: student.id,
-      studentName: student.name,
-      parentName: getPrimaryGuardian(student.id)?.parentName || student.parentName || '학부모',
-      date: new Date().toISOString().slice(0, 10),
-      type: newCstType,
-      content: newCstContent.trim(),
-      result: newCstResult.trim(),
-      nextDate: newCstNextDate || undefined,
-      counselorId: StorageService.getTeachers()[0]?.id || '',
-      counselorName: currentUser.name
-    });
-    showToast('상담 기록이 저장되었습니다.', 'success');
-    setIsAddCstOpen(false);
-    setNewCstContent('');
-    setNewCstResult('');
-  };
-
-  const handleSavePractice = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newPrSong.trim()) {
-      showToast('연습곡을 입력해주세요.', 'warning');
-      return;
-    }
-    StorageService.savePracticeRecord({
-      studentId: student.id,
-      studentName: student.name,
-      date: newPrDate,
-      minutes: Number(newPrMinutes) || 30,
-      songTitle: newPrSong.trim(),
-      difficultyPart: newPrDifficulty.trim(),
-      homework: newPrHomework.trim(),
-      teacherEvaluation: '⭐⭐⭐⭐'
-    });
-    showToast('연습 기록이 저장되었습니다.', 'success');
-    setIsAddPrOpen(false);
-    setNewPrSong('');
-    setNewPrDifficulty('');
-    setNewPrHomework('');
-  };
-
-  const handleSaveVideo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newVideoTitle.trim()) {
-      showToast('영상 제목을 입력해주세요.', 'warning');
-      return;
-    }
-    if (!isValidYouTubeUrl(newVideoUrl)) {
-      showToast('올바른 YouTube 링크를 입력해주세요.', 'warning');
-      return;
-    }
-    const linkedEvent = newVideoEventId
-      ? recitalEvents.find((ev) => ev.id === newVideoEventId)
-      : undefined;
-
-    StorageService.savePerformanceVideo({
-      studentId: student.id,
-      studentName: student.name,
-      title: newVideoTitle.trim(),
-      youtubeUrl: newVideoUrl.trim(),
-      recordedDate: newVideoDate || undefined,
-      eventType: newVideoType,
-      songTitle: newVideoSong.trim() || undefined,
-      memo: newVideoMemo.trim() || undefined,
-      eventId: linkedEvent?.id,
-      eventTitle: linkedEvent?.title,
-    });
-    showToast('연주 영상이 등록되었습니다.', 'success');
-    setIsAddVideoOpen(false);
-    setNewVideoTitle('');
-    setNewVideoUrl('');
-    setNewVideoEventId('');
-    setNewVideoSong('');
-    setNewVideoMemo('');
-  };
-
-  const handleVideoEventChange = (eventId: string) => {
-    setNewVideoEventId(eventId);
-    if (!eventId) return;
-    const ev = recitalEvents.find((item) => item.id === eventId);
-    if (!ev) return;
-    setNewVideoDate(ev.startDate);
-    setNewVideoType(RecitalService.eventTypeToVideoType(ev.type));
-    if (!newVideoTitle.trim()) {
-      setNewVideoTitle(`${ev.title} - ${student.name}`);
-    }
-  };
-
-  const handleDeleteVideo = (video: PerformanceVideo) => {
-    openConfirmDialog({
-      title: '연주 영상 삭제',
-      message: `'${video.title}' 영상을 삭제하시겠습니까?`,
-      isDestructive: true,
-      confirmText: '삭제하기',
-      onConfirm: () => {
-        StorageService.deletePerformanceVideo(video.id);
-        if (previewVideoId === video.id) setPreviewVideoId(null);
-        showToast('연주 영상이 삭제되었습니다.', 'info');
-      },
-    });
-  };
-
-  const videoTypeLabel = PERFORMANCE_VIDEO_TYPE_LABEL;
-
-  const handleOpenPayModal = (inv: TuitionInvoice) => {
-    setPayInvoiceId(inv.id);
-    setPayAmount(inv.unpaidAmount);
-    setPayMethod('card');
-    setPayMemo('');
-  };
-
-  const handleProcessPayment = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payInvoiceId) return;
-    StorageService.recordPayment(payInvoiceId, payAmount, payMethod, payMemo);
-    showToast(`₩${payAmount.toLocaleString()}원 수납 처리가 완료되었습니다.`, 'success');
-    setPayInvoiceId(null);
-  };
-
-  const handleCreateInvoice = () => {
-    StorageService.createInvoiceForStudent(student);
-    showToast('이번 달 신규 청구서가 발행되었습니다.', 'success');
-  };
-
-  const statusBadge = getStudentStatusBadge(student.status);
-
-  const tabConfig = getDetailTabConfig({
-    enrolledClasses: enrolledClasses.length,
-    attRate,
-    invoiceCount: allInvoices.length,
-    salesCount: studentSales.length,
-    consultationCount: allConsultations.length,
-    practiceCount: allPractice.length,
-    videoCount: allVideos.length,
+  const modal = useStudentDetailModal({
+    student,
+    isOpen,
+    initialTab,
+    onInitialTabApplied,
+    onClose,
+    onEdit,
   });
 
   return (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden sm:my-4 flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-4">
@@ -309,10 +68,10 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   {student.name}
                 </h3>
-                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${statusBadge.bg}`}>
-                  {statusBadge.label}
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${modal.statusBadge.bg}`}>
+                  {modal.statusBadge.label}
                 </span>
-                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${getLevelColor(student.level)}`}>
+                <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold border ${modal.levelColor}`}>
                   {student.level}
                 </span>
                 <span className="text-xs font-mono text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
@@ -326,9 +85,9 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-center">
-            {primaryGuardian?.parentPhone && (
+            {modal.primaryGuardian?.parentPhone && (
               <a
-                href={`tel:${primaryGuardian.parentPhone}`}
+                href={`tel:${modal.primaryGuardian.parentPhone}`}
                 className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
               >
                 <Phone className="w-3.5 h-3.5" />
@@ -344,7 +103,7 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
                 <Edit className="w-4 h-4" />
               </button>
               <button
-                onClick={handleDelete}
+                onClick={modal.handleDelete}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
                 title="원생 삭제"
               >
@@ -362,14 +121,13 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          {/* 데스크톱 세로 탭 */}
           <nav className="hidden lg:flex flex-col w-52 shrink-0 border-r border-slate-200 bg-slate-50/60 overflow-y-auto py-2">
-            {tabConfig.map((tab) => {
-              const isActive = currentTab === tab.id;
+            {modal.tabConfig.map((tab) => {
+              const isActive = modal.currentTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setCurrentTab(tab.id)}
+                  onClick={() => modal.setCurrentTab(tab.id)}
                   className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-xs'
@@ -384,14 +142,13 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
           </nav>
 
           <div className="flex-1 flex flex-col min-w-0">
-            {/* 모바일 가로 탭 */}
             <div className="lg:hidden flex items-center gap-1 px-4 sm:px-6 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none">
-              {tabConfig.map((tab) => {
-                const isActive = currentTab === tab.id;
+              {modal.tabConfig.map((tab) => {
+                const isActive = modal.currentTab === tab.id;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => setCurrentTab(tab.id)}
+                    onClick={() => modal.setCurrentTab(tab.id)}
                     className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
                       isActive
                         ? 'border-indigo-600 text-indigo-600'
@@ -406,183 +163,181 @@ export const StudentDetailModal: React.FC<StudentDetailModalProps> = ({
             </div>
 
             <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
-          {currentTab === 'info' && (
-            <StudentDetailInfoTab
-              student={student}
-              guardians={guardians}
-              totalPracticeMinutes={totalPracticeMinutes}
-              attendanceEnabled={attendanceEnabled}
-              isAdmin={isAdmin}
-              isSupabaseConfigured={isSupabaseConfigured()}
-              levelLabel={industryPlugin.levelLabel}
-              showPickupFields={industryPlugin.showPickupFields}
-              onEdit={onEdit}
-              onOpenGuardianLink={() => setGuardianLinkOpen(true)}
-            />
-          )}
+              {modal.currentTab === 'info' && (
+                <StudentDetailInfoTab
+                  student={student}
+                  guardians={modal.guardians}
+                  totalPracticeMinutes={modal.totalPracticeMinutes}
+                  attendanceEnabled={modal.attendanceEnabled}
+                  isAdmin={modal.isAdmin}
+                  isSupabaseConfigured={modal.isSupabaseConfigured}
+                  levelLabel={modal.industryPlugin.levelLabel}
+                  showPickupFields={modal.industryPlugin.showPickupFields}
+                  onEdit={onEdit}
+                  onOpenGuardianLink={() => modal.setGuardianLinkOpen(true)}
+                />
+              )}
 
-          {currentTab === 'classes' && (
-            <StudentDetailClassesTab enrolledClasses={enrolledClasses} />
-          )}
+              {modal.currentTab === 'classes' && (
+                <StudentDetailClassesTab enrolledClasses={modal.enrolledClasses} />
+              )}
 
-          {currentTab === 'attendance' && (
-            <StudentDetailAttendanceTab
-              allAttendance={allAttendance}
-              totalAttCount={totalAttCount}
-              presentCount={presentCount}
-              attRate={attRate}
-              isAddAttOpen={isAddAttOpen}
-              setIsAddAttOpen={setIsAddAttOpen}
-              newAttDate={newAttDate}
-              setNewAttDate={setNewAttDate}
-              newAttStatus={newAttStatus}
-              setNewAttStatus={setNewAttStatus}
-              newAttMemo={newAttMemo}
-              setNewAttMemo={setNewAttMemo}
-              onSaveAttendance={handleSaveAttendance}
-            />
-          )}
+              {modal.currentTab === 'attendance' && (
+                <StudentDetailAttendanceTab
+                  allAttendance={modal.allAttendance}
+                  totalAttCount={modal.totalAttCount}
+                  presentCount={modal.presentCount}
+                  attRate={modal.attRate}
+                  isAddAttOpen={modal.attendance.isAddAttOpen}
+                  setIsAddAttOpen={modal.attendance.setIsAddAttOpen}
+                  newAttDate={modal.attendance.newAttDate}
+                  setNewAttDate={modal.attendance.setNewAttDate}
+                  newAttStatus={modal.attendance.newAttStatus}
+                  setNewAttStatus={modal.attendance.setNewAttStatus}
+                  newAttMemo={modal.attendance.newAttMemo}
+                  setNewAttMemo={modal.attendance.setNewAttMemo}
+                  onSaveAttendance={modal.attendance.onSave}
+                />
+              )}
 
-          {currentTab === 'tuition' && (
-            <StudentDetailTuitionTab
-              allInvoices={allInvoices}
-              payInvoiceId={payInvoiceId}
-              setPayInvoiceId={setPayInvoiceId}
-              payAmount={payAmount}
-              setPayAmount={setPayAmount}
-              payMethod={payMethod}
-              setPayMethod={setPayMethod}
-              payMemo={payMemo}
-              setPayMemo={setPayMemo}
-              onCreateInvoice={handleCreateInvoice}
-              onOpenPayModal={handleOpenPayModal}
-              onProcessPayment={handleProcessPayment}
-            />
-          )}
+              {modal.currentTab === 'tuition' && (
+                <StudentDetailTuitionTab
+                  allInvoices={modal.allInvoices}
+                  payInvoiceId={modal.tuition.payInvoiceId}
+                  setPayInvoiceId={modal.tuition.setPayInvoiceId}
+                  payAmount={modal.tuition.payAmount}
+                  setPayAmount={modal.tuition.setPayAmount}
+                  payMethod={modal.tuition.payMethod}
+                  setPayMethod={modal.tuition.setPayMethod}
+                  payMemo={modal.tuition.payMemo}
+                  setPayMemo={modal.tuition.setPayMemo}
+                  onCreateInvoice={modal.tuition.onCreateInvoice}
+                  onOpenPayModal={modal.tuition.onOpenPayModal}
+                  onProcessPayment={modal.tuition.onProcessPayment}
+                />
+              )}
 
-          {currentTab === 'textbooks' && (
-            <StudentDetailTextbooksTab
-              studentSales={studentSales}
-              billingSummary={billingSummary}
-              onOpenSaleModal={() => setIsStudentSaleModalOpen(true)}
-              onOpenPaymentModal={(sale) => {
-                setSelectedStudentSaleForPay(sale);
-                setIsStudentTbPaymentModalOpen(true);
-              }}
-              onOpenReceiptModal={(sale) => {
-                setTbReceiptSale(sale);
-                setIsTbReceiptOpen(true);
-              }}
-            />
-          )}
+              {modal.currentTab === 'textbooks' && (
+                <StudentDetailTextbooksTab
+                  studentSales={modal.studentSales}
+                  billingSummary={modal.billingSummary}
+                  onOpenSaleModal={() => modal.textbooks.setIsStudentSaleModalOpen(true)}
+                  onOpenPaymentModal={(sale) => {
+                    modal.textbooks.setSelectedStudentSaleForPay(sale);
+                    modal.textbooks.setIsStudentTbPaymentModalOpen(true);
+                  }}
+                  onOpenReceiptModal={(sale) => {
+                    modal.textbooks.setTbReceiptSale(sale);
+                    modal.textbooks.setIsTbReceiptOpen(true);
+                  }}
+                />
+              )}
 
-          {currentTab === 'consultations' && (
-            <StudentDetailConsultationsTab
-              allConsultations={allConsultations}
-              isAddCstOpen={isAddCstOpen}
-              setIsAddCstOpen={setIsAddCstOpen}
-              newCstType={newCstType}
-              setNewCstType={setNewCstType}
-              newCstContent={newCstContent}
-              setNewCstContent={setNewCstContent}
-              newCstResult={newCstResult}
-              setNewCstResult={setNewCstResult}
-              newCstNextDate={newCstNextDate}
-              setNewCstNextDate={setNewCstNextDate}
-              onSaveConsultation={handleSaveConsultation}
-            />
-          )}
+              {modal.currentTab === 'consultations' && (
+                <StudentDetailConsultationsTab
+                  allConsultations={modal.allConsultations}
+                  isAddCstOpen={modal.consultations.isAddCstOpen}
+                  setIsAddCstOpen={modal.consultations.setIsAddCstOpen}
+                  newCstType={modal.consultations.newCstType}
+                  setNewCstType={modal.consultations.setNewCstType}
+                  newCstContent={modal.consultations.newCstContent}
+                  setNewCstContent={modal.consultations.setNewCstContent}
+                  newCstResult={modal.consultations.newCstResult}
+                  setNewCstResult={modal.consultations.setNewCstResult}
+                  newCstNextDate={modal.consultations.newCstNextDate}
+                  setNewCstNextDate={modal.consultations.setNewCstNextDate}
+                  onSaveConsultation={modal.consultations.onSave}
+                />
+              )}
 
-          {currentTab === 'practice' && (
-            <StudentDetailPracticeTab
-              allPractice={allPractice}
-              allLessons={allLessons}
-              totalPracticeMinutes={totalPracticeMinutes}
-              isAddPrOpen={isAddPrOpen}
-              setIsAddPrOpen={setIsAddPrOpen}
-              newPrDate={newPrDate}
-              setNewPrDate={setNewPrDate}
-              newPrMinutes={newPrMinutes}
-              setNewPrMinutes={setNewPrMinutes}
-              newPrSong={newPrSong}
-              setNewPrSong={setNewPrSong}
-              newPrDifficulty={newPrDifficulty}
-              setNewPrDifficulty={setNewPrDifficulty}
-              onSavePractice={handleSavePractice}
-            />
-          )}
+              {modal.currentTab === 'practice' && (
+                <StudentDetailPracticeTab
+                  allPractice={modal.allPractice}
+                  allLessons={modal.allLessons}
+                  totalPracticeMinutes={modal.totalPracticeMinutes}
+                  isAddPrOpen={modal.practice.isAddPrOpen}
+                  setIsAddPrOpen={modal.practice.setIsAddPrOpen}
+                  newPrDate={modal.practice.newPrDate}
+                  setNewPrDate={modal.practice.setNewPrDate}
+                  newPrMinutes={modal.practice.newPrMinutes}
+                  setNewPrMinutes={modal.practice.setNewPrMinutes}
+                  newPrSong={modal.practice.newPrSong}
+                  setNewPrSong={modal.practice.setNewPrSong}
+                  newPrDifficulty={modal.practice.newPrDifficulty}
+                  setNewPrDifficulty={modal.practice.setNewPrDifficulty}
+                  onSavePractice={modal.practice.onSave}
+                />
+              )}
 
-          {currentTab === 'videos' && (
-            <StudentDetailVideosTab
-              allVideos={allVideos}
-              recitalEvents={recitalEvents}
-              videoTypeLabel={videoTypeLabel}
-              isAddVideoOpen={isAddVideoOpen}
-              setIsAddVideoOpen={setIsAddVideoOpen}
-              newVideoTitle={newVideoTitle}
-              setNewVideoTitle={setNewVideoTitle}
-              newVideoUrl={newVideoUrl}
-              setNewVideoUrl={setNewVideoUrl}
-              newVideoDate={newVideoDate}
-              setNewVideoDate={setNewVideoDate}
-              newVideoType={newVideoType}
-              setNewVideoType={setNewVideoType}
-              newVideoEventId={newVideoEventId}
-              setNewVideoEventId={setNewVideoEventId}
-              newVideoSong={newVideoSong}
-              setNewVideoSong={setNewVideoSong}
-              newVideoMemo={newVideoMemo}
-              setNewVideoMemo={setNewVideoMemo}
-              previewVideoId={previewVideoId}
-              setPreviewVideoId={setPreviewVideoId}
-              onSaveVideo={handleSaveVideo}
-              onVideoEventChange={handleVideoEventChange}
-              onDeleteVideo={handleDeleteVideo}
-            />
-          )}
+              {modal.currentTab === 'videos' && (
+                <StudentDetailVideosTab
+                  allVideos={modal.allVideos}
+                  recitalEvents={modal.recitalEvents}
+                  videoTypeLabel={modal.videos.videoTypeLabel}
+                  isAddVideoOpen={modal.videos.isAddVideoOpen}
+                  setIsAddVideoOpen={modal.videos.setIsAddVideoOpen}
+                  newVideoTitle={modal.videos.newVideoTitle}
+                  setNewVideoTitle={modal.videos.setNewVideoTitle}
+                  newVideoUrl={modal.videos.newVideoUrl}
+                  setNewVideoUrl={modal.videos.setNewVideoUrl}
+                  newVideoDate={modal.videos.newVideoDate}
+                  setNewVideoDate={modal.videos.setNewVideoDate}
+                  newVideoType={modal.videos.newVideoType}
+                  setNewVideoType={modal.videos.setNewVideoType}
+                  newVideoEventId={modal.videos.newVideoEventId}
+                  setNewVideoEventId={modal.videos.setNewVideoEventId}
+                  newVideoSong={modal.videos.newVideoSong}
+                  setNewVideoSong={modal.videos.setNewVideoSong}
+                  newVideoMemo={modal.videos.newVideoMemo}
+                  setNewVideoMemo={modal.videos.setNewVideoMemo}
+                  previewVideoId={modal.videos.previewVideoId}
+                  setPreviewVideoId={modal.videos.setPreviewVideoId}
+                  onSaveVideo={modal.videos.onSave}
+                  onVideoEventChange={modal.videos.onEventChange}
+                  onDeleteVideo={modal.videos.onDelete}
+                />
+              )}
 
-          {currentTab === 'memo' && (
-            <StudentDetailMemoTab student={student} />
-          )}
+              {modal.currentTab === 'memo' && <StudentDetailMemoTab student={student} />}
             </div>
           </div>
         </div>
       </div>
 
-      {isStudentSaleModalOpen && (
+      {modal.textbooks.isStudentSaleModalOpen && (
         <NewSaleModal
           initialStudentId={student.id}
           onSuccess={() => {
-            setIsStudentSaleModalOpen(false);
-            triggerRefresh();
+            modal.textbooks.setIsStudentSaleModalOpen(false);
+            modal.triggerRefresh();
           }}
-          onClose={() => setIsStudentSaleModalOpen(false)}
+          onClose={() => modal.textbooks.setIsStudentSaleModalOpen(false)}
         />
       )}
 
-      {isStudentTbPaymentModalOpen && selectedStudentSaleForPay && (
+      {modal.textbooks.isStudentTbPaymentModalOpen && modal.textbooks.selectedStudentSaleForPay && (
         <TextbookPaymentModal
-          sale={selectedStudentSaleForPay}
+          sale={modal.textbooks.selectedStudentSaleForPay}
           onSuccess={() => {
-            setIsStudentTbPaymentModalOpen(false);
-            triggerRefresh();
+            modal.textbooks.setIsStudentTbPaymentModalOpen(false);
+            modal.triggerRefresh();
           }}
-          onClose={() => setIsStudentTbPaymentModalOpen(false)}
+          onClose={() => modal.textbooks.setIsStudentTbPaymentModalOpen(false)}
         />
       )}
 
-      {isTbReceiptOpen && tbReceiptSale && (
+      {modal.textbooks.isTbReceiptOpen && modal.textbooks.tbReceiptSale && (
         <TextbookReceiptModal
-          sale={tbReceiptSale}
-          onClose={() => setIsTbReceiptOpen(false)}
+          sale={modal.textbooks.tbReceiptSale}
+          onClose={() => modal.textbooks.setIsTbReceiptOpen(false)}
         />
       )}
 
       <GuardianLinkInviteModal
         studentId={student.id}
         studentName={student.name}
-        isOpen={guardianLinkOpen}
-        onClose={() => setGuardianLinkOpen(false)}
+        isOpen={modal.guardianLinkOpen}
+        onClose={() => modal.setGuardianLinkOpen(false)}
       />
     </div>
   );

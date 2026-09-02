@@ -46,7 +46,11 @@ export function buildCustomerNavSection(labels: ModuleLabels): NavMenuSection {
 
 export function buildClassAttendanceNavSection(
   labels: ModuleLabels,
-  options?: { extraItems?: NavMenuItem[]; sectionTitle?: string }
+  options?: {
+    extraItems?: NavMenuItem[];
+    sectionTitle?: string;
+    attendanceLabel?: string;
+  }
 ): NavMenuSection {
   return {
     title: options?.sectionTitle ?? labels.service.section ?? '수업 및 출결',
@@ -61,10 +65,18 @@ export function buildClassAttendanceNavSection(
         label: labels.schedule.management,
         icon: icon(<Clock className="w-4 h-4" />),
       },
-      { tab: 'attendance', label: '출입 관리', icon: icon(<CheckSquare className="w-4 h-4" />) },
+      {
+        tab: 'attendance',
+        label: options?.attendanceLabel ?? '출입 관리',
+        icon: icon(<CheckSquare className="w-4 h-4" />),
+      },
       ...(options?.extraItems ?? []),
     ],
   };
+}
+
+export function buildNavSection(title: string, items: NavMenuItem[]): NavMenuSection {
+  return { title, items };
 }
 
 export function buildNoticesNavSection(): NavMenuSection {
@@ -74,12 +86,20 @@ export function buildNoticesNavSection(): NavMenuSection {
   };
 }
 
-export function buildBillingNavSection(): NavMenuSection {
+export function buildBillingNavSection(options?: {
+  tuitionLabel?: string;
+  extraItems?: NavMenuItem[];
+}): NavMenuSection {
   return {
     title: '수납',
     items: [
-      { tab: 'tuition', label: '수강료 및 수납', icon: icon(<CreditCard className="w-4 h-4" />) },
+      {
+        tab: 'tuition',
+        label: options?.tuitionLabel ?? '수강료 및 수납',
+        icon: icon(<CreditCard className="w-4 h-4" />),
+      },
       { tab: 'unpaid', label: '미납 통합 관리', icon: icon(<AlertCircle className="w-4 h-4" />) },
+      ...(options?.extraItems ?? []),
     ],
   };
 }
