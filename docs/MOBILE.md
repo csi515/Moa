@@ -1,4 +1,4 @@
-# Moa 모바일 배포 가이드
+# 모두의 아카데미 모아 — 모바일 배포 가이드
 
 웹(PWA) · Google Play · Apple App Store를 **하나의 React 코드베이스**로 운영합니다.
 
@@ -11,7 +11,7 @@
 | App Store | Capacitor iOS | `ios/` → IPA (Mac + Xcode) |
 
 앱 ID: `com.moa.academy`  
-앱 이름: **Moa**
+스토어 표시 이름: **모두의 아카데미 모아** (런처 짧은 이름: **아카데미 모아**)
 
 ---
 
@@ -102,7 +102,7 @@ moa://open?link=XY98ZW76
 - [ ] `targetSdkVersion` 최신 요구사항 충족 (Android Studio 권장값 적용)
 
 ### 스토어 등록 정보
-- [ ] 앱 이름: Moa
+- [ ] 앱 이름: 모두의 아카데미 모아 (짧은 이름: 아카데미 모아)
 - [ ] 짧은 설명 / 전체 설명 (한국어)
 - [ ] 스크린샷 (휴대폰 최소 2장, 7인치 태블릿 권장)
 - [x] 고해상도 아이콘 **512×512 PNG** (`npm run icons:generate` + `npm run icons:capacitor`)

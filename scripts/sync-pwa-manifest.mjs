@@ -3,17 +3,18 @@
  * @capacitor/assets가 manifest.json을 덮어쓰지 않도록 PWA manifest를 고정합니다.
  * Usage: node scripts/sync-pwa-manifest.mjs
  */
-import { writeFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 const manifestPath = path.join(root, 'public', 'manifest.json');
+const brand = JSON.parse(await readFile(path.join(root, 'brand.json'), 'utf8'));
 
 const manifest = {
-  name: 'Moa — 학원·체육관·어린이집 통합 관리',
-  short_name: 'Moa',
-  description: '원생·출결·수납·강사·학부모 포털을 한곳에서 관리하는 올인원 SaaS',
+  name: `${brand.fullName} — ${brand.tagline}`,
+  short_name: brand.shortName,
+  description: brand.description,
   start_url: './',
   scope: './',
   display: 'standalone',

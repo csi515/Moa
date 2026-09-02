@@ -1,15 +1,15 @@
 import type { CapacitorConfig } from '@capacitor/cli';
+import brand from './brand.json';
 
 /**
- * Moa — 웹/PWA + Android/iOS 네이티브 셸 공통 설정
+ * 모두의 아카데미 모아 — 웹/PWA + Android/iOS 네이티브 셸 공통 설정
  * webDir(dist)는 Vite 빌드 산출물과 동일합니다.
  */
 const config: CapacitorConfig = {
   appId: 'com.moa.academy',
-  appName: 'Moa',
+  appName: brand.fullName,
   webDir: 'dist',
   server: {
-    // WebView에서 상대 경로·쿠키 동작 안정화
     androidScheme: 'https',
   },
   android: {

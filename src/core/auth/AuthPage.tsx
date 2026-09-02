@@ -3,6 +3,7 @@ import { Mail, Lock, User, Loader2, Eye, EyeOff, GraduationCap } from 'lucide-re
 import { useAuth } from './AuthProvider';
 import * as authService from './services/authService';
 import { LegalLinks } from '@/core/legal';
+import { appBrand } from '@/core/brand';
 import { legalPageHref } from '@/core/legal/legalPaths';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
@@ -68,7 +69,7 @@ export const AuthPage: React.FC = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
             <GraduationCap className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Moa</h1>
+          <h1 className="text-2xl font-bold text-slate-900">{appBrand.fullName}</h1>
           <p className="text-sm text-slate-500 mt-2">
             {mode === 'login' && '학원·체육관·어린이집 통합 관리'}
             {mode === 'signup' && '새 계정을 만들어 시작하세요'}
