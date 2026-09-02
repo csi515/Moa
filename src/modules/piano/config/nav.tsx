@@ -18,7 +18,6 @@ import {
   CheckSquare,
   Clock,
   CreditCard,
-  FileText,
   GraduationCap,
   LayoutDashboard,
   MessageSquareText,
@@ -41,7 +40,10 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
     buildCustomerNavSection(labels),
     buildClassAttendanceNavSection(labels, {
       sectionTitle: '수업 및 출결',
-      extraItems: [{ tab: 'makeups', label: '보강 수업', icon: icon(<Sparkles className="w-4 h-4" />) }],
+      extraItems: [
+        { tab: 'makeups', label: '보강 수업', icon: icon(<Sparkles className="w-4 h-4" />) },
+        { tab: 'curriculum', label: '커리큘럼·진도', icon: icon(<BookOpen className="w-4 h-4" />) },
+      ],
     }),
     buildNavSection('교육 및 일지', [
       { tab: 'lessons', label: '레슨 기록', icon: icon(<Piano className="w-4 h-4" />) },
@@ -64,16 +66,6 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
       },
     ]),
     buildFinanceNavSection(),
-    buildNavSection('교육 품질', [
-      { tab: 'curriculum', label: '커리큘럼·진도', icon: icon(<BookOpen className="w-4 h-4" />) },
-      {
-        tab: 'assignments',
-        label: '주간 과제',
-        icon: icon(<BookOpenCheck className="w-4 h-4" />),
-      },
-      { tab: 'achievements', label: '시험·콩쿠르', icon: icon(<Award className="w-4 h-4" />) },
-      { tab: 'reports', label: '학습 리포트', icon: icon(<FileText className="w-4 h-4" />) },
-    ]),
     buildNavSection('학원 운영', [
       {
         tab: 'teachers',
@@ -104,6 +96,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'tuition', label: '수강료/수납', icon: icon(<CreditCard className="w-5 h-5" />) },
     { tab: 'unpaid', label: '미납 통합', icon: icon(<AlertCircle className="w-5 h-5" />) },
     { tab: 'makeups', label: '보강 수업', icon: icon(<Sparkles className="w-5 h-5" />) },
+    { tab: 'curriculum', label: '커리큘럼·진도', icon: icon(<BookOpen className="w-5 h-5" />) },
     { tab: 'textbooks', label: '교재/재고 관리', icon: icon(<BookOpen className="w-5 h-5" />) },
     ...buildFinanceMoreTabs(),
     {
@@ -132,10 +125,6 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     },
     { tab: 'calendar', label: '학원 캘린더', icon: icon(<Calendar className="w-5 h-5" />) },
     { tab: 'recitals', label: '연주회·콩쿠르', icon: icon(<Award className="w-5 h-5" />) },
-    { tab: 'curriculum', label: '커리큘럼·진도', icon: icon(<BookOpen className="w-5 h-5" />) },
-    { tab: 'assignments', label: '주간 과제', icon: icon(<BookOpenCheck className="w-5 h-5" />) },
-    { tab: 'achievements', label: '시험·콩쿠르', icon: icon(<Award className="w-5 h-5" />) },
-    { tab: 'reports', label: '학습 리포트', icon: icon(<FileText className="w-5 h-5" />) },
     { tab: 'settings', label: '학원 설정', icon: icon(<Settings className="w-5 h-5" />) },
     accountNavItem('lg'),
   ];
