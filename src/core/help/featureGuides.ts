@@ -1,18 +1,13 @@
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import {
+  buildBillingSection,
+  buildClassesSection,
+  buildCustomerSection,
+  buildStaffSection,
+  type FeatureGuideSection,
+} from './guideBuilders';
 
-export interface FeatureGuideItem {
-  id: string;
-  title: string;
-  summary: string;
-  howTo?: string;
-}
-
-export interface FeatureGuideSection {
-  id: string;
-  title: string;
-  description: string;
-  items: FeatureGuideItem[];
-}
+export type { FeatureGuideItem, FeatureGuideSection } from './guideBuilders';
 
 /** 공통 — 모든 업종 */
 const COMMON_FINANCE: FeatureGuideSection = {
@@ -268,26 +263,22 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
 ];
 
 const GYM_GUIDE: FeatureGuideSection[] = [
-  {
-    id: 'customers',
+  buildCustomerSection({
     title: '회원·보호자',
     description: '등록 회원과 보호자 연락처, 수업 레벨을 관리합니다.',
-    items: [
-      {
-        id: 'students',
-        title: '회원 관리',
-        summary: '회원 등록, 재적/휴원/퇴원, 담당 강사·반·수업 레벨을 관리합니다.',
-        howTo: '회원 등록 시 보호자 연락처와 PIN을 함께 설정할 수 있습니다.',
-      },
-      {
-        id: 'parents',
-        title: '보호자 관리',
-        summary: '보호자 연락처와 연결된 회원을 관리합니다.',
-      },
-    ],
-  },
-  {
-    id: 'classes',
+    customerItem: {
+      id: 'students',
+      title: '회원 관리',
+      summary: '회원 등록, 재적/휴원/퇴원, 담당 강사·반·수업 레벨을 관리합니다.',
+      howTo: '회원 등록 시 보호자 연락처와 PIN을 함께 설정할 수 있습니다.',
+    },
+    parentItem: {
+      id: 'parents',
+      title: '보호자 관리',
+      summary: '보호자 연락처와 연결된 회원을 관리합니다.',
+    },
+  }),
+  buildClassesSection({
     title: '수업·출결',
     description: '수업반, 시간표, PIN 출입을 다룹니다.',
     items: [
@@ -307,67 +298,43 @@ const GYM_GUIDE: FeatureGuideSection[] = [
         summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
       },
     ],
-  },
-  {
-    id: 'billing',
-    title: '수납',
+  }),
+  buildBillingSection({
     description: '수강료 청구·미납을 관리합니다.',
-    items: [
-      {
-        id: 'tuition',
-        title: '수강료 및 수납',
-        summary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
-      },
-      {
-        id: 'unpaid',
-        title: '미납 통합 관리',
-        summary: '미납 회원을 모아 보고 연락·수납을 이어갑니다.',
-      },
-    ],
-  },
-  {
-    id: 'staff',
+    tuitionTitle: '수강료 및 수납',
+    tuitionSummary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
+    unpaidSummary: '미납 회원을 모아 보고 연락·수납을 이어갑니다.',
+  }),
+  buildStaffSection({
     title: '지도진',
     description: '강사와 체육관 일정을 관리합니다.',
-    items: [
-      {
-        id: 'teachers',
-        title: '강사 관리',
-        summary: '강사 정보와 담당 반을 관리합니다.',
-      },
-      {
-        id: 'calendar',
-        title: '체육관 캘린더',
-        summary: '대회·행사·휴관 일정을 기록합니다.',
-      },
-    ],
-  },
+    teacherTitle: '강사 관리',
+    teacherSummary: '강사 정보와 담당 반을 관리합니다.',
+    calendarTitle: '체육관 캘린더',
+    calendarSummary: '대회·행사·휴관 일정을 기록합니다.',
+  }),
   COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
 ];
 
 const DAYCARE_GUIDE: FeatureGuideSection[] = [
-  {
-    id: 'customers',
+  buildCustomerSection({
     title: '원아·보호자',
     description: '등록 원아와 보호자 연락처, 연령반을 관리합니다.',
-    items: [
-      {
-        id: 'students',
-        title: '원아 관리',
-        summary: '원아 등록, 재원/휴원/퇴원, 담당 교사·반·연령반을 관리합니다.',
-        howTo: '원아 등록 시 보호자 연락처, 알레르기·특이사항, 등하원 PIN을 함께 설정할 수 있습니다.',
-      },
-      {
-        id: 'parents',
-        title: '보호자 관리',
-        summary: '보호자 연락처와 연결된 원아를 관리합니다.',
-      },
-    ],
-  },
-  {
-    id: 'classes',
+    customerItem: {
+      id: 'students',
+      title: '원아 관리',
+      summary: '원아 등록, 재원/휴원/퇴원, 담당 교사·반·연령반을 관리합니다.',
+      howTo: '원아 등록 시 보호자 연락처, 알레르기·특이사항, 등하원 PIN을 함께 설정할 수 있습니다.',
+    },
+    parentItem: {
+      id: 'parents',
+      title: '보호자 관리',
+      summary: '보호자 연락처와 연결된 원아를 관리합니다.',
+    },
+  }),
+  buildClassesSection({
     title: '반·등하원',
     description: '반 편성, 시간표, PIN 등하원을 다룹니다.',
     items: [
@@ -388,7 +355,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         howTo: '현황에서 원아별 특이사항을 확인하고, 당일 세션에 하원·전달 메모를 작성할 수 있습니다.',
       },
     ],
-  },
+  }),
   {
     id: 'care',
     title: '보육 기록',
@@ -421,40 +388,20 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
       },
     ],
   },
-  {
-    id: 'billing',
-    title: '수납',
+  buildBillingSection({
     description: '보육료 청구·미납을 관리합니다.',
-    items: [
-      {
-        id: 'tuition',
-        title: '보육료 및 수납',
-        summary: '월 보육료 청구서를 만들고 입금을 기록합니다.',
-      },
-      {
-        id: 'unpaid',
-        title: '미납 통합 관리',
-        summary: '미납 원아를 모아 보고 연락·수납을 이어갑니다.',
-      },
-    ],
-  },
-  {
-    id: 'staff',
+    tuitionTitle: '보육료 및 수납',
+    tuitionSummary: '월 보육료 청구서를 만들고 입금을 기록합니다.',
+    unpaidSummary: '미납 원아를 모아 보고 연락·수납을 이어갑니다.',
+  }),
+  buildStaffSection({
     title: '보육 인력',
     description: '교사와 원 일정을 관리합니다.',
-    items: [
-      {
-        id: 'teachers',
-        title: '교사 관리',
-        summary: '교사 정보와 담당 반을 관리합니다.',
-      },
-      {
-        id: 'calendar',
-        title: '원 캘린더',
-        summary: '행사·휴원·체험학습 일정을 기록합니다.',
-      },
-    ],
-  },
+    teacherTitle: '교사 관리',
+    teacherSummary: '교사 정보와 담당 반을 관리합니다.',
+    calendarTitle: '원 캘린더',
+    calendarSummary: '행사·휴원·체험학습 일정을 기록합니다.',
+  }),
   COMMON_NOTICES,
   COMMON_FINANCE,
   COMMON_SETTINGS,
