@@ -6,7 +6,6 @@ export { StudentFormModal } from './components/students/StudentFormModal';
 export { ParentManagementView } from './components/parents/ParentManagementView';
 export { ClassManagementView } from './components/classes/ClassManagementView';
 export { WeeklyTimetableView } from './components/timetable/WeeklyTimetableView';
-export { AttendanceView } from './components/attendance/AttendanceView';
 export { LessonRecordsView } from './components/lessons/LessonRecordsView';
 export { PracticeRecordsView } from './components/practice/PracticeRecordsView';
 export { ConsultationRecordsView } from './components/consultations/ConsultationRecordsView';

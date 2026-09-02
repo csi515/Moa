@@ -71,7 +71,7 @@ export const AuthPage: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{appBrand.fullName}</h1>
           <p className="text-sm text-slate-500 mt-2">
-            {mode === 'login' && '학원·체육관·어린이집 통합 관리'}
+            {mode === 'login' && appBrand.tagline}
             {mode === 'signup' && '새 계정을 만들어 시작하세요'}
             {mode === 'forgot' && '가입한 이메일로 재설정 링크를 보내드립니다'}
           </p>

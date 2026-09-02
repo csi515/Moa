@@ -6,6 +6,10 @@ export {
   getCapacitorPlatform,
 } from './capacitorPlatform';
 export { parseDeepLinksFromUrl, parseDeepLinksFromHref } from './deepLinkParser';
+export {
+  applyDeepLinkFromString,
+  bootstrapWebDeepLinks,
+} from './bootstrapDeepLinks';
 export { MobileBootstrap } from './MobileBootstrap';
 export {
   storePendingStaffLink,

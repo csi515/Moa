@@ -16,13 +16,11 @@ import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import {
-  ExpenseManagementView,
-  FinanceOverviewView,
-  IncomeManagementView,
-} from '@/core/finance';
-import { AttendanceManagementView } from '@/core/attendance';
+  accountViewEntry,
+  attendanceViewEntry,
+  financeViewEntries,
+} from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
-import { MyAccountView } from '@/core/account';
 import {
   DashboardView,
   StudentListView,
@@ -50,15 +48,13 @@ import {
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DashboardView />,
   students: () => <StudentListView />,
-  attendance: () => <AttendanceManagementView />,
+  ...attendanceViewEntry,
   timetable: () => <WeeklyTimetableView />,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,
   makeups: () => <MakeupManagementView />,
   textbooks: () => <TextbookManagementView />,
-  finance: () => <FinanceOverviewView />,
-  income: () => <IncomeManagementView />,
-  expenses: () => <ExpenseManagementView />,
+  ...financeViewEntries,
   classes: () => <ClassManagementView />,
   parents: () => <ParentManagementView />,
   lessons: () => <LessonRecordsView />,
@@ -74,7 +70,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   achievements: () => <AchievementsManagementView />,
   reports: () => <ReportsManagementView />,
   settings: () => <AcademySettingsView />,
-  account: () => <MyAccountView />,
+  ...accountViewEntry,
 };
 
 export const PianoAppContent: FC = () => {

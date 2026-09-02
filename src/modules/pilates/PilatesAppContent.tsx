@@ -21,14 +21,12 @@ import {
   InstructorListView,
 } from './index';
 import {
-  FinanceOverviewView,
-  ExpenseManagementView,
-  IncomeManagementView,
-} from '@/core/finance';
-import { AttendanceManagementView } from '@/core/attendance';
+  accountViewEntry,
+  attendanceViewEntry,
+  financeViewEntries,
+} from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
 import { AcademySettingsView } from '@/modules/piano/components/settings/AcademySettingsView';
-import { MyAccountView } from '@/core/account';
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <PilatesDashboardView />,
@@ -36,13 +34,11 @@ const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   services: () => <ServiceManagementView />,
   members: () => <MemberListView />,
   instructors: () => <InstructorListView />,
-  attendance: () => <AttendanceManagementView />,
+  ...attendanceViewEntry,
   ...noticesViewEntry,
-  finance: () => <FinanceOverviewView />,
-  income: () => <IncomeManagementView />,
-  expenses: () => <ExpenseManagementView />,
+  ...financeViewEntries,
   settings: () => <AcademySettingsView />,
-  account: () => <MyAccountView />,
+  ...accountViewEntry,
 };
 
 export const PilatesAppContent: FC = () => {

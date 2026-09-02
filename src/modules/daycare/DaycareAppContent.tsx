@@ -27,14 +27,12 @@ import {
   ConsultationRecordsView,
 } from '@/modules/piano';
 import {
-  FinanceOverviewView,
-  ExpenseManagementView,
-  IncomeManagementView,
-} from '@/core/finance';
-import { AttendanceManagementView } from '@/core/attendance';
-import { CareJournalView, MedicationRequestView } from './care';
+  accountViewEntry,
+  attendanceViewEntry,
+  financeViewEntries,
+} from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
-import { MyAccountView } from '@/core/account';
+import { CareJournalView, MedicationRequestView } from './care';
 
 /**
  * 어린이집 플러그인 셸.
@@ -46,7 +44,7 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   parents: () => <ParentManagementView />,
   classes: () => <ClassManagementView />,
   timetable: () => <WeeklyTimetableView />,
-  attendance: () => <AttendanceManagementView />,
+  ...attendanceViewEntry,
   journals: () => <CareJournalView />,
   medications: () => <MedicationRequestView />,
   ...noticesViewEntry,
@@ -55,11 +53,9 @@ const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   unpaid: () => <UnpaidManagementView />,
   teachers: () => <TeacherManagementView />,
   calendar: () => <AcademyCalendarView />,
-  finance: () => <FinanceOverviewView />,
-  income: () => <IncomeManagementView />,
-  expenses: () => <ExpenseManagementView />,
+  ...financeViewEntries,
   settings: () => <AcademySettingsView />,
-  account: () => <MyAccountView />,
+  ...accountViewEntry,
 };
 
 export const DaycareAppContent: FC = () => {
