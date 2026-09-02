@@ -42,8 +42,19 @@ npm run cap:ios        # Xcode (macOS 필요)
 | `VITE_SUPABASE_URL` | Supabase 프로젝트 URL |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anon key |
 | `VITE_APP_URL` | 초대 링크·OAuth redirect 기준 URL |
+| `VITE_SUPPORT_EMAIL` | 개인정보처리방침·문의 이메일 |
+| `VITE_LEGAL_ENTITY_NAME` | 법적 주체 명칭 (약관·개인정보처리방침) |
 
 > 네이티브 앱은 빌드 시점에 env가 고정됩니다. 스토어용은 **프로덕션 값**으로 빌드하세요.
+
+### 스토어 등록용 공개 URL
+
+프로덕션 배포 후 Play Console / App Store Connect에 등록:
+
+```
+https://YOUR_DOMAIN/privacy   # 개인정보처리방침
+https://YOUR_DOMAIN/terms     # 이용약관
+```
 
 ### Supabase Auth Redirect URLs
 
@@ -91,11 +102,12 @@ moa://open?link=XY98ZW76
 - [ ] 앱 이름: Moa
 - [ ] 짧은 설명 / 전체 설명 (한국어)
 - [ ] 스크린샷 (휴대폰 최소 2장, 7인치 태블릿 권장)
-- [ ] 고해상도 아이콘 **512×512 PNG** (`@capacitor/assets`로 생성 권장)
+- [x] 고해상도 아이콘 **512×512 PNG** (`npm run icons:generate` + `npm run icons:capacitor`)
 - [ ] Feature graphic 1024×500
 
 ### 정책·법무
-- [ ] **개인정보처리방침 URL** (필수 — 학생·보호자 정보 수집)
+- [x] **개인정보처리방침 URL** — 앱 내 `/privacy` + 배포 URL 등록
+- [x] **이용약관 URL** — 앱 내 `/terms`
 - [ ] 데이터 안전성(Data safety) 설문 작성
 - [ ] 콘텐츠 등급 설문
 - [ ] 계정 생성 앱 → **테스트 계정** 심사용 제공
@@ -119,12 +131,12 @@ moa://open?link=XY98ZW76
 ### 스토어 등록 정보
 - [ ] 앱 이름·부제·키워드·설명
 - [ ] 스크린샷 (6.7", 6.5", 5.5" 등 필수 크기)
-- [ ] 앱 아이콘 1024×1024 PNG (알파 채널 없음)
+- [x] 앱 아이콘 1024×1024 PNG (`resources/icon.png` → `npm run icons:capacitor`)
 
 ### 정책·법무
-- [ ] **개인정보처리방침 URL** (필수)
+- [x] **개인정보처리방침 URL** — 앱 내 `/privacy` + 배포 URL 등록
 - [ ] App Privacy (데이터 수집 유형) 설문
-- [ ] **계정 삭제** 경로 제공 (Guideline 5.1.1 — 계정 앱 필수)
+- [x] **계정 삭제** 경로 제공 — 설정 > 계정 탈퇴 (`delete_my_account` RPC)
 - [ ] 심사용 **데모 계정** (원장 + 학부모 등)
 
 ### iOS 특이사항
@@ -139,17 +151,19 @@ moa://open?link=XY98ZW76
 - [ ] HTTPS 프로덕션 배포
 - [ ] `VITE_APP_URL` = 실제 배포 URL
 - [ ] Lighthouse PWA audit 통과 권장
-- [ ] PNG 아이콘 192/512 추가 권장 (현재 SVG만 있음)
+- [x] PNG 아이콘 192/512 (`public/icons/`, `manifest.json` 반영)
+- [x] `vercel.json` SPA rewrite + `.well-known` 템플릿 배포
 
 ---
 
-## 앱 아이콘·스플래시 생성 (권장)
+## 앱 아이콘·스플래시 생성
 
 ```bash
-npm install -D @capacitor/assets
-# resources/icon.png (1024×1024), resources/splash.png 준비 후
-npx capacitor-assets generate
+npm run icons:generate    # public/icons + resources/icon.png
+npm run icons:capacitor # android/ios 네이티브 에셋 동기화
 ```
+
+`resources/splash.png` (2732×2732 권장) 수정 후 `icons:capacitor` 재실행.
 
 ---
 
@@ -186,4 +200,8 @@ if (isWebApp()) {
 | `android/` | Android Studio 프로젝트 |
 | `ios/` | Xcode 프로젝트 |
 | `src/core/platform/` | 네이티브/웹 분기·딥링크 |
+| `src/core/legal/` | 개인정보처리방침·이용약관 페이지 |
+| `src/core/account/` | 계정 탈퇴 UI |
 | `public/manifest.json` | PWA 매니페스트 |
+| `public/.well-known/` | Android App Links / iOS Universal Links 템플릿 |
+| `vercel.json` | SPA 라우팅 + well-known 예외 |

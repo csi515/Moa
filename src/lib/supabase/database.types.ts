@@ -802,7 +802,7 @@ export interface Database {
         Args: { org_id: string };
         Returns: boolean;
       };
-      connect_staff_on_login: {
+      delete_my_account: {
         Args: Record<string, never>;
         Returns: Json;
       };
@@ -819,6 +819,10 @@ export interface Database {
         Returns: Json;
       };
       connect_parent_on_login: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
+      connect_staff_on_login: {
         Args: Record<string, never>;
         Returns: Json;
       };

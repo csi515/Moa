@@ -15,6 +15,8 @@ import {
   withAttendanceModuleEnabled,
 } from '@/core/attendance';
 import { IndustryFeatureGuidePanel } from '@/core/help';
+import { AccountDeletionCard } from '@/core/account';
+import { LegalLinks } from '@/core/legal';
 import {
   Settings,
   Building,
@@ -289,6 +291,12 @@ export const AcademySettingsView: FC = () => {
               />
             </div>
           </SettingsCard>
+
+          <AccountDeletionCard />
+
+          <div className="pt-2 pb-4">
+            <LegalLinks className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-slate-500" />
+          </div>
         </div>
       </div>
 

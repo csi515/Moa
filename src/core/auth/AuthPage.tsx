@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Music, Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from './AuthProvider';
+import { LegalLinks } from '@/core/legal';
 
 type AuthMode = 'login' | 'signup';
 
@@ -163,6 +164,9 @@ export const AuthPage: React.FC = () => {
         <p className="text-center text-xs text-slate-400 mt-6">
           로그인하면 해당 Organization의 데이터만 접근할 수 있습니다.
         </p>
+        <div className="mt-4">
+          <LegalLinks />
+        </div>
       </div>
     </div>
   );
