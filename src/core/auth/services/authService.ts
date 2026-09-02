@@ -1,13 +1,11 @@
 import { Session, User } from '@supabase/supabase-js';
 import { getCoreClient } from '../../../lib/supabase';
-
-import type { SignUpBusinessDetails } from '../types/signup';
+import { parseAccountType, type AccountType } from '../types/accountType';
 
 export interface SignUpParams {
   email: string;
   password: string;
   fullName: string;
-  business?: SignUpBusinessDetails;
 }
 
 export interface SignInParams {
@@ -21,7 +19,7 @@ export async function getSession(): Promise<Session | null> {
   return data.session;
 }
 
-export async function signUp({ email, password, fullName, business }: SignUpParams): Promise<{
+export async function signUp({ email, password, fullName }: SignUpParams): Promise<{
   user: User;
   session: Session | null;
 }> {
@@ -29,18 +27,7 @@ export async function signUp({ email, password, fullName, business }: SignUpPara
     email,
     password,
     options: {
-      data: {
-        full_name: fullName,
-        ...(business
-          ? {
-              signup_industry_type: business.industryType,
-              signup_business_name: business.businessName,
-              signup_phone: business.phone,
-              signup_address: business.address,
-              signup_business_number: business.businessNumber ?? '',
-            }
-          : {}),
-      },
+      data: { full_name: fullName },
     },
   });
 
@@ -74,6 +61,19 @@ export async function resetPassword(email: string): Promise<void> {
     redirectTo,
   });
   if (error) throw error;
+}
+
+export function getAccountTypeFromUser(user: User | null | undefined): AccountType | null {
+  return parseAccountType(user?.user_metadata?.account_type);
+}
+
+export async function updateAccountType(accountType: AccountType): Promise<User> {
+  const { data, error } = await getCoreClient().auth.updateUser({
+    data: { account_type: accountType },
+  });
+  if (error) throw error;
+  if (!data.user) throw new Error('계정 유형 저장에 실패했습니다.');
+  return data.user;
 }
 
 export function onAuthStateChange(

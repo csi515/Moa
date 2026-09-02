@@ -1,8 +1,6 @@
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react';
-import type { IndustryType } from '@/core/industry/types';
 import { legalPageHref } from '@/core/legal/legalPaths';
-import { SignupBusinessFields } from './SignupBusinessFields';
 import type { AuthMode } from '../hooks/useAuthForm';
 
 interface AuthFormCardProps {
@@ -10,11 +8,6 @@ interface AuthFormCardProps {
   email: string;
   password: string;
   fullName: string;
-  industryType: IndustryType;
-  businessName: string;
-  phone: string;
-  address: string;
-  businessNumber: string;
   showPassword: boolean;
   agreedToTerms: boolean;
   loading: boolean;
@@ -23,11 +16,6 @@ interface AuthFormCardProps {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
-  onIndustryTypeChange: (value: IndustryType) => void;
-  onBusinessNameChange: (value: string) => void;
-  onPhoneChange: (value: string) => void;
-  onAddressChange: (value: string) => void;
-  onBusinessNumberChange: (value: string) => void;
   onShowPasswordToggle: () => void;
   onAgreedToTermsChange: (value: boolean) => void;
   onSwitchMode: (mode: AuthMode) => void;
@@ -39,11 +27,6 @@ export function AuthFormCard({
   email,
   password,
   fullName,
-  industryType,
-  businessName,
-  phone,
-  address,
-  businessNumber,
   showPassword,
   agreedToTerms,
   loading,
@@ -52,11 +35,6 @@ export function AuthFormCard({
   onEmailChange,
   onPasswordChange,
   onFullNameChange,
-  onIndustryTypeChange,
-  onBusinessNameChange,
-  onPhoneChange,
-  onAddressChange,
-  onBusinessNumberChange,
   onShowPasswordToggle,
   onAgreedToTermsChange,
   onSwitchMode,
@@ -104,7 +82,7 @@ export function AuthFormCard({
       <form onSubmit={onSubmit} className="space-y-4">
         {mode === 'signup' && (
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">대표자 이름</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">이름</label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -174,18 +152,9 @@ export function AuthFormCard({
         )}
 
         {mode === 'signup' && (
-          <SignupBusinessFields
-            industryType={industryType}
-            businessName={businessName}
-            phone={phone}
-            address={address}
-            businessNumber={businessNumber}
-            onIndustryTypeChange={onIndustryTypeChange}
-            onBusinessNameChange={onBusinessNameChange}
-            onPhoneChange={onPhoneChange}
-            onAddressChange={onAddressChange}
-            onBusinessNumberChange={onBusinessNumberChange}
-          />
+          <p className="text-xs text-slate-500 leading-relaxed">
+            가입 후 사업주 또는 학부모 중 이용 목적을 선택하게 됩니다.
+          </p>
         )}
 
         {mode === 'signup' && (
@@ -228,7 +197,7 @@ export function AuthFormCard({
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
           {mode === 'login' && '로그인'}
-          {mode === 'signup' && '가입하고 시작하기'}
+          {mode === 'signup' && '회원가입'}
           {mode === 'forgot' && '재설정 링크 보내기'}
         </button>
       </form>
