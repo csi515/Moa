@@ -12,6 +12,7 @@ function parseEnrollment(raw: Record<string, unknown>): StudentEnrollment {
     status: (raw.status as EnrollmentStatus) ?? 'active',
     enrolledAt: raw.enrolled_at ? String(raw.enrolled_at) : null,
     leftAt: raw.left_at ? String(raw.left_at) : null,
+    checkInPinSet: Boolean(raw.check_in_pin_set),
   };
 }
 
