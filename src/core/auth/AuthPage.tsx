@@ -13,11 +13,6 @@ export const AuthPage: React.FC = () => {
         email={form.email}
         password={form.password}
         fullName={form.fullName}
-        industryType={form.industryType}
-        businessName={form.businessName}
-        phone={form.phone}
-        address={form.address}
-        businessNumber={form.businessNumber}
         showPassword={form.showPassword}
         agreedToTerms={form.agreedToTerms}
         loading={form.loading}
@@ -26,11 +21,6 @@ export const AuthPage: React.FC = () => {
         onEmailChange={form.setEmail}
         onPasswordChange={form.setPassword}
         onFullNameChange={form.setFullName}
-        onIndustryTypeChange={form.setIndustryType}
-        onBusinessNameChange={form.setBusinessName}
-        onPhoneChange={form.setPhone}
-        onAddressChange={form.setAddress}
-        onBusinessNumberChange={form.setBusinessNumber}
         onShowPasswordToggle={() => form.setShowPassword((prev) => !prev)}
         onAgreedToTermsChange={form.setAgreedToTerms}
         onSwitchMode={form.switchMode}

@@ -1,6 +1,8 @@
 import React from 'react';
 import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
+import { PostSignupGate } from './core/auth/PostSignupGate';
+import { needsAccountTypeOnboarding } from './core/auth/utils/accountTypeOnboarding';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
@@ -9,16 +11,36 @@ import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
 
 export const SupabaseAppGate: React.FC = () => {
-  const { session, loading: authLoading } = useAuth();
-  const { currentOrganization, loading: orgLoading, isParentOnly, parentPortalActive } =
-    useOrganization();
+  const { session, user, loading: authLoading } = useAuth();
+  const {
+    currentOrganization,
+    organizations,
+    portalChildCount,
+    loading: orgLoading,
+    isParentOnly,
+    parentPortalActive,
+  } = useOrganization();
 
-  if (authLoading || (session && orgLoading)) {
+  const showAccountTypeOnboarding =
+    !!session &&
+    !authLoading &&
+    needsAccountTypeOnboarding({
+      user,
+      organizations,
+      portalChildCount,
+      orgLoading,
+    });
+
+  if (authLoading || (session && orgLoading && !showAccountTypeOnboarding)) {
     return <LoadingScreen />;
   }
 
   if (!session) {
     return <AuthPage />;
+  }
+
+  if (showAccountTypeOnboarding) {
+    return <PostSignupGate />;
   }
 
   if (isParentOnly || parentPortalActive) {

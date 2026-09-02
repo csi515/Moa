@@ -1,7 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { AcademySettings } from '@/types';
-import type { IndustryType } from '../industry/types';
-import type { SignUpBusinessDetails } from './types/signup';
 import { Session, User } from '@supabase/supabase-js';
 import { StorageService } from '../../services/storage';
 import * as authService from './services/authService';
@@ -11,7 +8,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string, fullName: string, business?: SignUpBusinessDetails) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -35,17 +32,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSession(newSession);
   };
 
-  const signUp = async (
-    email: string,
-    password: string,
-    fullName: string,
-    business?: SignUpBusinessDetails
-  ) => {
+  const signUp = async (email: string, password: string, fullName: string) => {
     const { session: newSession } = await authService.signUp({
       email,
       password,
       fullName,
-      business,
     });
     if (newSession) {
       setSession(newSession);
