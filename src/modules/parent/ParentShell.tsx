@@ -6,9 +6,7 @@ import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { ParentPortalProvider, useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import {
   consumePendingGuardianLink,
-  parseGuardianLinkFromUrl,
   redeemGuardianLinkToken,
-  storePendingGuardianLink,
 } from '@/core/parent/services/guardianLinkService';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
 import { StorageHydrator } from '@/StorageHydrator';
@@ -71,9 +69,6 @@ function ParentShellContent() {
   };
 
   useEffect(() => {
-    const urlToken = parseGuardianLinkFromUrl();
-    if (urlToken) storePendingGuardianLink(urlToken);
-
     const pending = consumePendingGuardianLink();
     if (!pending) return;
 

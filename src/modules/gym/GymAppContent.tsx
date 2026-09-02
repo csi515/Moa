@@ -26,13 +26,11 @@ import {
   AcademySettingsView,
 } from '@/modules/piano';
 import {
-  FinanceOverviewView,
-  ExpenseManagementView,
-  IncomeManagementView,
-} from '@/core/finance';
-import { AttendanceManagementView } from '@/core/attendance';
+  accountViewEntry,
+  attendanceViewEntry,
+  financeViewEntries,
+} from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
-import { MyAccountView } from '@/core/account';
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
@@ -40,17 +38,15 @@ const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   parents: () => <ParentManagementView />,
   classes: () => <ClassManagementView />,
   timetable: () => <WeeklyTimetableView />,
-  attendance: () => <AttendanceManagementView />,
+  ...attendanceViewEntry,
   ...noticesViewEntry,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,
   teachers: () => <TeacherManagementView />,
   calendar: () => <AcademyCalendarView />,
-  finance: () => <FinanceOverviewView />,
-  income: () => <IncomeManagementView />,
-  expenses: () => <ExpenseManagementView />,
+  ...financeViewEntries,
   settings: () => <AcademySettingsView />,
-  account: () => <MyAccountView />,
+  ...accountViewEntry,
 };
 
 export const GymAppContent: FC = () => {

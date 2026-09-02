@@ -157,7 +157,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
               <input
                 type="text"
                 required
-                placeholder="예: 모아 피아노 학원"
+                placeholder="예: 행복 피아노 학원"
                 value={academyForm.name}
                 onChange={(e) => setAcademyForm({ ...academyForm, name: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"

@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useModuleLabels } from '@/core/labels';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { isOrgAdmin } from '@/core/auth/permissions';
 import {
   fetchStaffAccountStatuses,
   inviteStaffMember,
@@ -27,10 +28,6 @@ import {
   Clock,
   Loader2,
 } from 'lucide-react';
-
-function isOrgAdmin(role: string | null): boolean {
-  return role === 'owner' || role === 'admin' || role === 'manager';
-}
 
 export const TeacherManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, refreshKey } = useApp();
