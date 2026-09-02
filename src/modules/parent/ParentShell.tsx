@@ -18,7 +18,11 @@ import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPo
 import { ParentAddChildModal } from './ParentAddChildModal';
 import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
+<<<<<<< HEAD
 import { ParentAccountSection } from './ParentAccountSection';
+=======
+import { ParentChildPinSection } from './components/ParentChildPinSection';
+>>>>>>> 815987c (feat(parent): 자녀별 출입 PIN 설정 — 학부모 포털)
 
 export const ParentShell: React.FC = () => {
   return (
@@ -195,9 +199,19 @@ function ParentShellContent() {
         {step === 'academies' && <ParentAcademyPicker />}
         {step === 'portal' && <ParentPortalHydrated />}
 
+<<<<<<< HEAD
         {step !== 'portal' && (
           <div className="mt-8">
             <ParentAccountSection />
+=======
+        {step === 'children' && portalTree && portalTree.children.length > 0 && (
+          <div className="mt-8">
+            <ParentChildPinSection
+              children={portalTree.children}
+              onRefresh={refreshPortalTree}
+              showToast={showToast}
+            />
+>>>>>>> 815987c (feat(parent): 자녀별 출입 PIN 설정 — 학부모 포털)
           </div>
         )}
       </main>

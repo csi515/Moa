@@ -806,6 +806,18 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      parent_set_child_check_in_pin: {
+        Args: { p_org_id: string; p_customer_id: string; p_pin: string };
+        Returns: Json;
+      };
+      parent_clear_child_check_in_pin: {
+        Args: { p_org_id: string; p_customer_id: string };
+        Returns: Json;
+      };
+      parent_generate_child_check_in_pin: {
+        Args: { p_org_id: string; p_customer_id: string };
+        Returns: Json;
+      };
       invite_staff_member: {
         Args: { p_org_id: string; p_staff_id: string; p_email: string };
         Returns: Json;

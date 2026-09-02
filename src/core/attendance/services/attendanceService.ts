@@ -136,7 +136,7 @@ export async function toggleCheckInByPinLocal(params: {
   };
 }
 
-/** PIN 중복 검사 후 해시 생성 */
+/** PIN 중복 검사 후 해시 생성 (학원 내 동일 숫자 PIN 금지) */
 export async function assignCustomerPin(params: {
   organizationId: string;
   customerId: string;
@@ -148,14 +148,15 @@ export async function assignCustomerPin(params: {
     return { ok: false, error: 'invalid_pin_format' };
   }
 
-  const pinHash = await hashCheckInPin(organizationId, customerId, pin);
-  const duplicate = pinRecords.some(
-    (r) => r.customerId !== customerId && r.pinHash === pinHash
-  );
-  if (duplicate) {
-    return { ok: false, error: 'pin_already_used' };
+  for (const record of pinRecords) {
+    if (record.customerId === customerId) continue;
+    const otherHash = await hashCheckInPin(organizationId, record.customerId, pin);
+    if (otherHash === record.pinHash) {
+      return { ok: false, error: 'pin_already_used' };
+    }
   }
 
+  const pinHash = await hashCheckInPin(organizationId, customerId, pin);
   return { ok: true, pinHash };
 }
 
