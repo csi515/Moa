@@ -10,7 +10,7 @@ import {
   type StaffAccountStatus,
   type StaffAccountStatusItem,
 } from '@/core/staff/services/staffAccountService';
-import { getAccountStatusClass, getAccountStatusLabel } from '@/core/accounts/accountStatusUi';
+import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { Teacher } from '@/types';
@@ -248,11 +248,7 @@ export const TeacherManagementView: React.FC = () => {
                           </span>
                         )}
                         {canManageAccounts && (
-                          <span
-                            className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${getAccountStatusClass(accountStatus)}`}
-                          >
-                            {statusLoading ? '...' : getAccountStatusLabel(accountStatus)}
-                          </span>
+                          <AccountStatusBadge status={accountStatus} loading={statusLoading} />
                         )}
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">{t.specialty}</p>
