@@ -54,7 +54,10 @@ npm run cap:ios        # Xcode (macOS 필요)
 ```
 https://YOUR_DOMAIN/privacy   # 개인정보처리방침
 https://YOUR_DOMAIN/terms     # 이용약관
+https://YOUR_DOMAIN/support   # 고객 지원 (Apple Support URL)
 ```
+
+자세한 심사 설문·데모 계정 템플릿: **`docs/STORE_REVIEW.md`**
 
 ### Supabase Auth Redirect URLs
 
@@ -108,7 +111,12 @@ moa://open?link=XY98ZW76
 ### 정책·법무
 - [x] **개인정보처리방침 URL** — 앱 내 `/privacy` + 배포 URL 등록
 - [x] **이용약관 URL** — 앱 내 `/terms`
-- [ ] 데이터 안전성(Data safety) 설문 작성
+- [x] **고객 지원 URL** — 앱 내 `/support` (Apple Support URL)
+- [x] **비밀번호 찾기** — 로그인 화면
+- [x] **회원가입 약관 동의** — 체크박스 필수
+- [x] iOS Privacy Manifest — `PrivacyInfo.xcprivacy`
+- [x] Export Compliance — `ITSAppUsesNonExemptEncryption = false`
+- [ ] 데이터 안전성(Data safety) 설문 작성 → `docs/STORE_REVIEW.md` 참고
 - [ ] 콘텐츠 등급 설문
 - [ ] 계정 생성 앱 → **테스트 계정** 심사용 제공
 
@@ -135,9 +143,11 @@ moa://open?link=XY98ZW76
 
 ### 정책·법무
 - [x] **개인정보처리방침 URL** — 앱 내 `/privacy` + 배포 URL 등록
-- [ ] App Privacy (데이터 수집 유형) 설문
+- [x] **고객 지원 URL** — `/support`
+- [ ] App Privacy (데이터 수집 유형) 설문 → `docs/STORE_REVIEW.md` 참고
 - [x] **계정 삭제** 경로 제공 — 더보기 > **내 계정** + 학부모 포털 하단 (`delete_my_account` RPC)
-- [ ] 심사용 **데모 계정** (원장 + 학부모 등)
+- [x] iOS Privacy Manifest (`PrivacyInfo.xcprivacy`)
+- [ ] 심사용 **데모 계정** (원장 + 학부모 등) → `docs/STORE_REVIEW.md`
 
 ### iOS 특이사항
 - [ ] Sign in with Apple (타사 소셜 로그인 추가 시 Apple 로그인도 필요할 수 있음)

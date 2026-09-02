@@ -47,6 +47,10 @@
 	<true/>
 	<key>NSCameraUsageDescription</key>
 	<string>학부모·강사 연결 QR 코드를 스캔하기 위해 카메라가 필요합니다.</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>LSApplicationCategoryType</key>
+	<string>public.app-category.education</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>

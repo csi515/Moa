@@ -51,6 +51,17 @@ export async function signOut(): Promise<void> {
   if (error) throw error;
 }
 
+/** 비밀번호 재설정 이메일 발송 */
+export async function resetPassword(email: string): Promise<void> {
+  const baseUrl =
+    (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || window.location.origin;
+  const redirectTo = baseUrl.replace(/\/$/, '/');
+  const { error } = await getCoreClient().auth.resetPasswordForEmail(email.trim(), {
+    redirectTo,
+  });
+  if (error) throw error;
+}
+
 export function onAuthStateChange(
   callback: (session: Session | null) => void
 ): () => void {

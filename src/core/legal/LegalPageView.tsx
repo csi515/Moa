@@ -1,6 +1,7 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import type { LegalPageId } from './legalPaths';
+import { legalPageHref } from './legalPaths';
 import { legalConfig } from './config';
 
 const h2Class = 'text-base font-bold text-slate-900 mt-6 mb-2';
@@ -23,7 +24,12 @@ function goBack() {
 }
 
 export const LegalPageView: React.FC<LegalPageViewProps> = ({ page }) => {
-  const isPrivacy = page === 'privacy';
+  const title =
+    page === 'privacy'
+      ? '개인정보처리방침'
+      : page === 'terms'
+        ? '서비스 이용약관'
+        : '고객 지원';
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -37,14 +43,14 @@ export const LegalPageView: React.FC<LegalPageViewProps> = ({ page }) => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-lg font-bold">
-            {isPrivacy ? '개인정보처리방침' : '서비스 이용약관'}
-          </h1>
+          <h1 className="text-lg font-bold">{title}</h1>
         </div>
       </header>
 
       <article className="max-w-2xl mx-auto px-4 py-8 space-y-4 text-sm text-slate-700 leading-relaxed">
-        {isPrivacy ? <PrivacyContent /> : <TermsContent />}
+        {page === 'privacy' && <PrivacyContent />}
+        {page === 'terms' && <TermsContent />}
+        {page === 'support' && <SupportContent />}
       </article>
     </div>
   );
@@ -96,12 +102,19 @@ function PrivacyContent() {
 
       <h2 className={h2Class}>6. 이용자 권리</h2>
       <p>
-        이용자는 개인정보 열람·정정·삭제·처리정지를 요청할 수 있습니다. 앱 내 설정에서{' '}
-        <strong>계정 탈퇴</strong>를 통해 로그인 계정을 삭제할 수 있습니다(원장 계정은 학원
-        소유권 이전 후 가능).
+        이용자는 개인정보 열람·정정·삭제·처리정지를 요청할 수 있습니다. 앱 내{' '}
+        <strong>더보기 → 내 계정 → 계정 탈퇴</strong>(학부모는 포털 하단)를 통해 로그인
+        계정을 삭제할 수 있습니다. 원장 계정은 학원 소유권 이전 후 가능합니다.
       </p>
 
-      <h2 className={h2Class}>7. 문의</h2>
+      <h2 className={h2Class}>7. 아동·청소년 정보</h2>
+      <p>
+        본 서비스는 학원·보호자가 원생(미성년자) 정보를 학원 운영 목적으로 입력·관리합니다.
+        미성년자 본인의 직접 가입이 아닌, 학원·보호자 계정을 통한 관리 구조이며, 보호자는
+        자녀 관련 정보만 열람할 수 있습니다.
+      </p>
+
+      <h2 className={h2Class}>8. 문의</h2>
       <p>
         개인정보 보호 책임자: {legalEntityName}
         <br />
@@ -168,6 +181,43 @@ function TermsContent() {
           {contactEmail}
         </a>
       </p>
+    </>
+  );
+}
+
+function SupportContent() {
+  const { serviceName, legalEntityName, contactEmail } = legalConfig;
+  return (
+    <>
+      <p>
+        {serviceName} 앱·웹 서비스 이용 중 문의사항이 있으시면 아래 채널로 연락해 주세요.
+      </p>
+
+      <h2 className={h2Class}>이메일 문의</h2>
+      <p>
+        <a href={`mailto:${contactEmail}`} className="text-indigo-600 underline font-bold">
+          {contactEmail}
+        </a>
+      </p>
+      <p className="text-xs text-slate-500">영업일 기준 1~2일 내 답변을 드립니다.</p>
+
+      <h2 className={h2Class}>계정·데이터 관련</h2>
+      <ul className={ulClass}>
+        <li>
+          <strong>계정 탈퇴</strong>: 앱 로그인 후 더보기 → 내 계정, 또는 학부모 포털 하단에서
+          진행할 수 있습니다.
+        </li>
+        <li>
+          <strong>개인정보</strong>:{' '}
+          <a href={legalPageHref('privacy')} className="text-indigo-600 underline">
+            개인정보처리방침
+          </a>
+          을 참고해 주세요.
+        </li>
+      </ul>
+
+      <h2 className={h2Class}>운영 주체</h2>
+      <p>{legalEntityName}</p>
     </>
   );
 }
