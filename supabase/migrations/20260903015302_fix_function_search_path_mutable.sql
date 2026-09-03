@@ -3,8 +3,8 @@
 -- - https://supabase.com/docs/guides/database/postgres-security
 -- - https://www.postgresql.org/docs/current/sql-createfunction.html
 
--- Core schema trigger function
-ALTER FUNCTION core.set_updated_at() SET search_path TO 'core', 'pg_catalog', 'public';
+-- Public schema trigger function
+ALTER FUNCTION public.set_updated_at() SET search_path TO 'public', 'pg_catalog';
 
 -- Auth and identity functions
 ALTER FUNCTION core.normalize_identity_email(text) SET search_path TO 'pg_catalog', 'public';
