@@ -2,14 +2,16 @@
 
 Google Play · Apple App Store 심사 통과를 위한 체크리스트와 콘솔 입력 참고 자료입니다.
 
-## 필수 공개 URL (프로덕션 배포 후)
+## 필수 공개 URL (프로덕션 배포 완료)
 
 | 용도 | URL |
 |------|-----|
-| 개인정보처리방침 | `https://YOUR_DOMAIN/privacy` |
-| 이용약관 | `https://YOUR_DOMAIN/terms` |
-| 고객 지원 (Apple Support URL) | `https://YOUR_DOMAIN/support` |
-| 마케팅 URL (선택) | `https://YOUR_DOMAIN` |
+| 개인정보처리방침 | `https://moa-academy.vercel.app/privacy` |
+| 이용약관 | `https://moa-academy.vercel.app/terms` |
+| 고객 지원 (Apple Support URL) | `https://moa-academy.vercel.app/support` |
+| 마케팅 URL (선택) | `https://moa-academy.vercel.app` |
+
+> **커스텀 도메인**: 조직 도메인 구매 시 위 URL을 `https://yourdomain.com`으로 교체 가능.
 
 앱 내에서도 동일 경로로 접근 가능합니다.
 
@@ -114,10 +116,10 @@ Play Console · App Store Connect **앱 검수 정보**에 아래 형식으로 �
 
 - [ ] `VITE_APP_URL`, `VITE_SUPPORT_EMAIL`, `VITE_LEGAL_ENTITY_NAME` 프로덕션 값으로 빌드
 - [ ] `npm run build:mobile` 성공
-- [ ] `/privacy`, `/terms`, `/support` 프로덕션 URL 200 응답
-- [ ] `.well-known` TEAMID·SHA256 실값 교체 (유니버설 링크 사용 시)
-- [ ] Supabase Redirect URLs 등록
-- [ ] 심사용 데모 계정·조직 데이터 시드
+- [x] `/privacy`, `/terms`, `/support` 프로덕션 URL 200 응답 (Vercel 배포 확인됨)
+- [ ] `.well-known` TEAMID·SHA256 실값 교체 (Apple Team ID 필요 — `docs/MOBILE.md` 참고)
+- [x] Supabase Redirect URLs 등록 (로컬 + Vercel + 모바일 스킴)
+- [ ] 심사용 데모 계정·조직 데이터 시드 (수동: owner + parent 계정 생성 및 시드 데이터 입력)
 - [ ] 실기기: 로그인, QR, PIN, 계정 탈퇴, 법적 링크
 
 ---
@@ -138,7 +140,22 @@ Play Console · App Store Connect **앱 검수 정보**에 아래 형식으로 �
 
 ---
 
+## 보안 강화 (Production 권장)
+
+### Supabase 유출 비밀번호 보호
+
+**요구사항**: Supabase Pro 플랜 ($25/월 이상)
+
+HaveIBeenPwned 데이터베이스 연동으로 유출된 비밀번호 사용을 차단하는 [Leaked Password Protection](https://supabase.com/docs/guides/auth/passwords#leaked-password-protection) 기능.
+
+**현재 상태**: Free 플랜이므로 비활성화됨. Pro 업그레이드 후 Dashboard → Authentication → Policies에서 활성화 가능.
+
+자세한 내용: `docs/ENV_SETUP.md` 보안 강화 섹션 참고.
+
+---
+
 ## 관련 문서
 
 - `docs/MOBILE.md` — Capacitor 빌드·배포 절차
+- `docs/ENV_SETUP.md` — 환경 변수 및 보안 설정
 - `capacitor.config.ts` — `com.moa.academy`

@@ -28,13 +28,20 @@
                 <data android:scheme="moa" android:host="open" />
             </intent-filter>
 
-            <!-- HTTPS 앱 링크 — 프로덕션 도메인·assetlinks.json 설정 후 활성화 -->
+            <!-- HTTPS 앱 링크 — 커스텀 도메인 + assetlinks.json 설정 후 활성화 -->
             <!--
+            참고: moa-academy.vercel.app 사용 가능하나, 커스텀 도메인 권장.
+            활성화 전 요구사항:
+            - SHA256 서명 해시 (Play Console App Signing에서 확인)
+            - https://moa-academy.vercel.app/.well-known/assetlinks.json 배포
+            또는 커스텀 도메인으로 교체:
+            - https://yourdomain.com/.well-known/assetlinks.json
+            
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="YOUR_PRODUCTION_DOMAIN" />
+                <data android:scheme="https" android:host="moa-academy.vercel.app" />
             </intent-filter>
             -->
         </activity>

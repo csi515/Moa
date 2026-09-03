@@ -10,6 +10,7 @@ import {
 } from '@/core/parent/services/guardianLinkService';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
 import { StorageHydrator } from '@/StorageHydrator';
+import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { ParentChildrenHome } from './ParentChildrenHome';
 import { ParentAcademyPicker } from './ParentAcademyPicker';
 import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPortal';
@@ -19,9 +20,16 @@ import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 import { ParentAccountSection } from './ParentAccountSection';
 import { ParentChildPinSection } from './components/ParentChildPinSection';
 
+/**
+ * 학부모 포털 진입점.
+ * SupabaseRoleSync는 로그인 사용자 → activeUser(role/staffId/parentCustomerId) 동기화를 담당하며,
+ * 다른 모듈 셸(daycare/gym/piano/pilates)과 동일하게 마운트해야 학부모 전용 계정에서도
+ * 올바른 세션 상태가 Storage에 반영됩니다.
+ */
 export const ParentShell: React.FC = () => {
   return (
     <ParentPortalProvider>
+      <SupabaseRoleSync />
       <ParentShellContent />
     </ParentPortalProvider>
   );
