@@ -16,7 +16,7 @@ import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
 import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
-import { PageHeader, FilterBar, SearchField } from '@/shared/components';
+import { PageHeader, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import {
   UserSquare2,
   Phone,
@@ -248,10 +248,23 @@ export const ParentManagementView: React.FC = () => {
       </div>
 
       {filteredParents.length === 0 && (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-500">
-          <Users className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-          <p className="font-bold">등록된 학부모가 없습니다</p>
-        </div>
+        <EmptyState
+          icon={<Users className="w-10 h-10" />}
+          title={searchQuery.trim() ? "검색 결과가 없습니다" : "등록된 학부모가 없습니다"}
+          description={searchQuery.trim()
+            ? "다른 이름이나 연락처로 검색해보세요. 또는 검색어를 지우고 전체 목록을 확인하세요."
+            : "원생 등록 시 학부모 정보가 자동으로 생성됩니다. 원생 관리에서 첫 원생을 등록해보세요."}
+          action={
+            searchQuery.trim() && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all"
+              >
+                검색 초기화
+              </button>
+            )
+          }
+        />
       )}
 
       {inviteTarget && (

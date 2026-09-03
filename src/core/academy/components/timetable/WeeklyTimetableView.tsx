@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useIsDesktop } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { PageHeader, FilterBar } from '@/shared/components';
+import { PageHeader, FilterBar, EmptyState } from '@/shared/components';
 import { ClassItem, DayOfWeek } from '@/types';
 import {
   Clock,
@@ -221,11 +221,28 @@ export const WeeklyTimetableView: React.FC = () => {
             </div>
 
             {dayClasses.length === 0 ? (
-              <div className="bg-white rounded-3xl p-10 text-center border border-slate-200 text-slate-400 space-y-2">
-                <Clock className="w-10 h-10 text-slate-300 mx-auto" />
-                <p className="font-bold text-slate-700 text-sm">{selectedDay}요일에 등록된 수업이 없습니다.</p>
-                <p className="text-xs">상단 필터를 조정하거나 반 관리에서 수업을 개설하세요.</p>
-              </div>
+              <EmptyState
+                icon={<Clock className="w-10 h-10" />}
+                title={`${selectedDay}요일에 등록된 수업이 없습니다`}
+                description={
+                  teacherFilter !== 'ALL' || roomFilter !== 'ALL'
+                    ? "필터를 조정하거나 초기화해보세요. 전체 조건으로 보면 다른 수업을 확인할 수 있습니다."
+                    : "반 관리 메뉴에서 새로운 클래스를 개설하고 요일과 시간을 설정해보세요."
+                }
+                action={
+                  (teacherFilter !== 'ALL' || roomFilter !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setTeacherFilter('ALL');
+                        setRoomFilter('ALL');
+                      }}
+                      className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all"
+                    >
+                      필터 초기화
+                    </button>
+                  )
+                }
+              />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {dayClasses.map((cls) => {

@@ -27,7 +27,15 @@ export function ParentNoticesView({
       {loading && notifications.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-6">알림을 불러오는 중...</p>
       ) : notifications.length === 0 ? (
-        <p className="text-sm text-slate-400 text-center py-6">{NOTICE_COPY.parentEmpty}</p>
+        <div className="text-center py-10 space-y-3">
+          <div className="text-4xl">📢</div>
+          <div>
+            <p className="text-sm font-bold text-slate-700">{NOTICE_COPY.parentEmpty}</p>
+            <p className="text-xs text-slate-500 mt-1.5">
+              학원에서 새로운 알림을 보내면 여기에 표시됩니다
+            </p>
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {notifications.map((n) => (

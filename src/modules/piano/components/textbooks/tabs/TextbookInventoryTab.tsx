@@ -157,10 +157,33 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
       {/* Textbook Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTextbooks.length === 0 ? (
-          <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200">
-            <BookOpen className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-600">조건에 맞는 교재가 없습니다.</p>
-            <p className="text-xs text-slate-400 mt-1">검색어나 필터 조건을 변경해보세요.</p>
+          <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
+            <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
+            <div>
+              <p className="text-sm font-bold text-slate-700">
+                {searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock
+                  ? "조건에 맞는 교재가 없습니다"
+                  : "등록된 교재가 없습니다"}
+              </p>
+              <p className="text-xs text-slate-500 mt-1.5">
+                {searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock
+                  ? "검색어나 필터 조건을 변경해보세요. 다른 키워드나 레벨로 다시 검색할 수 있습니다."
+                  : "교재 관리 탭에서 첫 교재를 등록하고 재고를 관리해보세요."}
+              </p>
+            </div>
+            {(searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock) && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setLevelFilter('all');
+                  setPublisherFilter('all');
+                  setOnlyLowStock(false);
+                }}
+                className="px-4 py-2 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all mx-auto"
+              >
+                필터 초기화
+              </button>
+            )}
           </div>
         ) : (
           filteredTextbooks.map((tb) => {
