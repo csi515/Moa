@@ -188,7 +188,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   const removeGuardian = (idx: number) => {
     if (guardians.length <= 1) {
-      showToast('최소 1명의 보호자가 필요합니다.', 'warning');
+      showToast('최소 1명의 보호자를 등록해야 합니다', 'warning');
       return;
     }
 
@@ -275,21 +275,21 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('학생 이름을 입력해 주세요.', 'warning');
+      showToast('필수 항목: 학생 이름을 입력해 주세요', 'warning');
       return;
     }
 
     for (const g of guardians) {
       if (g.mode === 'existing' && !g.existingParentId) {
-        showToast('기존 학부모를 선택하거나 새로 등록해 주세요.', 'warning');
+        showToast('검색 결과에서 기존 학부모를 선택하거나 새로 등록해 주세요', 'warning');
         return;
       }
       if (g.mode === 'new' && (!g.name.trim() || !g.phone.trim())) {
-        showToast('학부모 이름과 전화번호를 입력해 주세요.', 'warning');
+        showToast('필수 항목: 학부모 이름과 전화번호를 모두 입력해 주세요', 'warning');
         return;
       }
       if (g.invite && !g.email.trim()) {
-        showToast('학부모 초대를 위해 이메일을 입력해 주세요.', 'warning');
+        showToast('초대 기능 사용 시 학부모 이메일을 입력해 주세요', 'warning');
         return;
       }
     }
@@ -300,14 +300,14 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         : `phone:${g.phone.trim()}`
     );
     if (new Set(parentKeys).size !== parentKeys.length) {
-      showToast('같은 보호자가 중복 등록되어 있습니다.', 'warning');
+      showToast('중복 오류: 같은 보호자를 여러 번 등록할 수 없습니다', 'warning');
       return;
     }
 
     if (showPickupFields && formData.usesShuttleService) {
       const hasAddress = formData.pickupAddresses.some((a) => a.address.trim());
       if (!hasAddress) {
-        showToast('셔틀 이용 시 픽업·하원 주소를 1곳 이상 입력해 주세요.', 'warning');
+        showToast('셔틀 이용 시 픽업·하원 주소를 최소 1곳 입력해 주세요', 'warning');
         return;
       }
     }

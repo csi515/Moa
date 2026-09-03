@@ -75,10 +75,20 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
         </span>
       </div>
 
+      {!pinSet && !revealedPin && (
+        <div className="bg-amber-50 rounded-xl border border-amber-100 p-3">
+          <p className="text-xs text-amber-900">
+            <strong>PIN 미설정</strong><br />
+            <span className="text-amber-700">자동 발급 또는 직접 입력으로 PIN을 설정하세요</span>
+          </p>
+        </div>
+      )}
+
       {revealedPin && (
         <div className="bg-indigo-600 text-white rounded-xl p-3 text-center">
           <p className="text-[10px] opacity-80">발급된 PIN (한 번만 표시)</p>
           <p className="text-2xl font-black tracking-[0.3em] font-mono mt-1">{revealedPin}</p>
+          <p className="text-[10px] opacity-80 mt-2">학부모님 또는 학생에게 전달하세요</p>
         </div>
       )}
 
@@ -91,13 +101,14 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
           placeholder="직접 입력 (4~8자리)"
           value={customPin}
           onChange={(e) => setCustomPin(e.target.value.replace(/\D/g, ''))}
-          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl font-mono"
+          className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          disabled={loading}
         />
         <button
           type="button"
           disabled={loading || customPin.length < 4}
           onClick={handleSaveCustom}
-          className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold disabled:opacity-50"
+          className="px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-bold disabled:opacity-50 hover:bg-slate-50 active:scale-[0.98] transition-all min-h-[44px]"
         >
           저장
         </button>
@@ -108,16 +119,16 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
           type="button"
           disabled={loading}
           onClick={handleGenerate}
-          className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1"
+          className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1 min-h-[44px] hover:bg-indigo-700 active:scale-[0.98] transition-all disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-          PIN 자동 발급
+          {loading ? '발급 중...' : 'PIN 자동 발급'}
         </button>
         {pinSet && (
           <button
             type="button"
             onClick={handleClear}
-            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-rose-600"
+            className="px-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 active:scale-[0.98] transition-all min-h-[44px]"
           >
             삭제
           </button>

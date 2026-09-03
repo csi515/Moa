@@ -26,6 +26,9 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
 
   const moduleEnabled = isAttendanceModuleEnabled(settings, industry);
   const accent = getIndustryAccent(industry);
+  
+  const customerPins = StorageService.getCustomerPins();
+  const hasPinsConfigured = customerPins.length > 0;
 
   const maskedPin = useMemo(() => (pin ? '●'.repeat(pin.length) : ''), [pin]);
 
@@ -102,6 +105,32 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
         >
           뒤로 가기
         </button>
+      </div>
+    );
+  }
+
+  if (!hasPinsConfigured) {
+    return (
+      <div className="max-w-md mx-auto pb-4 md:pb-0">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+          <div className="text-center mb-6">
+            <p className="text-xs text-slate-500 font-semibold">출결 키패드</p>
+            <h3 className="text-2xl font-black text-slate-900 mt-1">PIN 입력</h3>
+          </div>
+          
+          <div className="bg-amber-50 rounded-2xl border border-amber-100 p-6 text-center space-y-3">
+            <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
+              <Delete className="w-6 h-6 text-amber-600" />
+            </div>
+            <div>
+              <p className="font-bold text-amber-900 mb-2">등록된 PIN이 없습니다</p>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                출결 PIN을 사용하려면 먼저 학생별로 PIN을 발급해야 합니다.<br />
+                <strong>학생 관리 &gt; 학생 상세 &gt; 출결 PIN</strong> 탭에서 PIN을 발급하세요.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

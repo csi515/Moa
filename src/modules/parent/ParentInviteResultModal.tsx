@@ -50,22 +50,29 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
         </p>
 
         <div
-          className={`mb-4 p-3 rounded-xl text-sm flex items-start gap-2 ${
-            emailSent ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'
+          className={`mb-4 p-3 rounded-xl text-sm flex items-start gap-2 border ${
+            emailSent 
+              ? 'bg-emerald-50 text-emerald-800 border-emerald-100' 
+              : 'bg-amber-50 text-amber-800 border-amber-100'
           }`}
         >
           <Mail className="w-4 h-4 shrink-0 mt-0.5" />
           <div>
             {emailSent ? (
-              <p>초대 이메일을 발송했습니다.</p>
+              <>
+                <p className="font-bold">이메일 발송 완료</p>
+                <p className="text-xs mt-0.5 opacity-80">학부모님이 이메일로 초대 링크를 받았습니다.</p>
+              </>
             ) : (
-              <p>
-                이메일 자동 발송이 설정되지 않았습니다. 아래 연결 코드나 링크를 학부모에게
-                직접 전달해 주세요.
-                {emailMessage ? (
-                  <span className="block text-xs mt-1 opacity-80">{emailMessage}</span>
-                ) : null}
-              </p>
+              <>
+                <p className="font-bold">이메일 미발송</p>
+                <p className="text-xs mt-0.5">
+                  이메일 자동 발송이 설정되지 않았습니다. 아래 연결 코드나 링크를 학부모님께 직접 전달해 주세요.
+                  {emailMessage ? (
+                    <span className="block mt-1 opacity-80">{emailMessage}</span>
+                  ) : null}
+                </p>
+              </>
             )}
           </div>
         </div>
@@ -121,10 +128,13 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
         )}
 
         {linkCodes.length === 0 && (
-          <p className="text-sm text-slate-500 text-center py-4">
-            연결된 자녀가 없어 코드가 생성되지 않았습니다. 학생-학부모 연결 후 다시 초대해
-            주세요.
-          </p>
+          <div className="bg-slate-50 rounded-xl p-6 text-center border border-slate-200">
+            <p className="text-sm text-slate-700 font-bold mb-2">연결 코드 없음</p>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              연결된 자녀가 없어 코드가 생성되지 않았습니다.<br />
+              학생 관리에서 학생-학부모를 연결한 후 다시 초대해 주세요.
+            </p>
+          </div>
         )}
       </div>
     </div>

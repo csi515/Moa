@@ -107,11 +107,11 @@ export const ClassManagementView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('반 이름을 입력해주세요.', 'warning');
+      showToast('필수 항목: 반 이름을 입력해 주세요', 'warning');
       return;
     }
     if (formData.daysOfWeek.length === 0) {
-      showToast('최소 1개 이상의 요일을 선택해주세요.', 'warning');
+      showToast('최소 1개 이상의 요일을 선택해 주세요', 'warning');
       return;
     }
 
@@ -157,8 +157,24 @@ export const ClassManagementView: React.FC = () => {
       />
 
       {/* Class Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {classes.map((cls) => {
+      {classes.length === 0 ? (
+        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
+          <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+          <p className="font-bold text-slate-700 mb-2">개설된 반/수업이 없습니다</p>
+          <p className="text-sm text-slate-500 mb-4">
+            첫 번째 수업을 개설하여 원생들을 배정해 보세요
+          </p>
+          <button
+            onClick={handleOpenCreate}
+            className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 mx-auto min-h-[44px]"
+          >
+            <Plus className="w-4 h-4" />
+            신규 반 개설
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {classes.map((cls) => {
           const enrolled = students.filter((s) => s.status === 'active' && s.classIds?.includes(cls.id));
           const percent = Math.min(100, Math.round((enrolled.length / cls.capacity) * 100));
 
@@ -256,7 +272,8 @@ export const ClassManagementView: React.FC = () => {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Class Form Modal */}
       {isModalOpen && (
