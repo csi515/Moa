@@ -16,7 +16,7 @@ import {
   getLevelColor,
   getStudentStatusBadge
 } from '@/utils/formatters';
-import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import {
   Users,
   UserPlus,
@@ -254,11 +254,31 @@ export const StudentListView: React.FC = () => {
 
       {/* Student List View */}
       {filteredStudents.length === 0 ? (
-        <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 text-slate-500 space-y-3">
-          <Users className="w-12 h-12 text-slate-300 mx-auto" />
-          <p className="font-bold text-slate-700">조건에 일치하는 원생이 없습니다.</p>
-          <p className="text-xs text-slate-400">검색어나 필터를 초기화해보세요.</p>
-        </div>
+        <EmptyState
+          icon={<Users className="w-12 h-12" />}
+          title={searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL'
+            ? "조건에 일치하는 원생이 없습니다"
+            : "등록된 원생이 없습니다"}
+          description={searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL'
+            ? "검색어나 필터를 변경해보세요. 다른 키워드로 다시 검색하거나 전체 조건으로 초기화할 수 있습니다."
+            : "우측 상단 '원생 등록' 버튼으로 첫 번째 원생을 등록해보세요."}
+          action={
+            (searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setTeacherFilter('ALL');
+                  setClassFilter('ALL');
+                  setStatusFilter('ALL');
+                  setShuttleFilter('ALL');
+                }}
+                className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all"
+              >
+                필터 초기화
+              </button>
+            )
+          }
+        />
       ) : (
         <>
           {/* Desktop Table View */}

@@ -55,7 +55,11 @@ export const DirectorDashboardPanels: React.FC<DirectorDashboardPanelsProps> = (
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {stats.todayClasses.length === 0 ? (
-            <p className="text-xs text-slate-400 p-6 text-center col-span-full">오늘 예정된 정규 수업이 없습니다.</p>
+            <div className="text-center py-8 col-span-full space-y-2">
+              <Clock className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-xs font-bold text-slate-600">오늘 예정된 정규 수업이 없습니다</p>
+              <p className="text-xs text-slate-400">주간 시간표에서 다른 요일의 수업을 확인하세요</p>
+            </div>
           ) : (
             stats.todayClasses.map((cls, idx) => {
               const enrolled = students.filter((s) => s.status === 'active' && s.classIds.includes(cls.id));
@@ -122,7 +126,11 @@ export const DirectorDashboardPanels: React.FC<DirectorDashboardPanelsProps> = (
 
           <div className="space-y-3">
             {recentInvoices.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">미납된 수강료가 없습니다. ✨</p>
+              <div className="text-center py-8 space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                <p className="text-xs font-bold text-slate-600">미납된 수강료가 없습니다! ✨</p>
+                <p className="text-xs text-slate-400">모든 원생이 정상 수납되었습니다</p>
+              </div>
             ) : (
               recentInvoices.map((inv, i) => (
                 <div
@@ -214,7 +222,11 @@ export const DirectorDashboardPanels: React.FC<DirectorDashboardPanelsProps> = (
         <div className="space-y-2">
           <h5 className="text-xs font-bold text-slate-700">최근 교재 판매 이력</h5>
           {recentSales.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">등록된 교재 판매 내역이 없습니다.</p>
+            <div className="text-center py-8 space-y-2">
+              <BookOpen className="w-8 h-8 text-slate-300 mx-auto" />
+              <p className="text-xs font-bold text-slate-600">등록된 교재 판매 내역이 없습니다</p>
+              <p className="text-xs text-slate-400">교재 관리에서 교재를 등록하고 판매를 시작하세요</p>
+            </div>
           ) : (
             recentSales.map((sale) => (
               <div

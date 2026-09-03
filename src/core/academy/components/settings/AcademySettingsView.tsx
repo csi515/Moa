@@ -253,8 +253,8 @@ export const AcademySettingsView: FC = () => {
             icon={<ShieldCheck className="w-4 h-4 text-emerald-600" />}
           >
             <p className="text-xs text-slate-500 leading-relaxed">
-              원생 정보, 출결 기록, 수강료 청구 및 지출 등 학원의 모든 데이터를 JSON 파일로
-              다운로드하거나 다른 기기에서 복원할 수 있습니다.
+              원생, 출결, 수강료 등 학원 데이터를 JSON 파일로 백업하거나, 다른 기기에서 복원할 수 있습니다.
+              정기적인 백업으로 데이터 손실을 예방하세요.
             </p>
 
             <div className="space-y-2 pt-2">

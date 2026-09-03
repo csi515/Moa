@@ -56,7 +56,11 @@ export const Header: React.FC = () => {
         원생 검색 결과 ({filteredStudents.length})
       </p>
       {filteredStudents.length === 0 ? (
-        <p className="text-xs text-slate-500 p-3 text-center">일치하는 원생이 없습니다.</p>
+        <div className="text-center py-6 space-y-2">
+          <Search className="w-8 h-8 text-slate-300 mx-auto" />
+          <p className="text-xs font-bold text-slate-600">일치하는 원생이 없습니다</p>
+          <p className="text-xs text-slate-400">다른 이름이나 연락처로 검색해보세요</p>
+        </div>
       ) : (
         filteredStudents.map((st) => (
           <button

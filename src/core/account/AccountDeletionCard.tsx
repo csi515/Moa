@@ -10,7 +10,7 @@ interface AccountDeletionCardProps {
 }
 
 export const AccountDeletionCard: React.FC<AccountDeletionCardProps> = ({
-  description = '계정을 삭제하면 로그인 정보가 제거되며, 조직에 연결된 멤버십이 해제됩니다. 학원 운영 데이터(원생·출결 등)는 학원 소유 데이터로 남을 수 있습니다.',
+  description = '계정 삭제 시 로그인 정보가 제거되며, 조직 멤버십이 해제됩니다. 학원 운영 데이터는 조직 소유로 유지될 수 있습니다.',
 }) => {
   const { user, signOut } = useAuth();
   const { showToast, openConfirmDialog } = useApp();
