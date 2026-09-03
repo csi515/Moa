@@ -23,7 +23,7 @@ export const ConfirmDialog: React.FC = () => {
           </div>
         </div>
 
-        <p className="text-sm text-slate-600 leading-relaxed pl-15">
+        <p className="text-sm text-slate-600 leading-relaxed">
           {confirmDialog.message}
         </p>
 
