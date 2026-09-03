@@ -29,25 +29,25 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
       role="presentation"
     >
       <div
-        className={`bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full ${MAX_WIDTH_CLASS[maxWidth]} max-h-[90vh] flex flex-col overflow-hidden`}
+        className={`bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full ${MAX_WIDTH_CLASS[maxWidth]} max-h-[90vh] flex flex-col overflow-hidden animate-in slide-in-from-bottom sm:zoom-in-95 duration-300 sm:duration-200`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between shrink-0">
-          <h3 id="modal-title" className="font-bold text-slate-900 text-sm">
+        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between shrink-0">
+          <h3 id="modal-title" className="font-bold text-slate-900 text-base">
             {title}
           </h3>
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
             aria-label="닫기"
           >
             <X className="w-5 h-5" />

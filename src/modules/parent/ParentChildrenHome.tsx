@@ -10,10 +10,23 @@ export const ParentChildrenHome: React.FC = () => {
 
   if (children.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-8 text-center text-slate-500 border border-slate-200">
-        <Users className="w-10 h-10 mx-auto text-slate-300 mb-3" />
-        <p className="font-bold text-slate-700">연결된 자녀가 없습니다</p>
-        <p className="text-sm mt-2">학원에 보호자 연결을 요청해 주세요.</p>
+      <div className="bg-white rounded-2xl p-8 sm:p-10 text-center border border-slate-200 shadow-sm">
+        <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+          <Users className="w-8 h-8 text-slate-400" />
+        </div>
+        <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 자녀가 없습니다</h3>
+        <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          학원에서 발급한 8자리 연결 코드를 입력하거나<br />
+          내 자녀를 직접 등록해 주세요
+        </p>
+        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
+          <p className="text-xs font-bold text-indigo-900 mb-2">💡 연결 방법</p>
+          <ul className="text-xs text-indigo-700 space-y-1">
+            <li>• 학원에 연결 코드를 요청하세요</li>
+            <li>• 위의 '코드 입력하기' 버튼을 눌러 코드를 입력합니다</li>
+            <li>• QR 코드가 있다면 QR 버튼으로 스캔할 수 있습니다</li>
+          </ul>
+        </div>
       </div>
     );
   }

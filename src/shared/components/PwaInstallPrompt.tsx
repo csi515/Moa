@@ -24,7 +24,7 @@ export const PwaInstallPrompt: React.FC = () => {
 
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
-      alert('브라우저 메뉴에서 [홈 화면에 추가] 또는 [앱 설치]를 선택해주세요.');
+      alert('브라우저 메뉴에서 [홈 화면에 추가] 또는 [앱 설치]를 선택해 주세요');
       return;
     }
     deferredPrompt.prompt();
@@ -56,7 +56,7 @@ export const PwaInstallPrompt: React.FC = () => {
         </div>
         <div>
           <h4 className="text-sm font-bold">{appBrand.shortName} 앱 설치</h4>
-          <p className="text-xs text-indigo-200 mt-0.5">홈 화면에 추가하여 앱처럼 빠르게 사용하세요</p>
+          <p className="text-xs text-indigo-200 mt-0.5">홈 화면에 추가하고 앱처럼 빠르게 사용하세요</p>
         </div>
       </div>
       <div className="flex items-center gap-2">

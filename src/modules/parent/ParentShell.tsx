@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, Camera, Loader2, LogOut, Link2, UserPlus } from 'lucide-react';
+import { ArrowLeft, Camera, Loader2, LogOut, Link2, UserPlus, AlertTriangle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -142,54 +142,69 @@ function ParentShellContent() {
               내 자녀 등록
             </button>
 
-            <div className="bg-white rounded-2xl p-4 border border-indigo-100">
-              <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-2">
+            <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-sm">
+              <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-3">
                 <Link2 className="w-4 h-4" />
                 학원 연결 코드
               </div>
               {!showLinkForm ? (
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowLinkForm(true)}
-                    className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
-                  >
-                    코드 입력하기
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowQrScanner(true)}
-                    className="px-4 py-2.5 bg-white border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-1"
-                    aria-label="QR 스캔"
-                  >
-                    <Camera className="w-4 h-4" />
-                    QR
-                  </button>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowLinkForm(true)}
+                      className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] hover:bg-indigo-700 transition-colors"
+                    >
+                      코드 입력하기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowQrScanner(true)}
+                      className="px-4 py-2.5 bg-white border-2 border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors"
+                      aria-label="QR 스캔"
+                    >
+                      <Camera className="w-4 h-4" />
+                      QR
+                    </button>
+                  </div>
+                  {childCount === 0 && (
+                    <p className="text-xs text-slate-500 leading-relaxed">
+                      자녀를 먼저 등록하거나, 학원에서 받은 8자리 코드로 바로 연결할 수 있습니다
+                    </p>
+                  )}
                 </div>
               ) : (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={linkInput}
-                    onChange={(e) => setLinkInput(e.target.value.toUpperCase())}
-                    placeholder="8자리 코드"
-                    maxLength={8}
-                    className="flex-1 px-3 py-2 text-sm font-mono uppercase border border-slate-200 rounded-xl tracking-widest"
-                  />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value.toUpperCase())}
+                      placeholder="예: ABC12345"
+                      maxLength={8}
+                      className="flex-1 px-3 py-2.5 text-sm font-mono uppercase border-2 border-slate-300 rounded-xl tracking-widest focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+                      autoFocus
+                    />
+                    <button
+                      type="button"
+                      onClick={handleManualRedeem}
+                      disabled={redeeming || linkInput.length < 6}
+                      className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
+                    >
+                      {redeeming ? '연결 중...' : '연결'}
+                    </button>
+                  </div>
                   <button
                     type="button"
-                    onClick={handleManualRedeem}
-                    disabled={redeeming || linkInput.length < 6}
-                    className="px-4 py-2 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50"
+                    onClick={() => {
+                      setShowLinkForm(false);
+                      setLinkInput('');
+                    }}
+                    className="text-xs text-slate-500 hover:text-slate-700 underline"
                   >
-                    연결
+                    취소
                   </button>
                 </div>
-              )}
-              {childCount === 0 && (
-                <p className="mt-2 text-xs text-slate-500">
-                  자녀를 먼저 등록하거나, 학원에서 받은 코드로 바로 연결할 수 있습니다.
-                </p>
               )}
             </div>
           </div>
@@ -300,8 +315,22 @@ function ParentPortalWithStudent({
 
   if (!student) {
     return (
-      <div className="bg-white rounded-2xl p-8 text-center text-slate-500 border border-slate-200">
-        학생 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+      <div className="bg-white rounded-2xl p-8 sm:p-10 text-center border border-rose-200 shadow-sm">
+        <div className="w-16 h-16 mx-auto bg-rose-50 rounded-2xl flex items-center justify-center mb-4">
+          <AlertTriangle className="w-8 h-8 text-rose-500" />
+        </div>
+        <h3 className="font-bold text-slate-900 text-lg mb-2">학생 정보를 불러올 수 없습니다</h3>
+        <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          일시적인 오류가 발생했습니다<br />
+          잠시 후 다시 시도해 주세요
+        </p>
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
+        >
+          뒤로 가기
+        </button>
       </div>
     );
   }

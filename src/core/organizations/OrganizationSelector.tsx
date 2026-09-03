@@ -33,7 +33,7 @@ export const OrganizationSelector: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!orgName.trim()) {
-      setError('학원/업체 이름을 입력해 주세요.');
+      setError('학원 이름을 입력해 주세요');
       return;
     }
 
@@ -42,7 +42,7 @@ export const OrganizationSelector: React.FC = () => {
     try {
       await createOrganization(orgName.trim(), industryType);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Organization 생성에 실패했습니다.');
+      setError(err instanceof Error ? err.message : '학원 등록에 실패했습니다. 다시 시도해 주세요');
     } finally {
       setCreating(false);
     }
@@ -63,9 +63,9 @@ export const OrganizationSelector: React.FC = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
             <Building2 className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">Organization 선택</h1>
+          <h1 className="text-2xl font-bold text-slate-900">학원 선택</h1>
           <p className="text-sm text-slate-500 mt-2">
-            관리할 학원/업체를 선택하거나 새로 만드세요
+            관리할 학원을 선택하거나 새로 등록하세요
           </p>
         </div>
 
@@ -73,7 +73,7 @@ export const OrganizationSelector: React.FC = () => {
           {organizations.length > 0 && !showCreate && (
             <>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                내 Organization ({organizations.length})
+                내 학원 ({organizations.length})
               </p>
               <div className="space-y-2">
                 {organizations.map((membership) => (
@@ -115,16 +115,16 @@ export const OrganizationSelector: React.FC = () => {
           {!showCreate ? (
             <button
               onClick={() => setShowCreate(true)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-bold hover:bg-indigo-50 transition-colors min-h-[44px]"
+              className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors min-h-[44px]"
             >
               <Plus className="w-5 h-5" />
-              새 Organization 만들기
+              새 학원 등록하기
             </button>
           ) : (
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-bold text-indigo-700">
                 <Sparkles className="w-4 h-4" />
-                새 Organization 등록
+                새 학원 등록
               </div>
 
               <div>

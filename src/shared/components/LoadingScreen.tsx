@@ -6,8 +6,11 @@ interface LoadingScreenProps {
 }
 
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = '불러오는 중...' }) => (
-  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-3">
-    <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
-    <p className="text-sm text-slate-500">{message}</p>
+  <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 p-6">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="w-10 h-10 text-indigo-600 animate-spin" />
+      <p className="text-base font-semibold text-slate-700 text-center">{message}</p>
+      <p className="text-xs text-slate-400 text-center max-w-sm">잠시만 기다려 주세요</p>
+    </div>
   </div>
 );

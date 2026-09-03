@@ -14,8 +14,8 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
     mode === 'login'
       ? appBrand.tagline
       : mode === 'signup'
-        ? '사업장 정보를 입력하고 바로 시작하세요'
-        : '가입한 이메일로 재설정 링크를 보내드립니다';
+        ? '사업장 정보를 입력하고 지금 바로 시작하세요'
+        : '가입하신 이메일로 비밀번호 재설정 링크를 보내드립니다';
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex items-center justify-center p-4">
