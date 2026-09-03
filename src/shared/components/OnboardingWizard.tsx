@@ -273,12 +273,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
               <UserPlus className="w-8 h-8 text-emerald-600" />
             </div>
-            <div>
-              <h3 className="font-bold text-lg text-slate-900">기본 설정이 완료되었습니다!</h3>
-              <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                이제 첫 원생을 등록하고 출결, 수강료 관리를 시작해 보세요.
+          <div>
+            <h3 className="font-bold text-lg text-slate-900">기본 설정이 완료되었습니다!</h3>
+            <p className="text-sm text-slate-500 mt-2 leading-relaxed">
+                이제 첫 원생을 등록하고 출결·수강료·학습 관리를 시작해 보세요
               </p>
-            </div>
+          </div>
             <div className="flex flex-col gap-2">
               <button
                 onClick={handleFinish}

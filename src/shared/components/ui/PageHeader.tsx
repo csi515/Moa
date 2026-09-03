@@ -23,7 +23,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
           {title}
         </h2>
         {description && (
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">{description}</p>
+          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">{description}</p>
         )}
       </div>
       {actions && (

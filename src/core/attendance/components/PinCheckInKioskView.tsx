@@ -4,7 +4,7 @@ import { useOptionalOrganization } from '@/core/organizations/OrganizationProvid
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../features';
 import type { CheckInMethod } from '../types';
-import { Delete, RotateCcw } from 'lucide-react';
+import { Delete, RotateCcw, Settings } from 'lucide-react';
 import { getIndustryAccent } from '@/core/industry/industryUi';
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'enter'] as const;
@@ -86,8 +86,22 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
 
   if (!moduleEnabled) {
     return (
-      <div className="bg-white rounded-3xl border border-slate-200 p-8 text-center text-slate-500">
-        출결 모듈이 비활성화되어 있습니다. 설정에서 활성화해 주세요.
+      <div className="bg-white rounded-3xl border border-amber-200 p-8 sm:p-10 text-center shadow-sm">
+        <div className="w-16 h-16 mx-auto bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
+          <Settings className="w-8 h-8 text-amber-600" />
+        </div>
+        <h3 className="font-bold text-slate-900 text-lg mb-2">출입 관리가 비활성화되어 있습니다</h3>
+        <p className="text-sm text-slate-500 leading-relaxed mb-6">
+          설정 메뉴에서 출입 관리(PIN 번호) 기능을<br />
+          활성화한 후 사용하실 수 있습니다
+        </p>
+        <button
+          type="button"
+          onClick={() => window.history.back()}
+          className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
+        >
+          뒤로 가기
+        </button>
       </div>
     );
   }
