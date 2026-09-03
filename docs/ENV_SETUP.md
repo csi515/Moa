@@ -19,7 +19,7 @@ cp .env.example .env.local
 
 ```bash
 # Supabase 프로젝트 설정
-VITE_SUPABASE_URL="https://xlsfnfolrrhxsxazmhjb.supabase.co"
+VITE_SUPABASE_URL="https://YOUR_PROJECT_REF.supabase.co"
 VITE_SUPABASE_ANON_KEY="eyJhbG...실제_anon_key"
 
 # 앱 URL (로컬 개발)
@@ -53,7 +53,7 @@ npm run dev
 
 | 변수명 | 값 | 환경 |
 |--------|-----|------|
-| `VITE_SUPABASE_URL` | `https://xlsfnfolrrhxsxazmhjb.supabase.co` | Production |
+| `VITE_SUPABASE_URL` | `https://YOUR_PROJECT_REF.supabase.co` | Production |
 | `VITE_SUPABASE_ANON_KEY` | `eyJhbG...실제_anon_key` | Production |
 | `VITE_APP_URL` | `https://moa-academy.vercel.app` | Production |
 | `VITE_APP_NAME` | `모두의 아카데미 모아` | Production |
@@ -85,7 +85,7 @@ vercel env add VITE_SUPABASE_ANON_KEY production
 
 Supabase 대시보드에서 다음 URL을 허용해야 합니다:
 
-1. [Supabase Dashboard](https://supabase.com/dashboard/project/xlsfnfolrrhxsxazmhjb) 접속
+1. Supabase Dashboard에서 프로젝트 선택 (Dashboard → 프로젝트)
 2. **Authentication** → **URL Configuration**으로 이동
 3. **Redirect URLs**에 추가:
    ```
