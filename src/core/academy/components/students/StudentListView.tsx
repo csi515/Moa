@@ -16,7 +16,7 @@ import {
   getLevelColor,
   getStudentStatusBadge
 } from '@/utils/formatters';
-import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
+import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import {
   Users,
   UserPlus,
