@@ -130,6 +130,24 @@ supabase secrets set INVITE_FROM_EMAIL="모두의 아카데미 모아 <noreply@y
 
 자세한 내용은 [Supabase Secrets 문서](https://supabase.com/docs/guides/functions/secrets)를 참고하세요.
 
+## 보안 강화 (Production 권장)
+
+### Supabase 유출 비밀번호 보호 (Leaked Password Protection)
+
+**요구사항**: Supabase Pro 플랜 이상
+
+Supabase의 [Leaked Password Protection](https://supabase.com/docs/guides/auth/passwords#leaked-password-protection)은 HaveIBeenPwned 데이터베이스와 연동하여 유출된 비밀번호 사용을 차단합니다.
+
+**활성화 방법**:
+1. Supabase Dashboard → 프로젝트 선택
+2. **Authentication** → **Policies** → **Password Policy**
+3. **Leaked Password Protection** 활성화
+
+> **현재 상태**: 조직이 Free 플랜이므로 이 기능은 비활성화 상태입니다.  
+> Pro 플랜 업그레이드 후 활성화를 권장합니다.
+
+**대시보드 링크**: [Supabase Dashboard](https://supabase.com/dashboard/project/_/settings/auth)
+
 ## 문제 해결
 
 ### Q: `VITE_SUPABASE_URL` is undefined 오류

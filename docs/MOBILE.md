@@ -49,13 +49,15 @@ npm run cap:ios        # Xcode (macOS 필요)
 
 ### 스토어 등록용 공개 URL
 
-프로덕션 배포 후 Play Console / App Store Connect에 등록:
+프로덕션 배포 완료 — Play Console / App Store Connect에 등록:
 
 ```
-https://YOUR_DOMAIN/privacy   # 개인정보처리방침
-https://YOUR_DOMAIN/terms     # 이용약관
-https://YOUR_DOMAIN/support   # 고객 지원 (Apple Support URL)
+https://moa-academy.vercel.app/privacy   # 개인정보처리방침
+https://moa-academy.vercel.app/terms     # 이용약관
+https://moa-academy.vercel.app/support   # 고객 지원 (Apple Support URL)
 ```
+
+> **커스텀 도메인**: 조직 도메인 구매 시 위 URL을 `https://yourdomain.com`으로 교체 가능.
 
 자세한 심사 설문·데모 계정 템플릿: **`docs/STORE_REVIEW.md`**
 
@@ -84,12 +86,15 @@ moa://open?staff_link=AB12CD34
 moa://open?link=XY98ZW76
 ```
 
-### HTTPS 유니버설 링크 (프로덕션 도메인 확정 후)
+### HTTPS 유니버설 링크 (선택 — 커스텀 도메인 사용 시)
 
 1. `android/app/src/main/AndroidManifest.xml`의 HTTPS intent-filter 주석 해제 + 도메인 교체
-2. `https://YOUR_DOMAIN/.well-known/assetlinks.json` 배포 (Android)
-3. `https://YOUR_DOMAIN/.well-known/apple-app-site-association` 배포 (iOS)
-4. Xcode → Signing & Capabilities → Associated Domains: `applinks:YOUR_DOMAIN`
+   - 현재 `moa-academy.vercel.app` 예시로 준비됨 (커스텀 도메인으로 교체 권장)
+2. `https://yourdomain.com/.well-known/assetlinks.json` 배포 (Android — **SHA256 필요**)
+3. `https://yourdomain.com/.well-known/apple-app-site-association` 배포 (iOS — **Team ID 필요**)
+4. Xcode → Signing & Capabilities → Associated Domains: `applinks:yourdomain.com`
+
+> **요구사항**: Android SHA256 서명 + Apple Team ID 필요 — Play Console/Apple Developer 계정 필수.
 
 ---
 
