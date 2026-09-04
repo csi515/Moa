@@ -48,7 +48,7 @@ export function CustomerSignUpFlow() {
   const [selectedOrg, setSelectedOrg] = useState<PublicOrgInfo | null>(null);
   const [myRequests, setMyRequests] = useState<CustomerJoinRequest[]>([]);
   const [form, setForm] = useState({
-    applicantName: user?.full_name || '',
+    applicantName: user?.email?.split('@')[0] || '',
     applicantPhone: '',
     applicantEmail: user?.email || '',
     message: '',

@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase/client';
 import type { CustomerJoinRequest, JoinRequestType } from '@/types';
+import type { Json } from '@/lib/supabase/database.types';
 
 export interface SubmitJoinRequestParams {
   orgId: string;
@@ -23,7 +24,7 @@ export const customerJoinService = {
       p_applicant_email: params.applicantEmail || null,
       p_request_type: params.requestType || 'membership',
       p_message: params.message || null,
-      p_customer_metadata: params.customerMetadata || null,
+      p_customer_metadata: (params.customerMetadata as Json) || null,
     });
 
     if (error) {

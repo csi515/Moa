@@ -28,6 +28,7 @@ interface RequestCardProps {
   request: CustomerJoinRequest;
   onApprove: (id: string) => void;
   onReject: (id: string, reason: string) => void;
+  key?: string; // React key prop
 }
 
 function RequestCard({ request, onApprove, onReject }: RequestCardProps) {
@@ -322,7 +323,7 @@ export function CustomerJoinRequestsPanel() {
         </div>
       ) : (
         <div className="space-y-4">
-          {requests.map((request) => (
+          {requests.map((request: CustomerJoinRequest) => (
             <RequestCard
               key={request.id}
               request={request}
