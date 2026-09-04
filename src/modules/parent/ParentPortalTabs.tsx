@@ -14,6 +14,9 @@ import { ParentCareJournalView } from './views/ParentCareJournalView';
 import { ParentMedicationView } from './views/ParentMedicationView';
 import { ParentScheduleView } from './views/ParentScheduleView';
 import { ParentBookingsView } from './views/ParentBookingsView';
+import { PilatesParentBookingsView } from './views/PilatesParentBookingsView';
+import { ParentShuttleView } from './views/ParentShuttleView';
+import { normalizeIndustryType } from '@/core/industry/types';
 
 export function ParentPortalTabs({
   tab,
@@ -34,6 +37,8 @@ export function ParentPortalTabs({
   onNavigate: (t: ParentPortalTab) => void;
   industryType?: IndustryType | string;
 }) {
+  const industry = normalizeIndustryType(industryType);
+
   switch (tab) {
     case 'home':
       return (
@@ -58,7 +63,14 @@ export function ParentPortalTabs({
     case 'assignments':
       return <ParentAssignmentsView student={student} readOnly={readOnly} showToast={showToast} onRefresh={onRefresh} />;
     case 'progress':
-      return <ParentProgressView student={student} />;
+      return (
+        <ParentProgressView
+          student={student}
+          readOnly={readOnly}
+          showToast={showToast}
+          onRefresh={onRefresh}
+        />
+      );
     case 'reports':
       return <ParentReportsView student={student} />;
     case 'events':
@@ -79,7 +91,19 @@ export function ParentPortalTabs({
     case 'schedule':
       return <ParentScheduleView student={student} />;
     case 'bookings':
+      if (industry === 'pilates') {
+        return <PilatesParentBookingsView student={student} />;
+      }
       return <ParentBookingsView student={student} />;
+    case 'shuttle':
+      return (
+        <ParentShuttleView
+          student={student}
+          readOnly={readOnly}
+          showToast={showToast}
+          onRefresh={onRefresh}
+        />
+      );
     default:
       return null;
   }

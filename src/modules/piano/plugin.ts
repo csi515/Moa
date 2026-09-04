@@ -27,6 +27,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'dashboard',
     'students',
     'parents',
+    'enrollment-requests',
     'classes',
     'timetable',
     'attendance',

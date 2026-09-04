@@ -19,6 +19,9 @@ import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 import { ParentAccountSection } from './ParentAccountSection';
 import { ParentChildPinSection } from './components/ParentChildPinSection';
+import { registerAppPush } from '@/core/push';
+import { isNativeApp } from '@/core/platform';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 /**
  * 학부모 포털 진입점.
@@ -38,8 +41,8 @@ export const ParentShell: React.FC = () => {
 function ParentShellContent() {
   const { loading, error, step, portalTree, refreshPortalTree } = useParentPortal();
   const { currentUser, showToast } = useApp();
-  const { signOut } = useAuth();
-  const { isParentOnly, exitParentPortal } = useOrganization();
+  const { signOut, user } = useAuth();
+  const { isParentOnly, exitParentPortal, currentOrganization } = useOrganization();
   const [redeeming, setRedeeming] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -47,6 +50,14 @@ function ParentShellContent() {
   const [pendingToken, setPendingToken] = useState<string | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
+
+  useEffect(() => {
+    if (!isNativeApp() || !isSupabaseConfigured() || !user?.id) return;
+    void registerAppPush({
+      userId: user.id,
+      organizationId: currentOrganization?.id,
+    });
+  }, [user?.id, currentOrganization?.id]);
 
   const runRedeem = async (token: string) => {
     setRedeeming(true);

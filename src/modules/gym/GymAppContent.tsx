@@ -32,6 +32,7 @@ import {
 } from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
 import { GuardianEnrollmentRequestsView } from '@/core/academy';
+import { ShuttleRideRequestView } from '@/core/transport';
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
@@ -41,6 +42,7 @@ const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   classes: () => <ClassManagementView />,
   timetable: () => <WeeklyTimetableView />,
   ...attendanceViewEntry,
+  shuttle: () => <ShuttleRideRequestView />,
   ...noticesViewEntry,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,

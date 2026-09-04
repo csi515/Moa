@@ -8,12 +8,14 @@ import {
   buildDashboardNavSection,
   buildFinanceMoreTabs,
   buildFinanceNavSection,
+  buildNavSection,
   buildNoticesNavSection,
   buildSettingsNavSection,
   buildStaffNavSection,
 } from '@/core/auth/navBuilders';
 import {
   AlertCircle,
+  Bus,
   Calendar,
   CheckSquare,
   Clock,
@@ -35,6 +37,13 @@ export function getGymSidebarSections(labels: ModuleLabels): NavMenuSection[] {
     buildDashboardNavSection(),
     buildCustomerNavSection(labels),
     buildClassAttendanceNavSection(labels),
+    buildNavSection('차량', [
+      {
+        tab: 'shuttle',
+        label: '차량 운행',
+        icon: icon(<Bus className="w-5 h-5" />),
+      },
+    ]),
     buildNoticesNavSection(),
     buildBillingNavSection(),
     buildStaffNavSection(labels, '체육관 캘린더'),
@@ -58,6 +67,7 @@ export function getGymMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     noticesNavItem('lg'),
     { tab: 'classes', label: '수업반', icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'timetable', label: '시간표', icon: icon(<Clock className="w-5 h-5" />) },
+    { tab: 'shuttle', label: '차량 운행', icon: icon(<Bus className="w-5 h-5" />) },
     { tab: 'tuition', label: '수강료/수납', icon: icon(<CreditCard className="w-5 h-5" />) },
     { tab: 'unpaid', label: '미납 통합', icon: icon(<AlertCircle className="w-5 h-5" />) },
     { tab: 'teachers', label: labels.staff.singular, icon: icon(<GraduationCap className="w-5 h-5" />) },

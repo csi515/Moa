@@ -28,6 +28,7 @@ export function PilatesParentHome({
     .filter((b) => b.customerId === student.id && b.startsAt >= now && b.status !== 'cancelled')
     .sort((a, b) => a.startsAt.localeCompare(b.startsAt));
   const next = upcoming[0];
+  const remaining = ScheduleService.getCustomerRemainingSessions(student.id);
 
   return (
     <div className="space-y-4">
@@ -39,9 +40,12 @@ export function PilatesParentHome({
 
       <div className="grid grid-cols-2 gap-3">
         <button type="button" onClick={() => onNavigate('bookings')} className="text-left">
+          <StatCard label="이용권 잔여" value={`${remaining}회`} />
+        </button>
+        <button type="button" onClick={() => onNavigate('bookings')} className="text-left">
           <StatCard label="다음 예약" value={next ? formatBookingWhen(next.startsAt) : '없음'} />
         </button>
-        <button type="button" onClick={() => onNavigate('tuition')} className="text-left">
+        <button type="button" onClick={() => onNavigate('tuition')} className="text-left col-span-2">
           <StatCard
             label="미납액"
             value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}

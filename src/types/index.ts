@@ -216,6 +216,12 @@ export interface PracticeRecord {
   teacherEvaluation?: string; // 1~5점 또는 코멘트
   difficultyPart?: string;
   nextAssignment?: string;
+  /** 스태프 등록 vs 학부모 가정 연습 일지 */
+  source?: 'staff' | 'parent';
+  /** 학부모 일지 스태프 확인 여부 */
+  staffReviewed?: boolean;
+  staffReviewedAt?: string;
+  staffReviewNote?: string;
   createdAt?: string;
 }
 
@@ -416,7 +422,7 @@ export interface ExpenseItem {
 }
 export type Expense = ExpenseItem;
 
-export type NotificationType = 'notice' | 'attendance' | 'tuition_due' | 'tuition_unpaid' | 'absence' | 'makeup' | 'consultation' | 'announcement';
+export type NotificationType = 'notice' | 'attendance' | 'tuition_due' | 'tuition_unpaid' | 'absence' | 'makeup' | 'consultation' | 'announcement' | 'practice';
 
 export interface NotificationItem {
   id: string;

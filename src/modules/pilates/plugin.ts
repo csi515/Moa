@@ -28,9 +28,10 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
     'bookings',
     'services',
     'members',
+    'passes',
     'instructors',
     'attendance',
     'settings',
   ]),
-  staffTabs: withNoticesTabs(['dashboard', 'bookings', 'members', 'attendance']),
+  staffTabs: withNoticesTabs(['dashboard', 'bookings', 'members', 'passes', 'attendance']),
 };

@@ -14,18 +14,9 @@ import type { PublicOrgInfo, CustomerJoinRequest } from '@/types';
 import { publicOrgService } from '@/core/public/services/publicOrgService';
 import { customerJoinService } from './services/customerJoinService';
 import { useAuth } from '@/core/auth/AuthProvider';
+import { getIndustryLabel } from '@/core/industry/types';
 
 type Step = 'search' | 'form' | 'pending';
-
-function getIndustryLabel(industryType: string): string {
-  const labels: Record<string, string> = {
-    piano: '피아노학원',
-    gym: '헬스/피트니스',
-    daycare: '어린이집',
-    pilates: '필라테스학원',
-  };
-  return labels[industryType] || industryType;
-}
 
 function getStatusLabel(status: string): { label: string; color: string } {
   const labels: Record<string, { label: string; color: string }> = {

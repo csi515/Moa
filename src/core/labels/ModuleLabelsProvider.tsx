@@ -35,10 +35,10 @@ const defaultLabels: ModuleLabels = {
 const ModuleLabelsContext = createContext<ModuleLabels>(defaultLabels);
 
 export function ModuleLabelsProvider({
-  labels,
+  labels = defaultLabels,
   children,
 }: {
-  labels: ModuleLabels;
+  labels?: ModuleLabels;
   children: ReactNode;
 }) {
   return (

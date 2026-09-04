@@ -5,6 +5,7 @@ import {
   getSessionStatusLabel,
 } from '@/core/attendance/services/attendanceService';
 import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
+import { useStorageRefresh } from '@/hooks';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
 import { Section, StatCard } from './shared';
@@ -21,6 +22,7 @@ export function GymParentHome({
   onNavigate: (t: ParentPortalTab) => void;
 }) {
   const today = new Date().toISOString().slice(0, 10);
+  const refreshKey = useStorageRefresh();
   const summary = StorageService.getStudentBillingSummary(student.id);
   const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
   const classes = StorageService.getClasses().filter((c) =>
@@ -35,6 +37,10 @@ export function GymParentHome({
     .sort((a, b) => a.startDate.localeCompare(b.startDate))
     .slice(0, 3);
   const sessionStatus = getSessionStatusLabel(todaySession);
+  const todayRides = StorageService.getShuttleRideRequests().filter(
+    (r) => r.studentId === student.id && r.rideDate === today && r.status !== 'cancelled'
+  );
+  void refreshKey;
 
   return (
     <div className="space-y-4">
@@ -48,14 +54,21 @@ export function GymParentHome({
         <button type="button" onClick={() => onNavigate('attendance')} className="text-left">
           <StatCard label="오늘 출입" value={sessionStatus.label} />
         </button>
-        <button type="button" onClick={() => onNavigate('tuition')} className="text-left">
+        <button type="button" onClick={() => onNavigate('shuttle')} className="text-left">
           <StatCard
-            label="미납 수강료"
-            value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
-            warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
+            label="오늘 차량"
+            value={todayRides.length > 0 ? `${todayRides.length}건` : '신청'}
           />
         </button>
       </div>
+
+      <button type="button" onClick={() => onNavigate('tuition')} className="w-full text-left">
+        <StatCard
+          label="미납 수강료"
+          value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
+          warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
+        />
+      </button>
 
       {todaySession && (todaySession.checkInAt || todaySession.checkOutAt) && (
         <Section title="오늘 입·퇴실">

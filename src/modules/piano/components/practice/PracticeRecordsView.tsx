@@ -4,17 +4,12 @@ import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import { PracticeRecord } from '@/types';
+import { notifyParentPracticeReviewed } from '@/core/academy/services/academyAlertService';
 import {
   BookOpenCheck,
   Plus,
-  Clock,
-  User,
-  Star,
-  Award,
-  Sparkles,
   Trash2,
   X,
-  Save
 } from 'lucide-react';
 
 export const PracticeRecordsView: React.FC = () => {
@@ -30,6 +25,7 @@ export const PracticeRecordsView: React.FC = () => {
 
   const [studentFilter, setStudentFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sourceFilter, setSourceFilter] = useState<'ALL' | 'pending_parent'>('ALL');
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -45,6 +41,9 @@ export const PracticeRecordsView: React.FC = () => {
   const filteredPractice = useMemo(() => {
     return practiceList.filter((p) => {
       if (studentFilter !== 'ALL' && p.studentId !== studentFilter) return false;
+      if (sourceFilter === 'pending_parent') {
+        if (p.source !== 'parent' || p.staffReviewed) return false;
+      }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         if (!p.studentName.toLowerCase().includes(q) && !p.songTitle.toLowerCase().includes(q)) {
@@ -53,7 +52,11 @@ export const PracticeRecordsView: React.FC = () => {
       }
       return true;
     });
-  }, [practiceList, studentFilter, searchQuery]);
+  }, [practiceList, studentFilter, searchQuery, sourceFilter]);
+
+  const pendingParentCount = practiceList.filter(
+    (p) => p.source === 'parent' && !p.staffReviewed
+  ).length;
 
   const totalMinutes = filteredPractice.reduce((sum, p) => sum + p.minutes, 0);
 
@@ -103,11 +106,32 @@ export const PracticeRecordsView: React.FC = () => {
       songTitle: formData.songTitle.trim(),
       difficultyPart: formData.difficultyPart.trim(),
       homework: formData.homework.trim(),
-      teacherEvaluation: formData.teacherEvaluation
+      teacherEvaluation: formData.teacherEvaluation,
+      source: 'staff',
+      staffReviewed: true,
     });
 
     showToast('연습 기록이 등록되었습니다.', 'success');
     setIsModalOpen(false);
+  };
+
+  const handleReviewParentLog = (p: PracticeRecord) => {
+    StorageService.savePracticeRecord({
+      ...p,
+      staffReviewed: true,
+      staffReviewedAt: new Date().toISOString(),
+      staffReviewNote: p.staffReviewNote || '확인했습니다. 잘했어요!',
+      teacherEvaluation: p.teacherEvaluation || '⭐⭐⭐⭐',
+    });
+    const student = allStudents.find((s) => s.id === p.studentId);
+    notifyParentPracticeReviewed({
+      studentId: p.studentId,
+      studentName: p.studentName,
+      parentPhone: student?.parentPhone,
+      date: p.date,
+      songTitle: p.songTitle,
+    });
+    showToast(`${p.studentName} 가정 연습 일지를 확인했습니다.`, 'success');
   };
 
   return (
@@ -135,8 +159,8 @@ export const PracticeRecordsView: React.FC = () => {
         />
         <SummaryMetricCard label="기록된 연습 일지" value={`${filteredPractice.length}건`} variant="indigo" />
         <SummaryMetricCard
-          label="평균 연습 시간"
-          value={`${filteredPractice.length > 0 ? Math.round(totalMinutes / filteredPractice.length) : 0}분`}
+          label="학부모 확인 대기"
+          value={`${pendingParentCount}건`}
           variant="emerald"
         />
       </div>
@@ -153,6 +177,14 @@ export const PracticeRecordsView: React.FC = () => {
               {s.name} ({s.school})
             </option>
           ))}
+        </select>
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value as 'ALL' | 'pending_parent')}
+          className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+        >
+          <option value="ALL">전체 기록</option>
+          <option value="pending_parent">학부모 확인 대기</option>
         </select>
         <SearchField
           value={searchQuery}
@@ -197,6 +229,13 @@ export const PracticeRecordsView: React.FC = () => {
                 <span className="text-amber-500">{p.teacherEvaluation}</span>
               </div>
 
+              {p.source === 'parent' && (
+                <p className="mt-2 text-[11px] font-bold text-slate-500">
+                  가정 연습 일지
+                  {p.staffReviewed ? ' · 확인 완료' : ' · 확인 대기'}
+                </p>
+              )}
+
               <div className="mt-3 text-xs space-y-1.5 text-slate-700">
                 <p className="font-bold text-slate-900">🎶 {p.songTitle}</p>
                 {p.difficultyPart && (
@@ -210,6 +249,16 @@ export const PracticeRecordsView: React.FC = () => {
                   </p>
                 )}
               </div>
+
+              {p.source === 'parent' && !p.staffReviewed && (
+                <button
+                  type="button"
+                  onClick={() => handleReviewParentLog(p)}
+                  className="mt-3 w-full min-h-[44px] rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold hover:bg-emerald-100"
+                >
+                  확인 완료
+                </button>
+              )}
             </div>
           </div>
         ))}

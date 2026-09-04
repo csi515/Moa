@@ -6,7 +6,6 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import type { AcademySettings } from '@/types';
 import type { IndustryType } from '../industry/types';
 import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
@@ -42,7 +41,7 @@ interface OrganizationContextType {
   createOrganization: (
     name: string,
     industryType?: IndustryType | string,
-    settings?: Partial<AcademySettings>
+    settings?: orgService.CreateOrganizationFormExtras
   ) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
   enterParentPortal: () => void;
@@ -270,9 +269,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     async (
       name: string,
       industryType: IndustryType | string = 'piano',
-      settings?: Partial<AcademySettings>
+      settings?: orgService.CreateOrganizationFormExtras
     ) => {
-      const orgId = await orgService.createOrganization({ name, industryType, settings });
+      const orgId = await orgService.createOrganization(
+        orgService.toCreateOrganizationOptions(name, industryType, settings)
+      );
       await refreshOrganizations();
       selectOrganization(orgId);
     },

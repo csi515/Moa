@@ -64,7 +64,8 @@ const COMMON_NOTICES: FeatureGuideSection = {
       id: 'notices',
       title: '안내장 · 가정통신문',
       summary: '전체·반·개별 대상으로 안내를 작성해 포털에 게시합니다.',
-      howTo: '작성 후 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 문자 발송은 하지 않습니다.',
+      howTo:
+        '작성 후 「포털에 게시」하면 학부모 앱의 안내 탭에 표시됩니다. 알림은 앱 푸시로만 전달되며 카카오·문자는 보내지 않습니다.',
     },
   ],
 };
@@ -148,7 +149,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         id: 'makeups',
         title: '보강 수업',
         summary: '결석한 학생의 보강 일정을 시간·연습실·강사와 함께 잡습니다.',
-        howTo: '일정 등록 시 강사·연습실 충돌이 있으면 확인 후 저장할 수 있습니다. 등록 즉시 학부모 포털에 알림이 표시됩니다.',
+        howTo:
+          '일정 등록 시 강사·연습실 충돌이 있으면 확인 후 저장할 수 있습니다. 등록 즉시 학부모 포털 알림과 앱 푸시가 전달됩니다.',
       },
     ],
   }),
@@ -179,7 +181,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'practice',
         title: '연습 기록',
-        summary: '학생 연습 시간과 내용을 추적합니다.',
+        summary: '학생·학부모가 남긴 연습 시간과 내용을 확인하고 피드백합니다.',
+        howTo: '학부모가 앱에서 연습 일지를 올리면 여기서 확인·평가할 수 있습니다.',
       },
       {
         id: 'textbooks',
@@ -197,9 +200,44 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '연주회·콩쿠르 참가와 영상 현황을 관리합니다.',
       },
       {
+        id: 'achievements',
+        title: '시험·등급',
+        summary: '급수·콩쿠르·시험 결과를 학생별로 기록합니다.',
+      },
+      {
+        id: 'reports',
+        title: '학습 리포트',
+        summary: '월간 학습 리포트를 작성해 학부모 포털에 게시합니다.',
+        howTo: '게시하면 학부모 홈·리포트 탭에서 확인할 수 있습니다.',
+      },
+      {
         id: 'teachers',
         title: '선생님 관리',
         summary: '강사 정보와 담당 반을 관리합니다.',
+      },
+      {
+        id: 'enrollment-requests',
+        title: '등록 요청',
+        summary: '학부모가 앱에서 보낸 원생 등록 요청을 승인합니다.',
+      },
+    ],
+  }),
+  buildGuideSection({
+    id: 'parent-portal-piano',
+    title: '학부모 포털',
+    description: '학부모가 앱에서 과제·진도·연습·안내를 확인합니다. 알림은 앱 푸시만 사용합니다.',
+    items: [
+      {
+        id: 'parent-home',
+        title: '홈·과제·진도',
+        summary: '레슨 피드백, 주간 과제, 진도·연습 일지, 학습 리포트를 봅니다.',
+        howTo: '하단 메뉴와 홈 바로가기로 과제·진도·리포트로 이동합니다.',
+      },
+      {
+        id: 'parent-push',
+        title: '앱 푸시 알림',
+        summary: '보강·결석·미납 등 중요 안내는 앱 푸시로만 전달됩니다.',
+        howTo: '카카오 알림톡·문자는 보내지 않습니다. 네이티브 앱에서 알림 권한을 허용하면 푸시를 받습니다.',
       },
     ],
   }),
@@ -271,8 +309,8 @@ const GYM_GUIDE: FeatureGuideSection[] = [
     },
   }),
   buildClassesSection({
-    title: '수업·출결',
-    description: '수업반, 시간표, PIN 출입을 다룹니다.',
+    title: '수업·출결·차량',
+    description: '수업반, 시간표, PIN 출입, 차량 운행을 다룹니다.',
     items: [
       {
         id: 'classes',
@@ -288,6 +326,13 @@ const GYM_GUIDE: FeatureGuideSection[] = [
         id: 'attendance',
         title: '출입 관리',
         summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
+      },
+      {
+        id: 'shuttle',
+        title: '차량 운행',
+        summary: '학부모 차량 운행 신청을 확인하고 픽업·하원 운행을 확정·완료합니다.',
+        howTo:
+          '회원에 셔틀 주소가 있으면 신청 시 자동으로 채워집니다. 학부모 포털의 「차량」 메뉴에서도 신청할 수 있습니다.',
       },
     ],
   }),
@@ -399,14 +444,14 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
   COMMON_SETTINGS,
 ];
 
-const GUIDE_BY_INDUSTRY: Record<IndustryType, FeatureGuideSection[]> = {
+const GUIDE_BY_INDUSTRY: Partial<Record<IndustryType, FeatureGuideSection[]>> = {
   piano: PIANO_GUIDE,
   pilates: PILATES_GUIDE,
   gym: GYM_GUIDE,
   daycare: DAYCARE_GUIDE,
 };
 
-const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> = {
+const INTRO_BY_INDUSTRY: Partial<Record<IndustryType, { title: string; body: string }>> = {
   piano: {
     title: '피아노학원 기능 안내',
     body: '원생·수업·수납·교육 기록을 중심으로 학원을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
@@ -417,7 +462,7 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   },
   gym: {
     title: '체육관 기능 안내',
-    body: '회원·수업반·출결·수강료를 중심으로 체육관을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+    body: '회원·수업반·출결·차량 운행·수강료를 중심으로 체육관을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
   daycare: {
     title: '어린이집 기능 안내',
@@ -425,13 +470,20 @@ const INTRO_BY_INDUSTRY: Record<IndustryType, { title: string; body: string }> =
   },
 };
 
+const GENERIC_INTRO = {
+  title: '사업장 기능 안내',
+  body: '설정·계정 등 공통 기능을 사용할 수 있습니다. 업종 전용 업무 기능은 순차적으로 제공됩니다.',
+};
+
+const GENERIC_GUIDE: FeatureGuideSection[] = [COMMON_SETTINGS];
+
 export function getIndustryFeatureGuide(industry: IndustryType | string | null | undefined): {
   intro: { title: string; body: string };
   sections: FeatureGuideSection[];
 } {
   const type = normalizeIndustryType(industry);
   return {
-    intro: INTRO_BY_INDUSTRY[type],
-    sections: GUIDE_BY_INDUSTRY[type],
+    intro: INTRO_BY_INDUSTRY[type] ?? GENERIC_INTRO,
+    sections: GUIDE_BY_INDUSTRY[type] ?? GENERIC_GUIDE,
   };
 }

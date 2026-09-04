@@ -18,6 +18,7 @@ import { ParentPortalTabs } from './ParentPortalTabs';
 import { ParentReadOnlyBanner } from './ParentReadOnlyBanner';
 import { getParentPortalNav, getParentPortalRoleLabel, getParentPortalSecondaryTabs } from './parentPortalNav';
 import { ParentAccountSection } from './ParentAccountSection';
+import { consumePendingPortalTab } from '@/core/push';
 
 export interface ParentAcademyPortalProps {
   student: Student;
@@ -52,6 +53,13 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   );
 
   const [activeTab, setActiveTab] = useState<ParentPortalTab>('home');
+
+  useEffect(() => {
+    const pending = consumePendingPortalTab();
+    if (pending && allowedTabs.has(pending as ParentPortalTab)) {
+      setActiveTab(pending as ParentPortalTab);
+    }
+  }, [allowedTabs, organizationId, student.id]);
 
   useEffect(() => {
     if (!allowedTabs.has(activeTab)) {

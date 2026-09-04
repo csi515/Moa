@@ -1,23 +1,7 @@
-import type { ComponentType } from 'react';
 import type { IndustryType } from '@/core/industry/types';
-import { INDUSTRY_OPTIONS } from '@/core/industry/types';
-import {
-  Activity,
-  Baby,
-  Building2,
-  Dumbbell,
-  MapPin,
-  Phone,
-  Piano,
-} from 'lucide-react';
+import { IndustryPicker } from '@/core/industry/IndustryPicker';
+import { Building2, MapPin, Phone } from 'lucide-react';
 import { normalizePhoneInput } from '../utils/validateSignup';
-
-const INDUSTRY_ICONS: Record<IndustryType, ComponentType<{ className?: string }>> = {
-  piano: Piano,
-  pilates: Activity,
-  gym: Dumbbell,
-  daycare: Baby,
-};
 
 interface SignupBusinessFieldsProps {
   industryType: IndustryType;
@@ -50,30 +34,11 @@ export function SignupBusinessFields({
 
       <div>
         <label className="block text-xs font-bold text-slate-600 mb-1.5">운영 업종</label>
-        <div className="grid grid-cols-1 gap-2">
-          {INDUSTRY_OPTIONS.map((option) => {
-            const Icon = INDUSTRY_ICONS[option.value];
-            const selected = industryType === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                onClick={() => onIndustryTypeChange(option.value)}
-                className={`flex items-center gap-3 p-3 rounded-xl border text-left min-h-[44px] transition-colors ${
-                  selected
-                    ? 'border-indigo-500 bg-indigo-50 text-indigo-900'
-                    : 'border-slate-200 hover:border-slate-300'
-                }`}
-              >
-                <Icon className="w-5 h-5 shrink-0" />
-                <div className="min-w-0">
-                  <span className="text-sm font-bold block">{option.label}</span>
-                  <span className="text-[11px] text-slate-500">{option.description}</span>
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        <IndustryPicker
+          value={industryType}
+          onChange={onIndustryTypeChange}
+          variant="compact"
+        />
       </div>
 
       <div>

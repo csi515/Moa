@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Receipt,
   KeyRound,
+  Ticket,
 } from 'lucide-react';
 import { noticesNavItem } from '@/core/notices';
 import { accountNavItem } from '@/core/account';
@@ -49,6 +50,11 @@ export function getPilatesSidebarSections(labels: ModuleLabels): NavMenuSection[
           tab: 'members',
           label: labels.customer.management,
           icon: icon(<Users className="w-4 h-4" />),
+        },
+        {
+          tab: 'passes',
+          label: '이용권',
+          icon: icon(<Ticket className="w-4 h-4" />),
         },
         {
           tab: 'instructors',
@@ -90,6 +96,7 @@ export function getPilatesMainTabs(labels: ModuleLabels): NavMenuItem[] {
 export function getPilatesMoreTabs(): NavMenuItem[] {
   return [
     { tab: 'services', label: '수업 종류', icon: icon(<Dumbbell className="w-5 h-5" />) },
+    { tab: 'passes', label: '이용권', icon: icon(<Ticket className="w-5 h-5" />) },
     { tab: 'instructors', label: '강사', icon: icon(<Activity className="w-5 h-5" />) },
     { tab: 'attendance', label: '출입 관리', icon: icon(<KeyRound className="w-5 h-5" />) },
     noticesNavItem('lg'),

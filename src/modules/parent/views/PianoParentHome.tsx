@@ -57,12 +57,21 @@ export function PianoParentHome({
             warn={pendingHomework > 0}
           />
         </button>
+        <button type="button" onClick={() => onNavigate('progress')} className="text-left">
+          <StatCard label="진도·연습" value="보기" />
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
         <button type="button" onClick={() => onNavigate('tuition')} className="text-left">
           <StatCard
             label="미납액"
             value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
             warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
           />
+        </button>
+        <button type="button" onClick={() => onNavigate('reports')} className="text-left">
+          <StatCard label="학습 리포트" value={report ? report.yearMonth : '없음'} />
         </button>
       </div>
 

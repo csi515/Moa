@@ -20,19 +20,10 @@ import { publicOrgService } from './services/publicOrgService';
 import { coreScheduleService, reservationService } from '@/core/schedules';
 import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
+import { getIndustryLabel } from '@/core/industry/types';
 
 interface PublicOrgLandingProps {
   code: string;
-}
-
-function getIndustryLabel(industryType: string): string {
-  const labels: Record<string, string> = {
-    piano: '피아노학원',
-    gym: '헬스/피트니스',
-    daycare: '어린이집',
-    pilates: '필라테스학원',
-  };
-  return labels[industryType] || industryType;
 }
 
 export function PublicOrgLanding({ code }: PublicOrgLandingProps) {

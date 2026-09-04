@@ -1,10 +1,12 @@
 import { createNotificationsStorage } from '@/services/storage/notificationsStorage';
+import { getOrganizationId } from '@/services/adapters/storageContext';
+import { dispatchAppPush } from '@/core/push';
 import type { MakeupItem, NotificationType } from '@/types';
 
 const notifications = createNotificationsStorage();
 
 function publishParentAlert(params: {
-  type: Extract<NotificationType, 'absence' | 'makeup' | 'tuition_unpaid'>;
+  type: Extract<NotificationType, 'absence' | 'makeup' | 'tuition_unpaid' | 'practice'>;
   title: string;
   message: string;
   student: {
@@ -13,6 +15,7 @@ function publishParentAlert(params: {
     parentPhone?: string;
   };
   scheduledDate?: string;
+  portalTab?: string;
 }): void {
   notifications.saveNotification({
     type: params.type,
@@ -27,9 +30,19 @@ function publishParentAlert(params: {
     status: 'sent',
     sentAt: new Date().toISOString(),
   });
+
+  const organizationId = getOrganizationId() || undefined;
+  void dispatchAppPush({
+    title: params.title,
+    body: params.message,
+    organizationId,
+    studentId: params.student.id,
+    portalTab: params.portalTab || 'notices',
+    type: params.type,
+  });
 }
 
-/** 결석 시 학부모 포털 알림 */
+/** 결석 시 학부모 포털 알림 + 앱 푸시 */
 export function notifyParentAbsence(params: {
   studentId: string;
   studentName: string;
@@ -49,10 +62,11 @@ export function notifyParentAbsence(params: {
       parentPhone: params.parentPhone,
     },
     scheduledDate: params.date,
+    portalTab: 'attendance',
   });
 }
 
-/** 보강 일정 등록 시 학부모 포털 알림 */
+/** 보강 일정 등록 시 학부모 포털 알림 + 앱 푸시 */
 export function notifyParentMakeupScheduled(item: MakeupItem): void {
   if (!item.makeUpDate) return;
   const slot =
@@ -72,10 +86,11 @@ export function notifyParentMakeupScheduled(item: MakeupItem): void {
       parentPhone: item.parentPhone,
     },
     scheduledDate: item.makeUpDate,
+    portalTab: 'attendance',
   });
 }
 
-/** 미납 청구 시 학부모 포털 알림 */
+/** 미납 청구 시 학부모 포털 알림 + 앱 푸시 */
 export function notifyParentTuitionUnpaid(params: {
   studentId: string;
   studentName: string;
@@ -94,5 +109,28 @@ export function notifyParentTuitionUnpaid(params: {
       parentPhone: params.parentPhone,
     },
     scheduledDate: params.dueDate,
+    portalTab: 'tuition',
+  });
+}
+
+/** 가정 연습 일지 스태프 확인 시 학부모 알림 + 앱 푸시 */
+export function notifyParentPracticeReviewed(params: {
+  studentId: string;
+  studentName: string;
+  parentPhone?: string;
+  date: string;
+  songTitle: string;
+}): void {
+  publishParentAlert({
+    type: 'practice',
+    title: '연습 일지 확인',
+    message: `${params.studentName} 원생 ${params.date} 「${params.songTitle}」 연습 일지를 선생님이 확인했습니다.`,
+    student: {
+      id: params.studentId,
+      name: params.studentName,
+      parentPhone: params.parentPhone,
+    },
+    scheduledDate: params.date,
+    portalTab: 'progress',
   });
 }

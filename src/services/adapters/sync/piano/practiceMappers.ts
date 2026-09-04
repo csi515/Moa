@@ -37,7 +37,13 @@ export function practiceToPianoRow(rec: PracticeRecord, organizationId: string) 
     teacher_evaluation: rec.teacherEvaluation || null,
     difficulty_part: rec.difficultyPart || null,
     next_assignment: rec.nextAssignment || null,
-    metadata: { studentName: rec.studentName } as Json,
+    metadata: {
+      studentName: rec.studentName,
+      source: rec.source || 'staff',
+      staffReviewed: rec.staffReviewed ?? (rec.source !== 'parent'),
+      staffReviewedAt: rec.staffReviewedAt,
+      staffReviewNote: rec.staffReviewNote,
+    } as Json,
   };
 }
 
@@ -56,7 +62,14 @@ export function pianoRowToPractice(row: {
   metadata: Json;
   created_at: string;
 }): PracticeRecord {
-  const meta = (row.metadata || {}) as { studentName?: string };
+  const meta = (row.metadata || {}) as {
+    studentName?: string;
+    source?: 'staff' | 'parent';
+    staffReviewed?: boolean;
+    staffReviewedAt?: string;
+    staffReviewNote?: string;
+  };
+  const source = meta.source || 'staff';
   return {
     id: row.id,
     studentId: row.customer_id,
@@ -70,6 +83,10 @@ export function pianoRowToPractice(row: {
     teacherEvaluation: row.teacher_evaluation || undefined,
     difficultyPart: row.difficulty_part || undefined,
     nextAssignment: row.next_assignment || undefined,
+    source,
+    staffReviewed: meta.staffReviewed ?? source !== 'parent',
+    staffReviewedAt: meta.staffReviewedAt,
+    staffReviewNote: meta.staffReviewNote,
     createdAt: row.created_at,
   };
 }

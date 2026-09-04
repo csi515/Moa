@@ -24,6 +24,7 @@ import {
   Settings,
   Sparkles,
   TrendingUp,
+  UserPlus,
   UserSquare2,
   Users,
 } from 'lucide-react';
@@ -51,6 +52,11 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         tab: 'parents',
         label: labels.contact.management,
         icon: icon(<UserSquare2 className="w-4 h-4" />),
+      },
+      {
+        tab: 'enrollment-requests',
+        label: '등록 요청',
+        icon: icon(<UserPlus className="w-4 h-4" />),
       },
     ]),
     buildNavSection('일정', [
@@ -145,6 +151,11 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       tab: 'parents',
       label: labels.contact.singular,
       icon: icon(<UserSquare2 className="w-5 h-5" />),
+    },
+    {
+      tab: 'enrollment-requests',
+      label: '등록 요청',
+      icon: icon(<UserPlus className="w-5 h-5" />),
     },
     {
       tab: 'classes',

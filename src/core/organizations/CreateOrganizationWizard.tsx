@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   Loader2,
 } from 'lucide-react';
-import { INDUSTRY_OPTIONS, type IndustryType } from '../industry/types';
+import { type IndustryType } from '../industry/types';
+import { IndustryPicker } from '../industry/IndustryPicker';
 
 interface CreateOrganizationWizardProps {
   onComplete: () => void;
@@ -142,19 +143,10 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 업종 <span className="text-rose-500">*</span>
               </label>
-              <select
+              <IndustryPicker
                 value={formData.industryType}
-                onChange={(e) =>
-                  setFormData({ ...formData, industryType: e.target.value as IndustryType })
-                }
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
-              >
-                {INDUSTRY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label} - {opt.description}
-                  </option>
-                ))}
-              </select>
+                onChange={(industryType) => setFormData({ ...formData, industryType })}
+              />
             </div>
 
             <div>

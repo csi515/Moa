@@ -16,6 +16,32 @@ export interface CreateOrganizationOptions {
   settings?: Partial<AcademySettings>;
 }
 
+/** 가입·마법사 폼 필드 → createOrganization 옵션 매핑 */
+export type CreateOrganizationFormExtras = Partial<AcademySettings> & {
+  directorName?: string;
+  phone?: string;
+  address?: string;
+  businessNumber?: string;
+  industryCategory?: string;
+};
+
+export function toCreateOrganizationOptions(
+  name: string,
+  industryType: IndustryType | string = 'piano',
+  extras?: CreateOrganizationFormExtras
+): CreateOrganizationOptions {
+  return {
+    name,
+    industryType,
+    settings: extras,
+    businessRegistrationNumber: extras?.businessNumber?.trim() || '000-00-00000',
+    representativeName: extras?.directorName?.trim() || name,
+    businessPhone: extras?.phone?.trim() || '00000000000',
+    businessAddress: extras?.address?.trim() || '-',
+    industryCategory: extras?.industryCategory?.trim() || String(industryType),
+  };
+}
+
 export interface OrganizationMembership {
   id: string;
   organizationId: string;

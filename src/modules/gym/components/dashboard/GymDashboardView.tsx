@@ -3,19 +3,26 @@ import { useApp } from '@/context/AppContext';
 import { IndustryDashboardShell } from '@/core/dashboard/IndustryDashboardShell';
 import { useIndustryDashboardMetrics } from '@/core/dashboard/useIndustryDashboardMetrics';
 import { useModuleLabels } from '@/core/labels';
+import { StorageService } from '@/services/storage';
+import { useStorageRefresh } from '@/hooks';
 import { Dumbbell } from 'lucide-react';
 
 export const GymDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
   const labels = useModuleLabels();
-  const { today, students, checkedInToday, teachers, classes } = useIndustryDashboardMetrics();
+  const refreshKey = useStorageRefresh();
+  const { today, students, checkedInToday, classes } = useIndustryDashboardMetrics();
+  const pendingRides = StorageService.getShuttleRideRequests().filter(
+    (r) => r.rideDate === today && r.status === 'requested'
+  ).length;
+  void refreshKey;
 
   return (
     <IndustryDashboardShell
       icon={<Dumbbell className="w-6 h-6" />}
       iconClassName="text-orange-600"
       title="체육관 대시보드"
-      description="회원·출결·수업반 현황"
+      description="회원·출결·차량·수업반 현황"
       today={today}
       students={students}
       checkedInToday={checkedInToday}
@@ -47,9 +54,10 @@ export const GymDashboardView: FC = () => {
           onClick: () => setActiveTab('attendance'),
         },
         {
-          label: labels.staff.plural,
-          value: `${teachers.length}명`,
-          onClick: () => setActiveTab('teachers'),
+          label: '차량 신청',
+          value: `${pendingRides}건`,
+          variant: 'amber',
+          onClick: () => setActiveTab('shuttle'),
         },
         {
           label: '수업반',

@@ -19,6 +19,7 @@ import {
   ServiceManagementView,
   MemberListView,
   InstructorListView,
+  PassManagementView,
 } from './index';
 import {
   accountViewEntry,
@@ -33,6 +34,7 @@ const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   bookings: () => <BookingCalendarView />,
   services: () => <ServiceManagementView />,
   members: () => <MemberListView />,
+  passes: () => <PassManagementView />,
   instructors: () => <InstructorListView />,
   ...attendanceViewEntry,
   ...noticesViewEntry,

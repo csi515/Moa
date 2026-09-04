@@ -31,6 +31,10 @@ export const STORAGE_KEYS = {
   SETTINGS: 'piano_app_settings',
   SCHEDULES: 'core_schedules',
   SERVICE_OFFERINGS: 'core_service_offerings',
+  SESSION_PASSES: 'core_session_passes',
+  SLOT_RECRUITMENTS: 'core_slot_recruitments',
+  /** 체육관 등 — 차량 운행 신청 */
+  SHUTTLE_RIDE_REQUESTS: 'core_shuttle_ride_requests',
   /** 어린이집 플러그인 — 알림장 */
   CARE_JOURNALS: 'daycare_care_journals',
   /** 어린이집 플러그인 — 투약 의뢰 */
@@ -91,6 +95,9 @@ export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
 export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
   STORAGE_KEYS.INITIALIZED,
+  STORAGE_KEYS.SESSION_PASSES,
+  STORAGE_KEYS.SLOT_RECRUITMENTS,
+  STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

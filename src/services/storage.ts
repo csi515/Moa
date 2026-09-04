@@ -10,7 +10,9 @@ import { createNotificationsStorage } from './storage/notificationsStorage';
 import { createParentEducationStorage } from './storage/parentEducationStorage';
 import { createRecordsStorage } from './storage/recordsStorage';
 import { createScheduleStorage } from './storage/scheduleStorage';
+import { createSessionPassStorage } from './storage/sessionPassStorage';
 import { createSettingsStorage } from './storage/settingsStorage';
+import { createShuttleRideStorage } from './storage/shuttleRideStorage';
 import { createStaffClassStorage } from './storage/staffClassStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
 import type { StorageApi } from './storage/helpers';
@@ -51,6 +53,8 @@ export const StorageService = Object.assign(
   createNotificationsStorage(),
   createDashboardStatsStorage(storageApi),
   createScheduleStorage(),
+  createSessionPassStorage(),
+  createShuttleRideStorage(),
   createSettingsStorage(storageApi),
   createParentEducationStorage(storageApi),
   createAttendanceStorage(storageApi),

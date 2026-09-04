@@ -5,7 +5,7 @@ export type ParentNoticeKind = Extract<NotificationType, 'notice' | 'announcemen
 
 export type ParentPortalNotificationKind = Extract<
   NotificationType,
-  'notice' | 'announcement' | 'attendance' | 'absence' | 'makeup' | 'tuition_unpaid'
+  'notice' | 'announcement' | 'attendance' | 'absence' | 'makeup' | 'tuition_unpaid' | 'practice'
 >;
 
 export type NoticeTargetMode = 'all' | 'class' | 'student';
@@ -22,6 +22,7 @@ export const PARENT_PORTAL_NOTIFICATION_LABEL: Record<ParentPortalNotificationKi
   absence: '결석',
   makeup: '보강',
   tuition_unpaid: '미납',
+  practice: '연습',
 };
 
 export function isParentNoticeType(type: NotificationType): type is ParentNoticeKind {
@@ -37,6 +38,7 @@ export function isParentPortalNotificationType(
     type === 'attendance' ||
     type === 'absence' ||
     type === 'makeup' ||
-    type === 'tuition_unpaid'
+    type === 'tuition_unpaid' ||
+    type === 'practice'
   );
 }
