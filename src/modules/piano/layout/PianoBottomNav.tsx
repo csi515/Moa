@@ -21,8 +21,8 @@ export const PianoBottomNav: FC = () => {
         if (tab === 'students') setSelectedStudentId(null);
         setActiveTab(tab);
       }}
-      moreMenuTitle="전체 메뉴"
-      moreMenuDescription="피아노학원 운영 메뉴를 선택하세요"
+      moreMenuTitle="더보기"
+      moreMenuDescription="상담 · 수납 · 설정 및 추가 기능"
     />
   );
 };

@@ -70,34 +70,64 @@ const COMMON_NOTICES: FeatureGuideSection = {
 };
 
 const PIANO_GUIDE: FeatureGuideSection[] = [
+  buildGuideSection({
+    id: 'home',
+    title: '홈',
+    description: '오늘 일정·출결·상담·미납을 빠르게 확인합니다.',
+    items: [
+      {
+        id: 'dashboard',
+        title: '홈',
+        summary: '오늘 필요한 업무 요약과 바로가기를 봅니다.',
+      },
+    ],
+  }),
   buildCustomerSection({
-    title: '원생·학부모',
-    description: '등록 원생과 보호자 연락처를 관리합니다.',
+    title: '학생',
+    description: '등록 학생과 보호자 연락처를 관리합니다.',
     customerItem: {
       id: 'students',
-      title: '원생 관리',
-      summary: '원생 등록, 재원/휴원/퇴원, 담당 강사·반을 관리합니다.',
+      title: '학생 관리',
+      summary: '학생 등록, 재원/휴원/퇴원, 담당 강사·반을 관리합니다.',
     },
     parentItem: {
       id: 'parents',
       title: '학부모 관리',
-      summary: '학부모 연락처와 연결된 원생을 관리합니다.',
+      summary: '학부모 연락처와 연결된 학생을 관리합니다.',
     },
   }),
-  buildClassesSection({
-    title: '수업·출결',
-    description: '반 편성, 시간표, PIN 출입, 보강 수업을 다룹니다.',
+  buildGuideSection({
+    id: 'schedule',
+    title: '일정',
+    description: '수업 시간표·반·캘린더·커리큘럼을 관리합니다.',
     items: [
-      {
-        id: 'classes',
-        title: '반 관리',
-        summary: '수업 반(요일·시간·정원·강사)을 만듭니다.',
-      },
       {
         id: 'timetable',
         title: '주간 시간표',
         summary: '요일별 수업 일정을 한 화면에서 확인합니다.',
       },
+      {
+        id: 'classes',
+        title: '반/수업 관리',
+        summary: '수업 반(요일·시간·정원·강사)을 만듭니다.',
+      },
+      {
+        id: 'calendar',
+        title: '학원 캘린더',
+        summary: '휴강·행사 등 학원 일정을 표시합니다.',
+      },
+      {
+        id: 'curriculum',
+        title: '커리큘럼·진도',
+        summary: '레벨별 커리큘럼과 학생 진도를 관리합니다.',
+      },
+    ],
+  }),
+  buildGuideSection({
+    id: 'attendance',
+    title: '출결',
+    description: '오늘 출입과 보강 수업을 처리합니다.',
+    items: [
       {
         id: 'attendance',
         title: '출입 관리',
@@ -106,14 +136,32 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'makeups',
         title: '보강 수업',
-        summary: '결석한 원생의 보강 일정을 잡습니다.',
+        summary: '결석한 학생의 보강 일정을 잡습니다.',
       },
     ],
   }),
   buildGuideSection({
-    id: 'education',
-    title: '교육·일지',
-    description: '레슨·연습·상담·교재 자료를 남깁니다.',
+    id: 'consultation',
+    title: '상담',
+    description: '상담 기록과 (향후) 상담 예약을 관리합니다.',
+    items: [
+      {
+        id: 'consultations',
+        title: '상담',
+        summary: '학부모·학생 상담 내용을 남겨 둡니다.',
+      },
+    ],
+  }),
+  buildBillingSection({
+    description: '수강료 청구와 미납을 관리합니다.',
+    tuitionTitle: '수강료 및 수납',
+    tuitionSummary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
+    unpaidSummary: '미납 학생을 모아 보고 연락·수납을 이어갑니다.',
+  }),
+  buildGuideSection({
+    id: 'extras',
+    title: '추가 기능',
+    description: '자주 쓰지 않는 운영·교육 메뉴입니다. 사이드바 하단에서 열 수 있습니다.',
     items: [
       {
         id: 'lessons',
@@ -123,79 +171,27 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'practice',
         title: '연습 기록',
-        summary: '원생 연습 시간과 내용을 추적합니다.',
+        summary: '학생 연습 시간과 내용을 추적합니다.',
       },
       {
-        id: 'consultations',
-        title: '상담 이력',
-        summary: '학부모·원생 상담 내용을 남겨 둡니다.',
+        id: 'textbooks',
+        title: '교재 판매',
+        summary: '교재 판매와 재고를 관리합니다.',
       },
       {
         id: 'resources',
-        title: '교재 및 곡 관리',
+        title: '교재·곡 자료',
         summary: '교재·곡 자료를 정리합니다.',
-      },
-    ],
-  }),
-  buildBillingSection({
-    description: '수강료 청구·미납·교재비를 관리합니다.',
-    tuitionTitle: '수강료 및 수납',
-    tuitionSummary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
-    unpaidSummary: '미납 원생을 모아 보고 연락·수납을 이어갑니다.',
-    extraItems: [
-      {
-        id: 'textbooks',
-        title: '교재 판매·재고',
-        summary: '교재 판매와 재고를 관리합니다.',
-      },
-    ],
-  }),
-  buildGuideSection({
-    id: 'quality',
-    title: '교육 품질',
-    description: '커리큘럼·과제·시험·리포트로 학습 품질을 봅니다.',
-    items: [
-      {
-        id: 'curriculum',
-        title: '커리큘럼·진도',
-        summary: '레벨별 커리큘럼과 원생 진도를 관리합니다.',
-      },
-      {
-        id: 'assignments',
-        title: '주간 과제',
-        summary: '주간 연습 과제를 부여하고 확인합니다.',
-      },
-      {
-        id: 'achievements',
-        title: '시험·콩쿠르',
-        summary: '시험·콩쿠르 결과를 기록합니다.',
-      },
-      {
-        id: 'reports',
-        title: '학습 리포트',
-        summary: '학부모에게 전달할 학습 요약을 만듭니다.',
-      },
-    ],
-  }),
-  buildGuideSection({
-    id: 'ops',
-    title: '학원 운영',
-    description: '강사·일정·행사 운영에 사용합니다.',
-    items: [
-      {
-        id: 'teachers',
-        title: '강사 관리',
-        summary: '강사 정보와 담당 반을 관리합니다.',
-      },
-      {
-        id: 'calendar',
-        title: '학원 캘린더',
-        summary: '휴강·행사 등 학원 일정을 표시합니다.',
       },
       {
         id: 'recitals',
         title: '연주회·콩쿠르',
         summary: '연주회·콩쿠르 참가와 영상 현황을 관리합니다.',
+      },
+      {
+        id: 'teachers',
+        title: '선생님 관리',
+        summary: '강사 정보와 담당 반을 관리합니다.',
       },
     ],
   }),

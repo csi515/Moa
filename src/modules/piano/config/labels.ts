@@ -5,12 +5,12 @@ export type { ModuleLabels };
 /** Piano Academy 기본 라벨 (원생/선생님/학부모) */
 export const pianoModuleLabels: ModuleLabels = {
   customer: {
-    singular: '원생',
-    plural: '원생',
-    management: '원생 관리',
-    section: '원생 및 학부모',
-    add: '원생 등록',
-    search: '원생 검색',
+    singular: '학생',
+    plural: '학생',
+    management: '학생 관리',
+    section: '학생',
+    add: '학생 등록',
+    search: '학생 검색',
   },
   contact: {
     singular: '학부모',
@@ -28,8 +28,8 @@ export const pianoModuleLabels: ModuleLabels = {
     management: '반/수업 관리',
   },
   schedule: {
-    singular: '시간표',
-    plural: '시간표',
+    singular: '일정',
+    plural: '일정',
     management: '주간 시간표',
   },
 };
