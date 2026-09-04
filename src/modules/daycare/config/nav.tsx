@@ -24,6 +24,7 @@ import {
   MessageSquareText,
   Pill,
   Settings,
+  UserPlus,
   UserSquare2,
   Users,
 } from 'lucide-react';
@@ -71,6 +72,7 @@ export function getDaycareMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'medications', label: '투약', icon: icon(<Pill className="w-5 h-5" />) },
     noticesNavItem('lg', NOTICE_COPY.daycareNavLabel),
     { tab: 'parents', label: labels.contact.management, icon: icon(<UserSquare2 className="w-5 h-5" />) },
+    { tab: 'enrollment-requests', label: '학부모 등록 요청', icon: icon(<UserPlus className="w-5 h-5" />) },
     { tab: 'classes', label: '반 관리', icon: icon(<GraduationCap className="w-5 h-5" />) },
     { tab: 'timetable', label: '시간표', icon: icon(<Clock className="w-5 h-5" />) },
     {
