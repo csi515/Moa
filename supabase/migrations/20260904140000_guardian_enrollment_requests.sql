@@ -83,16 +83,17 @@ AS $$
     o.id,
     o.name,
     o.industry_type,
-    COALESCE(o.metadata->>'city', '') AS city,
-    o.phone,
-    COALESCE(o.metadata->>'description', '') AS description
+    COALESCE(o.settings->>'city', o.settings->>'address', '') AS city,
+    COALESCE(o.settings->>'phone', '') AS phone,
+    COALESCE(o.settings->>'description', '') AS description
   FROM core.organizations o
-  WHERE o.status = 'active'
+  WHERE o.is_active = true
     AND (
       p_query IS NULL
       OR p_query = ''
       OR o.name ILIKE '%' || p_query || '%'
-      OR o.metadata->>'city' ILIKE '%' || p_query || '%'
+      OR o.settings->>'city' ILIKE '%' || p_query || '%'
+      OR o.settings->>'address' ILIKE '%' || p_query || '%'
     )
   ORDER BY o.name
   LIMIT LEAST(p_limit, 100);
@@ -123,12 +124,13 @@ AS $$
     o.id,
     o.name,
     o.industry_type,
-    COALESCE(o.metadata->>'city', '') AS city,
-    o.phone,
-    COALESCE(o.metadata->>'description', '') AS description
+    COALESCE(o.settings->>'city', o.settings->>'address', '') AS city,
+    COALESCE(o.settings->>'phone', '') AS phone,
+    COALESCE(o.settings->>'description', '') AS description
   FROM core.organizations o
-  WHERE o.status = 'active'
-    AND upper(trim(o.metadata->>'public_code')) = upper(trim(p_code))
+  WHERE o.is_active = true
+    AND o.public_code IS NOT NULL
+    AND upper(trim(o.public_code::text)) = upper(trim(p_code))
   LIMIT 1;
 $$;
 
@@ -180,7 +182,7 @@ BEGIN
   END IF;
 
   -- Get org info
-  SELECT * INTO v_org FROM core.organizations WHERE id = p_organization_id AND status = 'active';
+  SELECT * INTO v_org FROM core.organizations WHERE id = p_organization_id AND is_active = true;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Organization not found or inactive';
   END IF;
