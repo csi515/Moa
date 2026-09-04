@@ -96,6 +96,10 @@ export function getUserRoleLabel(role: UserRole | string | null | undefined): st
     manager: '매니저',
     staff: '강사',
     parent: '학부모',
+    instructor: '강사',
+    member: '회원',
+    customer: '고객',
+    guardian: '보호자',
   };
   if (!role || !(role in labels)) return '운영자';
   return labels[role as UserRole];
@@ -109,6 +113,10 @@ export function getUserRoleBadge(role: UserRole | string | null | undefined): st
     manager: '매니저',
     staff: '강사',
     parent: '학부',
+    instructor: '강사',
+    member: '회원',
+    customer: '고객',
+    guardian: '보호자',
   };
   if (!role || !(role in badges)) return '운영';
   return badges[role as UserRole];
