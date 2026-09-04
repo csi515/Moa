@@ -960,6 +960,78 @@ export interface Database {
         };
         Returns: Json;
       };
+      // Phase 2: Customer join & org discovery RPCs
+      search_public_organizations: {
+        Args: {
+          p_query: string;
+          p_industry_type?: string | null;
+          p_limit?: number;
+        };
+        Returns: Array<{
+          id: string;
+          name: string;
+          industry_type: string;
+          public_code: string;
+          slug: string | null;
+          address: string | null;
+          phone: string | null;
+          is_active: boolean;
+        }>;
+      };
+      get_public_organization_by_code: {
+        Args: {
+          p_code: string;
+        };
+        Returns: Array<{
+          id: string;
+          name: string;
+          industry_type: string;
+          public_code: string;
+          slug: string | null;
+          address: string | null;
+          phone: string | null;
+          email: string | null;
+          description: string | null;
+          business_hours: string | null;
+          is_active: boolean;
+        }>;
+      };
+      submit_customer_join_request: {
+        Args: {
+          p_org_id: string;
+          p_applicant_name: string;
+          p_applicant_phone?: string | null;
+          p_applicant_email?: string | null;
+          p_request_type?: string;
+          p_message?: string | null;
+          p_customer_metadata?: Json;
+        };
+        Returns: string;
+      };
+      approve_customer_join_request: {
+        Args: {
+          p_request_id: string;
+          p_role?: string;
+        };
+        Returns: Json;
+      };
+      reject_customer_join_request: {
+        Args: {
+          p_request_id: string;
+          p_reject_reason?: string | null;
+        };
+        Returns: boolean;
+      };
+      submit_public_consultation: {
+        Args: {
+          p_org_id: string;
+          p_contact_name: string;
+          p_contact_phone: string;
+          p_message: string;
+          p_preferred_time?: string | null;
+        };
+        Returns: string;
+      };
     };
     Enums: {
       member_role: MemberRole;
