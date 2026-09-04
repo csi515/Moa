@@ -1,12 +1,13 @@
 import { Session, User } from '@supabase/supabase-js';
 import { getCoreClient } from '../../../lib/supabase';
 
-import type { SignUpBusinessDetails } from '../types/signup';
+import type { SignUpBusinessDetails, AccountType } from '../types/signup';
 
 export interface SignUpParams {
   email: string;
   password: string;
   fullName: string;
+  accountType: AccountType;
   business?: SignUpBusinessDetails;
 }
 
@@ -21,7 +22,7 @@ export async function getSession(): Promise<Session | null> {
   return data.session;
 }
 
-export async function signUp({ email, password, fullName, business }: SignUpParams): Promise<{
+export async function signUp({ email, password, fullName, accountType, business }: SignUpParams): Promise<{
   user: User;
   session: Session | null;
 }> {
@@ -31,6 +32,7 @@ export async function signUp({ email, password, fullName, business }: SignUpPara
     options: {
       data: {
         full_name: fullName,
+        account_type: accountType,
         ...(business
           ? {
               signup_industry_type: business.industryType,

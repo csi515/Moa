@@ -839,6 +839,26 @@ export interface Database {
         Args: Record<string, never>;
         Returns: Json;
       };
+      submit_join_request: {
+        Args: { p_org_id: string; p_message?: string | null };
+        Returns: string;
+      };
+      approve_join_request: {
+        Args: { p_request_id: string };
+        Returns: Json;
+      };
+      reject_join_request: {
+        Args: { p_request_id: string; p_reason?: string | null };
+        Returns: boolean;
+      };
+      get_organization_join_requests: {
+        Args: { p_org_id: string; p_status?: string };
+        Returns: Json;
+      };
+      get_my_join_requests: {
+        Args: Record<string, never>;
+        Returns: Json;
+      };
       sync_auth_providers_on_login: {
         Args: Record<string, never>;
         Returns: Json;

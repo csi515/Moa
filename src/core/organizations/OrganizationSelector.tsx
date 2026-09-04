@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Plus,
@@ -9,10 +9,13 @@ import {
   Activity,
   Dumbbell,
   Baby,
+  GraduationCap,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
 import { INDUSTRY_OPTIONS, getIndustryLabel, type IndustryType } from '../industry/types';
+import { TeacherJoinFlow } from './components/TeacherJoinFlow';
+import { useAuth } from '../auth/AuthProvider';
 
 const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: string }>> = {
   piano: Piano,
@@ -24,11 +27,19 @@ const INDUSTRY_ICONS: Record<IndustryType, React.ComponentType<{ className?: str
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, createOrganization, loading } =
     useOrganization();
+  const { user } = useAuth();
   const [showCreate, setShowCreate] = useState(false);
+  const [showTeacherFlow, setShowTeacherFlow] = useState(false);
   const [orgName, setOrgName] = useState('');
   const [industryType, setIndustryType] = useState<IndustryType>('piano');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!loading && organizations.length === 0 && user?.user_metadata?.accountType === 'teacher') {
+      setShowTeacherFlow(true);
+    }
+  }, [loading, organizations.length, user]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,6 +65,10 @@ export const OrganizationSelector: React.FC = () => {
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     );
+  }
+
+  if (showTeacherFlow) {
+    return <TeacherJoinFlow />;
   }
 
   return (
@@ -113,13 +128,25 @@ export const OrganizationSelector: React.FC = () => {
           )}
 
           {!showCreate ? (
-            <button
-              onClick={() => setShowCreate(true)}
-              className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors min-h-[44px]"
-            >
-              <Plus className="w-5 h-5" />
-              새 학원 등록하기
-            </button>
+            <>
+              <button
+                onClick={() => setShowCreate(true)}
+                className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors min-h-[44px]"
+              >
+                <Plus className="w-5 h-5" />
+                새 학원 등록하기
+              </button>
+
+              {organizations.length === 0 && (
+                <button
+                  onClick={() => setShowTeacherFlow(true)}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-700 font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-colors min-h-[44px]"
+                >
+                  <GraduationCap className="w-5 h-5" />
+                  기존 학원에 강사로 가입하기
+                </button>
+              )}
+            </>
           ) : (
             <form onSubmit={handleCreate} className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-bold text-indigo-700">

@@ -11,6 +11,7 @@ import {
   type StaffAccountStatusItem,
 } from '@/core/staff/services/staffAccountService';
 import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
+import { JoinRequestsPanel } from '@/core/organizations/components/JoinRequestsPanel';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { Teacher } from '@/types';
@@ -214,6 +215,8 @@ export const TeacherManagementView: React.FC = () => {
           </button>
         }
       />
+
+      {canManageAccounts && <JoinRequestsPanel />}
 
       {/* Teachers Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
