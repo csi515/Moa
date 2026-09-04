@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { DayOfWeek } from '@/types';
+import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
+import * as orgService from '@/core/organizations/services/organizationService';
 import {
   Building2,
   GraduationCap,
@@ -10,6 +12,7 @@ import {
   ChevronRight,
   ChevronLeft,
   X,
+  DoorOpen,
 } from 'lucide-react';
 
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
@@ -20,12 +23,16 @@ interface OnboardingWizardProps {
 
 export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }) => {
   const { setActiveTab, showToast } = useApp();
+  const org = useOptionalOrganization();
   const [step, setStep] = useState(0);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [academyForm, setAcademyForm] = useState({
     name: '',
     directorName: StorageService.getActiveUser().name || '원장님',
     phone: '',
+    address: '',
+    roomCount: 1,
   });
 
   const [classForm, setClassForm] = useState({
@@ -41,15 +48,42 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     onComplete();
   };
 
-  const handleStep1 = (e: React.FormEvent) => {
+  const handleStep1 = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!academyForm.name.trim()) return;
-    StorageService.updateSettings({
-      name: academyForm.name.trim(),
-      directorName: academyForm.directorName.trim(),
-      phone: academyForm.phone.trim(),
-    });
-    setStep(1);
+    
+    setIsSaving(true);
+    try {
+      const settings = {
+        name: academyForm.name.trim(),
+        directorName: academyForm.directorName.trim(),
+        phone: academyForm.phone.trim(),
+        address: academyForm.address.trim(),
+      };
+      
+      StorageService.updateSettings(settings);
+      
+      if (org?.currentOrganization) {
+        await orgService.updateOrganization(org.currentOrganization.id, {
+          name: settings.name,
+          settings: {
+            directorName: settings.directorName,
+            phone: settings.phone,
+            address: settings.address,
+          },
+        });
+        await org.refreshOrganizations();
+      }
+      
+      setStep(1);
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : '학원 정보 저장 중 오류가 발생했습니다.',
+        'error'
+      );
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleStep2 = (e: React.FormEvent) => {
@@ -84,7 +118,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
       color: '#4f46e5',
     });
 
-    setStep(2);
+    setStep(3);
   };
 
   const handleFinish = () => {
@@ -105,6 +139,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
   const steps = [
     { icon: Building2, label: '학원 정보' },
+    { icon: DoorOpen, label: '강의실 설정' },
     { icon: GraduationCap, label: '첫 반 개설' },
     { icon: UserPlus, label: '시작하기' },
   ];
@@ -160,40 +195,121 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
                 placeholder="예: 행복 피아노 학원"
                 value={academyForm.name}
                 onChange={(e) => setAcademyForm({ ...academyForm, name: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold min-h-[44px]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">원장님 성함</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                원장님 성함 <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
+                required
+                placeholder="예: 김원장"
                 value={academyForm.directorName}
                 onChange={(e) => setAcademyForm({ ...academyForm, directorName: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">학원 연락처</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                학원 대표 전화번호 <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="tel"
+                required
                 placeholder="예: 010-1234-5678"
                 value={academyForm.phone}
                 onChange={(e) => setAcademyForm({ ...academyForm, phone: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-mono min-h-[44px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">학원 주소</label>
+              <input
+                type="text"
+                placeholder="예: 서울시 강남구 테헤란로 123"
+                value={academyForm.address}
+                onChange={(e) => setAcademyForm({ ...academyForm, address: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
               />
             </div>
             <div className="flex justify-between pt-2">
-              <button type="button" onClick={handleSkip} className="text-xs text-slate-400 hover:text-slate-600">
+              <button 
+                type="button" 
+                onClick={handleSkip} 
+                className="text-xs text-slate-400 hover:text-slate-600 min-h-[44px] px-3"
+                disabled={isSaving}
+              >
                 나중에 하기
               </button>
-              <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1">
-                다음 <ChevronRight className="w-4 h-4" />
+              <button 
+                type="submit" 
+                disabled={isSaving}
+                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px] disabled:opacity-50"
+              >
+                {isSaving ? '저장 중...' : '다음'} <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </form>
         )}
 
         {step === 1 && (
+          <form 
+            onSubmit={(e) => {
+              e.preventDefault();
+              setStep(2);
+            }} 
+            className="p-6 space-y-4"
+          >
+            <p className="text-sm text-slate-500">학원의 강의실 정보를 입력해 주세요.</p>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                강의실(교실) 개수
+              </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setAcademyForm({ ...academyForm, roomCount: Math.max(1, academyForm.roomCount - 1) })}
+                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg flex items-center justify-center transition-colors"
+                >
+                  -
+                </button>
+                <div className="flex-1 text-center">
+                  <div className="text-3xl font-bold text-indigo-600">{academyForm.roomCount}</div>
+                  <div className="text-xs text-slate-500 mt-1">개</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setAcademyForm({ ...academyForm, roomCount: Math.min(20, academyForm.roomCount + 1) })}
+                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg flex items-center justify-center transition-colors"
+                >
+                  +
+                </button>
+              </div>
+              <p className="text-xs text-slate-400 mt-2 text-center">
+                피아노실, 연습실 등 수업이 진행되는 공간 개수
+              </p>
+            </div>
+            <div className="flex justify-between pt-2">
+              <button 
+                type="button" 
+                onClick={() => setStep(0)} 
+                className="px-4 py-2 text-xs font-semibold text-slate-600 flex items-center gap-1 min-h-[44px]"
+              >
+                <ChevronLeft className="w-4 h-4" /> 이전
+              </button>
+              <button 
+                type="submit" 
+                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px]"
+              >
+                다음 <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </form>
+        )}
+
+        {step === 2 && (
           <form onSubmit={handleStep2} className="p-6 space-y-4">
             <p className="text-sm text-slate-500">첫 정규 수업(반)을 개설해 주세요.</p>
             <div>
@@ -250,25 +366,30 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">강의실</label>
-              <input
-                type="text"
+              <select
                 value={classForm.room}
                 onChange={(e) => setClassForm({ ...classForm, room: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-              />
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
+              >
+                {Array.from({ length: academyForm.roomCount }, (_, i) => (
+                  <option key={i + 1} value={`피아노 ${i + 1}실`}>
+                    피아노 {i + 1}실
+                  </option>
+                ))}
+              </select>
             </div>
             <div className="flex justify-between pt-2">
-              <button type="button" onClick={() => setStep(0)} className="px-4 py-2 text-xs font-semibold text-slate-600 flex items-center gap-1">
+              <button type="button" onClick={() => setStep(1)} className="px-4 py-2 text-xs font-semibold text-slate-600 flex items-center gap-1 min-h-[44px]">
                 <ChevronLeft className="w-4 h-4" /> 이전
               </button>
-              <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1">
+              <button type="submit" className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px]">
                 다음 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </form>
         )}
 
-        {step === 2 && (
+        {step === 3 && (
           <div className="p-6 space-y-5 text-center">
             <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
               <UserPlus className="w-8 h-8 text-emerald-600" />
