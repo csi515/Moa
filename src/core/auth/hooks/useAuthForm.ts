@@ -4,6 +4,7 @@ import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
 import { validateSignUpBusiness } from '../utils/validateSignup';
+import type { AccountType } from '../types/signup';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
@@ -14,6 +15,7 @@ export function useAuthForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [accountType, setAccountType] = useState<AccountType>('owner');
   const [industryType, setIndustryType] = useState<IndustryType>('piano');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
@@ -59,23 +61,27 @@ export function useAuthForm() {
         throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
       }
 
-      const business = {
-        industryType,
-        businessName: businessName.trim(),
-        phone: phone.trim(),
-        address: address.trim(),
-        businessNumber: businessNumber.trim() || undefined,
-      };
-      validateSignUpBusiness(business);
+      if (accountType === 'owner') {
+        const business = {
+          industryType,
+          businessName: businessName.trim(),
+          phone: phone.trim(),
+          address: address.trim(),
+          businessNumber: businessNumber.trim() || undefined,
+        };
+        validateSignUpBusiness(business);
 
-      await signUp(email.trim(), password, fullName.trim(), business);
-      await createOrganization(business.businessName, business.industryType, {
-        name: business.businessName,
-        directorName: fullName.trim(),
-        phone: business.phone,
-        address: business.address,
-        businessNumber: business.businessNumber,
-      });
+        await signUp(email.trim(), password, fullName.trim(), accountType, business);
+        await createOrganization(business.businessName, business.industryType, {
+          name: business.businessName,
+          directorName: fullName.trim(),
+          phone: business.phone,
+          address: business.address,
+          businessNumber: business.businessNumber,
+        });
+      } else {
+        await signUp(email.trim(), password, fullName.trim(), accountType);
+      }
     } catch (err) {
       const message =
         err instanceof Error ? err.message : '인증 처리 중 오류가 발생했습니다.';
@@ -93,6 +99,8 @@ export function useAuthForm() {
     setPassword,
     fullName,
     setFullName,
+    accountType,
+    setAccountType,
     industryType,
     setIndustryType,
     businessName,

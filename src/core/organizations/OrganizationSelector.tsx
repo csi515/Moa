@@ -1,18 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Building2,
   Plus,
   ChevronRight,
   Loader2,
+  GraduationCap,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
 import { getIndustryLabel, type IndustryType } from '../industry/types';
 import { CreateOrganizationWizard } from './CreateOrganizationWizard';
+import { TeacherJoinFlow } from './components/TeacherJoinFlow';
+import { useAuth } from '../auth/AuthProvider';
 
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, loading } = useOrganization();
+  const { user } = useAuth();
   const [showWizard, setShowWizard] = useState(false);
+  const [showTeacherFlow, setShowTeacherFlow] = useState(false);
+
+  useEffect(() => {
+    if (!loading && organizations.length === 0 && user?.user_metadata?.account_type === 'teacher') {
+      setShowTeacherFlow(true);
+    }
+  }, [loading, organizations.length, user]);
 
   if (loading) {
     return (
@@ -20,6 +31,10 @@ export const OrganizationSelector: React.FC = () => {
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     );
+  }
+
+  if (showTeacherFlow) {
+    return <TeacherJoinFlow />;
   }
 
   return (
@@ -85,6 +100,16 @@ export const OrganizationSelector: React.FC = () => {
             <Plus className="w-5 h-5" />
             새 학원 등록하기
           </button>
+
+          {organizations.length === 0 && (
+            <button
+              onClick={() => setShowTeacherFlow(true)}
+              className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-700 font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-colors min-h-[44px]"
+            >
+              <GraduationCap className="w-5 h-5" />
+              기존 학원에 강사로 가입하기
+            </button>
+          )}
         </div>
       </div>
 

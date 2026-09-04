@@ -1,5 +1,7 @@
 import type { IndustryType } from '@/core/industry/types';
 
+export type AccountType = 'owner' | 'teacher' | 'parent';
+
 export interface SignUpBusinessDetails {
   industryType: IndustryType;
   businessName: string;
@@ -12,5 +14,6 @@ export interface SignUpPayload {
   email: string;
   password: string;
   fullName: string;
-  business: SignUpBusinessDetails;
+  accountType: AccountType;
+  business?: SignUpBusinessDetails;
 }
