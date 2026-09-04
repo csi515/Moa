@@ -5,30 +5,24 @@ import { getIndustryPlugin } from '@/core/industry/registry';
 import { useModuleLabels } from '@/core/labels';
 import { studentUsesShuttleService } from '@/core/transport';
 import { useStaffScope } from '@/hooks';
-import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
+import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
-import { Student, StudentStatus } from '@/types';
+import { Student } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
 import {
-  formatCurrency,
   formatPhone,
-  getLevelColor,
-  getStudentStatusBadge
+  getStudentStatusBadge,
 } from '@/utils/formatters';
-import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
+import { PageHeader, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import {
   Users,
   UserPlus,
   Phone,
   ArrowUpDown,
-  BookOpen,
-  Calendar,
-  CreditCard,
   ChevronRight,
-  Sparkles,
-  School,
   Bus,
+  SlidersHorizontal,
 } from 'lucide-react';
 
 export const StudentListView: React.FC = () => {
@@ -45,28 +39,30 @@ export const StudentListView: React.FC = () => {
     () => (isScoped && staffId ? StorageService.getClasses().filter((c) => c.teacherId === staffId) : StorageService.getClasses()),
     [isScoped, staffId, refreshKey]
   );
+  const classNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    classes.forEach((c) => map.set(c.id, c.name));
+    return map;
+  }, [classes]);
 
-  // Search & Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [teacherFilter, setTeacherFilter] = useState('ALL');
   const [classFilter, setClassFilter] = useState('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [shuttleFilter, setShuttleFilter] = useState<'ALL' | 'SHUTTLE'>('ALL');
   const [sortBy, setSortBy] = useState<'joinDateDesc' | 'joinDateAsc' | 'name' | 'paymentDay'>('joinDateDesc');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  // Modal states
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [detailStudent, setDetailStudent] = useState<Student | null>(null);
 
-  // 강사는 담당 필터 고정
   useEffect(() => {
     if (isScoped && staffId) {
       setTeacherFilter(staffId);
     }
   }, [isScoped, staffId]);
 
-  // If selectedStudentId was set from header or dashboard, auto-open detail modal
   React.useEffect(() => {
     if (selectedStudentId) {
       const found = students.find((s) => s.id === selectedStudentId);
@@ -131,6 +127,20 @@ export const StudentListView: React.FC = () => {
   const withdrawnCount = students.filter((s) => s.status === 'withdrawn').length;
   const shuttleCount = students.filter((s) => studentUsesShuttleService(s)).length;
 
+  const hasActiveFilters =
+    Boolean(searchQuery.trim()) ||
+    teacherFilter !== 'ALL' ||
+    classFilter !== 'ALL' ||
+    statusFilter !== 'ALL' ||
+    shuttleFilter !== 'ALL';
+
+  const advancedFilterCount = [
+    !isScoped && teacherFilter !== 'ALL',
+    classFilter !== 'ALL',
+    shuttleFilter !== 'ALL',
+    sortBy !== 'joinDateDesc',
+  ].filter(Boolean).length;
+
   const handleOpenDetail = (student: Student) => {
     setDetailStudent(student);
   };
@@ -146,12 +156,43 @@ export const StudentListView: React.FC = () => {
     setDetailStudent(null);
   };
 
+  const getClassLabel = (student: Student) => {
+    if (!student.classIds?.length) return '미배정';
+    const names = student.classIds
+      .map((id) => classNameById.get(id))
+      .filter(Boolean) as string[];
+    if (names.length === 0) return `${student.classIds.length}개 반`;
+    if (names.length === 1) return names[0];
+    return `${names[0]} 외 ${names.length - 1}`;
+  };
+
+  const getGuardianLabel = (student: Student) => {
+    const primary = getPrimaryGuardian(student.id);
+    if (primary) {
+      return {
+        name: primary.parentName,
+        phone: primary.parentPhone,
+      };
+    }
+    return {
+      name: student.parentName || '-',
+      phone: student.parentPhone || '',
+    };
+  };
+
+  const statusChips: Array<{ value: string; label: string; count: number }> = [
+    { value: 'ALL', label: '전체', count: students.length },
+    { value: 'active', label: '재원', count: activeCount },
+    { value: 'leave', label: '휴원', count: leaveCount },
+    { value: 'withdrawn', label: '퇴원', count: withdrawnCount },
+  ];
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Users className="w-6 h-6" />}
         title={labels.customer.management}
-        description="원생 등록·수정, 학부모 연결, 수강료·출결 정보를 관리합니다"
+        description={`${labels.customer.singular} 등록·검색, 보호자 연결, 수업·출결·수납을 관리합니다`}
         actions={
           !isScoped ? (
             <button
@@ -168,106 +209,149 @@ export const StudentListView: React.FC = () => {
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryMetricCard label="재원" value={`${activeCount}명`} variant="emerald" />
-        <SummaryMetricCard label="휴원" value={`${leaveCount}명`} variant="amber" />
-        <SummaryMetricCard label="퇴원" value={`${withdrawnCount}명`} variant="default" />
-        <SummaryMetricCard label="전체" value={`${students.length}명`} variant="indigo" />
-      </div>
-
       <FilterBar className="flex-col items-stretch gap-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
-          <SearchField
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="이름, 학부모 연락처, 학교, 번호 검색..."
-            className="lg:col-span-2"
-          />
-          {!isScoped && (
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder={labels.customer.search || '이름, 보호자, 학교, 번호 검색...'}
+          className="w-full"
+        />
+
+        <div className="flex flex-wrap items-center gap-2">
+          {statusChips.map((chip) => {
+            const isActive = statusFilter === chip.value;
+            return (
+              <button
+                key={chip.value}
+                type="button"
+                onClick={() => setStatusFilter(chip.value)}
+                className={`min-h-[36px] px-3 rounded-lg text-xs font-bold transition-colors ${
+                  isActive
+                    ? 'bg-indigo-600 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {chip.label} {chip.count}
+              </button>
+            );
+          })}
+          <button
+            type="button"
+            onClick={() => setShowAdvancedFilters((prev) => !prev)}
+            className={`min-h-[36px] ml-auto px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-colors ${
+              showAdvancedFilters || advancedFilterCount > 0
+                ? 'bg-slate-800 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+            aria-expanded={showAdvancedFilters}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            필터
+            {advancedFilterCount > 0 && (
+              <span className="bg-white/20 px-1.5 rounded-md">{advancedFilterCount}</span>
+            )}
+          </button>
+        </div>
+
+        {showAdvancedFilters && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
+            {!isScoped && (
+              <select
+                value={teacherFilter}
+                onChange={(e) => setTeacherFilter(e.target.value)}
+                className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+              >
+                <option value="ALL">{labels.staff.singular} 전체</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            )}
+
             <select
-              value={teacherFilter}
-              onChange={(e) => setTeacherFilter(e.target.value)}
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
               className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
             >
-              <option value="ALL">선생님 전체</option>
-              {teachers.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name}
+              <option value="ALL">수업 전체</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
                 </option>
               ))}
             </select>
-          )}
 
-          <select
-            value={classFilter}
-            onChange={(e) => setClassFilter(e.target.value)}
-            className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-          >
-            <option value="ALL">수업반 전체</option>
-            {classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
+            {showPickupFields && (
+              <select
+                value={shuttleFilter}
+                onChange={(e) => setShuttleFilter(e.target.value as 'ALL' | 'SHUTTLE')}
+                className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
+              >
+                <option value="ALL">셔틀 전체</option>
+                <option value="SHUTTLE">셔틀 이용 ({shuttleCount})</option>
+              </select>
+            )}
 
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
-          >
-            <option value="ALL">상태 전체 ({students.length})</option>
-            <option value="active">재원 ({activeCount})</option>
-            <option value="leave">휴원 ({leaveCount})</option>
-            <option value="withdrawn">퇴원 ({withdrawnCount})</option>
-          </select>
-
-          {showPickupFields && (
-            <select
-              value={shuttleFilter}
-              onChange={(e) => setShuttleFilter(e.target.value as 'ALL' | 'SHUTTLE')}
-              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
-            >
-              <option value="ALL">셔틀 전체</option>
-              <option value="SHUTTLE">셔틀 이용 ({shuttleCount})</option>
-            </select>
-          )}
-        </div>
-
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500 w-full">
-          <span>검색된 원생: <strong className="text-slate-800">{filteredStudents.length}명</strong></span>
-          <div className="flex items-center gap-1.5">
-            <ArrowUpDown className="w-3.5 h-3.5" />
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as any)}
-              className="bg-transparent text-slate-700 font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value="joinDateDesc">등록일 최신순</option>
-              <option value="joinDateAsc">등록일 과거순</option>
-              <option value="name">이름 가나다순</option>
-              <option value="paymentDay">수납일순</option>
-            </select>
+            <div className="flex items-center gap-1.5 px-3 min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+              <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                className="bg-transparent w-full font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value="joinDateDesc">등록일 최신순</option>
+                <option value="joinDateAsc">등록일 과거순</option>
+                <option value="name">이름 가나다순</option>
+                <option value="paymentDay">수납일순</option>
+              </select>
+            </div>
           </div>
+        )}
+
+        <div className="flex items-center justify-between text-xs text-slate-500 w-full">
+          <span>
+            검색된 {labels.customer.singular}:{' '}
+            <strong className="text-slate-800">{filteredStudents.length}명</strong>
+          </span>
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
+                setClassFilter('ALL');
+                setStatusFilter('ALL');
+                setShuttleFilter('ALL');
+              }}
+              className="font-bold text-indigo-600 hover:text-indigo-700"
+            >
+              초기화
+            </button>
+          )}
         </div>
       </FilterBar>
 
-      {/* Student List View */}
       {filteredStudents.length === 0 ? (
         <EmptyState
           icon={<Users className="w-12 h-12" />}
-          title={searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL'
-            ? "조건에 일치하는 원생이 없습니다"
-            : "등록된 원생이 없습니다"}
-          description={searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL'
-            ? "검색어나 필터를 변경해보세요. 다른 키워드로 다시 검색하거나 전체 조건으로 초기화할 수 있습니다."
-            : "우측 상단 '원생 등록' 버튼으로 첫 번째 원생을 등록해보세요."}
+          title={
+            hasActiveFilters
+              ? `조건에 일치하는 ${labels.customer.singular}이 없습니다`
+              : `등록된 ${labels.customer.singular}이 없습니다`
+          }
+          description={
+            hasActiveFilters
+              ? '검색어나 필터를 변경해보세요.'
+              : `상단 '${labels.customer.add}' 버튼으로 첫 번째 ${labels.customer.singular}을 등록해보세요.`
+          }
           action={
-            (searchQuery.trim() || teacherFilter !== 'ALL' || classFilter !== 'ALL' || statusFilter !== 'ALL' || shuttleFilter !== 'ALL') && (
+            hasActiveFilters ? (
               <button
                 onClick={() => {
                   setSearchQuery('');
-                  setTeacherFilter('ALL');
+                  setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
                   setClassFilter('ALL');
                   setStatusFilter('ALL');
                   setShuttleFilter('ALL');
@@ -276,24 +360,19 @@ export const StudentListView: React.FC = () => {
               >
                 필터 초기화
               </button>
-            )
+            ) : undefined
           }
         />
       ) : (
         <>
-          {/* Desktop Table View */}
           <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-3.5 px-4">원생 번호</th>
-                    <th className="py-3.5 px-4">이름 / 성별</th>
-                    <th className="py-3.5 px-4">학교 / 학년</th>
-                    <th className="py-3.5 px-4">레벨 / 과정</th>
-                    <th className="py-3.5 px-4">담당 선생님</th>
-                    <th className="py-3.5 px-4">학부모 연락처</th>
-                    <th className="py-3.5 px-4">수강료 / 수납일</th>
+                    <th className="py-3.5 px-4">이름</th>
+                    <th className="py-3.5 px-4">수업</th>
+                    <th className="py-3.5 px-4">보호자</th>
                     <th className="py-3.5 px-4">상태</th>
                     <th className="py-3.5 px-4 text-right">관리</th>
                   </tr>
@@ -301,15 +380,13 @@ export const StudentListView: React.FC = () => {
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((st) => {
                     const badge = getStudentStatusBadge(st.status);
+                    const guardian = getGuardianLabel(st);
                     return (
                       <tr
                         key={st.id}
                         onClick={() => handleOpenDetail(st)}
                         className="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
                       >
-                        <td className="py-3.5 px-4 font-mono font-bold text-slate-400">
-                          {st.studentNumber}
-                        </td>
                         <td className="py-3.5 px-4">
                           <div className="flex items-center gap-2.5">
                             <div
@@ -318,46 +395,40 @@ export const StudentListView: React.FC = () => {
                             >
                               {st.name.slice(0, 1)}
                             </div>
-                            <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
-                              {st.name}
-                            </span>
-                            {showPickupFields && studentUsesShuttleService(st) && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
-                                <Bus className="w-3 h-3" />
-                                셔틀
-                              </span>
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                                  {st.name}
+                                </span>
+                                {showPickupFields && studentUsesShuttleService(st) && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
+                                    <Bus className="w-3 h-3" />
+                                    셔틀
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[10px] text-slate-400 font-mono">{st.studentNumber}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-700 font-medium">
+                          {getClassLabel(st)}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {guardian.phone ? (
+                              <a
+                                href={`tel:${guardian.phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="text-indigo-600 hover:underline font-semibold font-mono"
+                              >
+                                {formatPhone(guardian.phone)}
+                              </a>
+                            ) : (
+                              <span className="text-slate-400">-</span>
                             )}
-                            <span className="text-[10px] text-slate-400">
-                              ({st.gender === 'F' ? '여' : '남'})
-                            </span>
+                            <span className="text-slate-400 text-[10px] truncate">({guardian.name})</span>
                           </div>
-                        </td>
-                        <td className="py-3.5 px-4 text-slate-600">
-                          {st.school} <span className="font-medium text-slate-800">[{st.grade}]</span>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] border ${getLevelColor(st.level)}`}>
-                            {st.level}
-                          </span>
-                        </td>
-                        <td className="py-3.5 px-4 font-medium text-slate-700">
-                          {st.teacherName}
-                        </td>
-                        <td className="py-3.5 px-4 font-mono">
-                          <div className="flex items-center gap-1.5">
-                            <a
-                              href={`tel:${st.parentPhone}`}
-                              onClick={(e) => e.stopPropagation()}
-                              className="text-indigo-600 hover:underline font-semibold"
-                            >
-                              {formatPhone(st.parentPhone)}
-                            </a>
-                            <span className="text-slate-400 text-[10px]">({st.parentName})</span>
-                          </div>
-                        </td>
-                        <td className="py-3.5 px-4">
-                          <span className="font-bold text-slate-900">{formatCurrency(st.tuitionFee)}</span>
-                          <span className="text-slate-400 text-[11px] ml-1">/ 매월 {st.paymentDay}일</span>
                         </td>
                         <td className="py-3.5 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
@@ -371,6 +442,7 @@ export const StudentListView: React.FC = () => {
                               handleOpenDetail(st);
                             }}
                             className="p-1.5 text-slate-400 group-hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
+                            aria-label="상세 보기"
                           >
                             <ChevronRight className="w-4 h-4" />
                           </button>
@@ -383,63 +455,59 @@ export const StudentListView: React.FC = () => {
             </div>
           </div>
 
-          {/* Mobile Card View */}
           <div className="md:hidden space-y-3">
             {filteredStudents.map((st) => {
               const badge = getStudentStatusBadge(st.status);
+              const guardian = getGuardianLabel(st);
               return (
                 <div
                   key={st.id}
                   onClick={() => handleOpenDetail(st)}
                   className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs active:bg-slate-50 transition-all cursor-pointer space-y-2.5"
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className="w-9 h-9 rounded-xl text-white font-extrabold text-sm flex items-center justify-center shadow-xs"
+                        className="w-9 h-9 rounded-xl text-white font-extrabold text-sm flex items-center justify-center shadow-xs shrink-0"
                         style={{ backgroundColor: st.avatarColor || '#4f46e5' }}
                       >
                         {st.name.slice(0, 1)}
                       </div>
-                      <div>
+                      <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="font-bold text-sm text-slate-900">{st.name}</h4>
-                          <span className="text-[10px] text-slate-400">({st.gender === 'F' ? '여' : '남'})</span>
                           {showPickupFields && studentUsesShuttleService(st) && (
                             <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
                               <Bus className="w-3 h-3" />
                               셔틀
                             </span>
                           )}
-                          <span className={`px-2 py-0.2 rounded-full font-bold text-[10px] ${badge.bg}`}>
+                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
                             {badge.label}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500">
-                          {st.school} {st.grade} | {st.teacherName}
-                        </p>
+                        <p className="text-[11px] text-slate-500 truncate">{getClassLabel(st)}</p>
                       </div>
                     </div>
-
-                    <span className={`px-2 py-0.5 rounded-md font-bold text-[10px] border ${getLevelColor(st.level)}`}>
-                      {st.level}
-                    </span>
+                    <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                    <div className="flex items-center gap-1 text-slate-600">
-                      <Phone className="w-3.5 h-3.5 text-slate-400" />
-                      <a
-                        href={`tel:${st.parentPhone}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="text-indigo-600 font-semibold font-mono"
-                      >
-                        {formatPhone(st.parentPhone)}
-                      </a>
+                    <div className="flex items-center gap-1 text-slate-600 min-w-0">
+                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      {guardian.phone ? (
+                        <a
+                          href={`tel:${guardian.phone}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="text-indigo-600 font-semibold font-mono"
+                        >
+                          {formatPhone(guardian.phone)}
+                        </a>
+                      ) : (
+                        <span className="text-slate-400">연락처 없음</span>
+                      )}
+                      <span className="text-slate-400 truncate">· {guardian.name}</span>
                     </div>
-                    <span className="font-bold text-slate-800">
-                      {formatCurrency(st.tuitionFee)}
-                    </span>
                   </div>
                 </div>
               );
@@ -448,7 +516,6 @@ export const StudentListView: React.FC = () => {
         </>
       )}
 
-      {/* Modals */}
       <StudentFormModal
         student={editingStudent}
         isOpen={isFormModalOpen}

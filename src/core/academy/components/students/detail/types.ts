@@ -8,6 +8,7 @@ import {
   Piano,
   Video,
   FileText,
+  Clock,
 } from 'lucide-react';
 
 export type DetailTab =
@@ -35,48 +36,71 @@ export interface DetailTabConfigItem {
   id: DetailTab;
   label: string;
   icon: React.ReactNode;
+  group: 'primary' | 'more';
 }
 
 const iconClass = 'w-3.5 h-3.5';
 
+/**
+ * 학생 상세 탭
+ * - primary: 기본정보 / 일정 / 출결 / 상담 / 수납
+ * - more: 교재·연습·영상·메모 (숨기지 않고 하위로 유지)
+ */
 export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem[] {
   return [
-    { id: 'info', label: '기본정보', icon: React.createElement(User, { className: iconClass }) },
+    {
+      id: 'info',
+      label: '기본정보',
+      icon: React.createElement(User, { className: iconClass }),
+      group: 'primary',
+    },
     {
       id: 'classes',
-      label: `수업 (${counts.enrolledClasses})`,
-      icon: React.createElement(BookOpen, { className: iconClass }),
+      label: `일정 (${counts.enrolledClasses})`,
+      icon: React.createElement(Clock, { className: iconClass }),
+      group: 'primary',
     },
     {
       id: 'attendance',
       label: `출결 (${counts.attRate}%)`,
       icon: React.createElement(CheckCircle2, { className: iconClass }),
-    },
-    {
-      id: 'tuition',
-      label: `수강료 (${counts.invoiceCount})`,
-      icon: React.createElement(CreditCard, { className: iconClass }),
-    },
-    {
-      id: 'textbooks',
-      label: `교재 구매 (${counts.salesCount})`,
-      icon: React.createElement(BookOpen, { className: iconClass }),
+      group: 'primary',
     },
     {
       id: 'consultations',
       label: `상담 (${counts.consultationCount})`,
       icon: React.createElement(MessageSquare, { className: iconClass }),
+      group: 'primary',
+    },
+    {
+      id: 'tuition',
+      label: `수납 (${counts.invoiceCount})`,
+      icon: React.createElement(CreditCard, { className: iconClass }),
+      group: 'primary',
+    },
+    {
+      id: 'textbooks',
+      label: `교재 (${counts.salesCount})`,
+      icon: React.createElement(BookOpen, { className: iconClass }),
+      group: 'more',
     },
     {
       id: 'practice',
       label: `연습/레슨 (${counts.practiceCount})`,
       icon: React.createElement(Piano, { className: iconClass }),
+      group: 'more',
     },
     {
       id: 'videos',
       label: `연주영상 (${counts.videoCount})`,
       icon: React.createElement(Video, { className: iconClass }),
+      group: 'more',
     },
-    { id: 'memo', label: '메모/특이사항', icon: React.createElement(FileText, { className: iconClass }) },
+    {
+      id: 'memo',
+      label: '메모',
+      icon: React.createElement(FileText, { className: iconClass }),
+      group: 'more',
+    },
   ];
 }

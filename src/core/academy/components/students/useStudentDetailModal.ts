@@ -9,8 +9,57 @@ import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { getLevelColor, getStudentStatusBadge } from '@/utils/formatters';
+import {
+  getAttendanceBadge,
+  getInvoiceStatusBadge,
+  getLevelColor,
+  getStudentStatusBadge,
+} from '@/utils/formatters';
+import type { ClassItem, DayOfWeek } from '@/types';
 import { DetailTab, getDetailTabConfig } from './detail/types';
+
+const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** 등록된 반 기준으로 가장 가까운 다음 수업 라벨 */
+function getNextClassLabel(classes: ClassItem[]): string {
+  if (classes.length === 0) return '배정된 수업 없음';
+
+  const now = new Date();
+  const todayIdx = now.getDay();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+
+  type Candidate = { daysAhead: number; startMinutes: number; label: string };
+  const candidates: Candidate[] = [];
+
+  for (const cls of classes) {
+    const days = cls.daysOfWeek || [];
+    const [h = 0, m = 0] = (cls.startTime || '00:00').split(':').map(Number);
+    const startMinutes = h * 60 + m;
+    for (const day of days) {
+      const dayIdx = WEEKDAY_KO.indexOf(day);
+      if (dayIdx < 0) continue;
+      let daysAhead = (dayIdx - todayIdx + 7) % 7;
+      if (daysAhead === 0 && startMinutes <= nowMinutes) {
+        daysAhead = 7;
+      }
+      const when =
+        daysAhead === 0 ? '오늘' : daysAhead === 1 ? '내일' : day;
+      candidates.push({
+        daysAhead,
+        startMinutes,
+        label: `${when} ${cls.startTime} · ${cls.name}`,
+      });
+    }
+  }
+
+  if (candidates.length === 0) {
+    const first = classes[0];
+    return `${first.name} ${first.daysOfWeek?.join('') || ''} ${first.startTime || ''}`.trim();
+  }
+
+  candidates.sort((a, b) => a.daysAhead - b.daysAhead || a.startMinutes - b.startMinutes);
+  return candidates[0].label;
+}
 
 interface UseStudentDetailModalOptions {
   student: Student;
@@ -275,6 +324,30 @@ export function useStudentDetailModal({
     videoCount: allVideos.length,
   });
 
+  const latestAttendance = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const latestConsultation = [...allConsultations].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const tuitionStatusLabel =
+    billingSummary.tuitionStatus === 'overdue'
+      ? '연체'
+      : getInvoiceStatusBadge(billingSummary.tuitionStatus).label;
+  const tuitionLabel =
+    billingSummary.tuitionUnpaid > 0
+      ? `${tuitionStatusLabel} · ₩${billingSummary.tuitionUnpaid.toLocaleString()}`
+      : billingSummary.tuitionBilled > 0
+        ? tuitionStatusLabel
+        : '청구 없음';
+
+  const summary = {
+    nextClass: getNextClassLabel(enrolledClasses),
+    recentAttendance: latestAttendance
+      ? `${latestAttendance.date.slice(5)} ${getAttendanceBadge(latestAttendance.status).label}`
+      : '기록 없음',
+    recentConsultation: latestConsultation
+      ? `${latestConsultation.date.slice(5)} 상담`
+      : '기록 없음',
+    tuition: tuitionLabel,
+  };
+
   return {
     currentTab,
     setCurrentTab,
@@ -300,6 +373,7 @@ export function useStudentDetailModal({
     attRate,
     totalPracticeMinutes,
     statusBadge,
+    summary,
     tabConfig,
     levelColor: getLevelColor(student.level),
     isSupabaseConfigured: isSupabaseConfigured(),

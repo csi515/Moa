@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import type { Student } from '@/types';
 import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal';
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
-import { X, Phone, Edit, Trash2 } from 'lucide-react';
+import { X, Phone, Edit, Trash2, ChevronDown } from 'lucide-react';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
 import { StudentDetailAttendanceTab } from './detail/StudentDetailAttendanceTab';
@@ -51,6 +51,30 @@ const StudentDetailModalContent: React.FC<
     onClose,
     onEdit,
   });
+  const [showMoreTabs, setShowMoreTabs] = useState(false);
+
+  const primaryTabs = useMemo(
+    () => modal.tabConfig.filter((tab) => tab.group === 'primary'),
+    [modal.tabConfig],
+  );
+  const moreTabs = useMemo(
+    () => modal.tabConfig.filter((tab) => tab.group === 'more'),
+    [modal.tabConfig],
+  );
+  const activeInMore = moreTabs.some((tab) => tab.id === modal.currentTab);
+  const showMoreSection = showMoreTabs || activeInMore;
+
+  const summaryItems = [
+    { label: '다음 수업', value: modal.summary.nextClass },
+    { label: '최근 출결', value: modal.summary.recentAttendance },
+    { label: '최근 상담', value: modal.summary.recentConsultation },
+    { label: '수납', value: modal.summary.tuition },
+  ];
+
+  const selectPrimaryTab = (tabId: DetailTab) => {
+    setShowMoreTabs(false);
+    modal.setCurrentTab(tabId);
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
@@ -98,14 +122,14 @@ const StudentDetailModalContent: React.FC<
               <button
                 onClick={() => onEdit(student)}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                title="원생 정보 수정"
+                title="학생 정보 수정"
               >
                 <Edit className="w-4 h-4" />
               </button>
               <button
                 onClick={modal.handleDelete}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
-                title="원생 삭제"
+                title="학생 삭제"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -120,14 +144,33 @@ const StudentDetailModalContent: React.FC<
           </div>
         </div>
 
+        {/* 핵심 요약: 다음 수업 / 출결 / 상담 / 수납 */}
+        <div
+          className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4 sm:px-6 py-3 border-b border-slate-100 bg-white shrink-0"
+          aria-label="학생 핵심 요약"
+        >
+          {summaryItems.map((item) => (
+            <div
+              key={item.label}
+              className="min-w-0 rounded-xl bg-slate-50 px-3 py-2 border border-slate-100"
+            >
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{item.label}</p>
+              <p className="text-xs font-bold text-slate-800 mt-0.5 truncate" title={item.value}>
+                {item.value}
+              </p>
+            </div>
+          ))}
+        </div>
+
         <div className="flex flex-1 min-h-0 overflow-hidden">
           <nav className="hidden lg:flex flex-col w-52 shrink-0 border-r border-slate-200 bg-slate-50/60 overflow-y-auto py-2">
-            {modal.tabConfig.map((tab) => {
+            {primaryTabs.map((tab) => {
               const isActive = modal.currentTab === tab.id;
               return (
                 <button
                   key={tab.id}
-                  onClick={() => modal.setCurrentTab(tab.id)}
+                  type="button"
+                  onClick={() => selectPrimaryTab(tab.id)}
                   className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left ${
                     isActive
                       ? 'bg-indigo-600 text-white shadow-xs'
@@ -139,16 +182,43 @@ const StudentDetailModalContent: React.FC<
                 </button>
               );
             })}
+            {moreTabs.length > 0 && (
+              <>
+                <div className="mx-4 my-2 border-t border-slate-200" />
+                <p className="px-5 pb-1 text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                  더보기
+                </p>
+                {moreTabs.map((tab) => {
+                  const isActive = modal.currentTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => modal.setCurrentTab(tab.id)}
+                      className={`mx-2 px-3 py-2.5 text-xs font-bold flex items-center gap-2 rounded-xl transition-all cursor-pointer text-left ${
+                        isActive
+                          ? 'bg-indigo-600 text-white shadow-xs'
+                          : 'text-slate-500 hover:bg-white hover:text-slate-900'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span className="truncate">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </>
+            )}
           </nav>
 
           <div className="flex-1 flex flex-col min-w-0">
             <div className="lg:hidden flex items-center gap-1 px-4 sm:px-6 border-b border-slate-200 bg-white overflow-x-auto shrink-0 scrollbar-none">
-              {modal.tabConfig.map((tab) => {
+              {primaryTabs.map((tab) => {
                 const isActive = modal.currentTab === tab.id;
                 return (
                   <button
                     key={tab.id}
-                    onClick={() => modal.setCurrentTab(tab.id)}
+                    type="button"
+                    onClick={() => selectPrimaryTab(tab.id)}
                     className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
                       isActive
                         ? 'border-indigo-600 text-indigo-600'
@@ -160,7 +230,45 @@ const StudentDetailModalContent: React.FC<
                   </button>
                 );
               })}
+              {moreTabs.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowMoreTabs((prev) => !prev)}
+                  className={`py-3 px-3.5 text-xs font-bold flex items-center gap-1 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                    showMoreSection
+                      ? 'border-indigo-600 text-indigo-600'
+                      : 'border-transparent text-slate-500 hover:text-slate-900'
+                  }`}
+                  aria-expanded={showMoreSection}
+                >
+                  더보기
+                  <ChevronDown className={`w-3.5 h-3.5 transition-transform ${showMoreSection ? 'rotate-180' : ''}`} />
+                </button>
+              )}
             </div>
+
+            {showMoreSection && (
+              <div className="lg:hidden flex items-center gap-1 px-4 sm:px-6 border-b border-slate-100 bg-slate-50 overflow-x-auto shrink-0 scrollbar-none">
+                {moreTabs.map((tab) => {
+                  const isActive = modal.currentTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => modal.setCurrentTab(tab.id)}
+                      className={`py-2.5 px-3 text-xs font-bold flex items-center gap-1.5 border-b-2 whitespace-nowrap transition-all cursor-pointer ${
+                        isActive
+                          ? 'border-indigo-600 text-indigo-600'
+                          : 'border-transparent text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      {tab.icon}
+                      <span>{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
               {modal.currentTab === 'info' && (
