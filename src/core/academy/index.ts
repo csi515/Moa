@@ -3,6 +3,7 @@ export { StudentListView } from './components/students/StudentListView';
 export { StudentDetailModal } from './components/students/StudentDetailModal';
 export { StudentFormModal } from './components/students/StudentFormModal';
 export { ParentManagementView } from './components/parents/ParentManagementView';
+export { GuardianEnrollmentRequestsView } from './components/enrollments';
 export { ClassManagementView } from './components/classes/ClassManagementView';
 export { WeeklyTimetableView } from './components/timetable/WeeklyTimetableView';
 export { ConsultationRecordsView } from './components/consultations/ConsultationRecordsView';

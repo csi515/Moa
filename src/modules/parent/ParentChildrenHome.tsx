@@ -1,12 +1,73 @@
-import React from 'react';
-import { ChevronRight, Users, Building2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronRight, Users, Building2, Plus, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
-import { ACTIVE_ENROLLMENT_STATUSES, INACTIVE_ENROLLMENT_STATUSES, type GlobalStudent } from '@/core/parent/types/globalParent';
+import {
+  ACTIVE_ENROLLMENT_STATUSES,
+  INACTIVE_ENROLLMENT_STATUSES,
+  ENROLLMENT_REQUEST_STATUS_LABELS,
+  type GlobalStudent,
+  type EnrollmentRequestInfo,
+} from '@/core/parent/types/globalParent';
+import { ParentRequestEnrollmentModal } from './ParentRequestEnrollmentModal';
+import { ParentChildSelectorModal } from './ParentChildSelectorModal';
+import { ParentEnrollmentConsentModal } from './ParentEnrollmentConsentModal';
+import { requestEnrollment, cancelEnrollmentRequest, type OrganizationSearchResult } from '@/core/parent/services/enrollmentRequestService';
+import { useApp } from '@/context/AppContext';
 
 export const ParentChildrenHome: React.FC = () => {
-  const { portalTree, selectStudent } = useParentPortal();
+  const { portalTree, selectStudent, refreshPortalTree } = useParentPortal();
+  const { showToast } = useApp();
   const children = portalTree?.children ?? [];
+  const requests = portalTree?.enrollmentRequests ?? [];
+
+  const [showOrgSearch, setShowOrgSearch] = useState(false);
+  const [showChildSelector, setShowChildSelector] = useState(false);
+  const [showConsent, setShowConsent] = useState(false);
+  const [selectedOrg, setSelectedOrg] = useState<OrganizationSearchResult | null>(null);
+  const [selectedChild, setSelectedChild] = useState<GlobalStudent | null>(null);
+
+  const handleOrgSelect = (org: OrganizationSearchResult) => {
+    setSelectedOrg(org);
+    setShowOrgSearch(false);
+    setShowChildSelector(true);
+  };
+
+  const handleChildSelect = (child: GlobalStudent) => {
+    setSelectedChild(child);
+    setShowConsent(true);
+  };
+
+  const handleConfirmRequest = async (consentFields: string[], notes?: string) => {
+    if (!selectedOrg || !selectedChild) return;
+
+    try {
+      const result = await requestEnrollment({
+        studentId: selectedChild.studentId,
+        organizationId: selectedOrg.id,
+        consentFields,
+        notes,
+      });
+
+      showToast(`${result.organizationName}에 ${result.studentName} 등록을 요청했습니다`, 'success');
+      setShowConsent(false);
+      setSelectedOrg(null);
+      setSelectedChild(null);
+      await refreshPortalTree();
+    } catch (err) {
+      throw err;
+    }
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    try {
+      await cancelEnrollmentRequest(requestId);
+      showToast('등록 요청을 취소했습니다', 'success');
+      await refreshPortalTree();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '요청 취소에 실패했습니다', 'error');
+    }
+  };
 
   if (children.length === 0) {
     return (
@@ -32,12 +93,73 @@ export const ParentChildrenHome: React.FC = () => {
   }
 
   return (
-    <div className="space-y-3">
-      <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">내 자녀</p>
-      {children.map((child) => (
-        <ChildCard key={child.studentId} child={child} onSelect={() => selectStudent(child)} />
-      ))}
-    </div>
+    <>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">내 자녀</p>
+          <button
+            type="button"
+            onClick={() => setShowOrgSearch(true)}
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            학원 등록 요청
+          </button>
+        </div>
+
+        <div className="space-y-3">
+          {children.map((child) => (
+            <ChildCard key={child.studentId} child={child} onSelect={() => selectStudent(child)} />
+          ))}
+        </div>
+
+        {requests.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">등록 요청 현황</p>
+            <div className="space-y-2">
+              {requests.map((request) => (
+                <EnrollmentRequestCard
+                  key={request.id}
+                  request={request}
+                  onCancel={() => void handleCancelRequest(request.id)}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      <ParentRequestEnrollmentModal
+        isOpen={showOrgSearch}
+        onClose={() => setShowOrgSearch(false)}
+        onSelectOrg={handleOrgSelect}
+      />
+
+      <ParentChildSelectorModal
+        isOpen={showChildSelector}
+        onClose={() => {
+          setShowChildSelector(false);
+          setSelectedOrg(null);
+        }}
+        children={children}
+        onSelect={handleChildSelect}
+        title="등록할 자녀 선택"
+      />
+
+      {selectedOrg && selectedChild && (
+        <ParentEnrollmentConsentModal
+          isOpen={showConsent}
+          onClose={() => {
+            setShowConsent(false);
+            setSelectedOrg(null);
+            setSelectedChild(null);
+          }}
+          organization={selectedOrg}
+          student={selectedChild}
+          onConfirm={handleConfirmRequest}
+        />
+      )}
+    </>
   );
 };
 
@@ -75,4 +197,57 @@ const ChildCard: React.FC<{ child: GlobalStudent; onSelect: () => void }> = ({ c
       <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
     </button>
   );
-}
+};
+
+const EnrollmentRequestCard: React.FC<{
+  request: EnrollmentRequestInfo;
+  onCancel: () => void;
+}> = ({ request, onCancel }) => {
+  const statusIcon = {
+    pending: <Clock className="w-4 h-4 text-amber-600" />,
+    approved: <CheckCircle className="w-4 h-4 text-green-600" />,
+    rejected: <XCircle className="w-4 h-4 text-rose-600" />,
+    cancelled: <Ban className="w-4 h-4 text-slate-400" />,
+  }[request.status];
+
+  const statusColor = {
+    pending: 'bg-amber-50 border-amber-200 text-amber-900',
+    approved: 'bg-green-50 border-green-200 text-green-900',
+    rejected: 'bg-rose-50 border-rose-200 text-rose-900',
+    cancelled: 'bg-slate-50 border-slate-200 text-slate-600',
+  }[request.status];
+
+  return (
+    <div className={`p-4 rounded-xl border ${statusColor}`}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-1">
+            {statusIcon}
+            <p className="text-xs font-bold uppercase">
+              {ENROLLMENT_REQUEST_STATUS_LABELS[request.status]}
+            </p>
+          </div>
+          <p className="font-bold text-sm truncate">{request.organizationName}</p>
+          <p className="text-xs mt-0.5">자녀: {request.studentName}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            요청일: {new Date(request.requestedAt).toLocaleDateString('ko-KR')}
+          </p>
+          {request.rejectionReason && (
+            <p className="text-xs mt-2 p-2 bg-white/50 rounded">
+              거절 사유: {request.rejectionReason}
+            </p>
+          )}
+        </div>
+        {request.status === 'pending' && (
+          <button
+            type="button"
+            onClick={onCancel}
+            className="px-3 py-1.5 text-xs font-bold text-slate-600 bg-white rounded-lg hover:bg-slate-100 transition-colors shrink-0"
+          >
+            취소
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};

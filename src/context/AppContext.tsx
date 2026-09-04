@@ -5,7 +5,8 @@ import { User } from '../types';
 export type NavTab = 
   | 'dashboard' 
   | 'students' 
-  | 'parents' 
+  | 'parents'
+  | 'enrollment-requests' 
   | 'classes' 
   | 'timetable' 
   | 'attendance' 
