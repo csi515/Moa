@@ -513,3 +513,56 @@ export interface AcademySettings {
     };
   };
 }
+
+/** Phase 2: 고객 가입 플로우 관련 타입 */
+
+/** 공개 조직 정보 (로그인 불필요) */
+export interface PublicOrgInfo {
+  id: string;
+  name: string;
+  industry_type: string;
+  public_code: string;
+  slug: string | null;
+  address: string | null;
+  phone: string | null;
+  email?: string | null;
+  description?: string | null;
+  business_hours?: string | null;
+  is_active: boolean;
+}
+
+/** 가입 신청 상태 */
+export type JoinRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+/** 가입 신청 타입 */
+export type JoinRequestType = 'membership' | 'trial' | 'consultation';
+
+/** 고객 가입 신청 */
+export interface CustomerJoinRequest {
+  id: string;
+  organization_id: string;
+  applicant_user_id: string;
+  applicant_name: string;
+  applicant_phone: string | null;
+  applicant_email: string | null;
+  request_type: JoinRequestType;
+  message: string | null;
+  customer_metadata: Record<string, unknown>;
+  status: JoinRequestStatus;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  reject_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 회원가입 타입 선택 */
+export type SignUpType = 'business' | 'instructor' | 'customer' | 'guardian';
+
+/** 상담 신청 폼 */
+export interface ConsultationSubmission {
+  contact_name: string;
+  contact_phone: string;
+  message: string;
+  preferred_time?: string;
+}
