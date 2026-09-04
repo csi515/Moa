@@ -60,7 +60,7 @@ Key changes:
 
 ```bash
 # Review the migration file
-cat supabase/migrations/20260904100000_phase1_multi_role_architecture.sql
+cat supabase/migrations/20260904120000_phase1_multi_role_architecture.sql
 ```
 
 ### Step 2: Apply Migration to Development
