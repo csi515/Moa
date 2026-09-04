@@ -528,6 +528,7 @@ export interface PublicOrgInfo {
   email?: string | null;
   description?: string | null;
   business_hours?: string | null;
+  representative_name?: string | null;
   is_active: boolean;
 }
 
@@ -565,4 +566,119 @@ export interface ConsultationSubmission {
   contact_phone: string;
   message: string;
   preferred_time?: string;
+}
+
+/** Core Schedule + Reservation System Types */
+
+/** 일정 상태 */
+export type ScheduleStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+
+/** 예약 상태 */
+export type ReservationStatus = 'requested' | 'confirmed' | 'cancelled';
+
+/** Core 일정 (조직의 시간 기반 활동 또는 예약 가능한 슬롯) */
+export interface CoreSchedule {
+  id: string;
+  organization_id: string;
+  title: string | null;
+  description: string | null;
+  customer_id: string | null;
+  staff_id: string | null;
+  service_id: string | null;
+  starts_at: string; // ISO timestamp
+  ends_at: string; // ISO timestamp
+  status: ScheduleStatus;
+  is_bookable: boolean;
+  max_capacity: number;
+  memo: string | null;
+  metadata: Record<string, unknown>;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 예약 가능한 일정 (고객이 볼 수 있는 슬롯) */
+export interface BookableSchedule {
+  id: string;
+  title: string;
+  description: string | null;
+  starts_at: string;
+  ends_at: string;
+  max_capacity: number;
+  confirmed_count: number;
+  available_slots: number;
+  service_id: string | null;
+  service_name: string | null;
+  staff_id: string | null;
+  staff_name: string | null;
+}
+
+/** 예약 */
+export interface Reservation {
+  id: string;
+  organization_id: string;
+  schedule_id: string;
+  customer_id: string | null;
+  user_id: string | null;
+  applicant_name: string;
+  applicant_phone: string | null;
+  applicant_email: string | null;
+  request_message: string | null;
+  status: ReservationStatus;
+  confirmed_by: string | null;
+  confirmed_at: string | null;
+  cancelled_by: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+/** 예약 상세 (일정 정보 포함) */
+export interface ReservationDetail extends Reservation {
+  schedule_title: string;
+  schedule_starts_at: string;
+  schedule_ends_at: string;
+  confirmed_by_name: string | null;
+  cancelled_by_name: string | null;
+}
+
+/** 내 예약 (고객용) */
+export interface MyReservation {
+  id: string;
+  organization_id: string;
+  organization_name: string;
+  schedule_id: string;
+  schedule_title: string;
+  schedule_starts_at: string;
+  schedule_ends_at: string;
+  status: ReservationStatus;
+  request_message: string | null;
+  confirmed_at: string | null;
+  cancelled_at: string | null;
+  cancel_reason: string | null;
+  created_at: string;
+}
+
+/** 예약 신청 폼 */
+export interface ReservationRequest {
+  schedule_id: string;
+  applicant_name: string;
+  applicant_phone?: string;
+  applicant_email?: string;
+  request_message?: string;
+}
+
+/** 일정 생성/수정 폼 */
+export interface ScheduleFormData {
+  title: string;
+  description?: string;
+  starts_at: string; // ISO timestamp
+  ends_at: string; // ISO timestamp
+  is_bookable: boolean;
+  max_capacity: number;
+  service_id?: string;
+  staff_id?: string;
+  memo?: string;
 }
