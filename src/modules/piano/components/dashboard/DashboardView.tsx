@@ -2,12 +2,15 @@ import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StaffDashboardView } from './StaffDashboardView';
-import { DirectorDashboardWelcome } from './director/DirectorDashboardWelcome';
-import { DirectorDashboardStats } from './director/DirectorDashboardStats';
-import { DirectorDashboardCharts } from './director/DirectorDashboardCharts';
-import { DirectorDashboardPanels } from './director/DirectorDashboardPanels';
-import { useDirectorDashboard } from './director/useDirectorDashboard';
+import { DirectorTodayHome } from './director/DirectorTodayHome';
+import { useDirectorTodayDashboard } from './director/useDirectorTodayDashboard';
 
+/**
+ * 피아노 홈
+ * - 원장/관리자: 오늘 업무 중심 (일정·출결·상담·미납·빠른 작업)
+ * - 강사: 담당 범위 축소 대시보드
+ * - 기존 통계/차트 패널은 유지하되 기본 홈에서는 노출하지 않음
+ */
 export const DashboardView: React.FC = () => {
   const { setActiveTab, currentUser } = useApp();
   const { isStaff } = usePermissions();
@@ -16,42 +19,13 @@ export const DashboardView: React.FC = () => {
     return <StaffDashboardView />;
   }
 
-  const data = useDirectorDashboard();
+  const data = useDirectorTodayDashboard();
 
   return (
-    <div className="space-y-6 pb-12">
-      <DirectorDashboardWelcome
-        currentUserName={currentUser.name}
-        stats={data.stats}
-        setActiveTab={setActiveTab}
-      />
-      <DirectorDashboardStats
-        stats={data.stats}
-        unpaidStats={data.unpaidStats}
-        makeupPendingCount={data.makeupPendingCount}
-        currentMonthLabel={data.currentMonthLabel}
-        tbStats={data.tbStats}
-        lowStockCount={data.lowStockBooks.length}
-        setActiveTab={setActiveTab}
-      />
-      <DirectorDashboardCharts
-        stats={data.stats}
-        hasRevenueData={data.hasRevenueData}
-        hasStudentTrendData={data.hasStudentTrendData}
-        hasTuitionData={data.hasTuitionData}
-        hasClassData={data.hasClassData}
-        setActiveTab={setActiveTab}
-      />
-      <DirectorDashboardPanels
-        stats={data.stats}
-        students={data.students}
-        recentInvoices={data.recentInvoices}
-        tbStats={data.tbStats}
-        recentSales={data.recentSales}
-        lowStockBooks={data.lowStockBooks}
-        currentMonthLabel={data.currentMonthLabel}
-        setActiveTab={setActiveTab}
-      />
-    </div>
+    <DirectorTodayHome
+      currentUserName={currentUser.name}
+      data={data}
+      setActiveTab={setActiveTab}
+    />
   );
 };
