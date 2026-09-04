@@ -7,6 +7,11 @@ const ORG_STORAGE_KEY = 'moa_current_organization_id';
 
 export interface CreateOrganizationOptions {
   name: string;
+  businessRegistrationNumber: string;
+  representativeName: string;
+  businessPhone: string;
+  businessAddress: string;
+  industryCategory: string;
   industryType?: IndustryType | string;
   settings?: Partial<AcademySettings>;
 }
@@ -125,10 +130,12 @@ export async function createOrganization(
   industryType = 'piano',
   settings?: Partial<AcademySettings>
 ): Promise<string> {
-  const options: CreateOrganizationOptions =
-    typeof nameOrOptions === 'string'
-      ? { name: nameOrOptions, industryType, settings }
-      : nameOrOptions;
+  // Phase 3: Enhanced with required fields validation
+  if (typeof nameOrOptions === 'string') {
+    throw new Error('조직 생성 시 필수 정보를 모두 입력해야 합니다.');
+  }
+
+  const options: CreateOrganizationOptions = nameOrOptions;
 
   const name = options.name.trim();
   const resolvedIndustryType = options.industryType ?? 'piano';
@@ -138,8 +145,30 @@ export async function createOrganization(
     .replace(/^-|-$/g, '')
     .slice(0, 40) || `org-${Date.now()}`;
 
+  // Validate required fields
+  if (!options.businessRegistrationNumber?.trim()) {
+    throw new Error('사업자등록번호를 입력해 주세요.');
+  }
+  if (!options.representativeName?.trim()) {
+    throw new Error('대표자명을 입력해 주세요.');
+  }
+  if (!options.businessPhone?.trim()) {
+    throw new Error('사업장 전화번호를 입력해 주세요.');
+  }
+  if (!options.businessAddress?.trim()) {
+    throw new Error('사업장 주소를 입력해 주세요.');
+  }
+  if (!options.industryCategory?.trim()) {
+    throw new Error('업종을 입력해 주세요.');
+  }
+
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: name,
+    p_business_registration_number: options.businessRegistrationNumber.trim(),
+    p_representative_name: options.representativeName.trim(),
+    p_business_phone: options.businessPhone.trim(),
+    p_business_address: options.businessAddress.trim(),
+    p_industry_category: options.industryCategory.trim(),
     p_industry_type: resolvedIndustryType,
     p_slug: slug,
     p_settings: (options.settings ?? {}) as Record<string, unknown>,
@@ -147,6 +176,7 @@ export async function createOrganization(
 
   if (error) throw error;
   if (!data) throw new Error('Organization 생성에 실패했습니다.');
+
   return data as string;
 }
 

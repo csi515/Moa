@@ -32,6 +32,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     directorName: StorageService.getActiveUser().name || '원장님',
     phone: '',
     address: '',
+    businessRegistrationNumber: '',
+    industryCategory: '학원',
     roomCount: 1,
   });
 
@@ -73,6 +75,17 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
           },
         });
         await org.refreshOrganizations();
+      } else {
+        // Create new organization with Phase 3 required fields
+        await orgService.createOrganization({
+          name: settings.name,
+          businessRegistrationNumber: academyForm.businessRegistrationNumber.trim(),
+          representativeName: settings.directorName,
+          businessPhone: settings.phone,
+          businessAddress: settings.address,
+          industryCategory: academyForm.industryCategory.trim(),
+          industryType: 'piano',
+        });
       }
       
       setStep(1);
@@ -225,14 +238,48 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">학원 주소</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                학원 주소 <span className="text-rose-500">*</span>
+              </label>
               <input
                 type="text"
+                required
                 placeholder="예: 서울시 강남구 테헤란로 123"
                 value={academyForm.address}
                 onChange={(e) => setAcademyForm({ ...academyForm, address: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                사업자등록번호 <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="예: 123-45-67890"
+                value={academyForm.businessRegistrationNumber}
+                onChange={(e) => setAcademyForm({ ...academyForm, businessRegistrationNumber: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-mono min-h-[44px]"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                업종 <span className="text-rose-500">*</span>
+              </label>
+              <select
+                required
+                value={academyForm.industryCategory}
+                onChange={(e) => setAcademyForm({ ...academyForm, industryCategory: e.target.value })}
+                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
+              >
+                <option value="학원">학원</option>
+                <option value="교습소">교습소</option>
+                <option value="음악교습">음악교습</option>
+                <option value="미술학원">미술학원</option>
+                <option value="체육학원">체육학원</option>
+                <option value="기타교육">기타교육</option>
+              </select>
             </div>
             <div className="flex justify-between pt-2">
               <button 
