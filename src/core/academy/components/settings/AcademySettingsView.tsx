@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import {
@@ -24,13 +25,17 @@ import {
   Upload,
   ShieldCheck,
   Loader2,
+  Trash2,
+  AlertTriangle,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { getIndustryAccent } from '@/core/industry/industryUi';
+import * as orgService from '@/core/organizations/services/organizationService';
 
 export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh, openConfirmDialog } = useApp();
-  const { industry } = usePermissions();
+  const { industry, isOwner } = usePermissions();
+  const org = useOrganization();
   const importInputRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<File | null>(null);
 
@@ -42,6 +47,9 @@ export const AcademySettingsView: FC = () => {
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteConfirmName, setDeleteConfirmName] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
   const handleSaveSettings = async (e: FormEvent) => {
@@ -49,8 +57,32 @@ export const AcademySettingsView: FC = () => {
     setIsSaving(true);
     try {
       StorageService.saveSettings(settings);
+      
+      if (org.currentOrganization) {
+        await orgService.updateOrganization(org.currentOrganization.id, {
+          name: settings.name,
+          settings: {
+            directorName: settings.directorName,
+            phone: settings.phone,
+            businessNumber: settings.businessNumber,
+            address: settings.address,
+            defaultTuitionFee: settings.defaultTuitionFee,
+            defaultPaymentDay: settings.defaultPaymentDay,
+            bankAccount: settings.bankAccount,
+            features: settings.features,
+          },
+        });
+        
+        await org.refreshOrganizations();
+      }
+      
       triggerRefresh();
       showToast('사업장 설정이 저장되었습니다.', 'success');
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : '설정 저장 중 오류가 발생했습니다.',
+        'error'
+      );
     } finally {
       setIsSaving(false);
     }
@@ -118,6 +150,44 @@ export const AcademySettingsView: FC = () => {
         pendingImportRef.current = null;
       },
     });
+  };
+
+  const handleDeleteOrganization = async () => {
+    if (!org.currentOrganization) return;
+    if (deleteConfirmName !== org.currentOrganization.name) {
+      showToast('조직명이 일치하지 않습니다.', 'error');
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await orgService.deleteOrganization(org.currentOrganization.id);
+      
+      showToast('조직이 삭제되었습니다.', 'success');
+      setShowDeleteModal(false);
+      
+      await org.refreshOrganizations();
+      
+      if (org.organizations.length > 1) {
+        const otherOrg = org.organizations.find(
+          (m) => m.organizationId !== org.currentOrganization?.id
+        );
+        if (otherOrg) {
+          org.selectOrganization(otherOrg.organizationId);
+        } else {
+          org.clearOrganization();
+        }
+      } else {
+        org.clearOrganization();
+      }
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : '조직 삭제 중 오류가 발생했습니다.',
+        'error'
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -297,10 +367,118 @@ export const AcademySettingsView: FC = () => {
             </p>
             <LegalLinks className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-slate-500" />
           </div>
+
+          {isOwner && org.currentOrganization && (
+            <SettingsCard
+              title="위험 영역"
+              icon={<AlertTriangle className="w-4 h-4 text-rose-600" />}
+            >
+              <div className="space-y-3">
+                <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl">
+                  <p className="text-xs text-rose-800 leading-relaxed">
+                    <strong>조직을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.</strong>
+                    <br />
+                    원생, 출결, 수강료, 강사 등 모든 정보가 복구 불가능하게 삭제됩니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteModal(true)}
+                  className="w-full py-3 min-h-[44px] bg-rose-50 hover:bg-rose-100 border-2 border-rose-300 text-rose-700 text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+                >
+                  <Trash2 className="w-4 h-4" />
+                  조직 영구 삭제
+                </button>
+              </div>
+            </SettingsCard>
+          )}
         </div>
       </div>
 
       <IndustryFeatureGuidePanel industry={industry} />
+
+      {showDeleteModal && org.currentOrganization && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-md overflow-hidden">
+            <div className="px-6 py-4 border-b border-rose-100 bg-rose-50 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-rose-600" />
+              </div>
+              <div>
+                <h2 className="font-bold text-slate-900">조직 영구 삭제</h2>
+                <p className="text-xs text-rose-600">이 작업은 되돌릴 수 없습니다</p>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="space-y-2">
+                <p className="text-sm text-slate-700 leading-relaxed">
+                  <strong className="text-rose-700">{org.currentOrganization.name}</strong> 조직과 관련된
+                  모든 데이터가 영구적으로 삭제됩니다.
+                </p>
+                <ul className="text-xs text-slate-600 space-y-1 pl-4 list-disc">
+                  <li>모든 원생 및 학부모 정보</li>
+                  <li>출석 및 수업 기록</li>
+                  <li>수강료 및 결제 내역</li>
+                  <li>강사 및 수업 정보</li>
+                  <li>공지사항 및 기타 데이터</li>
+                </ul>
+              </div>
+
+              <div className="pt-3 border-t border-slate-200">
+                <label className="block text-xs font-bold text-slate-700 mb-2">
+                  삭제를 확인하려면 조직명을 정확히 입력하세요:
+                </label>
+                <div className="p-2 bg-slate-100 rounded-lg mb-3">
+                  <p className="text-sm font-bold text-slate-900 text-center">
+                    {org.currentOrganization.name}
+                  </p>
+                </div>
+                <input
+                  type="text"
+                  value={deleteConfirmName}
+                  onChange={(e) => setDeleteConfirmName(e.target.value)}
+                  placeholder="조직명을 입력하세요"
+                  className="w-full px-3 py-2.5 text-sm border-2 border-slate-300 rounded-xl focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-100"
+                  autoFocus
+                />
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setDeleteConfirmName('');
+                  }}
+                  disabled={isDeleting}
+                  className="flex-1 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold rounded-xl transition-colors disabled:opacity-50"
+                >
+                  취소
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDeleteOrganization}
+                  disabled={isDeleting || deleteConfirmName !== org.currentOrganization.name}
+                  className="flex-1 py-2.5 min-h-[44px] bg-rose-600 hover:bg-rose-700 text-white text-sm font-bold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      삭제 중...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-4 h-4" />
+                      영구 삭제
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -5,7 +5,7 @@ import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
-import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
+import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { Search, Music, Shield, Users } from 'lucide-react';
 
@@ -18,14 +18,14 @@ export const Header: React.FC = () => {
     setSelectedStudentId,
   } = useApp();
 
-  const settings = StorageService.getSettings();
   const supabaseOrg = useOptionalOrganization();
   const { roleLabel, isStaff, staffId } = usePermissions();
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
-  const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
+  
+  const displayName = supabaseOrg?.currentOrganization?.name ?? StorageService.getSettings().name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 
@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
               학부모 포털
             </button>
           )}
-          <OrganizationSwitcher />
+          <RoleContextSwitcher />
           <PwaInstallPrompt />
 
           <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">

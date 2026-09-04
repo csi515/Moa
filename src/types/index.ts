@@ -1,7 +1,16 @@
 import type { PickupAddress } from '@/core/transport/types';
 
 /** 조직 멤버 역할 (Supabase member_role과 동일) */
-export type UserRole = 'owner' | 'admin' | 'manager' | 'staff' | 'parent';
+export type UserRole = 
+  | 'owner' 
+  | 'admin' 
+  | 'manager' 
+  | 'staff' 
+  | 'parent'
+  | 'instructor'
+  | 'member'
+  | 'customer'
+  | 'guardian';
 
 export interface User {
   id: string;

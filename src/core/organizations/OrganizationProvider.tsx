@@ -19,10 +19,12 @@ import {
 } from '../parent/services/appModeService';
 import * as orgService from './services/organizationService';
 
-const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'staff']);
+const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'staff', 'instructor']);
 
 interface OrganizationContextType {
   organizations: orgService.OrganizationMembership[];
+  memberships: orgService.OrganizationMembership[];
+  selectedMembership: orgService.OrganizationMembership | null;
   currentOrganization: Organization | null;
   currentRole: MemberRole | null;
   currentStaffId: string | null;
@@ -34,6 +36,7 @@ interface OrganizationContextType {
   portalChildCount: number;
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
+  switchMembership: (membershipId: string) => Promise<void>;
   clearOrganization: () => void;
   createOrganization: (
     name: string,
@@ -50,6 +53,7 @@ const OrganizationContext = createContext<OrganizationContextType | undefined>(u
 export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
   const [organizations, setOrganizations] = useState<orgService.OrganizationMembership[]>([]);
+  const [selectedMembership, setSelectedMembership] = useState<orgService.OrganizationMembership | null>(null);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
   const [currentRole, setCurrentRole] = useState<MemberRole | null>(null);
   const [currentStaffId, setCurrentStaffId] = useState<string | null>(null);
@@ -61,9 +65,42 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [parentPortalActive, setParentPortalActiveState] = useState(isParentPortalModeActive);
   const [loading, setLoading] = useState(true);
 
+  const applyMembershipSelection = useCallback(
+    (memberships: orgService.OrganizationMembership[], membershipId: string | null) => {
+      if (!membershipId || memberships.length === 0) {
+        setSelectedMembership(null);
+        setCurrentOrganization(null);
+        setCurrentRole(null);
+        setCurrentStaffId(null);
+        setCurrentParentCustomerId(null);
+        return;
+      }
+
+      const membership = memberships.find((m) => m.id === membershipId);
+      if (membership) {
+        setSelectedMembership(membership);
+        setCurrentOrganization(membership.organization);
+        setCurrentRole(membership.role);
+        setCurrentStaffId(membership.staffId);
+        setCurrentParentCustomerId(membership.parentCustomerId);
+        orgService.storeOrganizationId(membership.organizationId);
+        return;
+      }
+
+      orgService.clearStoredOrganizationId();
+      setSelectedMembership(null);
+      setCurrentOrganization(null);
+      setCurrentRole(null);
+      setCurrentStaffId(null);
+      setCurrentParentCustomerId(null);
+    },
+    []
+  );
+
   const applySelection = useCallback(
     (memberships: orgService.OrganizationMembership[], organizationId: string | null) => {
       if (!organizationId || memberships.length === 0) {
+        setSelectedMembership(null);
         setCurrentOrganization(null);
         setCurrentRole(null);
         setCurrentStaffId(null);
@@ -73,6 +110,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const membership = memberships.find((m) => m.organizationId === organizationId);
       if (membership) {
+        setSelectedMembership(membership);
         setCurrentOrganization(membership.organization);
         setCurrentRole(membership.role);
         setCurrentStaffId(membership.staffId);
@@ -82,6 +120,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       orgService.clearStoredOrganizationId();
+      setSelectedMembership(null);
       setCurrentOrganization(null);
       setCurrentRole(null);
       setCurrentStaffId(null);
@@ -94,6 +133,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!user) {
       StorageService.clearOrganization();
       setOrganizations([]);
+      setSelectedMembership(null);
       setCurrentOrganization(null);
       setCurrentRole(null);
       setCurrentStaffId(null);
@@ -131,11 +171,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setGlobalParentId(parentId);
       setPortalChildCount(portalChildren);
 
-      const memberships = await orgService.fetchUserOrganizations(user.id);
+      const memberships = await orgService.fetchUserMembershipsWithContext();
       setOrganizations(memberships);
 
       const staffMemberships = memberships.filter((m) => STAFF_ROLES.has(m.role));
-      const hasLegacyParentMembership = memberships.some((m) => m.role === 'parent');
+      const hasLegacyParentMembership = memberships.some((m) => m.role === 'parent' || m.role === 'guardian');
       const hasParentAccess = portalChildren > 0 || hasLegacyParentMembership;
 
       setCanAccessParentPortal(hasParentAccess && parentId !== null);
@@ -147,7 +187,13 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         setParentPortalActiveState(true);
         setParentPortalModeActive(true);
         orgService.clearStoredOrganizationId();
-        applySelection(memberships, null);
+        applyMembershipSelection(memberships, null);
+        return;
+      }
+
+      const currentContextMembership = memberships.find((m) => m.isCurrentContext);
+      if (currentContextMembership) {
+        applyMembershipSelection(memberships, currentContextMembership.id);
         return;
       }
 
@@ -165,7 +211,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user, applySelection]);
+  }, [user, applySelection, applyMembershipSelection]);
 
   useEffect(() => {
     refreshOrganizations();
@@ -181,8 +227,36 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     [organizations, applySelection, currentOrganization?.id]
   );
 
-  const clearOrganization = useCallback(() => {
+  const switchMembership = useCallback(
+    async (membershipId: string) => {
+      const membership = organizations.find((m) => m.id === membershipId);
+      if (!membership) {
+        throw new Error('Membership not found');
+      }
+
+      if (currentOrganization?.id !== membership.organizationId) {
+        StorageService.clearOrganization();
+      }
+
+      try {
+        await orgService.setActiveMembership(membershipId);
+        applyMembershipSelection(organizations, membershipId);
+      } catch (error) {
+        console.error('Failed to switch membership:', error);
+        throw error;
+      }
+    },
+    [organizations, applyMembershipSelection, currentOrganization?.id]
+  );
+
+  const clearOrganization = useCallback(async () => {
+    try {
+      await orgService.clearActiveMembership();
+    } catch (error) {
+      console.error('Failed to clear active membership:', error);
+    }
     orgService.clearStoredOrganizationId();
+    setSelectedMembership(null);
     setCurrentOrganization(null);
     setCurrentRole(null);
     setCurrentStaffId(null);
@@ -217,6 +291,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     <OrganizationContext.Provider
       value={{
         organizations,
+        memberships: organizations,
+        selectedMembership,
         currentOrganization,
         currentRole,
         currentStaffId,
@@ -228,6 +304,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         portalChildCount,
         loading,
         selectOrganization,
+        switchMembership,
         clearOrganization,
         createOrganization,
         refreshOrganizations,
