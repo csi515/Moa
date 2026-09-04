@@ -115,7 +115,7 @@ export function getRoleLabel(role: MemberRole): string {
 
 /** 조직 삭제 (소유자만 가능) */
 export async function deleteOrganization(organizationId: string): Promise<void> {
-  const { data, error } = await getCoreClient().rpc('delete_organization', {
+  const { data, error } = await getCoreClient().rpc('delete_organization' as any, {
     p_organization_id: organizationId,
   });
 
@@ -131,7 +131,7 @@ export async function updateOrganization(
     settings?: Partial<AcademySettings>;
   }
 ): Promise<void> {
-  const payload: Record<string, unknown> = {};
+  const payload: any = {};
 
   if (updates.name !== undefined) {
     payload.name = updates.name;
