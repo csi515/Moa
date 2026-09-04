@@ -7,7 +7,7 @@ export const gymPluginManifest: IndustryPluginManifest = {
   option: {
     value: 'gym',
     label: '체육관',
-    description: '태권도·체육 회원, 수업반, 픽업/하원, 출결·수강료',
+    description: '체육관 회원, 수업반, 픽업/하원, 출결·수강료',
   },
   aliases: ['taekwondo'],
   theme: 'orange',
