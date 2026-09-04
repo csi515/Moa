@@ -58,8 +58,33 @@ export interface GlobalStudent {
   enrollments: StudentEnrollment[];
 }
 
+/** 등록 요청 상태 */
+export type EnrollmentRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
+
+export const ENROLLMENT_REQUEST_STATUS_LABELS: Record<EnrollmentRequestStatus, string> = {
+  pending: '검토 중',
+  approved: '승인됨',
+  rejected: '거절됨',
+  cancelled: '취소됨',
+};
+
+/** 등록 요청 */
+export interface EnrollmentRequestInfo {
+  id: string;
+  studentId: string;
+  studentName: string;
+  organizationId: string;
+  organizationName: string;
+  industryType: string;
+  status: EnrollmentRequestStatus;
+  requestedAt: string;
+  reviewedAt: string | null;
+  rejectionReason: string | null;
+}
+
 /** get_my_parent_portal_tree RPC 응답 */
 export interface ParentPortalTree {
   parent: GlobalParent | null;
   children: GlobalStudent[];
+  enrollmentRequests?: EnrollmentRequestInfo[];
 }
