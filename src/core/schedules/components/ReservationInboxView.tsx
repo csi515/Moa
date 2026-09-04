@@ -17,7 +17,9 @@ import {
   X,
 } from 'lucide-react';
 
-export const ReservationInboxView: React.FC = () => {
+export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
+  embedded = false,
+}) => {
   const { showToast, openConfirmDialog } = useApp();
   const { currentOrganization } = useOrganization();
   
@@ -168,8 +170,9 @@ export const ReservationInboxView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
       {/* Header */}
+      {!embedded && (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -187,6 +190,13 @@ export const ReservationInboxView: React.FC = () => {
           </div>
         )}
       </div>
+      )}
+      {embedded && requestedCount > 0 && (
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-xl font-semibold text-sm">
+          <Clock className="w-4 h-4" />
+          {requestedCount}건의 신청 대기 중
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4">

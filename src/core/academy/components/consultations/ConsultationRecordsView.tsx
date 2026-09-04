@@ -17,7 +17,9 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
-export const ConsultationRecordsView: React.FC = () => {
+export const ConsultationRecordsView: React.FC<{ embedded?: boolean }> = ({
+  embedded = false,
+}) => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
   const { scopeStudents, scopeConsultations } = useStaffScope();
 
@@ -113,21 +115,34 @@ export const ConsultationRecordsView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={<MessageSquareText className="w-6 h-6" />}
-        title="상담 이력 관리"
-        description="학부모 정기 상담, 진로/입시, 학습 진도 상담 이력 추적"
-        actions={
+    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+      {!embedded ? (
+        <PageHeader
+          icon={<MessageSquareText className="w-6 h-6" />}
+          title="상담 이력 관리"
+          description="학부모 정기 상담, 진로/입시, 학습 진도 상담 이력 추적"
+          actions={
+            <button
+              onClick={handleOpenCreate}
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              상담 일지 작성
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex justify-end">
           <button
+            type="button"
             onClick={handleOpenCreate}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             상담 일지 작성
           </button>
-        }
-      />
+        </div>
+      )}
 
       <FilterBar>
         <select

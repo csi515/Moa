@@ -143,12 +143,13 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
   buildGuideSection({
     id: 'consultation',
     title: '상담',
-    description: '상담 기록과 (향후) 상담 예약을 관리합니다.',
+    description: '상담 예약·기록·가능 시간을 관리합니다.',
     items: [
       {
         id: 'consultations',
         title: '상담',
-        summary: '학부모·학생 상담 내용을 남겨 둡니다.',
+        summary: '예약 관리, 상담 기록, 상담 가능 시간을 한곳에서 처리합니다.',
+        howTo: '가능시간 설정 → 예약 슬롯 동기화 → 공개 페이지에서 학부모가 신청 → 예약 관리에서 확정',
       },
     ],
   }),

@@ -498,6 +498,8 @@ export interface AcademySettings {
   defaultTuitionFee: number;
   defaultPaymentDay?: number;
   defaultLessonMinutes?: number;
+  /** 상담 예약 슬롯 기본 간격(분). 미설정 시 30 */
+  consultationSlotMinutes?: number;
   attendanceAlertEnabled?: boolean;
   tuitionReminderDaysBefore?: number;
   bankAccount?: string | {

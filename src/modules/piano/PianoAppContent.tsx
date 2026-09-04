@@ -33,7 +33,6 @@ import {
   ParentManagementView,
   LessonRecordsView,
   PracticeRecordsView,
-  ConsultationRecordsView,
   ResourceManagementView,
   TeacherManagementView,
   AcademySettingsView,
@@ -43,6 +42,7 @@ import {
   ReportsManagementView,
 } from './index';
 import { PianoScheduleView } from './components/schedule';
+import { PianoConsultationHubView } from './components/consultations';
 import { GuardianEnrollmentRequestsView } from '@/core/academy';
 
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
@@ -60,7 +60,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
   lessons: () => <LessonRecordsView />,
   practice: () => <PracticeRecordsView />,
-  consultations: () => <ConsultationRecordsView />,
+  consultations: () => <PianoConsultationHubView />,
   ...noticesViewEntry,
   resources: () => <ResourceManagementView />,
   teachers: () => <TeacherManagementView />,
