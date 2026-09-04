@@ -17,7 +17,7 @@ export const reservationService = {
    */
   async requestReservation(request: ReservationRequest): Promise<string> {
     const { data, error } = await getCoreClient()
-      .rpc('request_reservation', {
+      .rpc('request_reservation' as any, {
         p_schedule_id: request.schedule_id,
         p_applicant_name: request.applicant_name,
         p_applicant_phone: request.applicant_phone ?? null,
@@ -34,7 +34,7 @@ export const reservationService = {
    */
   async confirmReservation(reservationId: string): Promise<void> {
     const { error } = await getCoreClient()
-      .rpc('confirm_reservation', {
+      .rpc('confirm_reservation' as any, {
         p_reservation_id: reservationId,
       });
 
@@ -46,7 +46,7 @@ export const reservationService = {
    */
   async cancelReservation(reservationId: string, reason?: string): Promise<void> {
     const { error } = await getCoreClient()
-      .rpc('cancel_reservation', {
+      .rpc('cancel_reservation' as any, {
         p_reservation_id: reservationId,
         p_cancel_reason: reason ?? null,
       });
@@ -65,7 +65,7 @@ export const reservationService = {
     offset = 0
   ): Promise<ReservationDetail[]> {
     const { data, error } = await getCoreClient()
-      .rpc('get_organization_reservations', {
+      .rpc('get_organization_reservations' as any, {
         p_org_id: organizationId,
         p_status: status ?? null,
         p_from_date: fromDate ? fromDate.toISOString() : null,
@@ -82,7 +82,7 @@ export const reservationService = {
    */
   async getMyReservations(status?: ReservationStatus, limit = 50): Promise<MyReservation[]> {
     const { data, error } = await getCoreClient()
-      .rpc('get_my_reservations', {
+      .rpc('get_my_reservations' as any, {
         p_status: status ?? null,
         p_limit: limit,
       });

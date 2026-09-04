@@ -16,7 +16,12 @@ BEGIN;
 -- 1. Create reservation_status enum
 -- ============================================================================
 
-CREATE TYPE core.reservation_status AS ENUM ('requested', 'confirmed', 'cancelled');
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reservation_status') THEN
+    CREATE TYPE core.reservation_status AS ENUM ('requested', 'confirmed', 'cancelled');
+  END IF;
+END $$;
 
 COMMENT ON TYPE core.reservation_status IS '예약 상태: requested=신청됨, confirmed=확정됨, cancelled=취소됨';
 
@@ -88,20 +93,21 @@ CREATE INDEX idx_reservations_customer
 CREATE INDEX idx_reservations_user 
   ON core.reservations(user_id, status) WHERE user_id IS NOT NULL;
 
--- Prevent double-booking: one user can only have one confirmed reservation per schedule
-CREATE UNIQUE INDEX idx_reservations_schedule_user_confirmed
+-- Prevent double-booking: one user can only have one active reservation per schedule
+-- Active = requested OR confirmed
+CREATE UNIQUE INDEX idx_reservations_schedule_user_active
   ON core.reservations(schedule_id, user_id)
-  WHERE status = 'confirmed' AND user_id IS NOT NULL;
+  WHERE status IN ('requested', 'confirmed') AND user_id IS NOT NULL;
 
-CREATE UNIQUE INDEX idx_reservations_schedule_customer_confirmed
+CREATE UNIQUE INDEX idx_reservations_schedule_customer_active
   ON core.reservations(schedule_id, customer_id)
-  WHERE status = 'confirmed' AND customer_id IS NOT NULL;
+  WHERE status IN ('requested', 'confirmed') AND customer_id IS NOT NULL;
 
 -- Updated_at trigger
 CREATE TRIGGER update_reservations_updated_at
   BEFORE UPDATE ON core.reservations
   FOR EACH ROW
-  EXECUTE FUNCTION core.update_updated_at_column();
+  EXECUTE FUNCTION core.set_updated_at();
 
 COMMENT ON TABLE core.reservations IS '예약 신청 및 확정 테이블 (고객 → 일정 예약)';
 
@@ -280,7 +286,7 @@ BEGIN
     RAISE EXCEPTION 'Authentication required';
   END IF;
 
-  -- Get schedule details
+  -- Get schedule details with row lock to prevent race conditions
   SELECT 
     s.organization_id,
     s.is_bookable,
@@ -290,7 +296,8 @@ BEGIN
   INTO v_schedule
   FROM core.schedules s
   INNER JOIN core.organizations o ON o.id = s.organization_id
-  WHERE s.id = p_schedule_id;
+  WHERE s.id = p_schedule_id
+  FOR UPDATE OF s;  -- Lock the schedule row to prevent concurrent bookings
 
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Schedule not found';
@@ -310,18 +317,20 @@ BEGIN
 
   v_org_id := v_schedule.organization_id;
 
-  -- Check capacity
+  -- Check capacity: count both requested AND confirmed reservations
+  -- This prevents oversubscription even with pending requests
   SELECT COUNT(*)
   INTO v_confirmed_count
   FROM core.reservations
   WHERE schedule_id = p_schedule_id
-    AND status = 'confirmed';
+    AND status IN ('requested', 'confirmed');
 
   IF v_confirmed_count >= v_schedule.max_capacity THEN
     RAISE EXCEPTION 'Schedule is fully booked';
   END IF;
 
-  -- Check for existing reservation by this user
+  -- Check for existing active reservation by this user
+  -- Note: unique index also enforces this, but explicit check provides better error message
   IF EXISTS (
     SELECT 1 FROM core.reservations
     WHERE schedule_id = p_schedule_id

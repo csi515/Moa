@@ -34,7 +34,7 @@ export const coreScheduleService = {
     const { data, error } = await query;
 
     if (error) throw error;
-    return data ?? [];
+    return (data ?? []) as CoreSchedule[];
   },
 
   /**
@@ -50,7 +50,7 @@ export const coreScheduleService = {
     const to = toDate ? toDate.toISOString() : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
     const { data, error } = await getCoreClient()
-      .rpc('list_bookable_schedules', {
+      .rpc('list_bookable_schedules' as any, {
         p_org_id: organizationId,
         p_from_date: from,
         p_to_date: to,
@@ -82,12 +82,12 @@ export const coreScheduleService = {
         staff_id: scheduleData.staff_id ?? null,
         memo: scheduleData.memo ?? null,
         status: 'scheduled',
-      })
+      } as any)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as CoreSchedule;
   },
 
   /**
@@ -111,13 +111,13 @@ export const coreScheduleService = {
 
     const { data, error } = await getCoreClient()
       .from('schedules')
-      .update(updateData)
+      .update(updateData as any)
       .eq('id', scheduleId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as CoreSchedule;
   },
 
   /**
@@ -138,12 +138,12 @@ export const coreScheduleService = {
   async toggleBookable(scheduleId: string, isBookable: boolean): Promise<CoreSchedule> {
     const { data, error } = await getCoreClient()
       .from('schedules')
-      .update({ is_bookable: isBookable })
+      .update({ is_bookable: isBookable } as any)
       .eq('id', scheduleId)
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    return data as CoreSchedule;
   },
 };
