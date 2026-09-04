@@ -2,7 +2,7 @@ import type { ModuleLabels } from '@/core/labels/types';
 
 export type { ModuleLabels };
 
-/** Piano Academy 기본 라벨 (원생/선생님/학부모) */
+/** Piano Academy 기본 라벨 (학생/선생님/학부모) */
 export const pianoModuleLabels: ModuleLabels = {
   customer: {
     singular: '학생',

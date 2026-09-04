@@ -57,7 +57,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
     buildNavSection('일정', [
       {
         tab: 'timetable',
-        label: labels.schedule.management,
+        label: '주간 시간표',
         icon: icon(<Clock className="w-4 h-4" />),
       },
       {

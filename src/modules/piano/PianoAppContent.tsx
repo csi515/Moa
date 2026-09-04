@@ -24,7 +24,6 @@ import { noticesViewEntry } from '@/core/notices';
 import {
   DashboardView,
   StudentListView,
-  WeeklyTimetableView,
   TuitionManagementView,
   UnpaidManagementView,
   MakeupManagementView,
@@ -37,20 +36,20 @@ import {
   ConsultationRecordsView,
   ResourceManagementView,
   TeacherManagementView,
-  AcademyCalendarView,
   AcademySettingsView,
   CurriculumManagementView,
   AssignmentsManagementView,
   AchievementsManagementView,
   ReportsManagementView,
 } from './index';
+import { PianoScheduleView } from './components/schedule';
 import { GuardianEnrollmentRequestsView } from '@/core/academy';
 
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DashboardView />,
   students: () => <StudentListView />,
   ...attendanceViewEntry,
-  timetable: () => <WeeklyTimetableView />,
+  timetable: () => <PianoScheduleView />,
   tuition: () => <TuitionManagementView />,
   unpaid: () => <UnpaidManagementView />,
   makeups: () => <MakeupManagementView />,
@@ -65,7 +64,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   ...noticesViewEntry,
   resources: () => <ResourceManagementView />,
   teachers: () => <TeacherManagementView />,
-  calendar: () => <AcademyCalendarView />,
+  calendar: () => <PianoScheduleView />,
   recitals: () => <RecitalManagementView />,
   curriculum: () => <CurriculumManagementView />,
   assignments: () => <AssignmentsManagementView />,

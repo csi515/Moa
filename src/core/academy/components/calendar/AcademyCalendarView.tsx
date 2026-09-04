@@ -14,7 +14,9 @@ import {
   Cake,
 } from 'lucide-react';
 
-export const AcademyCalendarView: React.FC = () => {
+export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
+  embedded = false,
+}) => {
   const { showToast } = useApp();
   const now = new Date();
 
@@ -91,31 +93,47 @@ export const AcademyCalendarView: React.FC = () => {
     showToast('일정이 삭제되었습니다.', 'info');
   };
 
+  const openCreateModal = () => {
+    setNewEvent({
+      title: '',
+      startDate: `${currentYearMonthStr}-15`,
+      type: 'concert',
+      description: '',
+      color: '#4f46e5',
+    });
+    setIsModalOpen(true);
+  };
+
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={<CalendarDays className="w-6 h-6" />}
-        title="학원 일정 및 캘린더"
-        description="정기 연주회, 콩쿠르 출전, 방학/휴원, 조율 일정, 원생 생일"
-        actions={
+    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+      {!embedded ? (
+        <PageHeader
+          icon={<CalendarDays className="w-6 h-6" />}
+          title="학원 일정 및 캘린더"
+          description="정기 연주회, 콩쿠르 출전, 방학/휴원, 조율 일정, 학생 생일"
+          actions={
+            <button
+              type="button"
+              onClick={openCreateModal}
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              학원 일정 등록
+            </button>
+          }
+        />
+      ) : (
+        <div className="flex justify-end no-print">
           <button
-            onClick={() => {
-              setNewEvent({
-                title: '',
-                startDate: `${currentYearMonthStr}-15`,
-                type: 'concert',
-                description: '',
-                color: '#4f46e5',
-              });
-              setIsModalOpen(true);
-            }}
+            type="button"
+            onClick={openCreateModal}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             학원 일정 등록
           </button>
-        }
-      />
+        </div>
+      )}
 
       <FilterBar className="justify-between">
         <button
