@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import { SupabaseAppGate } from './SupabaseAppGate';
 import { AuthProvider } from './core/auth/AuthProvider';
@@ -7,6 +8,18 @@ import { SupabaseRequiredScreen } from './shared/components/SupabaseRequiredScre
 import { isSupabaseConfigured } from './lib/supabase';
 import { MobileBootstrap } from './core/platform';
 import { getPublicLegalPage, LegalPageView, type LegalPageId } from './core/legal';
+import { PublicOrgLanding } from './core/public/PublicOrgLanding';
+import { CustomerSignUpFlow } from './core/customer/CustomerSignUpFlow';
+
+function PublicOrgRoute() {
+  const { code } = useParams<{ code: string }>();
+  if (!code) return <Navigate to="/" replace />;
+  return <PublicOrgLanding code={code} />;
+}
+
+function CustomerSignUpRoute() {
+  return <CustomerSignUpFlow />;
+}
 
 export default function App() {
   const [legalPage, setLegalPage] = useState<LegalPageId | null>(() => getPublicLegalPage());
@@ -30,13 +43,24 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <OrganizationProvider>
-        <AppProvider>
-          <MobileBootstrap />
-          <SupabaseAppGate />
-        </AppProvider>
-      </OrganizationProvider>
-    </AuthProvider>
+    <BrowserRouter>
+      <AuthProvider>
+        <OrganizationProvider>
+          <AppProvider>
+            <MobileBootstrap />
+            <Routes>
+              {/* Public organization landing page */}
+              <Route path="/c/:code" element={<PublicOrgRoute />} />
+              
+              {/* Customer sign-up flow */}
+              <Route path="/signup/customer" element={<CustomerSignUpRoute />} />
+              
+              {/* Main app */}
+              <Route path="/*" element={<SupabaseAppGate />} />
+            </Routes>
+          </AppProvider>
+        </OrganizationProvider>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }

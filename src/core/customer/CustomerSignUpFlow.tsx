@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   Search, 
@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import type { PublicOrgInfo, CustomerJoinRequest } from '@/types';
 import { publicOrgService } from '@/core/public/services/publicOrgService';
-import { customerJoinService } from '../services/customerJoinService';
+import { customerJoinService } from './services/customerJoinService';
 import { useAuth } from '@/core/auth/AuthProvider';
 
 type Step = 'search' | 'form' | 'pending';
@@ -48,7 +48,7 @@ export function CustomerSignUpFlow() {
   const [selectedOrg, setSelectedOrg] = useState<PublicOrgInfo | null>(null);
   const [myRequests, setMyRequests] = useState<CustomerJoinRequest[]>([]);
   const [form, setForm] = useState({
-    applicantName: user?.name || '',
+    applicantName: user?.full_name || '',
     applicantPhone: '',
     applicantEmail: user?.email || '',
     message: '',
@@ -79,7 +79,7 @@ export function CustomerSignUpFlow() {
     }
   };
 
-  const handleSearch = async (e: React.FormEvent) => {
+  const handleSearch = async (e: FormEvent) => {
     e.preventDefault();
     if (!searchQuery.trim()) return;
 
@@ -99,7 +99,7 @@ export function CustomerSignUpFlow() {
     setStep('form');
   };
 
-  const handleSubmitRequest = async (e: React.FormEvent) => {
+  const handleSubmitRequest = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedOrg || !user) return;
 

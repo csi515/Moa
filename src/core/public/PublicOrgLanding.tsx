@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Building2, 
@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { PublicOrgInfo, ConsultationSubmission } from '@/types';
-import { publicOrgService } from '../services/publicOrgService';
+import { publicOrgService } from './services/publicOrgService';
 import { appBrand } from '@/core/brand';
 
 interface PublicOrgLandingProps {
@@ -71,7 +71,7 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
     navigate('/signup/customer', { state: { selectedOrgId: org?.id } });
   };
 
-  const handleConsultSubmit = async (e: React.FormEvent) => {
+  const handleConsultSubmit = async (e: FormEvent) => {
     e.preventDefault();
     
     if (!org) return;
