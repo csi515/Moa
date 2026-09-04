@@ -44,6 +44,7 @@ import {
   AchievementsManagementView,
   ReportsManagementView,
 } from './index';
+import { GuardianEnrollmentRequestsView } from '@/core/academy';
 
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DashboardView />,
@@ -57,6 +58,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   ...financeViewEntries,
   classes: () => <ClassManagementView />,
   parents: () => <ParentManagementView />,
+  'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
   lessons: () => <LessonRecordsView />,
   practice: () => <PracticeRecordsView />,
   consultations: () => <ConsultationRecordsView />,

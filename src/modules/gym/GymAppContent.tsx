@@ -31,11 +31,13 @@ import {
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
 import { noticesViewEntry } from '@/core/notices';
+import { GuardianEnrollmentRequestsView } from '@/core/academy';
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
   students: () => <StudentListView />,
   parents: () => <ParentManagementView />,
+  'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
   classes: () => <ClassManagementView />,
   timetable: () => <WeeklyTimetableView />,
   ...attendanceViewEntry,

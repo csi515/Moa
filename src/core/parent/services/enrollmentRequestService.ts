@@ -48,14 +48,14 @@ export async function searchOrganizations(
   query?: string,
   limit = 20
 ): Promise<OrganizationSearchResult[]> {
-  const { data, error } = await getCoreClient().rpc('search_organizations_for_enrollment', {
+  const { data, error } = await getCoreClient().rpc('search_organizations_for_enrollment' as never, {
     p_query: query || null,
     p_limit: limit,
-  });
+  } as never);
 
   if (error) throw error;
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  return ((data as unknown[]) ?? []).map((row: Record<string, unknown>) => ({
     id: String(row.id ?? ''),
     name: String(row.name ?? ''),
     industryType: String(row.industry_type ?? ''),
@@ -68,14 +68,14 @@ export async function searchOrganizations(
 export async function findOrganizationByCode(
   code: string
 ): Promise<OrganizationSearchResult | null> {
-  const { data, error } = await getCoreClient().rpc('find_organization_by_public_code', {
+  const { data, error } = await getCoreClient().rpc('find_organization_by_public_code' as never, {
     p_code: code.trim(),
-  });
+  } as never);
 
   if (error) throw error;
-  if (!data || data.length === 0) return null;
+  if (!data || (data as unknown[]).length === 0) return null;
 
-  const row = data[0] as Record<string, unknown>;
+  const row = (data as unknown[])[0] as Record<string, unknown>;
   return {
     id: String(row.id ?? ''),
     name: String(row.name ?? ''),
@@ -92,12 +92,12 @@ export async function requestEnrollment(params: {
   consentFields?: string[];
   notes?: string;
 }): Promise<{ requestId: string; studentName: string; organizationName: string }> {
-  const { data, error } = await getCoreClient().rpc('request_guardian_enrollment', {
+  const { data, error } = await getCoreClient().rpc('request_guardian_enrollment' as never, {
     p_student_id: params.studentId,
     p_organization_id: params.organizationId,
     p_consent_fields: params.consentFields ?? ['display_name', 'birth_date'],
     p_notes: params.notes ?? null,
-  });
+  } as never);
 
   if (error) throw error;
 
@@ -120,19 +120,19 @@ export async function requestEnrollment(params: {
 }
 
 export async function cancelEnrollmentRequest(requestId: string): Promise<void> {
-  const { error } = await getCoreClient().rpc('cancel_guardian_enrollment_request', {
+  const { error } = await getCoreClient().rpc('cancel_guardian_enrollment_request' as never, {
     p_request_id: requestId,
-  });
+  } as never);
 
   if (error) throw error;
 }
 
 export async function getMyEnrollmentRequests(): Promise<EnrollmentRequest[]> {
-  const { data, error } = await getCoreClient().rpc('get_my_enrollment_requests');
+  const { data, error } = await getCoreClient().rpc('get_my_enrollment_requests' as never);
 
   if (error) throw error;
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  return ((data as unknown[]) ?? []).map((row: Record<string, unknown>) => ({
     id: String(row.id ?? ''),
     studentId: String(row.student_id ?? ''),
     studentName: String(row.student_name ?? ''),
@@ -149,6 +149,7 @@ export async function getMyEnrollmentRequests(): Promise<EnrollmentRequest[]> {
 export async function approveEnrollmentRequest(
   requestId: string
 ): Promise<{ enrollmentId: string; customerId: string }> {
+  // @ts-expect-error - RPC not in generated types yet
   const { data, error } = await getCoreClient().rpc('approve_guardian_enrollment', {
     p_request_id: requestId,
   });
@@ -175,6 +176,7 @@ export async function rejectEnrollmentRequest(
   requestId: string,
   reason?: string
 ): Promise<void> {
+  // @ts-expect-error - RPC not in generated types yet
   const { error } = await getCoreClient().rpc('reject_guardian_enrollment', {
     p_request_id: requestId,
     p_reason: reason ?? null,
@@ -187,6 +189,7 @@ export async function getOrgEnrollmentRequests(
   orgId: string,
   status: EnrollmentRequestStatus['status'] = 'pending'
 ): Promise<GuardianEnrollmentRequest[]> {
+  // @ts-expect-error - RPC not in generated types yet
   const { data, error } = await getCoreClient().rpc('get_org_enrollment_requests', {
     p_org_id: orgId,
     p_status: status,
@@ -194,7 +197,7 @@ export async function getOrgEnrollmentRequests(
 
   if (error) throw error;
 
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  return ((data as unknown[]) ?? []).map((row: Record<string, unknown>) => ({
     id: String(row.id ?? ''),
     parentId: String(row.parent_id ?? ''),
     parentName: String(row.parent_name ?? ''),
