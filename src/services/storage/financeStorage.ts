@@ -8,6 +8,7 @@ import type {
 import type { IncomeEntry, FinanceSummary } from '../../core/finance/types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
+import { notifyParentTuitionUnpaid } from '../../core/academy/services/academyAlertService';
 
 /** 수강료·지출·수입·미납 도메인 */
 export function createFinanceStorage(api: StorageApi) {
@@ -115,9 +116,22 @@ export function createFinanceStorage(api: StorageApi) {
         notes: `${ym}월 정기 수강료`,
       };
 
-      return (api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice)(
+      const saved = (api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice)(
         newInv
       );
+
+      if (saved.unpaidAmount > 0) {
+        notifyParentTuitionUnpaid({
+          studentId: student.id,
+          studentName: student.name,
+          parentPhone: student.parentPhone,
+          yearMonth: saved.yearMonth,
+          amount: saved.unpaidAmount,
+          dueDate: saved.dueDate,
+        });
+      }
+
+      return saved;
     },
 
     generateMonthlyInvoicesForAllActive(yearMonth: string): number {

@@ -125,8 +125,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
   }),
   buildGuideSection({
     id: 'attendance',
-    title: '출결',
-    description: '오늘 출입과 보강 수업을 처리합니다.',
+    title: '수업',
+    description: '출입·오늘 레슨·보강을 처리합니다.',
     items: [
       {
         id: 'attendance',
@@ -134,9 +134,21 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
       },
       {
+        id: 'lessons',
+        title: '오늘 레슨',
+        summary: '출석·레슨 노트·과제를 한 화면에서 저장합니다.',
+        howTo: '오늘 수업 원생을 선택한 뒤 출석과 레슨 내용을 작성하면 학부모 과제에 자동 반영됩니다.',
+      },
+      {
+        id: 'assignments',
+        title: '주간 과제',
+        summary: '원생별 주간 연습 과제를 관리합니다.',
+      },
+      {
         id: 'makeups',
         title: '보강 수업',
-        summary: '결석한 학생의 보강 일정을 잡습니다.',
+        summary: '결석한 학생의 보강 일정을 시간·연습실·강사와 함께 잡습니다.',
+        howTo: '일정 등록 시 강사·연습실 충돌이 있으면 확인 후 저장할 수 있습니다. 등록 즉시 학부모 포털에 알림이 표시됩니다.',
       },
     ],
   }),
@@ -164,11 +176,6 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
     title: '추가 기능',
     description: '자주 쓰지 않는 운영·교육 메뉴입니다. 사이드바 하단에서 열 수 있습니다.',
     items: [
-      {
-        id: 'lessons',
-        title: '레슨 기록',
-        summary: '수업 내용과 피드백을 기록합니다.',
-      },
       {
         id: 'practice',
         title: '연습 기록',

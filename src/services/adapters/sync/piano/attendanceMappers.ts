@@ -55,6 +55,11 @@ export function attendanceToPianoRow(record: AttendanceRecord, organizationId: s
     metadata: {
       studentName: record.studentName,
       className: record.className,
+      makeUpStartTime: record.makeUpStartTime || null,
+      makeUpEndTime: record.makeUpEndTime || null,
+      makeUpRoom: record.makeUpRoom || null,
+      makeUpTeacherId: record.makeUpTeacherId || null,
+      makeUpTeacherName: record.makeUpTeacherName || null,
     } as Json,
   };
 }
@@ -73,7 +78,15 @@ export function pianoRowToAttendance(row: {
   metadata: Json;
   created_at: string;
 }): AttendanceRecord {
-  const meta = (row.metadata || {}) as { studentName?: string; className?: string };
+  const meta = (row.metadata || {}) as {
+    studentName?: string;
+    className?: string;
+    makeUpStartTime?: string | null;
+    makeUpEndTime?: string | null;
+    makeUpRoom?: string | null;
+    makeUpTeacherId?: string | null;
+    makeUpTeacherName?: string | null;
+  };
   return {
     id: row.id,
     date: row.attendance_date,
@@ -85,6 +98,11 @@ export function pianoRowToAttendance(row: {
     absentReason: row.absent_reason || undefined,
     makeUpRequired: row.make_up_required,
     makeUpDate: row.make_up_date || undefined,
+    makeUpStartTime: meta.makeUpStartTime || undefined,
+    makeUpEndTime: meta.makeUpEndTime || undefined,
+    makeUpRoom: meta.makeUpRoom || undefined,
+    makeUpTeacherId: meta.makeUpTeacherId || undefined,
+    makeUpTeacherName: meta.makeUpTeacherName || undefined,
     memo: row.memo || undefined,
     createdBy: row.created_by || '',
     createdAt: row.created_at,

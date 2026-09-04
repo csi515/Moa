@@ -45,34 +45,70 @@ export const StaffDashboardView: React.FC = () => {
   const todayClasses = classes.filter((c) => c.daysOfWeek.includes(todayKorean as any));
 
   return (
-    <div className="space-y-6 pb-12">
-      <div className="bg-gradient-to-r from-indigo-800 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl">
-        <p className="text-indigo-200 text-xs font-semibold mb-1">강사 대시보드</p>
-        <h2 className="text-xl sm:text-2xl font-black">{currentUser.name} 선생님</h2>
-        <p className="text-indigo-200 text-sm mt-1">{formatKoreanDate(today)} · 담당 학생 관리</p>
+    <div className="space-y-5 pb-12">
+      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl">
+        <p className="text-indigo-200 text-xs font-semibold mb-1">강사 홈</p>
+        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+          {currentUser.name} 선생님
+        </h2>
+        <p className="text-indigo-200/90 text-sm mt-1.5">
+          {formatKoreanDate(today)} · 오늘 수업 {todayClasses.length}개
+        </p>
+        <button
+          type="button"
+          onClick={() => setActiveTab('lessons')}
+          className="mt-4 inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-white text-indigo-800 text-sm font-bold shadow-sm hover:bg-indigo-50"
+        >
+          <Piano className="w-4 h-4" />
+          오늘 레슨 시작
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <Users className="w-5 h-5 text-indigo-600 mb-2" />
-          <p className="text-2xl font-black text-slate-900">{activeStudents.length}</p>
-          <p className="text-xs text-slate-500">담당 원생</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <Clock className="w-5 h-5 text-teal-600 mb-2" />
-          <p className="text-2xl font-black text-slate-900">{todayClasses.length}</p>
-          <p className="text-xs text-slate-500">오늘 수업</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <Sparkles className="w-5 h-5 text-amber-600 mb-2" />
-          <p className="text-2xl font-black text-slate-900">{pendingMakeups}</p>
-          <p className="text-xs text-slate-500">미보강</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-slate-200 p-4">
-          <Piano className="w-5 h-5 text-purple-600 mb-2" />
-          <p className="text-2xl font-black text-slate-900">{recentLessons.length}</p>
-          <p className="text-xs text-slate-500">최근 레슨</p>
-        </div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        {[
+          {
+            label: '담당 원생',
+            value: activeStudents.length,
+            icon: Users,
+            color: 'text-indigo-600 bg-indigo-50',
+            tab: 'students' as const,
+          },
+          {
+            label: '오늘 수업',
+            value: todayClasses.length,
+            icon: Clock,
+            color: 'text-teal-600 bg-teal-50',
+            tab: 'lessons' as const,
+          },
+          {
+            label: '미보강',
+            value: pendingMakeups,
+            icon: Sparkles,
+            color: 'text-amber-600 bg-amber-50',
+            tab: 'makeups' as const,
+          },
+          {
+            label: '최근 레슨',
+            value: recentLessons.length,
+            icon: Piano,
+            color: 'text-purple-600 bg-purple-50',
+            tab: 'lessons' as const,
+          },
+        ].map(({ label, value, icon: Icon, color, tab }) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className="bg-white rounded-2xl border border-slate-200 p-3.5 text-left hover:border-indigo-300 min-h-[88px]"
+          >
+            <span className={`inline-flex w-8 h-8 rounded-xl items-center justify-center ${color}`}>
+              <Icon className="w-4 h-4" />
+            </span>
+            <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">{value}</p>
+            <p className="text-[11px] text-slate-500 font-semibold">{label}</p>
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -94,12 +130,17 @@ export const StaffDashboardView: React.FC = () => {
           ) : (
             <div className="space-y-2">
               {todayClasses.map((cls) => (
-                <div key={cls.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+                <button
+                  key={cls.id}
+                  type="button"
+                  onClick={() => setActiveTab('lessons')}
+                  className="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm hover:border-indigo-200 hover:bg-indigo-50/40"
+                >
                   <p className="font-bold text-slate-900">{cls.name}</p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {cls.startTime}–{cls.endTime} · {cls.room}
                   </p>
-                </div>
+                </button>
               ))}
             </div>
           )}
@@ -143,21 +184,30 @@ export const StaffDashboardView: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
         {[
-          { tab: 'attendance' as const, label: '출결 체크', icon: CheckSquare },
-          { tab: 'lessons' as const, label: '레슨 기록', icon: Piano },
-          { tab: 'makeups' as const, label: '보강 관리', icon: Sparkles },
-          { tab: 'students' as const, label: '원생 목록', icon: Users },
-        ].map(({ tab, label, icon: Icon }) => (
+          { tab: 'lessons' as const, label: '오늘 레슨', icon: Piano, primary: true },
+          { tab: 'attendance' as const, label: '출결 체크', icon: CheckSquare, primary: false },
+          { tab: 'makeups' as const, label: '보강 관리', icon: Sparkles, primary: false },
+          { tab: 'students' as const, label: '원생 목록', icon: Users, primary: false },
+        ].map(({ tab, label, icon: Icon, primary }) => (
           <button
             key={tab}
+            type="button"
             onClick={() => setActiveTab(tab)}
-            className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-indigo-300 text-left flex items-center gap-3"
+            className={`p-3.5 rounded-2xl border text-left flex items-center gap-2.5 min-h-[56px] ${
+              primary
+                ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
+                : 'bg-white border-slate-200 hover:border-indigo-300'
+            }`}
           >
-            <Icon className="w-5 h-5 text-indigo-600 shrink-0" />
-            <span className="font-bold text-sm">{label}</span>
-            <ChevronRight className="w-4 h-4 text-slate-300 ml-auto" />
+            <Icon className={`w-5 h-5 shrink-0 ${primary ? 'text-white' : 'text-indigo-600'}`} />
+            <span className={`font-bold text-sm ${primary ? 'text-white' : 'text-slate-800'}`}>
+              {label}
+            </span>
+            <ChevronRight
+              className={`w-4 h-4 ml-auto ${primary ? 'text-white/70' : 'text-slate-300'}`}
+            />
           </button>
         ))}
       </div>

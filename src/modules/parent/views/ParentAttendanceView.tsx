@@ -97,8 +97,19 @@ export function ParentAttendanceView({
                   <p className="font-semibold text-slate-800">{m.className || '수업'}</p>
                   <p className="text-[11px] text-slate-400 font-mono mt-0.5">
                     결석 {m.originalDate}
-                    {m.makeUpDate ? ` → 보강 ${m.makeUpDate}` : ''}
+                    {m.makeUpDate
+                      ? ` → 보강 ${m.makeUpDate}${
+                          m.makeUpStartTime && m.makeUpEndTime
+                            ? ` ${m.makeUpStartTime}–${m.makeUpEndTime}`
+                            : ''
+                        }`
+                      : ''}
                   </p>
+                  {(m.makeUpRoom || m.makeUpTeacherName) && (
+                    <p className="text-[11px] text-indigo-600 mt-0.5">
+                      {[m.makeUpRoom, m.makeUpTeacherName].filter(Boolean).join(' · ')}
+                    </p>
+                  )}
                   {m.absentReason && (
                     <p className="text-[11px] text-slate-500 mt-1">{m.absentReason}</p>
                   )}

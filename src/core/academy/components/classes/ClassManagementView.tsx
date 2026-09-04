@@ -4,6 +4,10 @@ import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
 import {
+  findClassConflicts,
+  formatConflictSummary,
+} from '@/core/academy/utils/scheduleConflicts';
+import {
   GraduationCap,
   Plus,
   Clock,
@@ -116,27 +120,52 @@ export const ClassManagementView: React.FC = () => {
     }
 
     const targetTeacher = teachers.find((t) => t.id === formData.teacherId);
-    StorageService.saveClass({
-      ...(editingClass ? { id: editingClass.id } : {}),
-      name: formData.name.trim(),
-      targetLevel: formData.targetLevel,
+    const conflicts = findClassConflicts(classes, {
+      teacherId: formData.teacherId,
+      room: formData.room,
       daysOfWeek: formData.daysOfWeek,
       startTime: formData.startTime,
       endTime: formData.endTime,
-      capacity: Number(formData.capacity) || 4,
-      teacherId: formData.teacherId,
-      teacherName: targetTeacher ? targetTeacher.name : '미지정',
-      room: formData.room,
-      color: formData.color,
-      textbook: formData.textbook.trim(),
-      memo: formData.memo.trim()
-    } as any);
+      excludeId: editingClass?.id,
+    });
 
-    showToast(
-      editingClass ? `'${formData.name}' 수업이 수정되었습니다.` : `'${formData.name}' 수업이 개설되었습니다.`,
-      'success'
-    );
-    setIsModalOpen(false);
+    const save = () => {
+      StorageService.saveClass({
+        ...(editingClass ? { id: editingClass.id } : {}),
+        name: formData.name.trim(),
+        targetLevel: formData.targetLevel,
+        daysOfWeek: formData.daysOfWeek,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        capacity: Number(formData.capacity) || 4,
+        teacherId: formData.teacherId,
+        teacherName: targetTeacher ? targetTeacher.name : '미지정',
+        room: formData.room,
+        color: formData.color,
+        textbook: formData.textbook.trim(),
+        memo: formData.memo.trim(),
+      } as any);
+
+      showToast(
+        editingClass
+          ? `'${formData.name}' 수업이 수정되었습니다.`
+          : `'${formData.name}' 수업이 개설되었습니다.`,
+        'success'
+      );
+      setIsModalOpen(false);
+    };
+
+    if (conflicts.length > 0) {
+      openConfirmDialog({
+        title: '일정 충돌 확인',
+        message: `강사 또는 연습실이 겹칩니다. 그래도 저장할까요?\n\n${formatConflictSummary(conflicts)}`,
+        confirmText: '그래도 저장',
+        onConfirm: save,
+      });
+      return;
+    }
+
+    save();
   };
 
   return (

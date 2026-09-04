@@ -14,7 +14,9 @@ export {
   AcademySettingsView,
 } from '@/core/academy';
 export { DashboardView } from './components/dashboard/DashboardView';
+export { LessonsHubView } from './components/lessons/LessonsHubView';
 export { LessonRecordsView } from './components/lessons/LessonRecordsView';
+export { TodayLessonView } from './components/lessons/TodayLessonView';
 export { PracticeRecordsView } from './components/practice/PracticeRecordsView';
 export { ResourceManagementView } from './components/resources/ResourceManagementView';
 export { MakeupManagementView } from './components/makeup/MakeupManagementView';

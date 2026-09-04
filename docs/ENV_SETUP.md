@@ -55,7 +55,7 @@ npm run dev
 |--------|-----|------|
 | `VITE_SUPABASE_URL` | `https://YOUR_PROJECT_REF.supabase.co` | Production |
 | `VITE_SUPABASE_ANON_KEY` | `eyJhbG...실제_anon_key` | Production |
-| `VITE_APP_URL` | `https://moa-academy.vercel.app` | Production |
+| `VITE_APP_URL` | `https://moa-academy.vercel.app` | Production · OAuth/카카오 redirect 기준 URL |
 | `VITE_APP_NAME` | `모두의 아카데미 모아` | Production |
 | `VITE_APP_SHORT_NAME` | `아카데미 모아` | Production |
 | `VITE_SUPPORT_EMAIL` | `support@moa.kr` | Production |

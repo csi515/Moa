@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStaffScope, useIsDesktop } from '@/hooks';
+import { useStaffScope, useIsDesktop, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek } from '@/types';
@@ -12,8 +12,10 @@ import {
   X,
   ChevronRight,
   Calendar,
+  Sparkles,
 } from 'lucide-react';
 import { TimetableDayTimeline, type TimetableDayClassRow } from './TimetableDayTimeline';
+import { isoDateForWeekdayThisWeek } from '@/core/academy/utils/weekDate';
 
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 const TIME_SLOTS = [
@@ -54,13 +56,24 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
   embedded = false,
 }) => {
   const { setSelectedStudentId, setActiveTab, currentUser: _currentUser } = useApp();
-  const { isScoped, staffId, scopeClasses, scopeStudents } = useStaffScope();
+  const { isScoped, staffId, scopeClasses, scopeStudents, scopeMakeupItems } = useStaffScope();
+  const refreshKey = useStorageRefresh();
 
-  const classes = useMemo(() => scopeClasses(StorageService.getClasses()), [scopeClasses]);
+  const classes = useMemo(
+    () => scopeClasses(StorageService.getClasses()),
+    [scopeClasses, refreshKey]
+  );
   const teachers = StorageService.getTeachers();
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()),
-    [scopeStudents]
+    [scopeStudents, refreshKey]
+  );
+  const scheduledMakeups = useMemo(
+    () =>
+      scopeMakeupItems(StorageService.getMakeupItems(), students).filter(
+        (m) => m.status === 'scheduled' && m.makeUpDate
+      ),
+    [scopeMakeupItems, students, refreshKey]
   );
 
   const dayIndex = new Date().getDay();
@@ -81,13 +94,41 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
     if (isScoped && staffId) setTeacherFilter(staffId);
   }, [isScoped, staffId]);
 
-  const rooms = Array.from(new Set(classes.map((c) => c.room)));
+  const rooms = Array.from(
+    new Set([
+      ...classes.map((c) => c.room),
+      ...scheduledMakeups.map((m) => m.makeUpRoom).filter(Boolean),
+    ] as string[])
+  );
 
   const filteredClasses = classes.filter((cls) => {
     if (teacherFilter !== 'ALL' && cls.teacherId !== teacherFilter) return false;
     if (roomFilter !== 'ALL' && cls.room !== roomFilter) return false;
     return true;
   });
+
+  const selectedDayDate = isoDateForWeekdayThisWeek(selectedDay);
+  const dayMakeups = scheduledMakeups.filter((m) => {
+    if (m.makeUpDate !== selectedDayDate) return false;
+    if (teacherFilter !== 'ALL' && m.makeUpTeacherId && m.makeUpTeacherId !== teacherFilter) {
+      return false;
+    }
+    if (roomFilter !== 'ALL' && m.makeUpRoom && m.makeUpRoom !== roomFilter) return false;
+    return true;
+  });
+
+  const getMakeupsForSlot = (day: DayOfWeek, slotTime: string) => {
+    const date = isoDateForWeekdayThisWeek(day);
+    const slotHour = parseInt(slotTime.split(':')[0], 10);
+    return scheduledMakeups.filter((m) => {
+      if (m.makeUpDate !== date || !m.makeUpStartTime) return false;
+      if (teacherFilter !== 'ALL' && m.makeUpTeacherId && m.makeUpTeacherId !== teacherFilter) {
+        return false;
+      }
+      if (roomFilter !== 'ALL' && m.makeUpRoom && m.makeUpRoom !== roomFilter) return false;
+      return parseInt(m.makeUpStartTime.split(':')[0], 10) === slotHour;
+    });
+  };
 
   const getClassesForSlot = (day: DayOfWeek, slotTime: string) => {
     const slotHour = parseInt(slotTime.split(':')[0], 10);
@@ -179,7 +220,26 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
 
       {embedded && (
         <div className="flex items-center justify-between gap-2 flex-wrap no-print">
-          {viewToggle}
+          <div className="bg-slate-100 p-1 rounded-xl flex items-center gap-1 text-xs font-bold text-slate-600">
+            <button
+              type="button"
+              onClick={() => setViewMode('daily')}
+              className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all cursor-pointer ${
+                showDailyView ? 'bg-white text-indigo-600 shadow-2xs' : 'hover:text-slate-900'
+              }`}
+            >
+              일간
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('weekly')}
+              className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all cursor-pointer ${
+                showWeeklyView ? 'bg-white text-indigo-600 shadow-2xs' : 'hover:text-slate-900'
+              }`}
+            >
+              주간
+            </button>
+          </div>
           <button
             type="button"
             onClick={() => window.print()}
@@ -191,7 +251,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
         </div>
       )}
 
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 no-print">
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 no-print">
         <div className="flex flex-wrap items-center gap-2.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
             <Filter className="w-4 h-4 text-indigo-600" />
@@ -202,7 +262,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
             <select
               value={teacherFilter}
               onChange={(e) => setTeacherFilter(e.target.value)}
-              className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-medium"
+              className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
             >
               <option value="ALL">전체 선생님</option>
               {teachers.map((t) => (
@@ -216,7 +276,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
           <select
             value={roomFilter}
             onChange={(e) => setRoomFilter(e.target.value)}
-            className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-medium"
+            className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
           >
             <option value="ALL">전체 강의실</option>
             {rooms.map((r) => (
@@ -227,8 +287,9 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
           </select>
         </div>
 
-        <span className="text-xs text-slate-400 font-medium">
-          총 {filteredClasses.length}개 반
+        <span className="text-xs text-slate-500 font-semibold tabular-nums">
+          반 {filteredClasses.length}
+          {dayMakeups.length > 0 ? ` · 보강 ${dayMakeups.length}` : ''}
         </span>
       </div>
 
@@ -316,6 +377,32 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
               }
               onSelect={setSelectedClass}
             />
+
+            {dayMakeups.length > 0 && (
+              <div className="rounded-2xl border border-purple-200 bg-purple-50/60 p-4 space-y-2">
+                <h4 className="text-sm font-bold text-purple-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4" />
+                  보강 ({selectedDayDate}) · {dayMakeups.length}건
+                </h4>
+                {dayMakeups.map((m) => (
+                  <button
+                    key={m.attendanceId}
+                    type="button"
+                    onClick={() => setActiveTab('makeups')}
+                    className="w-full text-left rounded-xl bg-white border border-purple-100 px-3 py-2.5 min-h-[44px] hover:border-purple-300"
+                  >
+                    <p className="text-sm font-bold text-slate-900">{m.studentName}</p>
+                    <p className="text-xs text-purple-700 mt-0.5">
+                      {m.makeUpStartTime && m.makeUpEndTime
+                        ? `${m.makeUpStartTime}–${m.makeUpEndTime}`
+                        : '시간 미정'}
+                      {m.makeUpRoom ? ` · ${m.makeUpRoom}` : ''}
+                      {m.makeUpTeacherName ? ` · ${m.makeUpTeacherName}` : ''}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -348,6 +435,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
 
                       {DAYS.map((day) => {
                         const slotClasses = getClassesForSlot(day, slot);
+                        const slotMakeups = getMakeupsForSlot(day, slot);
                         return (
                           <div
                             key={day}
@@ -382,6 +470,21 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
                                 </button>
                               );
                             })}
+                            {slotMakeups.map((m) => (
+                              <button
+                                key={m.attendanceId}
+                                type="button"
+                                onClick={() => setActiveTab('makeups')}
+                                className="w-full p-2 rounded-xl bg-purple-600 text-white text-xs cursor-pointer shadow-2xs hover:bg-purple-700 text-left"
+                              >
+                                <div className="font-bold text-[11px] truncate">
+                                  보강 · {m.studentName}
+                                </div>
+                                <div className="text-[10px] text-white/90 mt-0.5 truncate">
+                                  {m.makeUpRoom || m.makeUpTeacherName || '일정 확인'}
+                                </div>
+                              </button>
+                            ))}
                           </div>
                         );
                       })}

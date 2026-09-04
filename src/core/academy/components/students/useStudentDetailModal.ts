@@ -9,6 +9,7 @@ import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
+import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
 import {
   getAttendanceBadge,
   getInvoiceStatusBadge,
@@ -167,16 +168,27 @@ export function useStudentDetailModal({
   const handleSaveAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const targetClass = enrolledClasses[0] || allClasses[0];
+    const className = targetClass ? targetClass.name : '일반 레슨';
     StorageService.saveAttendanceRecord({
       date: newAttDate,
       studentId: student.id,
       studentName: student.name,
       classId: targetClass ? targetClass.id : 'c-default',
-      className: targetClass ? targetClass.name : '일반 레슨',
+      className,
       status: newAttStatus,
       memo: newAttMemo,
       createdBy: currentUser.name,
     });
+    if (newAttStatus === 'absent') {
+      notifyParentAbsence({
+        studentId: student.id,
+        studentName: student.name,
+        parentPhone: student.parentPhone,
+        className,
+        date: newAttDate,
+        reason: newAttMemo || undefined,
+      });
+    }
     showToast('출결 기록이 저장되었습니다.', 'success');
     setIsAddAttOpen(false);
     setNewAttMemo('');

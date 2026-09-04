@@ -13,7 +13,12 @@ export function filterParentPortalNotifications(list: AppNotification[]): AppNot
 }
 
 function matchesStudentTarget(n: AppNotification, student: Student): boolean {
-  if (n.type === 'attendance') {
+  if (
+    n.type === 'attendance' ||
+    n.type === 'absence' ||
+    n.type === 'makeup' ||
+    n.type === 'tuition_unpaid'
+  ) {
     return n.targetStudentId === student.id;
   }
 

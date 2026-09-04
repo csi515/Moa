@@ -7,12 +7,19 @@ import {
   EmptyState,
   FilterBar,
   FilterTabs,
+  FormField,
+  FORM_CONTROL_CLASS,
   Modal,
   PageHeader,
   SummaryMetricCard,
   type FilterTabItem,
 } from '@/shared/components';
 import { formatPhone } from '@/utils/formatters';
+import {
+  findMakeupSlotConflicts,
+  formatConflictSummary,
+} from '@/core/academy/utils/scheduleConflicts';
+import { notifyParentMakeupScheduled } from '@/core/academy/services/academyAlertService';
 import {
   Sparkles,
   Calendar,
@@ -28,8 +35,18 @@ const STATUS_TABS: FilterTabItem<MakeupStatus | 'all'>[] = [
   { id: 'all', label: '전체' },
 ];
 
+const DEFAULT_ROOMS = ['피아노 1실', '피아노 2실', '그랜드룸', '업라이트실', '이론실'];
+
+function addMinutes(hhmm: string, minutes: number): string {
+  const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10) || 0);
+  const total = h * 60 + m + minutes;
+  const nh = Math.floor(total / 60) % 24;
+  const nm = total % 60;
+  return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+}
+
 export const MakeupManagementView: React.FC = () => {
-  const { showToast } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
   const { scopeMakeupItems } = useStaffScope();
@@ -37,8 +54,19 @@ export const MakeupManagementView: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<MakeupStatus | 'all'>('pending');
   const [scheduleTarget, setScheduleTarget] = useState<MakeupItem | null>(null);
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startTime, setStartTime] = useState('16:00');
+  const [endTime, setEndTime] = useState('16:50');
+  const [room, setRoom] = useState('피아노 1실');
+  const [teacherId, setTeacherId] = useState('');
 
   const allStudents = StorageService.getStudents();
+  const teachers = StorageService.getTeachers().filter((t) => t.status === 'active');
+  const classes = StorageService.getClasses();
+  const rooms = useMemo(() => {
+    const fromClasses = classes.map((c) => c.room).filter(Boolean);
+    return Array.from(new Set([...DEFAULT_ROOMS, ...fromClasses]));
+  }, [classes, refreshKey]);
+
   const allItems = useMemo(
     () => scopeMakeupItems(StorageService.getMakeupItems(), allStudents),
     [allStudents, scopeMakeupItems, refreshKey]
@@ -62,12 +90,70 @@ export const MakeupManagementView: React.FC = () => {
     tab.id !== 'all' ? { ...tab, count: counts[tab.id as MakeupStatus] } : tab
   );
 
+  const openSchedule = (item: MakeupItem) => {
+    const origin = classes.find((c) => c.id === item.classId);
+    const lessonMinutes = StorageService.getSettings().defaultLessonMinutes || 50;
+    const start = item.makeUpStartTime || origin?.startTime || '16:00';
+    setScheduleTarget(item);
+    setScheduleDate(item.makeUpDate || new Date().toISOString().slice(0, 10));
+    setStartTime(start);
+    setEndTime(item.makeUpEndTime || origin?.endTime || addMinutes(start, lessonMinutes));
+    setRoom(item.makeUpRoom || origin?.room || rooms[0] || '피아노 1실');
+    setTeacherId(item.makeUpTeacherId || origin?.teacherId || teachers[0]?.id || '');
+  };
+
   const handleSchedule = (e: React.FormEvent) => {
     e.preventDefault();
     if (!scheduleTarget) return;
-    StorageService.scheduleMakeup(scheduleTarget.attendanceId, scheduleDate);
-    showToast(`${scheduleTarget.studentName} 원생 보강 일정이 등록되었습니다.`, 'success');
-    setScheduleTarget(null);
+    if (!startTime || !endTime) {
+      showToast('보강 시작·종료 시간을 입력해 주세요.', 'warning');
+      return;
+    }
+
+    const teacher = teachers.find((t) => t.id === teacherId);
+    const conflicts = findMakeupSlotConflicts({
+      classes,
+      makeups: allItems,
+      candidate: {
+        date: scheduleDate,
+        startTime,
+        endTime,
+        teacherId: teacherId || undefined,
+        room: room || undefined,
+        excludeAttendanceId: scheduleTarget.attendanceId,
+      },
+    });
+
+    const save = () => {
+      StorageService.scheduleMakeup(scheduleTarget.attendanceId, {
+        date: scheduleDate,
+        startTime,
+        endTime,
+        room,
+        teacherId: teacher?.id,
+        teacherName: teacher?.name,
+      });
+
+      const refreshed = StorageService.getMakeupItems().find(
+        (m) => m.attendanceId === scheduleTarget.attendanceId
+      );
+      if (refreshed) notifyParentMakeupScheduled(refreshed);
+
+      showToast(`${scheduleTarget.studentName} 원생 보강 일정이 등록되었습니다.`, 'success');
+      setScheduleTarget(null);
+    };
+
+    if (conflicts.length > 0) {
+      openConfirmDialog({
+        title: '일정 충돌 확인',
+        message: `아래 충돌이 있습니다. 그래도 등록할까요?\n\n${formatConflictSummary(conflicts)}`,
+        confirmText: '그래도 등록',
+        onConfirm: save,
+      });
+      return;
+    }
+
+    save();
   };
 
   const handleComplete = (item: MakeupItem) => {
@@ -87,13 +173,23 @@ export const MakeupManagementView: React.FC = () => {
     completed: 'bg-emerald-100 text-emerald-700',
   };
 
+  const formatSlot = (item: MakeupItem) => {
+    if (!item.makeUpDate) return null;
+    const time =
+      item.makeUpStartTime && item.makeUpEndTime
+        ? ` ${item.makeUpStartTime}–${item.makeUpEndTime}`
+        : '';
+    const extras = [item.makeUpRoom, item.makeUpTeacherName].filter(Boolean).join(' · ');
+    return `${item.makeUpDate}${time}${extras ? ` · ${extras}` : ''}`;
+  };
+
   return (
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Sparkles className="w-6 h-6" />}
         iconClassName="text-purple-600"
         title="보강 수업 관리"
-        description="결석 원생의 보강 일정을 등록하고 완료 처리합니다"
+        description="결석 원생의 보강 일정을 시간·연습실·강사까지 등록합니다"
       />
 
       <div className="grid grid-cols-3 gap-3">
@@ -122,18 +218,27 @@ export const MakeupManagementView: React.FC = () => {
           {filtered.map((item) => (
             <div
               key={item.attendanceId}
-              className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 sm:p-5"
+              className={`rounded-2xl border shadow-xs p-4 sm:p-5 ${
+                item.status === 'pending'
+                  ? 'bg-white border-rose-100'
+                  : item.status === 'scheduled'
+                    ? 'bg-white border-amber-100'
+                    : 'bg-white border-slate-200/80'
+              }`}
             >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
+                      type="button"
                       onClick={() => openStudent(item.studentId)}
-                      className="font-bold text-slate-900 hover:text-indigo-600 text-sm"
+                      className="font-bold text-slate-900 hover:text-indigo-600 text-sm min-h-[44px]"
                     >
                       {item.studentName}
                     </button>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${statusColor[item.status]}`}>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${statusColor[item.status]}`}
+                    >
                       {statusLabel[item.status]}
                     </span>
                   </div>
@@ -141,40 +246,39 @@ export const MakeupManagementView: React.FC = () => {
                     {item.className} · 결석일 {item.originalDate}
                     {item.absentReason && ` · ${item.absentReason}`}
                   </p>
-                  {item.makeUpDate && (
-                    <p className="text-xs text-purple-700 font-semibold mt-0.5 flex items-center gap-1">
+                  {formatSlot(item) && (
+                    <p className="text-xs text-purple-800 font-semibold mt-1.5 inline-flex items-center gap-1.5 rounded-lg bg-purple-50 px-2 py-1">
                       <Calendar className="w-3.5 h-3.5" />
-                      보강 예정: {item.makeUpDate}
+                      보강: {formatSlot(item)}
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
                   {item.parentPhone && (
                     <a
                       href={`tel:${item.parentPhone}`}
-                      className="p-2 rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-600"
-                      title="전화"
+                      className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl bg-slate-100 hover:bg-emerald-50 text-slate-600"
+                      title={formatPhone(item.parentPhone)}
                     >
                       <Phone className="w-4 h-4" />
                     </a>
                   )}
-                  {item.status === 'pending' && (
+                  {(item.status === 'pending' || item.status === 'scheduled') && (
                     <button
-                      onClick={() => {
-                        setScheduleTarget(item);
-                        setScheduleDate(new Date().toISOString().slice(0, 10));
-                      }}
-                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-1"
+                      type="button"
+                      onClick={() => openSchedule(item)}
+                      className="px-3.5 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
                     >
                       <Clock className="w-3.5 h-3.5" />
-                      일정 등록
+                      {item.status === 'scheduled' ? '일정 수정' : '일정 등록'}
                     </button>
                   )}
                   {(item.status === 'pending' || item.status === 'scheduled') && (
                     <button
+                      type="button"
                       onClick={() => handleComplete(item)}
-                      className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1"
+                      className="px-3.5 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl flex items-center gap-1.5"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" />
                       보강 완료
@@ -191,25 +295,75 @@ export const MakeupManagementView: React.FC = () => {
         isOpen={Boolean(scheduleTarget)}
         onClose={() => setScheduleTarget(null)}
         title="보강 일정 등록"
-        maxWidth="sm"
+        maxWidth="md"
       >
-        <form onSubmit={handleSchedule} className="p-6 space-y-4">
+        <form onSubmit={handleSchedule} className="p-5 space-y-4">
           <p className="text-sm text-slate-600">
             <strong>{scheduleTarget?.studentName}</strong> · 결석일 {scheduleTarget?.originalDate}
           </p>
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">보강 예정일</label>
+          <FormField label="보강 예정일" required>
             <input
               type="date"
               required
               value={scheduleDate}
               onChange={(e) => setScheduleDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+              className={FORM_CONTROL_CLASS}
             />
+          </FormField>
+          <div className="grid grid-cols-2 gap-3">
+            <FormField label="시작" required>
+              <input
+                type="time"
+                required
+                value={startTime}
+                onChange={(e) => {
+                  setStartTime(e.target.value);
+                  const mins = StorageService.getSettings().defaultLessonMinutes || 50;
+                  setEndTime(addMinutes(e.target.value, mins));
+                }}
+                className={FORM_CONTROL_CLASS}
+              />
+            </FormField>
+            <FormField label="종료" required>
+              <input
+                type="time"
+                required
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className={FORM_CONTROL_CLASS}
+              />
+            </FormField>
           </div>
+          <FormField label="연습실">
+            <select
+              value={room}
+              onChange={(e) => setRoom(e.target.value)}
+              className={FORM_CONTROL_CLASS}
+            >
+              {rooms.map((r) => (
+                <option key={r} value={r}>
+                  {r}
+                </option>
+              ))}
+            </select>
+          </FormField>
+          <FormField label="담당 강사">
+            <select
+              value={teacherId}
+              onChange={(e) => setTeacherId(e.target.value)}
+              className={FORM_CONTROL_CLASS}
+            >
+              <option value="">선택</option>
+              {teachers.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
           <button
             type="submit"
-            className="w-full py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+            className="w-full min-h-[44px] py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
           >
             등록
           </button>

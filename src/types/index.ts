@@ -147,6 +147,12 @@ export interface AttendanceRecord {
   absentReason?: string;
   makeUpRequired?: boolean;
   makeUpDate?: string;
+  /** 보강 슬롯 (시간·연습실·강사) */
+  makeUpStartTime?: string;
+  makeUpEndTime?: string;
+  makeUpRoom?: string;
+  makeUpTeacherId?: string;
+  makeUpTeacherName?: string;
   memo?: string;
   createdBy: string;
   createdAt?: string;
@@ -462,8 +468,23 @@ export interface MakeupItem {
   originalDate: string;
   absentReason?: string;
   makeUpDate?: string;
+  makeUpStartTime?: string;
+  makeUpEndTime?: string;
+  makeUpRoom?: string;
+  makeUpTeacherId?: string;
+  makeUpTeacherName?: string;
   status: MakeupStatus;
   memo?: string;
+}
+
+/** 보강 일정 등록 입력 */
+export interface MakeupScheduleInput {
+  date: string;
+  startTime?: string;
+  endTime?: string;
+  room?: string;
+  teacherId?: string;
+  teacherName?: string;
 }
 
 export interface AcademyEvent {

@@ -26,8 +26,7 @@ export async function syncAuthProvidersOnLogin(): Promise<SyncAuthProvidersResul
 }
 
 /**
- * OAuth 연동 준비용 — 실제 Kakao/Naver 연동 전까지 사용하지 않음
- * provider_user_id는 OAuth subject id를 전달
+ * OAuth provider 등록 RPC — 카카오 로그인 후 sync_auth_providers_on_login과 병행 가능
  */
 export async function registerAuthProvider(params: {
   provider: AuthProviderType;

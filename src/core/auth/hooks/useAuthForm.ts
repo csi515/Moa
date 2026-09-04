@@ -4,12 +4,13 @@ import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
 import { validateSignUpBusiness } from '../utils/validateSignup';
+import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
 import type { AccountType } from '../types/signup';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function useAuthForm() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithKakao } = useAuth();
   const { createOrganization } = useOrganization();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -31,6 +32,49 @@ export function useAuthForm() {
     setMode(next);
     setError(null);
     setInfo(null);
+  };
+
+  const handleKakao = async () => {
+    setError(null);
+    setInfo(null);
+
+    try {
+      if (mode === 'signup') {
+        if (!agreedToTerms) {
+          throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
+        }
+        if (accountType === 'owner') {
+          saveOAuthSignupIntent({
+            mode: 'signup',
+            accountType,
+            fullName: fullName.trim() || undefined,
+            industryType,
+            businessName: businessName.trim() || undefined,
+            phone: phone.trim() || undefined,
+            address: address.trim() || undefined,
+            businessNumber: businessNumber.trim() || undefined,
+          });
+        } else {
+          saveOAuthSignupIntent({
+            mode: 'signup',
+            accountType,
+            fullName: fullName.trim() || undefined,
+          });
+        }
+      } else if (mode === 'forgot') {
+        throw new Error('비밀번호 찾기는 이메일로 진행해 주세요.');
+      } else {
+        saveOAuthSignupIntent({ mode: 'login' });
+      }
+
+      setLoading(true);
+      await signInWithKakao();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '카카오 로그인 중 오류가 발생했습니다.';
+      setError(message);
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -120,5 +164,6 @@ export function useAuthForm() {
     info,
     switchMode,
     handleSubmit,
+    handleKakao,
   };
 }

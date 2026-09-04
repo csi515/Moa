@@ -37,6 +37,7 @@ export const AuthPage: React.FC = () => {
         onAgreedToTermsChange={form.setAgreedToTerms}
         onSwitchMode={form.switchMode}
         onSubmit={form.handleSubmit}
+        onKakao={form.handleKakao}
       />
     </AuthLayout>
   );

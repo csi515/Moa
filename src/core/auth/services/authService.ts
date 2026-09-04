@@ -16,6 +16,13 @@ export interface SignInParams {
   password: string;
 }
 
+/** 앱 origin / 배포 URL 기준 redirect */
+function getAuthRedirectTo(): string {
+  const baseUrl =
+    (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || window.location.origin;
+  return baseUrl.replace(/\/$/, '') || window.location.origin;
+}
+
 export async function getSession(): Promise<Session | null> {
   const { data, error } = await getCoreClient().auth.getSession();
   if (error) throw error;
@@ -62,6 +69,18 @@ export async function signIn({ email, password }: SignInParams): Promise<Session
   return data.session;
 }
 
+/** 카카오 OAuth — 로그인·회원가입 공통 (Supabase Auth Providers) */
+export async function signInWithKakao(): Promise<void> {
+  const { error } = await getCoreClient().auth.signInWithOAuth({
+    provider: 'kakao',
+    options: {
+      redirectTo: getAuthRedirectTo(),
+      skipBrowserRedirect: false,
+    },
+  });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await getCoreClient().auth.signOut();
   if (error) throw error;
@@ -69,9 +88,7 @@ export async function signOut(): Promise<void> {
 
 /** 비밀번호 재설정 이메일 발송 */
 export async function resetPassword(email: string): Promise<void> {
-  const baseUrl =
-    (import.meta.env.VITE_APP_URL as string | undefined)?.trim() || window.location.origin;
-  const redirectTo = baseUrl.replace(/\/$/, '/');
+  const redirectTo = `${getAuthRedirectTo()}/`;
   const { error } = await getCoreClient().auth.resetPasswordForEmail(email.trim(), {
     redirectTo,
   });

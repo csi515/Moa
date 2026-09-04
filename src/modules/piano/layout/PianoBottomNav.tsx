@@ -22,7 +22,7 @@ export const PianoBottomNav: FC = () => {
         setActiveTab(tab);
       }}
       moreMenuTitle="더보기"
-      moreMenuDescription="상담 · 수납 · 설정 및 추가 기능"
+      moreMenuDescription="과제 · 상담 · 수납 및 추가 기능"
     />
   );
 };

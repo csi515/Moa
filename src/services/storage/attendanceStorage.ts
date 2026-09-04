@@ -1,4 +1,4 @@
-import type { AttendanceRecord, MakeupItem, Student } from '../../types';
+import type { AttendanceRecord, MakeupItem, MakeupScheduleInput, Student } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import type { AttendanceSession, CheckInMethod, PinCheckResult } from '../../core/attendance/types';
@@ -234,6 +234,11 @@ export function createAttendanceStorage(api: StorageApi) {
             originalDate: r.date,
             absentReason: r.absentReason,
             makeUpDate: r.makeUpDate,
+            makeUpStartTime: r.makeUpStartTime,
+            makeUpEndTime: r.makeUpEndTime,
+            makeUpRoom: r.makeUpRoom,
+            makeUpTeacherId: r.makeUpTeacherId,
+            makeUpTeacherName: r.makeUpTeacherName,
             status,
             memo: r.memo,
           };
@@ -245,14 +250,26 @@ export function createAttendanceStorage(api: StorageApi) {
         });
     },
 
-    scheduleMakeup(attendanceId: string, makeUpDate: string): AttendanceRecord | null {
+    scheduleMakeup(
+      attendanceId: string,
+      makeup: string | MakeupScheduleInput
+    ): AttendanceRecord | null {
       const list = (api.getAttendance as () => AttendanceRecord[])();
       const idx = list.findIndex((r) => r.id === attendanceId);
       if (idx === -1) return null;
+
+      const input: MakeupScheduleInput =
+        typeof makeup === 'string' ? { date: makeup } : makeup;
+
       const updated: AttendanceRecord = {
         ...list[idx],
-        makeUpDate,
+        makeUpDate: input.date,
         makeUpRequired: true,
+        makeUpStartTime: input.startTime || undefined,
+        makeUpEndTime: input.endTime || undefined,
+        makeUpRoom: input.room || undefined,
+        makeUpTeacherId: input.teacherId || undefined,
+        makeUpTeacherName: input.teacherName || undefined,
       };
       list[idx] = updated;
       setItem(STORAGE_KEYS.ATTENDANCE, list);

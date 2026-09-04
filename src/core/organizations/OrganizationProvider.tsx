@@ -12,6 +12,7 @@ import { useAuth } from '../auth/AuthProvider';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { runLoginAccountSync } from '../accounts/loginBootstrapService';
+import { applyOAuthSignupIntentIfAny } from '../auth/services/oauthSignupService';
 import { ensureGlobalParentProfile, fetchParentPortalTree } from '../parent/services/parentPortalService';
 import {
   isParentPortalModeActive,
@@ -148,6 +149,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
     setLoading(true);
     try {
+      await applyOAuthSignupIntentIfAny();
       await runLoginAccountSync();
 
       let portalChildren = 0;

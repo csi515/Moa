@@ -16,12 +16,13 @@ import {
   X,
   Save,
   Award,
-  ChevronRight
+  ChevronRight,
 } from 'lucide-react';
+import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
 
 export const LessonRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
-  const { isScoped, staffId, scopeStudents, scopeLessons } = useStaffScope();
+  const { staffId, scopeStudents, scopeLessons } = useStaffScope();
 
   const lessons = useMemo(() => scopeLessons(StorageService.getLessonRecords()), [scopeLessons]);
   const students = useMemo(() => scopeStudents(StorageService.getStudents()), [scopeStudents]);
@@ -37,12 +38,12 @@ export const LessonRecordsView: React.FC = () => {
     studentId: students[0]?.id || '',
     date: new Date().toISOString().slice(0, 10),
     songTitle: '',
-    progress: '체르니 100 24번 완곡',
+    progress: '',
     lessonContent: '',
     strengths: '',
     weaknesses: '',
     homework: '',
-    memo: ''
+    memo: '',
   });
 
   const filteredLessons = useMemo(() => {
@@ -66,13 +67,13 @@ export const LessonRecordsView: React.FC = () => {
     setFormData({
       studentId: students[0]?.id || '',
       date: new Date().toISOString().slice(0, 10),
-      songTitle: '체르니 100번 25번 & 하농 1번',
-      progress: '양손 연습 시작',
-      lessonContent: '오른손 16분음표 고른 터치 연습 및 왼손 알베르티 베이스 밸런스 지도',
-      strengths: '리듬감이 좋고 셈여림 표현에 적극적임',
-      weaknesses: '4번, 5번 손가락 터치 시 손목 흔들림 주의',
-      homework: '25번 하루 3번 메트로놈 80에 맞춰 손목 고정 연습',
-      memo: ''
+      songTitle: '',
+      progress: '',
+      lessonContent: '',
+      strengths: '',
+      weaknesses: '',
+      homework: '',
+      memo: '',
     });
     setIsModalOpen(true);
   };
@@ -122,7 +123,7 @@ export const LessonRecordsView: React.FC = () => {
       ...(editingLesson ? { id: editingLesson.id } : {}),
       studentId: st.id,
       studentName: st.name,
-      teacherId: StorageService.getTeachers()[0]?.id || '',
+      teacherId: staffId || StorageService.getTeachers()[0]?.id || '',
       teacherName: currentUser.name,
       date: formData.date,
       songTitle: formData.songTitle.trim(),
@@ -131,11 +132,22 @@ export const LessonRecordsView: React.FC = () => {
       strengths: formData.strengths.trim(),
       weaknesses: formData.weaknesses.trim(),
       homework: formData.homework.trim(),
-      memo: formData.memo.trim()
-    } as any);
+      memo: formData.memo.trim(),
+    });
+
+    syncLessonHomeworkToWeeklyAssignment({
+      studentId: st.id,
+      songTitle: formData.songTitle,
+      homework: formData.homework,
+      staffId,
+    });
 
     showToast(
-      editingLesson ? '레슨 일지가 수정되었습니다.' : '새 레슨 일지가 등록되었습니다.',
+      editingLesson
+        ? '레슨 일지가 수정되었습니다.'
+        : formData.homework.trim()
+          ? '레슨 일지와 주간 과제가 등록되었습니다.'
+          : '새 레슨 일지가 등록되었습니다.',
       'success'
     );
     setIsModalOpen(false);

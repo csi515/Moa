@@ -12,6 +12,7 @@ interface AuthContextType {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string, accountType: AccountType, business?: SignUpBusinessDetails) => Promise<void>;
+  signInWithKakao: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -57,6 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setSession(session);
   };
 
+  const signInWithKakao = async () => {
+    await authService.signInWithKakao();
+  };
+
   const signOut = async () => {
     StorageService.clearOrganization();
     await authService.signOut();
@@ -71,6 +76,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         loading,
         signIn,
         signUp,
+        signInWithKakao,
         signOut,
       }}
     >
