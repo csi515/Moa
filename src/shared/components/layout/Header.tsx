@@ -18,14 +18,14 @@ export const Header: React.FC = () => {
     setSelectedStudentId,
   } = useApp();
 
-  const settings = StorageService.getSettings();
   const supabaseOrg = useOptionalOrganization();
   const { roleLabel, isStaff, staffId } = usePermissions();
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
-  const displayName = supabaseOrg?.currentOrganization?.name ?? settings.name;
+  
+  const displayName = supabaseOrg?.currentOrganization?.name ?? StorageService.getSettings().name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 

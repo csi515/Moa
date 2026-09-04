@@ -112,3 +112,48 @@ export function getRoleLabel(role: MemberRole): string {
   };
   return labels[role];
 }
+
+/** 조직 삭제 (소유자만 가능) */
+export async function deleteOrganization(organizationId: string): Promise<void> {
+  const { data, error } = await getCoreClient().rpc('delete_organization', {
+    p_organization_id: organizationId,
+  });
+
+  if (error) throw error;
+  if (!data) throw new Error('조직 삭제에 실패했습니다.');
+}
+
+/** 조직 이름 및 설정 업데이트 */
+export async function updateOrganization(
+  organizationId: string,
+  updates: {
+    name?: string;
+    settings?: Partial<AcademySettings>;
+  }
+): Promise<void> {
+  const payload: Record<string, unknown> = {};
+
+  if (updates.name !== undefined) {
+    payload.name = updates.name;
+  }
+
+  if (updates.settings !== undefined) {
+    const { data: currentOrg, error: fetchError } = await getCoreClient()
+      .from('organizations')
+      .select('settings')
+      .eq('id', organizationId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentSettings = (currentOrg?.settings as Record<string, unknown>) ?? {};
+    payload.settings = { ...currentSettings, ...updates.settings };
+  }
+
+  const { error } = await getCoreClient()
+    .from('organizations')
+    .update(payload)
+    .eq('id', organizationId);
+
+  if (error) throw error;
+}
