@@ -8,7 +8,7 @@ This PR implements Phase 1 of the multi-role architecture as described in `docs/
 
 ### 1. Database Migration
 
-**File:** `supabase/migrations/20260904100000_phase1_multi_role_architecture.sql`
+**File:** `supabase/migrations/20260904120000_phase1_multi_role_architecture.sql`
 
 Key changes:
 - **Removed** `UNIQUE(organization_id, user_id)` constraint (1 user → 1 org limitation)
