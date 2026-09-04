@@ -18,6 +18,7 @@ export interface OrganizationMembership {
   staffId: string | null;
   parentCustomerId: string | null;
   organization: Organization;
+  isCurrentContext?: boolean;
 }
 
 export function getStoredOrganizationId(): string | null {
@@ -71,6 +72,54 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
     }));
 }
 
+/**
+ * Phase 1: 새 RPC를 사용하여 모든 멤버십과 활성 컨텍스트 정보를 함께 가져옴
+ */
+export async function fetchUserMembershipsWithContext(): Promise<OrganizationMembership[]> {
+  const { data, error } = await getCoreClient().rpc('get_user_memberships' as any);
+
+  if (error) throw error;
+
+  return ((data as any[]) ?? []).map((row: any) => ({
+    id: row.membership_id,
+    organizationId: row.organization_id,
+    role: row.role as MemberRole,
+    staffId: row.staff_id ?? null,
+    parentCustomerId: row.parent_customer_id ?? null,
+    isCurrentContext: row.is_current_context ?? false,
+    organization: {
+      id: row.organization_id,
+      name: row.organization_name,
+      industry_type: row.organization_industry_type,
+      slug: row.organization_slug,
+      settings: row.organization_settings,
+      is_active: row.organization_is_active,
+      created_at: '',
+      updated_at: '',
+    } as Organization,
+  }));
+}
+
+/**
+ * Phase 1: 활성 멤버십 컨텍스트 설정
+ */
+export async function setActiveMembership(membershipId: string): Promise<void> {
+  const { error } = await getCoreClient().rpc('set_active_membership' as any, {
+    p_membership_id: membershipId,
+  });
+
+  if (error) throw error;
+}
+
+/**
+ * Phase 1: 활성 멤버십 컨텍스트 클리어
+ */
+export async function clearActiveMembership(): Promise<void> {
+  const { error } = await getCoreClient().rpc('clear_active_membership' as any);
+
+  if (error) throw error;
+}
+
 export async function createOrganization(
   nameOrOptions: string | CreateOrganizationOptions,
   industryType = 'piano',
@@ -109,6 +158,10 @@ export function getRoleLabel(role: MemberRole): string {
     manager: '매니저',
     staff: '강사',
     parent: '학부모',
+    instructor: '강사',
+    member: '회원',
+    customer: '고객',
+    guardian: '보호자',
   };
   return labels[role];
 }

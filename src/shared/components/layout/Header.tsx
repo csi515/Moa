@@ -5,7 +5,7 @@ import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
-import { OrganizationSwitcher } from '@/core/organizations/OrganizationSwitcher';
+import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { Search, Music, Shield, Users } from 'lucide-react';
 
@@ -144,7 +144,7 @@ export const Header: React.FC = () => {
               학부모 포털
             </button>
           )}
-          <OrganizationSwitcher />
+          <RoleContextSwitcher />
           <PwaInstallPrompt />
 
           <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">
