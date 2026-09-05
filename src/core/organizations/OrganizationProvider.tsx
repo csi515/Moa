@@ -209,6 +209,10 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
               : null;
 
       applySelection(memberships, autoId);
+    } catch (err) {
+      console.error('[org] refreshOrganizations failed', err);
+      setOrganizations([]);
+      applyMembershipSelection([], null);
     } finally {
       setLoading(false);
     }

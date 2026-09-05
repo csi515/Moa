@@ -106,31 +106,43 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
 
 /**
  * Phase 1: 새 RPC를 사용하여 모든 멤버십과 활성 컨텍스트 정보를 함께 가져옴
+ * RPC 실패 시 organization_members 직접 조회로 폴백
  */
 export async function fetchUserMembershipsWithContext(): Promise<OrganizationMembership[]> {
-  const { data, error } = await getCoreClient().rpc('get_user_memberships' as any);
+  const { data, error } = await getCoreClient().rpc('get_user_memberships' as never);
 
-  if (error) throw error;
+  if (!error && data) {
+    return ((data as Record<string, unknown>[]) ?? []).map((row) => ({
+      id: String(row.membership_id),
+      organizationId: String(row.organization_id),
+      role: row.role as MemberRole,
+      staffId: row.staff_id ? String(row.staff_id) : null,
+      parentCustomerId: row.parent_customer_id ? String(row.parent_customer_id) : null,
+      isCurrentContext: Boolean(row.is_current_context),
+      organization: {
+        id: String(row.organization_id),
+        name: String(row.organization_name ?? ''),
+        industry_type: String(row.organization_industry_type ?? 'piano'),
+        slug: row.organization_slug ? String(row.organization_slug) : null,
+        settings: row.organization_settings ?? {},
+        is_active: Boolean(row.organization_is_active),
+        public_code: String(row.organization_public_code ?? ''),
+        created_at: '',
+        updated_at: '',
+      } as Organization,
+    }));
+  }
 
-  return ((data as any[]) ?? []).map((row: any) => ({
-    id: row.membership_id,
-    organizationId: row.organization_id,
-    role: row.role as MemberRole,
-    staffId: row.staff_id ?? null,
-    parentCustomerId: row.parent_customer_id ?? null,
-    isCurrentContext: row.is_current_context ?? false,
-    organization: {
-      id: row.organization_id,
-      name: row.organization_name,
-      industry_type: row.organization_industry_type,
-      slug: row.organization_slug,
-      settings: row.organization_settings,
-      is_active: row.organization_is_active,
-      public_code: row.organization_public_code ?? '',
-      created_at: '',
-      updated_at: '',
-    } as Organization,
-  }));
+  console.warn(
+    '[org] get_user_memberships failed, falling back to direct query',
+    error?.message
+  );
+
+  const {
+    data: { user },
+  } = await getCoreClient().auth.getUser();
+  if (!user?.id) return [];
+  return fetchUserOrganizations(user.id);
 }
 
 /**

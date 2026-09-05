@@ -48,7 +48,7 @@ BEGIN
     o.slug AS organization_slug,
     o.settings AS organization_settings,
     o.is_active AS organization_is_active,
-    o.public_code AS organization_public_code,
+    o.public_code::text AS organization_public_code,
     om.role,
     om.staff_id,
     om.parent_customer_id,
