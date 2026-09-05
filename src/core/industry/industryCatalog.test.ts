@@ -8,6 +8,7 @@ import {
   INDUSTRY_DEFINITIONS,
   INDUSTRY_ALIASES,
   MODULE_INDUSTRY_IDS,
+  PUBLIC_SELECTABLE_INDUSTRY_IDS,
   isIndustryType,
   listIndustryDefinitions,
   listIndustriesByCategory,
@@ -74,11 +75,21 @@ function run(): void {
 
   const education = listIndustriesByCategory('education');
   assert.ok(education.some((d) => d.id === 'piano'));
-  assert.ok(education.some((d) => d.id === 'academy'));
+  assert.ok(!education.some((d) => d.id === 'academy'), 'academy not public yet');
   assert.ok(!education.some((d) => d.id === 'pilates'));
 
   const selectable = listIndustryDefinitions({ selectableOnly: true });
-  assert.equal(selectable.length, INDUSTRY_IDS.length);
+  assert.equal(selectable.length, PUBLIC_SELECTABLE_INDUSTRY_IDS.length);
+  assert.equal(selectable[0]?.id, 'piano');
+  assert.equal(INDUSTRY_DEFINITIONS.piano.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, false);
+  assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, false);
+  assert.equal(INDUSTRY_DEFINITIONS.daycare.selectable, false);
+
+  // 비공개 업종도 카탈로그·모듈 정의는 유지
+  assert.equal(hasIndustryModule('pilates'), true);
+  assert.equal(hasIndustryModule('gym'), true);
+  assert.equal(hasIndustryModule('daycare'), true);
 
   assert.equal(getIndustryDefinition('taekwondo')?.id, 'gym');
   assert.equal(getIndustryDefinition('piano')?.moduleId, 'piano');
@@ -86,7 +97,9 @@ function run(): void {
 
   for (const cat of INDUSTRY_CATEGORY_OPTIONS) {
     const items = listIndustriesByCategory(cat.id);
-    assert.ok(items.length > 0, `empty category: ${cat.id}`);
+    if (PUBLIC_SELECTABLE_INDUSTRY_IDS.some((id) => INDUSTRY_DEFINITIONS[id].category === cat.id)) {
+      assert.ok(items.length > 0, `expected selectable items in: ${cat.id}`);
+    }
   }
 
   console.log(`industryCatalog.test.ts OK (${INDUSTRY_IDS.length} industries)`);

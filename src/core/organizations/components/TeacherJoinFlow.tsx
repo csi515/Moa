@@ -8,11 +8,17 @@ import {
   Clock,
   AlertCircle,
   Send,
+  ArrowLeft,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { getIndustryLabel } from '@/core/industry/types';
 import * as joinRequestService from '../services/joinRequestService';
 
-export const TeacherJoinFlow: React.FC = () => {
+interface TeacherJoinFlowProps {
+  onBack?: () => void;
+}
+
+export const TeacherJoinFlow: React.FC<TeacherJoinFlowProps> = ({ onBack }) => {
   const { showToast } = useApp();
   const [myRequests, setMyRequests] = useState<joinRequestService.JoinRequest[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +97,19 @@ export const TeacherJoinFlow: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50">
       <div className="max-w-2xl mx-auto p-4 pb-8">
+        {onBack && (
+          <div className="mb-3">
+            <button
+              type="button"
+              onClick={onBack}
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-600 hover:text-slate-900 min-h-[44px] min-w-[44px] px-2 -ml-2 rounded-xl hover:bg-white/80 transition-colors"
+              aria-label="뒤로"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              뒤로
+            </button>
+          </div>
+        )}
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 mb-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
@@ -180,10 +199,7 @@ export const TeacherJoinFlow: React.FC = () => {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-bold text-slate-900 truncate">{org.name}</p>
                           <p className="text-xs text-slate-500">
-                            {org.industryType === 'piano' && '피아노 학원'}
-                            {org.industryType === 'gym' && '헬스장'}
-                            {org.industryType === 'pilates' && '필라테스'}
-                            {org.industryType === 'daycare' && '어린이집'}
+                            {getIndustryLabel(org.industryType)}
                           </p>
                         </div>
                         {hasPendingRequest && (

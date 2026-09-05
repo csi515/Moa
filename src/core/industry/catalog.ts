@@ -4,6 +4,7 @@ import {
   INDUSTRY_DEFINITIONS,
   INDUSTRY_IDS,
   MODULE_INDUSTRY_IDS,
+  PUBLIC_SELECTABLE_INDUSTRY_IDS,
   type IndustryDefinition,
   type IndustryType,
   type ModuleIndustryId,
@@ -15,6 +16,7 @@ export {
   INDUSTRY_DEFINITIONS,
   INDUSTRY_ALIASES,
   MODULE_INDUSTRY_IDS,
+  PUBLIC_SELECTABLE_INDUSTRY_IDS,
 };
 
 const ID_SET = new Set<string>(INDUSTRY_IDS);

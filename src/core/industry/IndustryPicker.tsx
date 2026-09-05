@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import {
   INDUSTRY_CATEGORY_OPTIONS,
   listIndustriesByCategory,
+  listIndustryDefinitions,
   type IndustryCategory,
   type IndustryType,
   getIndustryCategoryForType,
@@ -24,21 +25,55 @@ const idleBtn = 'border-slate-200 hover:border-slate-300';
 
 /**
  * Category → Industry 2단계 업종 선택.
- * Mobile-first, 터치 영역 44px+.
+ * selectable=true 업종만 노출. Mobile-first, 터치 영역 44px+.
  */
 export function IndustryPicker({ value, onChange, variant = 'default' }: IndustryPickerProps) {
-  const initialCategory = getIndustryCategoryForType(value);
-  const [step, setStep] = useState<'category' | 'industry'>('category');
-  const [category, setCategory] = useState<IndustryCategory>(initialCategory);
+  const selectableIndustries = useMemo(
+    () => listIndustryDefinitions({ selectableOnly: true }),
+    []
+  );
 
-  const industries = useMemo(() => listIndustriesByCategory(category), [category]);
+  const categoriesWithIndustries = useMemo(
+    () =>
+      INDUSTRY_CATEGORY_OPTIONS.filter(
+        (opt) => listIndustriesByCategory(opt.id).length > 0
+      ),
+    []
+  );
+
+  const initialCategory = getIndustryCategoryForType(value);
+  const [step, setStep] = useState<'category' | 'industry'>(
+    selectableIndustries.length <= 1 || categoriesWithIndustries.length <= 1
+      ? 'industry'
+      : 'category'
+  );
+  const [category, setCategory] = useState<IndustryCategory>(
+    categoriesWithIndustries[0]?.id ?? initialCategory
+  );
+
+  useEffect(() => {
+    if (selectableIndustries.length === 1 && value !== selectableIndustries[0].id) {
+      onChange(selectableIndustries[0].id);
+    }
+  }, [selectableIndustries, value, onChange]);
+
+  const industries = useMemo(() => {
+    if (selectableIndustries.length <= 1) return selectableIndustries;
+    if (categoriesWithIndustries.length <= 1) {
+      return listIndustriesByCategory(categoriesWithIndustries[0]?.id ?? category);
+    }
+    return listIndustriesByCategory(category);
+  }, [selectableIndustries, categoriesWithIndustries, category]);
+
   const selectedLabel = getIndustryLabel(value);
   const categoryLabel = getIndustryCategoryLabel(category);
   const gap = variant === 'compact' ? 'gap-2' : 'gap-2.5';
   const pad = variant === 'compact' ? 'p-3' : 'p-3.5';
   const selectedCategory = getIndustryCategoryForType(value);
+  const showCategoryStep =
+    selectableIndustries.length > 1 && categoriesWithIndustries.length > 1;
 
-  if (step === 'category') {
+  if (showCategoryStep && step === 'category') {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between gap-2">
@@ -50,7 +85,7 @@ export function IndustryPicker({ value, onChange, variant = 'default' }: Industr
           )}
         </div>
         <div className={`grid grid-cols-1 sm:grid-cols-2 ${gap}`}>
-          {INDUSTRY_CATEGORY_OPTIONS.map((opt) => {
+          {categoriesWithIndustries.map((opt) => {
             const Icon = CATEGORY_ICONS[opt.id];
             const selected = selectedCategory === opt.id;
             return (
@@ -80,17 +115,22 @@ export function IndustryPicker({ value, onChange, variant = 'default' }: Industr
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setStep('category')}
-          className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 min-h-[44px] min-w-[44px] px-2 -ml-2 rounded-lg hover:bg-slate-50"
-          aria-label="분류로 돌아가기"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          {categoryLabel}
-        </button>
-      </div>
+      {showCategoryStep && (
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setStep('category')}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-600 min-h-[44px] min-w-[44px] px-2 -ml-2 rounded-lg hover:bg-slate-50"
+            aria-label="분류로 돌아가기"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            {categoryLabel}
+          </button>
+        </div>
+      )}
+      {!showCategoryStep && (
+        <p className="text-xs font-bold text-slate-600">업종</p>
+      )}
       <div className={`grid grid-cols-1 ${gap}`}>
         {industries.map((opt) => {
           const Icon = INDUSTRY_ICONS[opt.id] ?? DEFAULT_INDUSTRY_ICON;

@@ -17,6 +17,7 @@ export {
   INDUSTRY_DEFINITIONS,
   INDUSTRY_ALIASES,
   MODULE_INDUSTRY_IDS,
+  PUBLIC_SELECTABLE_INDUSTRY_IDS,
   getIndustryDefinition,
   isIndustryType,
   isModuleIndustryId,

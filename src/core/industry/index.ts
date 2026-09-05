@@ -15,6 +15,7 @@ export {
   INDUSTRY_OPTIONS,
   INDUSTRY_CATEGORY_OPTIONS,
   MODULE_INDUSTRY_IDS,
+  PUBLIC_SELECTABLE_INDUSTRY_IDS,
   normalizeIndustryType,
   getIndustryLabel,
   getIndustryCategoryLabel,

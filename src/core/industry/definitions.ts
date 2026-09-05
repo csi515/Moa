@@ -134,6 +134,14 @@ export interface IndustryDefinition {
 
 export const INDUSTRY_IDS: IndustryType[] = DEFINITION_LIST.map((d) => d.id);
 
+/**
+ * 신규 가입·사업장 생성 UI에 노출하는 업종.
+ * 내부 카탈로그/기존 org 데이터는 그대로 두고, 여기만 켜서 단계적으로 공개한다.
+ */
+export const PUBLIC_SELECTABLE_INDUSTRY_IDS = ['piano'] as const satisfies readonly IndustryType[];
+
+const PUBLIC_SELECTABLE_SET = new Set<string>(PUBLIC_SELECTABLE_INDUSTRY_IDS);
+
 export const INDUSTRY_DEFINITIONS = Object.fromEntries(
   DEFINITION_LIST.map((d) => [
     d.id,
@@ -143,7 +151,7 @@ export const INDUSTRY_DEFINITIONS = Object.fromEntries(
       description: d.description,
       category: d.category,
       moduleId: d.moduleId,
-      selectable: true,
+      selectable: PUBLIC_SELECTABLE_SET.has(d.id),
     } satisfies IndustryDefinition,
   ])
 ) as Record<IndustryType, IndustryDefinition>;
