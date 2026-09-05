@@ -6,6 +6,8 @@ interface PageHeaderProps {
   description?: string;
   actions?: ReactNode;
   iconClassName?: string;
+  /** compact: 업무 허브용 — 제목 축소, 설명 한 줄 */
+  density?: 'default' | 'compact';
 }
 
 export const PageHeader: React.FC<PageHeaderProps> = ({
@@ -14,16 +16,32 @@ export const PageHeader: React.FC<PageHeaderProps> = ({
   description,
   actions,
   iconClassName = 'text-indigo-600',
+  density = 'default',
 }) => {
+  const compact = density === 'compact';
+
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h2 className={`text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2`}>
-          <span className={iconClassName}>{icon}</span>
-          {title}
+    <div
+      className={`flex flex-col sm:flex-row sm:items-center sm:justify-between ${
+        compact ? 'gap-2 sm:gap-3' : 'gap-3'
+      }`}
+    >
+      <div className="min-w-0">
+        <h2
+          className={`font-bold text-slate-900 tracking-tight flex items-center gap-2 ${
+            compact ? 'text-lg' : 'text-lg sm:text-xl'
+          }`}
+        >
+          <span className={`${iconClassName} shrink-0`}>{icon}</span>
+          <span className="truncate">{title}</span>
         </h2>
-        {description && (
-          <p className="text-xs sm:text-sm text-slate-500 mt-1.5 leading-relaxed">{description}</p>
+        {description && !compact && (
+          <p className="text-xs sm:text-sm text-slate-500 mt-1 leading-snug line-clamp-2">
+            {description}
+          </p>
+        )}
+        {description && compact && (
+          <p className="text-[11px] text-slate-500 mt-0.5 truncate">{description}</p>
         )}
       </div>
       {actions && (

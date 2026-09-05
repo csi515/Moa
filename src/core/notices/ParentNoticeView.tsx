@@ -1,4 +1,4 @@
-import type { FC } from 'react';
+﻿import type { FC } from 'react';
 import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { FilterTabs } from '@/shared/components/ui';
 import { Megaphone, Plus } from 'lucide-react';
@@ -12,7 +12,7 @@ export const ParentNoticeView: FC = () => {
   const state = useParentNoticeState();
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Megaphone className="w-6 h-6" />}
         iconClassName={state.accent.icon}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useIsDesktop, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -196,7 +196,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
   );
 
   return (
-    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {!embedded && (
         <PageHeader
           icon={<Clock className="w-6 h-6" />}
@@ -224,7 +224,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
             <button
               type="button"
               onClick={() => setViewMode('daily')}
-              className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 min-h-[44px] rounded-lg transition-all cursor-pointer ${
                 showDailyView ? 'bg-white text-indigo-600 shadow-2xs' : 'hover:text-slate-900'
               }`}
             >
@@ -233,7 +233,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
             <button
               type="button"
               onClick={() => setViewMode('weekly')}
-              className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1.5 min-h-[44px] rounded-lg transition-all cursor-pointer ${
                 showWeeklyView ? 'bg-white text-indigo-600 shadow-2xs' : 'hover:text-slate-900'
               }`}
             >
@@ -251,8 +251,8 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
         </div>
       )}
 
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3 no-print">
-        <div className="flex flex-wrap items-center gap-2.5">
+      <div className="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-2 no-print">
+        <div className="flex flex-wrap items-center gap-2">
           <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
             <Filter className="w-4 h-4 text-indigo-600" />
             <span>필터</span>
@@ -294,12 +294,12 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex items-center gap-1 sm:gap-1.5 overflow-x-auto pb-1 no-scrollbar">
           {todayDay && selectedDay !== todayDay && (
             <button
               type="button"
               onClick={() => setSelectedDay(todayDay)}
-              className="px-3 py-2.5 rounded-2xl text-xs font-bold shrink-0 min-h-[44px] bg-indigo-50 text-indigo-700 border border-indigo-200 cursor-pointer"
+              className="px-2.5 py-2 rounded-xl text-xs font-bold shrink-0 min-h-[44px] bg-indigo-50 text-indigo-700 border border-indigo-200 cursor-pointer"
             >
               오늘로
             </button>
@@ -314,7 +314,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
                 key={day}
                 type="button"
                 onClick={() => setSelectedDay(day)}
-                className={`px-3.5 sm:px-5 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer flex items-center gap-2 min-h-[44px] ${
+                className={`px-2.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 min-h-[44px] ${
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
                     : 'bg-white text-slate-700 border border-slate-200 hover:border-slate-300 hover:bg-slate-50'
@@ -407,15 +407,15 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
         )}
 
         {showWeeklyView && (
-          <div className="bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <div className="min-w-[860px]">
                 <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50/80 text-center text-xs font-bold text-slate-700">
-                  <div className="py-3 px-2 border-r border-slate-200 text-slate-400">시간</div>
+                  <div className="py-2 px-2 border-r border-slate-200 text-slate-400">시간</div>
                   {DAYS.map((day) => (
                     <div
                       key={day}
-                      className={`py-3 px-2 border-r border-slate-200 last:border-r-0 ${
+                      className={`py-2 px-2 border-r border-slate-200 last:border-r-0 ${
                         day === todayDay ? 'bg-indigo-50 text-indigo-700' : ''
                       }`}
                     >
@@ -428,8 +428,8 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
 
                 <div className="divide-y divide-slate-200">
                   {TIME_SLOTS.map((slot) => (
-                    <div key={slot} className="grid grid-cols-7 min-h-[80px]">
-                      <div className="p-2 border-r border-slate-200 bg-slate-50/40 text-center flex flex-col justify-start items-center">
+                    <div key={slot} className="grid grid-cols-7 min-h-[56px]">
+                      <div className="p-1.5 border-r border-slate-200 bg-slate-50/40 text-center flex flex-col justify-start items-center">
                         <span className="font-mono text-xs font-bold text-slate-600">{slot}</span>
                       </div>
 
@@ -439,7 +439,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
                         return (
                           <div
                             key={day}
-                            className={`p-1.5 border-r border-slate-200 last:border-r-0 hover:bg-indigo-50/20 transition-colors space-y-1.5 ${
+                            className={`p-1 border-r border-slate-200 last:border-r-0 hover:bg-indigo-50/20 transition-colors space-y-1 ${
                               day === todayDay ? 'bg-indigo-50/30' : ''
                             }`}
                           >
@@ -452,7 +452,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
                                   key={cls.id}
                                   type="button"
                                   onClick={() => setSelectedClass(cls)}
-                                  className="w-full p-2 rounded-xl text-white text-xs cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
+                                  className="w-full p-1.5 rounded-lg text-white text-xs cursor-pointer shadow-2xs hover:scale-[1.02] active:scale-[0.98] transition-all text-left"
                                   style={{ backgroundColor: cls.color || '#4f46e5' }}
                                 >
                                   <div className="flex items-center justify-between gap-1">
@@ -475,7 +475,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
                                 key={m.attendanceId}
                                 type="button"
                                 onClick={() => setActiveTab('makeups')}
-                                className="w-full p-2 rounded-xl bg-purple-600 text-white text-xs cursor-pointer shadow-2xs hover:bg-purple-700 text-left"
+                                className="w-full p-1.5 rounded-lg bg-purple-600 text-white text-xs cursor-pointer shadow-2xs hover:bg-purple-700 text-left"
                               >
                                 <div className="font-bold text-[11px] truncate">
                                   보강 · {m.studentName}

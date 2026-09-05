@@ -3,10 +3,7 @@ import { useOrganization } from './OrganizationProvider';
 import * as orgService from './services/organizationService';
 import {
   Building2,
-  ChevronRight,
-  ChevronLeft,
   X,
-  DoorOpen,
   Sparkles,
   CheckCircle2,
   Loader2,
@@ -35,7 +32,6 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
     directorName: '',
     phone: '',
     address: '',
-    roomCount: 1,
     industryType: initialIndustryType,
   });
 
@@ -46,7 +42,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
       return;
     }
     setError(null);
-    setStep(1);
+    void handleFinish();
   };
 
   const handleFinish = async () => {
@@ -59,7 +55,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
         address: formData.address.trim(),
       });
       
-      setStep(2);
+      setStep(1);
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -71,7 +67,6 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
 
   const steps = [
     { icon: Building2, label: '학원 정보' },
-    { icon: DoorOpen, label: '강의실 설정' },
     { icon: CheckCircle2, label: '완료' },
   ];
 
@@ -83,7 +78,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             <Sparkles className="w-5 h-5 text-indigo-600" />
             <h2 className="font-bold text-slate-900">새 학원 등록</h2>
           </div>
-          {step < 2 && (
+          {step < 1 && (
             <button
               onClick={onCancel}
               className="text-slate-400 hover:text-slate-600 p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -216,74 +211,6 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               </button>
               <button
                 type="submit"
-                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px]"
-              >
-                다음 <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </form>
-        )}
-
-        {step === 1 && (
-          <div className="p-6 space-y-4">
-            <p className="text-sm text-slate-500">학원의 강의실 정보를 입력해 주세요.</p>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                강의실(교실) 개수
-              </label>
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      roomCount: Math.max(1, formData.roomCount - 1),
-                    })
-                  }
-                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg flex items-center justify-center transition-colors"
-                >
-                  -
-                </button>
-                <div className="flex-1 text-center">
-                  <div className="text-3xl font-bold text-indigo-600">{formData.roomCount}</div>
-                  <div className="text-xs text-slate-500 mt-1">개</div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setFormData({
-                      ...formData,
-                      roomCount: Math.min(20, formData.roomCount + 1),
-                    })
-                  }
-                  className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-lg flex items-center justify-center transition-colors"
-                >
-                  +
-                </button>
-              </div>
-              <p className="text-xs text-slate-400 mt-2 text-center">
-                피아노실, 연습실 등 수업이 진행되는 공간 개수
-              </p>
-            </div>
-
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-
-            <div className="flex justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setStep(0)}
-                disabled={isSaving}
-                className="px-4 py-2 text-xs font-semibold text-slate-600 flex items-center gap-1 min-h-[44px] disabled:opacity-50"
-              >
-                <ChevronLeft className="w-4 h-4" /> 이전
-              </button>
-              <button
-                type="button"
-                onClick={handleFinish}
                 disabled={isSaving}
                 className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px] disabled:opacity-50"
               >
@@ -293,15 +220,15 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
                   </>
                 ) : (
                   <>
-                    완료 <CheckCircle2 className="w-4 h-4" />
+                    등록하기 <CheckCircle2 className="w-4 h-4" />
                   </>
                 )}
               </button>
             </div>
-          </div>
+          </form>
         )}
 
-        {step === 2 && (
+        {step === 1 && (
           <div className="p-6 space-y-5 text-center">
             <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
@@ -310,7 +237,8 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               <h3 className="font-bold text-lg text-slate-900">학원 등록 완료!</h3>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
                 {formData.name} 등록이 완료되었습니다
-                <br />곧 관리 화면으로 이동합니다...
+                <br />
+                앱에서 강의실·교재 초기 설정을 이어서 진행할 수 있습니다.
               </p>
             </div>
           </div>

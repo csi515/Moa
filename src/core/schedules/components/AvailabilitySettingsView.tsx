@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FC, type FormEvent } from 'react';
+﻿import { useCallback, useEffect, useState, type FC, type FormEvent } from 'react';
 import { CalendarOff, Clock, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -167,7 +167,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
   }
 
   return (
-    <div className={embedded ? 'space-y-5' : 'space-y-6 pb-12'}>
+    <div className={embedded ? 'space-y-5' : 'space-y-4 pb-4'}>
       {!embedded && (
         <PageHeader
           icon={<Clock className="w-6 h-6" />}

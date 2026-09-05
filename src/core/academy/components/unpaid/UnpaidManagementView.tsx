@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
@@ -30,7 +30,7 @@ const FILTER_TABS: FilterTabItem<UnpaidFilter>[] = [
   { id: 'overdue', label: '연체' },
 ];
 
-export const UnpaidManagementView: React.FC = () => {
+export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
@@ -84,13 +84,9 @@ export const UnpaidManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={<AlertCircle className="w-6 h-6" />}
-        iconClassName="text-rose-600"
-        title="미납 통합 관리"
-        description="수강료·교재비 미납을 원생별로 한눈에 확인하고 수납 처리합니다"
-        actions={
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
+      {embedded ? (
+        <div className="flex justify-end">
           <button
             onClick={handleExportCsv}
             className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
@@ -98,8 +94,24 @@ export const UnpaidManagementView: React.FC = () => {
             <Download className="w-4 h-4" />
             CSV 내보내기
           </button>
-        }
-      />
+        </div>
+      ) : (
+        <PageHeader
+          icon={<AlertCircle className="w-6 h-6" />}
+          iconClassName="text-rose-600"
+          title="미납 통합 관리"
+          description="수강료·교재비 미납을 원생별로 한눈에 확인하고 수납 처리합니다"
+          actions={
+            <button
+              onClick={handleExportCsv}
+              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+            >
+              <Download className="w-4 h-4" />
+              CSV 내보내기
+            </button>
+          }
+        />
+      )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryMetricCard label="미납 원생" value={`${stats.studentCount}명`} />

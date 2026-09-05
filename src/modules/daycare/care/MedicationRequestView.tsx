@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC, type FormEvent } from 'react';
+﻿import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -145,7 +145,7 @@ export const MedicationRequestView: FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Pill className="w-6 h-6" />}
         iconClassName="text-sky-600"

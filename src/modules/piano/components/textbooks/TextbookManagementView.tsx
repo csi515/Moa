@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Textbook,
   TextbookSale,
@@ -124,7 +124,7 @@ export const TextbookManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<BookOpen className="w-6 h-6" />}
         title="교재 판매 및 교재비 관리"

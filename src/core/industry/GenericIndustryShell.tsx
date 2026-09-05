@@ -6,7 +6,7 @@ import { useTabGuard } from '@/core/auth/useTabGuard';
 import { ModuleLabelsProvider } from '@/core/labels';
 import { AcademySettingsView } from '@/core/academy';
 import { accountViewEntry } from '@/core/industry/commonViewEntries';
-import { ToastContainer, ConfirmDialog, PwaInstallPrompt } from '@/shared/components';
+import { ToastContainer, ConfirmDialog } from '@/shared/components';
 import { EmptyState } from '@/shared/components/ui';
 import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
 import { ModuleSidebar } from '@/shared/components/layout/ModuleSidebar';
@@ -92,7 +92,6 @@ export const GenericIndustryShell: FC = () => {
         }
         overlays={
           <>
-            <PwaInstallPrompt />
             <ConfirmDialog />
             <ToastContainer />
           </>

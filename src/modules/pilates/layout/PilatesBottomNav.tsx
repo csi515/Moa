@@ -21,7 +21,8 @@ export const PilatesBottomNav: FC = () => {
         if (tab === 'members') setSelectedStudentId(null);
         setActiveTab(tab);
       }}
-      moreMenuTitle="전체 메뉴"
+      moreMenuTitle="더보기"
+      moreMenuDescription="출결 · 설정"
     />
   );
 };

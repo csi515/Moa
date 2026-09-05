@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -72,6 +72,18 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
     });
   }, [students, currentMonth]);
 
+  const selectedDayEvents = useMemo(() => {
+    if (!selectedDay) return { dayEvents: [] as typeof events, dayBdays: [] as typeof birthdayStudents };
+    const dateStr = `${currentYearMonthStr}-${String(selectedDay).padStart(2, '0')}`;
+    return {
+      dayEvents: events.filter((ev) => ev.startDate === dateStr),
+      dayBdays: birthdayStudents.filter((s) => {
+        const bDay = parseInt(s.birthDate.split('-')[2], 10);
+        return bDay === selectedDay;
+      }),
+    };
+  }, [selectedDay, currentYearMonthStr, events, birthdayStudents]);
+
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newEvent.title.trim()) return;
@@ -104,13 +116,57 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
     setIsModalOpen(true);
   };
 
+  const renderDayDetailList = (
+    dayEvents: typeof events,
+    dayBdays: typeof birthdayStudents,
+    emptyMessage = '등록된 일정이 없습니다.'
+  ) => {
+    if (dayEvents.length === 0 && dayBdays.length === 0) {
+      return <p className="text-xs text-slate-400 py-4 text-center">{emptyMessage}</p>;
+    }
+
+    return (
+      <div className="space-y-2">
+        {dayEvents.map((ev) => (
+          <div
+            key={ev.id}
+            className="p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-3"
+            style={{ borderLeftWidth: 4, borderLeftColor: ev.color || '#4f46e5' }}
+          >
+            <div>
+              <p className="font-bold text-sm text-slate-900">{ev.title}</p>
+              {ev.description && <p className="text-xs text-slate-500 mt-0.5">{ev.description}</p>}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleDeleteEvent(ev.id)}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg"
+              aria-label="일정 삭제"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        ))}
+        {dayBdays.map((s) => (
+          <div
+            key={s.id}
+            className="p-3 rounded-xl bg-pink-50 border border-pink-100 flex items-center gap-2 text-sm font-bold text-pink-700"
+          >
+            <Cake className="w-4 h-4 shrink-0" />
+            {s.name} 생일 🎂
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
-    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {!embedded ? (
         <PageHeader
+          density="compact"
           icon={<CalendarDays className="w-6 h-6" />}
           title="학원 일정 및 캘린더"
-          description="정기 연주회, 콩쿠르 출전, 방학/휴원, 조율 일정, 학생 생일"
           actions={
             <button
               type="button"
@@ -176,7 +232,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                 key={dayNum}
                 type="button"
                 onClick={() => setSelectedDay(dayNum)}
-                className={`shrink-0 min-w-[52px] min-h-[52px] rounded-2xl flex flex-col items-center justify-center text-xs font-bold transition-all ${
+                className={`shrink-0 min-w-[44px] min-h-[44px] rounded-2xl flex flex-col items-center justify-center text-xs font-bold transition-all ${
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-md'
                     : hasItems
@@ -194,164 +250,125 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
         </div>
 
         {selectedDay && (
-          <div className="bg-white rounded-3xl p-4 border border-slate-200/80 shadow-xs space-y-3">
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs space-y-3">
             <h4 className="font-bold text-sm text-slate-900">
               {currentMonth}월 {selectedDay}일 일정
             </h4>
-            {(() => {
-              const dateStr = `${currentYearMonthStr}-${String(selectedDay).padStart(2, '0')}`;
-              const dayEvents = events.filter((ev) => ev.startDate === dateStr);
-              const dayBdays = birthdayStudents.filter((s) => {
-                const bDay = parseInt(s.birthDate.split('-')[2], 10);
-                return bDay === selectedDay;
-              });
-
-              if (dayEvents.length === 0 && dayBdays.length === 0) {
-                return <p className="text-xs text-slate-400 py-4 text-center">등록된 일정이 없습니다.</p>;
-              }
-
-              return (
-                <div className="space-y-2">
-                  {dayEvents.map((ev) => (
-                    <div
-                      key={ev.id}
-                      className="p-3 rounded-xl border border-slate-100 flex items-center justify-between gap-3"
-                      style={{ borderLeftWidth: 4, borderLeftColor: ev.color || '#4f46e5' }}
-                    >
-                      <div>
-                        <p className="font-bold text-sm text-slate-900">{ev.title}</p>
-                        {ev.description && <p className="text-xs text-slate-500 mt-0.5">{ev.description}</p>}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteEvent(ev.id)}
-                        className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg"
-                        aria-label="일정 삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {dayBdays.map((s) => (
-                    <div
-                      key={s.id}
-                      className="p-3 rounded-xl bg-pink-50 border border-pink-100 flex items-center gap-2 text-sm font-bold text-pink-700"
-                    >
-                      <Cake className="w-4 h-4 shrink-0" />
-                      {s.name} 생일 🎂
-                    </div>
-                  ))}
-                </div>
-              );
-            })()}
+            {renderDayDetailList(selectedDayEvents.dayEvents, selectedDayEvents.dayBdays)}
           </div>
         )}
       </div>
 
-      {/* 데스크탑: 월간 캘린더 그리드 */}
-      <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-3">
-          <span className="text-rose-500">일</span>
-          <span>월</span>
-          <span>화</span>
-          <span>수</span>
-          <span>목</span>
-          <span>금</span>
-          <span className="text-indigo-600">토</span>
+      {/* 데스크탑: 캘린더 + 선택일 사이드 패널 */}
+      <div className="hidden md:flex md:min-h-[calc(100dvh-14rem)] gap-4 items-stretch">
+        <div className="flex-1 min-w-0 bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden flex flex-col">
+          <div className="grid grid-cols-7 border-b border-slate-200 bg-slate-50 text-center text-xs font-bold py-2.5 shrink-0">
+            <span className="text-rose-500">일</span>
+            <span>월</span>
+            <span>화</span>
+            <span>수</span>
+            <span>목</span>
+            <span>금</span>
+            <span className="text-indigo-600">토</span>
+          </div>
+
+          <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 text-xs flex-1 auto-rows-fr">
+            {Array.from({ length: firstDayOfWeek }).map((_, i) => (
+              <div key={`empty-${i}`} className="min-h-[72px] p-1.5 bg-slate-50/40" />
+            ))}
+
+            {Array.from({ length: daysInMonth }).map((_, i) => {
+              const dayNum = i + 1;
+              const dateStr = `${currentYearMonthStr}-${String(dayNum).padStart(2, '0')}`;
+              const dayEvents = events.filter((ev) => ev.startDate === dateStr);
+              const dayBdays = birthdayStudents.filter((s) => {
+                const bDay = parseInt(s.birthDate.split('-')[2], 10);
+                return bDay === dayNum;
+              });
+
+              return (
+                <div
+                  key={dayNum}
+                  onClick={() => setSelectedDay(dayNum)}
+                  className={`min-h-[72px] p-1.5 hover:bg-indigo-50/30 transition-colors cursor-pointer space-y-0.5 ${
+                    selectedDay === dayNum ? 'bg-indigo-50/50 ring-2 ring-indigo-600 ring-inset' : ''
+                  }`}
+                >
+                  <span className="font-bold text-slate-700">{dayNum}</span>
+
+                  {dayEvents.map((ev) => (
+                    <div
+                      key={ev.id}
+                      className="p-0.5 rounded-md text-[10px] font-bold text-white truncate shadow-2xs"
+                      style={{ backgroundColor: ev.color || '#4f46e5' }}
+                      title={ev.title}
+                    >
+                      {ev.title}
+                    </div>
+                  ))}
+
+                  {dayBdays.map((s) => (
+                    <div
+                      key={s.id}
+                      className="p-0.5 rounded-md text-[10px] font-bold bg-pink-100 text-pink-700 truncate flex items-center gap-1"
+                    >
+                      <Cake className="w-3 h-3 text-pink-500 shrink-0" />
+                      <span>{s.name} 생일</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="grid grid-cols-7 divide-x divide-y divide-slate-100 text-xs">
-          {Array.from({ length: firstDayOfWeek }).map((_, i) => (
-            <div key={`empty-${i}`} className="min-h-[100px] p-2 bg-slate-50/40" />
-          ))}
+        <aside className="w-72 lg:w-80 shrink-0 bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col gap-4 overflow-hidden">
+          <div className="space-y-3 min-h-0 flex-1 overflow-y-auto">
+            <h4 className="font-bold text-sm text-slate-900 flex items-center gap-2 sticky top-0 bg-white pb-1">
+              <Clock className="w-4 h-4 text-indigo-600" />
+              {selectedDay
+                ? `${currentMonth}월 ${selectedDay}일`
+                : `${currentMonth}월 일정`}
+            </h4>
+            {selectedDay ? (
+              renderDayDetailList(selectedDayEvents.dayEvents, selectedDayEvents.dayBdays)
+            ) : (
+              <p className="text-xs text-slate-400 py-4 text-center">날짜를 선택하세요.</p>
+            )}
+          </div>
 
-          {Array.from({ length: daysInMonth }).map((_, i) => {
-            const dayNum = i + 1;
-            const dateStr = `${currentYearMonthStr}-${String(dayNum).padStart(2, '0')}`;
-            const dayEvents = events.filter((ev) => ev.startDate === dateStr);
-            const dayBdays = birthdayStudents.filter((s) => {
-              const bDay = parseInt(s.birthDate.split('-')[2], 10);
-              return bDay === dayNum;
-            });
-
-            return (
-              <div
-                key={dayNum}
-                onClick={() => setSelectedDay(dayNum)}
-                className={`min-h-[100px] p-2 hover:bg-indigo-50/30 transition-colors cursor-pointer space-y-1 ${
-                  selectedDay === dayNum ? 'bg-indigo-50/50 ring-2 ring-indigo-600 ring-inset' : ''
-                }`}
-              >
-                <span className="font-bold text-slate-700">{dayNum}</span>
-
-                {dayEvents.map((ev) => (
+          <div className="border-t border-slate-100 pt-3 space-y-2 shrink-0 max-h-48 overflow-y-auto">
+            <p className="text-[11px] font-bold text-slate-500">
+              이달 전체 · {monthEvents.length}건
+            </p>
+            {monthEvents.length === 0 ? (
+              <p className="text-xs text-slate-400 text-center py-2">일정 없음</p>
+            ) : (
+              monthEvents.map((ev) => (
+                <button
+                  key={ev.id}
+                  type="button"
+                  onClick={() => {
+                    const day = parseInt(ev.startDate.split('-')[2], 10);
+                    setSelectedDay(day);
+                  }}
+                  className="w-full text-left p-2 rounded-xl border border-slate-100 bg-slate-50 hover:bg-indigo-50/50 flex items-center gap-2 min-h-[44px]"
+                >
                   <div
-                    key={ev.id}
-                    className="p-1 rounded-md text-[10px] font-bold text-white truncate shadow-2xs"
-                    style={{ backgroundColor: ev.color || '#4f46e5' }}
-                    title={ev.title}
-                  >
-                    {ev.title}
-                  </div>
-                ))}
-
-                {dayBdays.map((s) => (
-                  <div
-                    key={s.id}
-                    className="p-1 rounded-md text-[10px] font-bold bg-pink-100 text-pink-700 truncate flex items-center gap-1"
-                  >
-                    <Cake className="w-3 h-3 text-pink-500 shrink-0" />
-                    <span>{s.name} 생일 🎂</span>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-4">
-        <h3 className="font-bold text-base text-slate-900 flex items-center gap-2">
-          <Clock className="w-4 h-4 text-indigo-600" />
-          {currentMonth}월 전체 학원 행사 및 일정 ({monthEvents.length}건)
-        </h3>
-
-        <div className="space-y-3">
-          {monthEvents.length === 0 ? (
-            <p className="text-xs text-slate-400 py-6 text-center">등록된 일정이 없습니다.</p>
-          ) : (
-            monthEvents.map((ev) => (
-              <div
-                key={ev.id}
-                className="p-4 rounded-2xl border border-slate-100 bg-slate-50 flex items-center justify-between gap-4"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-3 h-10 rounded-full shrink-0"
+                    className="w-1.5 h-8 rounded-full shrink-0"
                     style={{ backgroundColor: ev.color || '#4f46e5' }}
                   />
-                  <div>
-                    <span className="text-xs font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
-                      {ev.startDate}
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-mono font-bold text-indigo-700">
+                      {ev.startDate.slice(8)}일
                     </span>
-                    <h4 className="font-bold text-sm text-slate-900 mt-1">{ev.title}</h4>
-                    {ev.description && (
-                      <p className="text-xs text-slate-500 mt-0.5">{ev.description}</p>
-                    )}
+                    <p className="font-bold text-xs text-slate-900 truncate">{ev.title}</p>
                   </div>
-                </div>
-
-                <button
-                  onClick={() => handleDeleteEvent(ev.id)}
-                  className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 rounded-lg transition-colors"
-                  aria-label="일정 삭제"
-                >
-                  <Trash2 className="w-4 h-4" />
                 </button>
-              </div>
-            ))
-          )}
-        </div>
+              ))
+            )}
+          </div>
+        </aside>
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="학원 일정 등록">

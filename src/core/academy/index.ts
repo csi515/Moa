@@ -11,4 +11,14 @@ export { TuitionManagementView } from './components/tuition/TuitionManagementVie
 export { UnpaidManagementView } from './components/unpaid/UnpaidManagementView';
 export { TeacherManagementView } from './components/teachers/TeacherManagementView';
 export { AcademyCalendarView } from './components/calendar/AcademyCalendarView';
+export { ClassScheduleHubView } from './components/schedule/ClassScheduleHubView';
+export { CustomerHubView } from './components/customers/CustomerHubView';
+export { SettingsHubView } from './components/settings/SettingsHubView';
 export { AcademySettingsView } from './components/settings/AcademySettingsView';
+export {
+  ACADEMY_ROOM_KIND_LABEL,
+  createAcademyRoom,
+  formatAcademyRoomLabel,
+  getAcademyRoomNames,
+  getConfiguredRooms,
+} from './utils/academyRooms';

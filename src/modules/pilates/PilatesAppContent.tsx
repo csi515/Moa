@@ -1,9 +1,8 @@
 import type { FC, ReactNode } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
-  PwaInstallPrompt,
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
@@ -22,25 +21,42 @@ import {
   PassManagementView,
 } from './index';
 import {
-  accountViewEntry,
   attendanceViewEntry,
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
-import { noticesViewEntry } from '@/core/notices';
-import { AcademySettingsView } from '@/core/academy';
+import { SettingsHubView } from '@/core/academy';
+import { PilatesScheduleHubView } from './components/PilatesScheduleHubView';
+import { PilatesCustomerHubView } from './components/PilatesCustomerHubView';
+
+const pilatesSettingsHub = () => (
+  <SettingsHubView
+    staffView={InstructorListView}
+    staffTab={'instructors' as NavTab}
+    workplaceLabel="스튜디오"
+    staffLabel="강사"
+  />
+);
+
+const customerHub = () => (
+  <PilatesCustomerHubView membersView={MemberListView} passesView={PassManagementView} />
+);
+
+const scheduleHub = () => (
+  <PilatesScheduleHubView bookingsView={BookingCalendarView} servicesView={ServiceManagementView} />
+);
 
 const PILATES_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <PilatesDashboardView />,
-  bookings: () => <BookingCalendarView />,
-  services: () => <ServiceManagementView />,
-  members: () => <MemberListView />,
-  passes: () => <PassManagementView />,
-  instructors: () => <InstructorListView />,
+  bookings: scheduleHub,
+  services: scheduleHub,
+  members: customerHub,
+  passes: customerHub,
+  instructors: pilatesSettingsHub,
   ...attendanceViewEntry,
-  ...noticesViewEntry,
   ...financeViewEntries,
-  settings: () => <AcademySettingsView />,
-  ...accountViewEntry,
+  settings: pilatesSettingsHub,
+  notices: pilatesSettingsHub,
+  account: pilatesSettingsHub,
 };
 
 export const PilatesAppContent: FC = () => {
@@ -60,7 +76,6 @@ export const PilatesAppContent: FC = () => {
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
-          <PwaInstallPrompt />
           <ConfirmDialog />
           <ToastContainer />
         </>

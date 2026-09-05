@@ -23,15 +23,9 @@ export const PianoConsultationHubView: FC = () => {
   return (
     <div className="space-y-4 pb-4">
       <PageHeader
+        density="compact"
         icon={<MessageSquareText className="w-6 h-6" />}
         title="상담"
-        description={
-          segment === 'reservations'
-            ? '학부모 상담 예약을 확인하고 확정·취소합니다.'
-            : segment === 'records'
-              ? '재원생·학부모 상담 일지를 남깁니다.'
-              : '상담 가능 시간을 설정하고 예약 슬롯을 만듭니다.'
-        }
         actions={
           <SegmentedControl
             value={segment}
@@ -50,7 +44,6 @@ export const PianoConsultationHubView: FC = () => {
         <AvailabilitySettingsView
           embedded
           title="상담 가능 시간"
-          description="학부모 상담을 받을 수 있는 반복 시간과 날짜 예외를 설정합니다."
           defaultSlotTitle="상담"
           defaultSlotMinutes={30}
         />

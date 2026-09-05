@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
@@ -115,7 +115,7 @@ export const ConsultationRecordsView: React.FC<{ embedded?: boolean }> = ({
   };
 
   return (
-    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {!embedded ? (
         <PageHeader
           icon={<MessageSquareText className="w-6 h-6" />}

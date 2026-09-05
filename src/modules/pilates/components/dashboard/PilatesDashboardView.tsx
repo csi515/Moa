@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
@@ -38,29 +38,39 @@ const PilatesStaffDashboard: React.FC = () => {
   ).length;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
-        icon={<Activity className="w-6 h-6" />}
+        density="compact"
+        icon={<Activity className="w-5 h-5" />}
         iconClassName="text-teal-600"
         title="강사 대시보드"
         description={`${formatKoreanDate(today)} · 내 예약과 담당 회원`}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <SummaryMetricCard label="오늘 예약" value={`${todayBookings.length}건`} variant="teal" />
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+        <SummaryMetricCard
+          label="오늘 예약"
+          value={`${todayBookings.length}건`}
+          variant="teal"
+          onClick={() => setActiveTab('bookings')}
+        />
         <SummaryMetricCard label="확정/예약" value={`${confirmedToday}건`} variant="emerald" />
-        <SummaryMetricCard label="담당 회원" value={`${members.length}명`} />
+        <SummaryMetricCard
+          label="담당 회원"
+          value={`${members.length}명`}
+          onClick={() => setActiveTab('members')}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-teal-600" />
               오늘 예약
             </h3>
-            <button onClick={() => setActiveTab('bookings')} className="text-xs font-bold text-teal-600 hover:underline">
-              전체 보기
+            <button type="button" onClick={() => setActiveTab('bookings')} className="text-xs font-bold text-teal-600 hover:underline min-h-[44px] px-1">
+              전체
             </button>
           </div>
           {todayBookings.length === 0 ? (
@@ -78,14 +88,14 @@ const PilatesStaffDashboard: React.FC = () => {
                   예약 추가
                 </button>
               }
-              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+              className="p-4 border-0 shadow-none bg-slate-50/50 rounded-xl"
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {todayBookings.map((b) => (
-                <div key={b.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+                <div key={b.id} className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm">
                   <p className="font-bold text-slate-900">{b.customerName}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-slate-500">
                     {b.startsAt.slice(11, 16)} · {b.serviceName || '수업'}
                   </p>
                 </div>
@@ -94,8 +104,8 @@ const PilatesStaffDashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2.5 text-sm">
             <Users className="w-4 h-4 text-teal-600" />
             담당 회원
           </h3>
@@ -104,12 +114,12 @@ const PilatesStaffDashboard: React.FC = () => {
               icon={<Users className="w-8 h-8" />}
               title="담당 회원이 없습니다"
               description="예약이 연결되면 담당 회원이 표시됩니다."
-              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+              className="p-4 border-0 shadow-none bg-slate-50/50 rounded-xl"
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {members.slice(0, 6).map((m) => (
-                <div key={m.id} className="p-3 rounded-xl bg-teal-50/50 border border-teal-100 text-sm font-bold text-slate-900">
+                <div key={m.id} className="px-2.5 py-2 rounded-xl bg-teal-50/50 border border-teal-100 text-sm font-bold text-slate-900">
                   {m.name}
                 </div>
               ))}
@@ -118,14 +128,16 @@ const PilatesStaffDashboard: React.FC = () => {
         </div>
       </div>
 
-      {upcoming.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="font-bold text-slate-900 mb-3">다가오는 예약</h3>
-          <div className="space-y-2">
-            {upcoming.map((b) => (
-              <div key={b.id} className="flex justify-between p-3 rounded-xl bg-slate-50 text-sm">
+      {upcoming.some((b) => !b.startsAt.startsWith(today)) && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <h3 className="font-bold text-slate-900 mb-2 text-sm">다가오는 예약</h3>
+          <div className="space-y-1.5">
+            {upcoming
+              .filter((b) => !b.startsAt.startsWith(today))
+              .map((b) => (
+              <div key={b.id} className="flex justify-between px-2.5 py-2 rounded-xl bg-slate-50 text-sm">
                 <span className="font-bold">{b.customerName}</span>
-                <span className="text-xs text-teal-700">{b.startsAt.slice(0, 16).replace('T', ' ')}</span>
+                <span className="text-[11px] text-teal-700">{b.startsAt.slice(0, 16).replace('T', ' ')}</span>
               </div>
             ))}
           </div>
@@ -152,33 +164,49 @@ const PilatesAdminDashboard: React.FC = () => {
   const confirmedToday = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'scheduled').length;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
-        icon={<Activity className="w-6 h-6" />}
+        density="compact"
+        icon={<Activity className="w-5 h-5" />}
         iconClassName="text-teal-600"
-        title="필라테스 스튜디오 대시보드"
+        title="필라테스 스튜디오"
         description={`${formatKoreanDate(today)} · 오늘의 예약과 운영 현황`}
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryMetricCard label="오늘 예약" value={`${todayBookings.length}건`} variant="teal" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <SummaryMetricCard
+          label="오늘 예약"
+          value={`${todayBookings.length}건`}
+          variant="teal"
+          onClick={() => setActiveTab('bookings')}
+        />
         <SummaryMetricCard label="확정/예약" value={`${confirmedToday}건`} variant="emerald" />
-        <SummaryMetricCard label="재적 회원" value={`${members.length}명`} />
-        <SummaryMetricCard label="수업 종류" value={`${services.length}개`} variant="purple" />
+        <SummaryMetricCard
+          label="재적 회원"
+          value={`${members.length}명`}
+          onClick={() => setActiveTab('members')}
+        />
+        <SummaryMetricCard
+          label="수업 종류"
+          value={`${services.length}개`}
+          variant="purple"
+          onClick={() => setActiveTab('services')}
+        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
               <Calendar className="w-4 h-4 text-teal-600" />
               오늘 예약
             </h3>
             <button
+              type="button"
               onClick={() => setActiveTab('bookings')}
-              className="text-xs font-bold text-teal-600 hover:underline"
+              className="text-xs font-bold text-teal-600 hover:underline min-h-[44px] px-1"
             >
-              전체 보기
+              전체
             </button>
           </div>
           {todayBookings.length === 0 ? (
@@ -196,14 +224,14 @@ const PilatesAdminDashboard: React.FC = () => {
                   예약 추가
                 </button>
               }
-              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+              className="p-4 border-0 shadow-none bg-slate-50/50 rounded-xl"
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {todayBookings.map((b) => (
-                <div key={b.id} className="p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+                <div key={b.id} className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm">
                   <p className="font-bold text-slate-900">{b.customerName}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-slate-500">
                     {b.startsAt.slice(11, 16)} · {b.serviceName || '수업'} · {b.staffName || '강사 미지정'}
                   </p>
                 </div>
@@ -212,8 +240,8 @@ const PilatesAdminDashboard: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-4">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2 mb-2.5 text-sm">
             <Dumbbell className="w-4 h-4 text-purple-600" />
             다가오는 예약
           </h3>
@@ -222,26 +250,17 @@ const PilatesAdminDashboard: React.FC = () => {
               icon={<Calendar className="w-8 h-8" />}
               title="예정된 예약이 없습니다"
               description="다가오는 수업 예약이 여기에 표시됩니다."
-              action={
-                <button
-                  type="button"
-                  onClick={() => setActiveTab('bookings')}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold"
-                >
-                  예약 관리
-                </button>
-              }
-              className="p-6 border-0 shadow-none bg-slate-50/50 rounded-xl"
+              className="p-4 border-0 shadow-none bg-slate-50/50 rounded-xl"
             />
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {upcoming.map((b) => (
-                <div key={b.id} className="flex justify-between p-3 rounded-xl bg-teal-50/50 border border-teal-100 text-sm">
+                <div key={b.id} className="flex justify-between px-2.5 py-2 rounded-xl bg-teal-50/50 border border-teal-100 text-sm">
                   <div>
                     <p className="font-bold text-slate-900">{b.customerName}</p>
-                    <p className="text-xs text-slate-500">{b.serviceName}</p>
+                    <p className="text-[11px] text-slate-500">{b.serviceName}</p>
                   </div>
-                  <span className="text-xs font-bold text-teal-700">{b.startsAt.slice(0, 16).replace('T', ' ')}</span>
+                  <span className="text-[11px] font-bold text-teal-700">{b.startsAt.slice(0, 16).replace('T', ' ')}</span>
                 </div>
               ))}
             </div>
@@ -249,26 +268,9 @@ const PilatesAdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <button
-          type="button"
-          onClick={() => setActiveTab('members')}
-          className="p-4 min-h-[72px] bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left transition-colors"
-        >
-          <Users className="w-5 h-5 text-teal-600 mb-2" />
-          <p className="font-bold text-sm">회원 {members.length}명</p>
-          <p className="text-xs text-slate-500">회원 관리</p>
-        </button>
-        <button
-          type="button"
-          onClick={() => setActiveTab('instructors')}
-          className="p-4 min-h-[72px] bg-white rounded-2xl border border-slate-200 hover:border-teal-300 text-left transition-colors"
-        >
-          <Activity className="w-5 h-5 text-purple-600 mb-2" />
-          <p className="font-bold text-sm">강사 {instructors.length}명</p>
-          <p className="text-xs text-slate-500">강사 관리</p>
-        </button>
-      </div>
+      <p className="text-[11px] text-slate-500 px-0.5">
+        강사 {instructors.length}명 · 지표를 눌러 회원·수업 종류로 이동합니다.
+      </p>
     </div>
   );
 };

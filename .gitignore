@@ -6,7 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
-!.env
 
 # Capacitor / native build caches (소스는 커밋)
 android/.gradle/

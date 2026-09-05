@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
@@ -21,7 +21,7 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import type { FinanceExpense } from '@/core/finance/types';
 
-export const ExpenseManagementView: React.FC = () => {
+export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const categoryOptions = getExpenseCategories(industry);
@@ -135,50 +135,54 @@ export const ExpenseManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Receipt className="w-6 h-6 text-indigo-600" />
-            지출 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            임대료, 인건비, 운영비 등 사업장 지출을 기록합니다.
-          </p>
-        </div>
+        {!embedded && (
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <Receipt className="w-6 h-6 text-indigo-600" />
+              지출 관리
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              임대료, 인건비, 운영비 등 사업장 지출을 기록합니다.
+            </p>
+          </div>
+        )}
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto"
+          className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto sm:ml-auto"
         >
           <Plus className="w-4 h-4" />
           신규 지출 등록
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            {selectedMonth} 총 지출
-          </span>
-          <p className="text-3xl font-black text-rose-600 mt-2">
-            {formatCurrency(totalExpenseAmount)}
-          </p>
-          <p className="text-xs text-slate-500 mt-1">등록 {filteredExpenses.length}건</p>
-        </div>
+      <div className={`grid grid-cols-1 gap-4 ${embedded ? '' : 'lg:grid-cols-3'}`}>
+        {!embedded && (
+          <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              {selectedMonth} 총 지출
+            </span>
+            <p className="text-xl font-black text-rose-600 mt-2">
+              {formatCurrency(totalExpenseAmount)}
+            </p>
+            <p className="text-xs text-slate-500 mt-1">등록 {filteredExpenses.length}건</p>
+          </div>
+        )}
 
-        <div className="lg:col-span-2 bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
+        <div className={`${embedded ? '' : 'lg:col-span-2'} bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs`}>
           <h4 className="font-bold text-slate-900 text-sm mb-2">항목별 지출 구성</h4>
           {categoryData.length === 0 ? (
-            <p className="text-xs text-slate-400 p-8 text-center">지출 데이터가 없습니다.</p>
+            <p className="text-xs text-slate-400 p-6 text-center">지출 데이터가 없습니다.</p>
           ) : (
-            <div className="h-56 w-full">
+            <div className="h-40 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    outerRadius={80}
+                    outerRadius={70}
                     dataKey="value"
                     label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                   >
@@ -194,7 +198,7 @@ export const ExpenseManagementView: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={selectedMonth}

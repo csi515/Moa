@@ -515,6 +515,15 @@ export interface EventParticipantSummary {
   videoTitle?: string;
 }
 
+export type AcademyRoomKind = 'classroom' | 'practice';
+
+/** 학원 강의실·연습실 마스터 */
+export interface AcademyRoom {
+  id: string;
+  name: string;
+  kind: AcademyRoomKind;
+}
+
 export interface AcademySettings {
   name: string;
   directorName?: string;
@@ -535,6 +544,8 @@ export interface AcademySettings {
     holder: string;
   };
   announcement?: string;
+  /** 강의실·연습실 목록 (반 개설·보강 선택용) */
+  rooms?: AcademyRoom[];
   /** Industry Module 기능 플래그 */
   features?: {
     attendance?: {

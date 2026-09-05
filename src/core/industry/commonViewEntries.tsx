@@ -1,17 +1,15 @@
 import type { ReactNode } from 'react';
 import { MyAccountView } from '@/core/account';
 import { AttendanceManagementView } from '@/core/attendance';
-import {
-  ExpenseManagementView,
-  FinanceOverviewView,
-  IncomeManagementView,
-} from '@/core/finance';
+import { FinanceHubView } from '@/core/finance';
 
-/** 재무(수입·지출·개요) — 모든 업종 공통 */
+/** 재무 허브 — 요약·수입·지출·수납·미수금 (딥링크 탭도 동일 허브) */
 export const financeViewEntries = {
-  finance: () => <FinanceOverviewView />,
-  income: () => <IncomeManagementView />,
-  expenses: () => <ExpenseManagementView />,
+  finance: () => <FinanceHubView />,
+  income: () => <FinanceHubView />,
+  expenses: () => <FinanceHubView />,
+  tuition: () => <FinanceHubView />,
+  unpaid: () => <FinanceHubView />,
 } as const satisfies Record<string, () => ReactNode>;
 
 /** 출결 관리 — 업종 공통 */

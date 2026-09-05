@@ -31,3 +31,41 @@ export function filterNavTabs<T extends { tab: NavTab }>(items: T[], allowedTabs
   const allowed = new Set(allowedTabs);
   return items.filter((item) => allowed.has(item.tab));
 }
+
+/**
+ * 허브 하위 탭(딥링크)을 사이드바·하단 네비 하이라이트용 대표 탭으로 정규화
+ */
+export function resolveNavHighlightTab(tab: NavTab): NavTab {
+  switch (tab) {
+    case 'income':
+    case 'expenses':
+    case 'tuition':
+    case 'unpaid':
+      return 'finance';
+    case 'parents':
+    case 'enrollment-requests':
+      return 'students';
+    case 'passes':
+      return 'members';
+    case 'calendar':
+    case 'lessons':
+    case 'makeups':
+      return 'timetable';
+    case 'services':
+      return 'bookings';
+    case 'medications':
+      return 'journals';
+    case 'teachers':
+    case 'instructors':
+    case 'notices':
+    case 'account':
+      return 'settings';
+    default:
+      return tab;
+  }
+}
+
+/** 네비 항목이 현재 활성 허브에 속하는지 */
+export function isNavItemActive(itemTab: NavTab, activeTab: NavTab): boolean {
+  return resolveNavHighlightTab(activeTab) === itemTab || activeTab === itemTab;
+}

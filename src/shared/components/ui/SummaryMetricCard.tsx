@@ -84,13 +84,13 @@ export const SummaryMetricCard: React.FC<SummaryMetricCardProps> = ({
             }
           : undefined
       }
-      className={`p-4 rounded-2xl border shadow-xs ${styles.container} ${
+      className={`p-3 sm:p-3.5 rounded-2xl border shadow-xs ${styles.container} ${
         onClick ? 'cursor-pointer hover:shadow-sm transition-shadow' : ''
       } ${className}`}
     >
-      <p className={`text-xs ${styles.label}`}>{label}</p>
-      <p className={`text-xl font-black mt-1 ${styles.value}`}>{value}</p>
-      {subtitle && <p className="text-[11px] text-slate-400 mt-1 font-medium">{subtitle}</p>}
+      <p className={`text-[11px] sm:text-xs ${styles.label}`}>{label}</p>
+      <p className={`text-lg sm:text-xl font-black mt-0.5 ${styles.value}`}>{value}</p>
+      {subtitle && <p className="text-[10px] sm:text-[11px] text-slate-400 mt-0.5 font-medium">{subtitle}</p>}
     </div>
   );
 };

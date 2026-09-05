@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { reservationService } from '@/core/schedules';
@@ -170,7 +170,7 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
   }
 
   return (
-    <div className={embedded ? 'space-y-4 pb-8' : 'space-y-6 pb-12'}>
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {/* Header */}
       {!embedded && (
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -199,39 +199,42 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <button
+          type="button"
           onClick={() => setStatusFilter('requested')}
-          className={`p-4 rounded-xl border-2 transition-all ${
+          className={`p-3 sm:p-3.5 rounded-2xl border shadow-xs transition-all min-h-[44px] text-left ${
             statusFilter === 'requested'
-              ? 'border-yellow-500 bg-yellow-50'
+              ? 'border-amber-300 bg-amber-50'
               : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
         >
-          <div className="text-2xl sm:text-3xl font-black text-yellow-600">{requestedCount}</div>
-          <div className="text-xs sm:text-sm text-slate-600 mt-1">신청 대기</div>
+          <p className="text-[11px] sm:text-xs text-amber-700 font-semibold">신청 대기</p>
+          <p className="text-lg sm:text-xl font-black text-amber-900 mt-0.5">{requestedCount}</p>
         </button>
         <button
+          type="button"
           onClick={() => setStatusFilter('confirmed')}
-          className={`p-4 rounded-xl border-2 transition-all ${
+          className={`p-3 sm:p-3.5 rounded-2xl border shadow-xs transition-all min-h-[44px] text-left ${
             statusFilter === 'confirmed'
-              ? 'border-green-500 bg-green-50'
+              ? 'border-emerald-300 bg-emerald-50'
               : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
         >
-          <div className="text-2xl sm:text-3xl font-black text-green-600">{confirmedCount}</div>
-          <div className="text-xs sm:text-sm text-slate-600 mt-1">확정됨</div>
+          <p className="text-[11px] sm:text-xs text-emerald-700 font-semibold">확정됨</p>
+          <p className="text-lg sm:text-xl font-black text-emerald-900 mt-0.5">{confirmedCount}</p>
         </button>
         <button
+          type="button"
           onClick={() => setStatusFilter('cancelled')}
-          className={`p-4 rounded-xl border-2 transition-all ${
+          className={`p-3 sm:p-3.5 rounded-2xl border shadow-xs transition-all min-h-[44px] text-left ${
             statusFilter === 'cancelled'
-              ? 'border-slate-500 bg-slate-50'
+              ? 'border-slate-400 bg-slate-50'
               : 'border-slate-200 bg-white hover:border-slate-300'
           }`}
         >
-          <div className="text-2xl sm:text-3xl font-black text-slate-600">{cancelledCount}</div>
-          <div className="text-xs sm:text-sm text-slate-600 mt-1">취소됨</div>
+          <p className="text-[11px] sm:text-xs text-slate-500">취소됨</p>
+          <p className="text-lg sm:text-xl font-black text-slate-900 mt-0.5">{cancelledCount}</p>
         </button>
       </div>
 
@@ -242,8 +245,9 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
           {(['all', 'requested', 'confirmed', 'cancelled'] as const).map((status) => (
             <button
               key={status}
+              type="button"
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-3 py-2 min-h-[44px] rounded-lg text-sm font-medium transition-colors ${
                 statusFilter === status
                   ? 'bg-indigo-600 text-white'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'

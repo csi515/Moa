@@ -33,7 +33,7 @@ export function ModuleAppShell({
       <Header />
       <div className="flex-1 flex max-w-[1600px] w-full mx-auto">
         {sidebar}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 main-with-bottom-nav max-w-full overflow-x-hidden">
+        <main className="flex-1 p-3 sm:p-4 lg:p-5 main-with-bottom-nav max-w-full overflow-x-hidden">
           {children}
         </main>
       </div>

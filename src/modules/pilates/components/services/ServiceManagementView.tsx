@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { ScheduleService } from '@/core/services/scheduleService';
@@ -81,7 +81,7 @@ export const ServiceManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Dumbbell className="w-6 h-6" />}
         iconClassName="text-purple-600"

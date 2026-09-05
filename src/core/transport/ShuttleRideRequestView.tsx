@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC, type FormEvent } from 'react';
+﻿import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { Bus, CheckCircle2, Plus, Save, Trash2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
@@ -183,7 +183,7 @@ export const ShuttleRideRequestView: FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Bus className="w-6 h-6" />}
         iconClassName="text-orange-600"

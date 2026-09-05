@@ -1,9 +1,8 @@
 import type { FC, ReactNode } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
-  PwaInstallPrompt,
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
@@ -16,41 +15,42 @@ import { GymBottomNav } from './layout/GymBottomNav';
 import { GymDashboardView } from './components/dashboard/GymDashboardView';
 import { StudentListView } from './components/students/StudentListView';
 import {
-  WeeklyTimetableView,
-  TuitionManagementView,
-  UnpaidManagementView,
   ClassManagementView,
-  ParentManagementView,
-  TeacherManagementView,
-  AcademyCalendarView,
-  AcademySettingsView,
+  ClassScheduleHubView,
+  CustomerHubView,
+  SettingsHubView,
 } from '@/core/academy';
 import {
-  accountViewEntry,
   attendanceViewEntry,
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
-import { noticesViewEntry } from '@/core/notices';
-import { GuardianEnrollmentRequestsView } from '@/core/academy';
 import { ShuttleRideRequestView } from '@/core/transport';
+
+const gymSettingsHub = () => (
+  <SettingsHubView
+    workplaceLabel="체육관"
+    staffLabel="지도진"
+    extras={[{ tab: 'classes' as NavTab, label: '수업반' }, { tab: 'shuttle' as NavTab, label: '차량 운행' }]}
+  />
+);
+
+const customerHub = () => <CustomerHubView listView={StudentListView} enrollmentLabel="회원 등록 요청" />;
 
 const GYM_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <GymDashboardView />,
-  students: () => <StudentListView />,
-  parents: () => <ParentManagementView />,
-  'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
+  students: customerHub,
+  parents: customerHub,
+  'enrollment-requests': customerHub,
   classes: () => <ClassManagementView />,
-  timetable: () => <WeeklyTimetableView />,
+  timetable: () => <ClassScheduleHubView />,
+  calendar: () => <ClassScheduleHubView />,
   ...attendanceViewEntry,
   shuttle: () => <ShuttleRideRequestView />,
-  ...noticesViewEntry,
-  tuition: () => <TuitionManagementView />,
-  unpaid: () => <UnpaidManagementView />,
-  teachers: () => <TeacherManagementView />,
-  calendar: () => <AcademyCalendarView />,
   ...financeViewEntries,
-  settings: () => <AcademySettingsView />,
-  ...accountViewEntry,
+  settings: gymSettingsHub,
+  teachers: gymSettingsHub,
+  notices: gymSettingsHub,
+  account: gymSettingsHub,
 };
 
 export const GymAppContent: FC = () => {
@@ -70,7 +70,6 @@ export const GymAppContent: FC = () => {
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
-          <PwaInstallPrompt />
           <ConfirmDialog />
           <ToastContainer />
         </>

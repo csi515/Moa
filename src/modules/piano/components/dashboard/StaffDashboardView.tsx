@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+﻿import React, { useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -45,99 +45,63 @@ export const StaffDashboardView: React.FC = () => {
   const todayClasses = classes.filter((c) => c.daysOfWeek.includes(todayKorean as any));
 
   return (
-    <div className="space-y-5 pb-12">
-      <div className="relative overflow-hidden bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-3xl p-6 sm:p-7 text-white shadow-xl">
-        <p className="text-indigo-200 text-xs font-semibold mb-1">강사 홈</p>
-        <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight">
-          {currentUser.name} 선생님
-        </h2>
-        <p className="text-indigo-200/90 text-sm mt-1.5">
-          {formatKoreanDate(today)} · 오늘 수업 {todayClasses.length}개
-        </p>
-        <button
-          type="button"
-          onClick={() => setActiveTab('lessons')}
-          className="mt-4 inline-flex items-center gap-2 min-h-[44px] px-4 py-2.5 rounded-xl bg-white text-indigo-800 text-sm font-bold shadow-sm hover:bg-indigo-50"
-        >
-          <Piano className="w-4 h-4" />
-          오늘 레슨 시작
-          <ChevronRight className="w-4 h-4" />
-        </button>
+    <div className="space-y-4 pb-4">
+      <div className="bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-2xl px-4 py-3 text-white">
+        <p className="text-indigo-200 text-[11px] font-semibold">강사 홈</p>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <h2 className="text-lg font-bold tracking-tight">{currentUser.name} 선생님</h2>
+          <p className="text-[11px] text-indigo-200">
+            {formatKoreanDate(today)} · 수업 {todayClasses.length}
+          </p>
+        </div>
+        <div className="mt-2 flex gap-1.5 overflow-x-auto">
+          {[
+            { label: '원생', value: activeStudents.length, tab: 'students' as const },
+            { label: '오늘', value: todayClasses.length, tab: 'lessons' as const },
+            { label: '미보강', value: pendingMakeups, tab: 'makeups' as const },
+            { label: '최근', value: recentLessons.length, tab: 'lessons' as const },
+          ].map(({ label, value, tab }) => (
+            <button
+              key={label}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-[36px] px-2.5 rounded-lg bg-white/10 border border-white/15 text-xs font-bold"
+            >
+              <span className="text-indigo-200">{label}</span>
+              <span className="tabular-nums text-sm">{value}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-        {[
-          {
-            label: '담당 원생',
-            value: activeStudents.length,
-            icon: Users,
-            color: 'text-indigo-600 bg-indigo-50',
-            tab: 'students' as const,
-          },
-          {
-            label: '오늘 수업',
-            value: todayClasses.length,
-            icon: Clock,
-            color: 'text-teal-600 bg-teal-50',
-            tab: 'lessons' as const,
-          },
-          {
-            label: '미보강',
-            value: pendingMakeups,
-            icon: Sparkles,
-            color: 'text-amber-600 bg-amber-50',
-            tab: 'makeups' as const,
-          },
-          {
-            label: '최근 레슨',
-            value: recentLessons.length,
-            icon: Piano,
-            color: 'text-purple-600 bg-purple-50',
-            tab: 'lessons' as const,
-          },
-        ].map(({ label, value, icon: Icon, color, tab }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className="bg-white rounded-2xl border border-slate-200 p-3.5 text-left hover:border-indigo-300 min-h-[88px]"
-          >
-            <span className={`inline-flex w-8 h-8 rounded-xl items-center justify-center ${color}`}>
-              <Icon className="w-4 h-4" />
-            </span>
-            <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">{value}</p>
-            <p className="text-[11px] text-slate-500 font-semibold">{label}</p>
-          </button>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
               <CalendarCheck className="w-4 h-4 text-indigo-600" />
               오늘 수업 ({todayKorean})
             </h3>
             <button
+              type="button"
               onClick={() => setActiveTab('timetable')}
-              className="text-xs font-bold text-indigo-600 hover:underline"
+              className="text-xs font-bold text-indigo-600 hover:underline min-h-[44px] px-1"
             >
               시간표
             </button>
           </div>
           {todayClasses.length === 0 ? (
-            <p className="text-sm text-slate-400 py-4 text-center">오늘 예정된 수업이 없습니다</p>
+            <p className="text-sm text-slate-400 py-3 text-center">오늘 예정된 수업이 없습니다</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {todayClasses.map((cls) => (
                 <button
                   key={cls.id}
                   type="button"
                   onClick={() => setActiveTab('lessons')}
-                  className="w-full text-left p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm hover:border-indigo-200 hover:bg-indigo-50/40"
+                  className="w-full text-left px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm hover:border-indigo-200 hover:bg-indigo-50/40 min-h-[44px]"
                 >
                   <p className="font-bold text-slate-900">{cls.name}</p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-[11px] text-slate-500">
                     {cls.startTime}–{cls.endTime} · {cls.room}
                   </p>
                 </button>
@@ -146,34 +110,36 @@ export const StaffDashboardView: React.FC = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-200 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
+          <div className="flex items-center justify-between mb-2.5">
+            <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
               <Users className="w-4 h-4 text-indigo-600" />
               담당 원생
             </h3>
             <button
+              type="button"
               onClick={() => {
                 setSelectedStudentId(null);
                 setActiveTab('students');
               }}
-              className="text-xs font-bold text-indigo-600 hover:underline"
+              className="text-xs font-bold text-indigo-600 hover:underline min-h-[44px] px-1"
             >
-              전체 보기
+              전체
             </button>
           </div>
           {activeStudents.length === 0 ? (
-            <p className="text-sm text-slate-400 py-4 text-center">담당 원생이 없습니다</p>
+            <p className="text-sm text-slate-400 py-3 text-center">담당 원생이 없습니다</p>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               {activeStudents.slice(0, 6).map((s) => (
                 <button
                   key={s.id}
+                  type="button"
                   onClick={() => {
                     setSelectedStudentId(s.id);
                     setActiveTab('students');
                   }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl bg-indigo-50/50 border border-indigo-100 text-sm hover:bg-indigo-50"
+                  className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-indigo-50/50 border border-indigo-100 text-sm hover:bg-indigo-50 min-h-[44px]"
                 >
                   <span className="font-bold text-slate-900">{s.name}</span>
                   <span className="text-xs text-indigo-600">{s.level}</span>
@@ -184,30 +150,25 @@ export const StaffDashboardView: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+      <div className="grid grid-cols-3 gap-2">
         {[
-          { tab: 'lessons' as const, label: '오늘 레슨', icon: Piano, primary: true },
-          { tab: 'attendance' as const, label: '출결 체크', icon: CheckSquare, primary: false },
-          { tab: 'makeups' as const, label: '보강 관리', icon: Sparkles, primary: false },
-          { tab: 'students' as const, label: '원생 목록', icon: Users, primary: false },
+          { tab: 'lessons' as const, label: '레슨', icon: Piano, primary: true },
+          { tab: 'attendance' as const, label: '출결', icon: CheckSquare, primary: false },
+          { tab: 'makeups' as const, label: '보강', icon: Sparkles, primary: false },
         ].map(({ tab, label, icon: Icon, primary }) => (
           <button
             key={tab}
             type="button"
             onClick={() => setActiveTab(tab)}
-            className={`p-3.5 rounded-2xl border text-left flex items-center gap-2.5 min-h-[56px] ${
+            className={`min-h-[44px] px-2.5 py-2 rounded-xl border text-sm font-bold flex items-center justify-center gap-1.5 ${
               primary
                 ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
-                : 'bg-white border-slate-200 hover:border-indigo-300'
+                : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300'
             }`}
           >
-            <Icon className={`w-5 h-5 shrink-0 ${primary ? 'text-white' : 'text-indigo-600'}`} />
-            <span className={`font-bold text-sm ${primary ? 'text-white' : 'text-slate-800'}`}>
-              {label}
-            </span>
-            <ChevronRight
-              className={`w-4 h-4 ml-auto ${primary ? 'text-white/70' : 'text-slate-300'}`}
-            />
+            <Icon className="w-4 h-4" />
+            {label}
+            <ChevronRight className={`w-3.5 h-3.5 ${primary ? 'text-white/70' : 'text-slate-300'}`} />
           </button>
         ))}
       </div>

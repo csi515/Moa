@@ -79,17 +79,17 @@ const StudentDetailModalContent: React.FC<
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-3 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
       <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-4xl lg:max-w-6xl overflow-hidden sm:my-4 flex flex-col max-h-[90vh]">
-        <div className="p-6 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
-          <div className="flex items-center gap-4">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3">
             <div
-              className="w-14 h-14 rounded-2xl flex items-center justify-center text-white text-xl font-extrabold shadow-md shrink-0"
+              className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0"
               style={{ backgroundColor: student.avatarColor || '#4f46e5' }}
             >
               {student.name.slice(0, 1)}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">
                   {student.name}
                 </h3>
                 <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold ${modal.statusBadge.bg}`}>
@@ -270,7 +270,7 @@ const StudentDetailModalContent: React.FC<
               </div>
             )}
 
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-6">
+            <div className="flex-1 p-3 sm:p-4 overflow-y-auto space-y-4">
               {modal.currentTab === 'info' && (
                 <StudentDetailInfoTab
                   student={student}

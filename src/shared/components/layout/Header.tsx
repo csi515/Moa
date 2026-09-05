@@ -7,11 +7,10 @@ import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { Search, Music, Shield, Users } from 'lucide-react';
+import { Search, Music, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
-    currentUser,
     setActiveTab,
     globalSearchQuery,
     setGlobalSearchQuery,
@@ -19,12 +18,12 @@ export const Header: React.FC = () => {
   } = useApp();
 
   const supabaseOrg = useOptionalOrganization();
-  const { roleLabel, isStaff, staffId } = usePermissions();
+  const { isStaff, staffId } = usePermissions();
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
-  
+
   const displayName = supabaseOrg?.currentOrganization?.name ?? StorageService.getSettings().name;
 
   const todayStr = formatKoreanDate(new Date().toISOString());
@@ -41,9 +40,9 @@ export const Header: React.FC = () => {
           (s) =>
             (!isStaff || !staffId || s.teacherId === staffId) &&
             (s.name.includes(globalSearchQuery) ||
-            studentMatchesGuardianQuery(s.id, globalSearchQuery) ||
-            s.school.includes(globalSearchQuery) ||
-            s.level.includes(globalSearchQuery))
+              studentMatchesGuardianQuery(s.id, globalSearchQuery) ||
+              s.school.includes(globalSearchQuery) ||
+              s.level.includes(globalSearchQuery))
         )
         .slice(0, 5)
     : [];
@@ -65,6 +64,7 @@ export const Header: React.FC = () => {
         filteredStudents.map((st) => (
           <button
             key={st.id}
+            type="button"
             onClick={() => {
               handleSelectStudentSearchResult(st.id);
               setMobileSearchOpen(false);
@@ -86,7 +86,7 @@ export const Header: React.FC = () => {
   ) : null;
 
   return (
-    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-8 py-3.5 transition-all">
+    <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 transition-all">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-none">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-xs shrink-0">
@@ -115,6 +115,7 @@ export const Header: React.FC = () => {
             />
             {globalSearchQuery && (
               <button
+                type="button"
                 onClick={() => setGlobalSearchQuery('')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 min-h-[44px]"
               >
@@ -146,16 +147,6 @@ export const Header: React.FC = () => {
           )}
           <RoleContextSwitcher />
           <PwaInstallPrompt />
-
-          <div className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-xl border border-slate-200 bg-slate-50">
-            <div className="w-7 h-7 rounded-lg flex items-center justify-center bg-indigo-600 text-white">
-              <Shield className="w-4 h-4" />
-            </div>
-            <div className="hidden sm:block">
-              <p className="text-xs font-bold text-slate-900 leading-tight">{currentUser.name}</p>
-              <p className="text-[10px] text-indigo-600 font-semibold">{roleLabel}</p>
-            </div>
-          </div>
         </div>
       </div>
 

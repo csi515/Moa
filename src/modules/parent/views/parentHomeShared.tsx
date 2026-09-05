@@ -91,7 +91,7 @@ export function ParentHeroCard({
   gradientClass: string;
 }) {
   return (
-    <div className={`${gradientClass} rounded-3xl p-5 sm:p-6 text-white shadow-lg shadow-indigo-900/10`}>
+    <div className={`${gradientClass} rounded-2xl px-4 py-3.5 text-white shadow-md shadow-indigo-900/10`}>
       <p className="text-white/75 text-xs font-semibold tracking-wide">{subtitle}</p>
       <h2 className="text-2xl sm:text-[1.75rem] font-extrabold mt-1.5 tracking-tight">
         {student.name}

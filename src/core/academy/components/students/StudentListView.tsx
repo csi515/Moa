@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
@@ -188,11 +188,12 @@ export const StudentListView: React.FC = () => {
   ];
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
-        icon={<Users className="w-6 h-6" />}
+        density="compact"
+        icon={<Users className="w-5 h-5" />}
         title={labels.customer.management}
-        description={`${labels.customer.singular} 등록·검색, 보호자 연결, 수업·출결·수납을 관리합니다`}
+        description={`${labels.customer.singular} 등록·검색·수업·출결·수납`}
         actions={
           !isScoped ? (
             <button
@@ -370,11 +371,11 @@ export const StudentListView: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-3.5 px-4">이름</th>
-                    <th className="py-3.5 px-4">수업</th>
-                    <th className="py-3.5 px-4">보호자</th>
-                    <th className="py-3.5 px-4">상태</th>
-                    <th className="py-3.5 px-4 text-right">관리</th>
+                    <th className="py-2.5 px-3">이름</th>
+                    <th className="py-2.5 px-3">수업</th>
+                    <th className="py-2.5 px-3">보호자</th>
+                    <th className="py-2.5 px-3">상태</th>
+                    <th className="py-2.5 px-3 text-right">관리</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -387,7 +388,7 @@ export const StudentListView: React.FC = () => {
                         onClick={() => handleOpenDetail(st)}
                         className="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
                       >
-                        <td className="py-3.5 px-4">
+                        <td className="py-2.5 px-3">
                           <div className="flex items-center gap-2.5">
                             <div
                               className="w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-2xs"
@@ -411,10 +412,10 @@ export const StudentListView: React.FC = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-slate-700 font-medium">
+                        <td className="py-2.5 px-3 text-slate-700 font-medium">
                           {getClassLabel(st)}
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-2.5 px-3">
                           <div className="flex items-center gap-1.5 min-w-0">
                             {guardian.phone ? (
                               <a
@@ -430,12 +431,12 @@ export const StudentListView: React.FC = () => {
                             <span className="text-slate-400 text-[10px] truncate">({guardian.name})</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-2.5 px-3">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
                             {badge.label}
                           </span>
                         </td>
-                        <td className="py-3.5 px-4 text-right">
+                        <td className="py-2.5 px-3 text-right">
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -455,7 +456,7 @@ export const StudentListView: React.FC = () => {
             </div>
           </div>
 
-          <div className="md:hidden space-y-3">
+          <div className="md:hidden space-y-2">
             {filteredStudents.map((st) => {
               const badge = getStudentStatusBadge(st.status);
               const guardian = getGuardianLabel(st);
@@ -463,7 +464,7 @@ export const StudentListView: React.FC = () => {
                 <div
                   key={st.id}
                   onClick={() => handleOpenDetail(st)}
-                  className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs active:bg-slate-50 transition-all cursor-pointer space-y-2.5"
+                  className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs active:bg-slate-50 transition-all cursor-pointer space-y-2"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">

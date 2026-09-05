@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
@@ -161,16 +161,12 @@ export const AttendanceManagementView: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
+        density="compact"
         icon={<CheckSquare className="w-6 h-6" />}
         iconClassName={accent.icon}
         title={isDaycare ? '등·하원 관리' : '출입 관리'}
-        description={
-          isDaycare
-            ? 'PIN 등하원 기록, 알레르기 확인, 하원 메모'
-            : 'PIN 입·퇴실 기록 및 날짜별 현황 확인'
-        }
         actions={
           <SegmentedControl
             value={subTab}
@@ -189,7 +185,12 @@ export const AttendanceManagementView: React.FC = () => {
           <PinCheckInKioskView />
         </div>
       ) : (
-        <div id="attendance-panel-overview" role="tabpanel" aria-labelledby="segment-overview">
+        <div
+          id="attendance-panel-overview"
+          role="tabpanel"
+          aria-labelledby="segment-overview"
+          className="space-y-4"
+        >
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant={metricVariant} />
             <SummaryMetricCard
@@ -368,7 +369,7 @@ export const AttendanceManagementView: React.FC = () => {
                             : 'bg-slate-100 text-slate-600';
 
                     return (
-                      <div key={student.id} className="p-4 space-y-2">
+                      <div key={student.id} className="p-3 space-y-1.5">
                         <div className="flex items-start justify-between gap-2">
                           <button
                             type="button"
@@ -386,19 +387,23 @@ export const AttendanceManagementView: React.FC = () => {
                         </div>
                         <p className="text-[11px] text-slate-400">{student.grade}</p>
                         {student.specialNotes && (
-                          <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 rounded-xl px-2 py-1.5">
+                          <p className="text-[11px] font-semibold text-amber-800 bg-amber-50 rounded-xl px-2 py-1">
                             주의 · {student.specialNotes}
                           </p>
                         )}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="bg-slate-50 rounded-xl p-2">
-                            <p className="text-slate-400 font-semibold">{isDaycare ? '등원' : '입실'}</p>
+                        <div className="grid grid-cols-2 gap-1.5 text-xs">
+                          <div className="bg-slate-50 rounded-lg px-2 py-1.5">
+                            <p className="text-slate-400 font-semibold text-[10px]">
+                              {isDaycare ? '등원' : '입실'}
+                            </p>
                             <p className="font-mono font-bold text-slate-700">
                               {formatSessionTime(session?.checkInAt)}
                             </p>
                           </div>
-                          <div className="bg-slate-50 rounded-xl p-2">
-                            <p className="text-slate-400 font-semibold">{isDaycare ? '하원' : '퇴실'}</p>
+                          <div className="bg-slate-50 rounded-lg px-2 py-1.5">
+                            <p className="text-slate-400 font-semibold text-[10px]">
+                              {isDaycare ? '하원' : '퇴실'}
+                            </p>
                             <p className="font-mono font-bold text-slate-700">
                               {formatSessionTime(session?.checkOutAt)}
                             </p>

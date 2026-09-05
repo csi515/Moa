@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
@@ -13,7 +13,7 @@ import { TrendingUp, Plus, Trash2, Edit, X, Save } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import type { IncomeEntry } from '@/core/finance/types';
 
-export const IncomeManagementView: React.FC = () => {
+export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const categoryOptions = getIncomeCategories(industry);
@@ -114,35 +114,39 @@ export const IncomeManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <TrendingUp className="w-6 h-6 text-emerald-600" />
-            수입 관리
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            회원권, 세션, 대관, 기타 사업 수입을 기록합니다.
-          </p>
-        </div>
+        {!embedded && (
+          <div>
+            <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+              <TrendingUp className="w-6 h-6 text-emerald-600" />
+              수입 관리
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-500 mt-1">
+              회원권, 세션, 대관, 기타 사업 수입을 기록합니다.
+            </p>
+          </div>
+        )}
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto"
+          className="px-4 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto sm:ml-auto"
         >
           <Plus className="w-4 h-4" />
           신규 수입 등록
         </button>
       </div>
 
-      <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-          {selectedMonth} 직접 등록 수입
-        </span>
-        <p className="text-3xl font-black text-emerald-600 mt-2">{formatCurrency(totalAmount)}</p>
-        <p className="text-xs text-slate-500 mt-1">등록 {filteredEntries.length}건</p>
-      </div>
+      {!embedded && (
+        <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
+          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            {selectedMonth} 직접 등록 수입
+          </span>
+          <p className="text-xl font-black text-emerald-600 mt-2">{formatCurrency(totalAmount)}</p>
+          <p className="text-xs text-slate-500 mt-1">등록 {filteredEntries.length}건</p>
+        </div>
+      )}
 
-      <div className="bg-white p-4 rounded-3xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-white p-3.5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-2.5">
           <select
             value={selectedMonth}

@@ -35,11 +35,12 @@ export interface IndustryPluginManifest {
 
 const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses'];
 
-/** 반·시간표·출결·수납 중심 코어 메뉴 (체육관·어린이집 등) */
+/** 반·시간표·출결·고객 중심 코어 메뉴 (체육관·어린이집 등) — 수납·재무는 허브 딥링크 유지 */
 export const CLASS_BASED_CORE_ADMIN_TABS: NavTab[] = [
   'dashboard',
   'students',
   'parents',
+  'enrollment-requests',
   'classes',
   'timetable',
   'attendance',

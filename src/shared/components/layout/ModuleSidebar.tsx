@@ -1,5 +1,6 @@
 import type { NavTab } from '@/context/AppContext';
 import type { NavMenuSection } from '@/core/auth/navUtils';
+import { isNavItemActive } from '@/core/auth/navUtils';
 import type { ModuleTheme } from './moduleTheme';
 import { MODULE_THEMES } from './moduleTheme';
 
@@ -34,14 +35,14 @@ export function ModuleSidebar({
     <aside
       className={`${className} w-64 bg-white text-slate-600 flex-col h-[calc(100vh-65px)] sticky top-[65px] border-r border-slate-200 select-none shrink-0 no-print`}
     >
-      <div className="flex-1 overflow-y-auto px-3.5 py-4 space-y-5">
+      <div className="flex-1 overflow-y-auto px-3.5 py-3 space-y-3">
         {sections.map((section) => (
           <div key={section.title} className="space-y-1">
             <p className="px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               {section.title}
             </p>
             {section.items.map((item) => {
-              const isActive = activeTab === item.tab;
+              const isActive = isNavItemActive(item.tab, activeTab);
               return (
                 <button
                   key={item.tab}

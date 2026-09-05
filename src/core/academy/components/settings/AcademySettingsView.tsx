@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
+﻿import { useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -27,13 +27,21 @@ import {
   Loader2,
   Trash2,
   AlertTriangle,
+  DoorOpen,
+  Plus,
+  BookOpen,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { getIndustryAccent } from '@/core/industry/industryUi';
 import * as orgService from '@/core/organizations/services/organizationService';
-
+import {
+  ACADEMY_ROOM_KIND_LABEL,
+  createAcademyRoom,
+  getConfiguredRooms,
+} from '@/core/academy/utils/academyRooms';
+import type { AcademyRoomKind } from '@/types';
 export const AcademySettingsView: FC = () => {
-  const { showToast, triggerRefresh, openConfirmDialog } = useApp();
+  const { showToast, triggerRefresh, openConfirmDialog, setActiveTab } = useApp();
   const { industry, isOwner } = usePermissions();
   const org = useOrganization();
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -51,12 +59,37 @@ export const AcademySettingsView: FC = () => {
   const [deleteConfirmName, setDeleteConfirmName] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
+  const rooms = getConfiguredRooms(settings);
+
+  const updateRoom = (id: string, patch: { name?: string; kind?: AcademyRoomKind }) => {
+    setSettings({
+      ...settings,
+      rooms: rooms.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    });
+  };
+
+  const addRoom = () => {
+    setSettings({
+      ...settings,
+      rooms: [...rooms, createAcademyRoom({ name: `강의실 ${rooms.length + 1}` })],
+    });
+  };
+
+  const removeRoom = (id: string) => {
+    setSettings({
+      ...settings,
+      rooms: rooms.filter((r) => r.id !== id),
+    });
+  };
 
   const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      StorageService.saveSettings(settings);
+      StorageService.saveSettings({
+        ...settings,
+        rooms: getConfiguredRooms(settings),
+      });
       
       if (org.currentOrganization) {
         await orgService.updateOrganization(org.currentOrganization.id, {
@@ -70,6 +103,7 @@ export const AcademySettingsView: FC = () => {
             defaultPaymentDay: settings.defaultPaymentDay,
             bankAccount: settings.bankAccount,
             features: settings.features,
+            rooms: getConfiguredRooms(settings),
           },
         });
         
@@ -191,7 +225,7 @@ export const AcademySettingsView: FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Settings className="w-6 h-6" />}
         iconClassName={accentIcon}
@@ -294,6 +328,76 @@ export const AcademySettingsView: FC = () => {
                 className={FORM_CONTROL_CLASS}
               />
             </FormField>
+
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <DoorOpen className={`w-4 h-4 ${accentIcon}`} />
+                  <p className="text-sm font-bold text-slate-800">강의실 · 연습실</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={addRoom}
+                  className={`inline-flex items-center gap-1 px-3 py-2 min-h-[44px] text-xs font-bold rounded-xl ${accent.hoverBg} ${accentIcon}`}
+                >
+                  <Plus className="w-4 h-4" />
+                  추가
+                </button>
+              </div>
+              <p className="text-xs text-slate-500 leading-relaxed">
+                반 개설·보강 예약 시 선택할 공간입니다. 학원에서 쓰는 실 이름을 등록해 주세요.
+              </p>
+              {rooms.length === 0 ? (
+                <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+                  등록된 실이 없습니다. 추가하거나 온보딩에서 설정해 주세요.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {rooms.map((room) => (
+                    <li
+                      key={room.id}
+                      className="flex flex-col sm:flex-row gap-2 sm:items-center rounded-xl border border-slate-100 bg-slate-50/80 p-2.5"
+                    >
+                      <input
+                        type="text"
+                        value={room.name}
+                        onChange={(e) => updateRoom(room.id, { name: e.target.value })}
+                        className={`${FORM_CONTROL_CLASS} flex-1 min-h-[44px]`}
+                        placeholder="예: 피아노 1실"
+                      />
+                      <select
+                        value={room.kind}
+                        onChange={(e) =>
+                          updateRoom(room.id, { kind: e.target.value as AcademyRoomKind })
+                        }
+                        className={`${FORM_CONTROL_CLASS} sm:w-32 min-h-[44px]`}
+                      >
+                        <option value="classroom">{ACADEMY_ROOM_KIND_LABEL.classroom}</option>
+                        <option value="practice">{ACADEMY_ROOM_KIND_LABEL.practice}</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => removeRoom(room.id)}
+                        className="p-2.5 min-h-[44px] min-w-[44px] text-rose-500 hover:bg-rose-50 rounded-xl"
+                        aria-label={`${room.name} 삭제`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {industry === 'piano' && (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('textbooks')}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-600 min-h-[44px]"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  사용 교재는 교재 관리에서 등록
+                </button>
+              )}
+            </div>
 
             <div className="pt-4 border-t border-slate-100">
               <AttendanceFeatureToggle

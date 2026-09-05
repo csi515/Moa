@@ -1,9 +1,8 @@
 import type { FC, ReactNode } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
-  PwaInstallPrompt,
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
@@ -16,48 +15,52 @@ import { DaycareBottomNav } from './layout/DaycareBottomNav';
 import { DaycareDashboardView } from './components/dashboard/DaycareDashboardView';
 import { StudentListView } from './components/students/StudentListView';
 import {
-  WeeklyTimetableView,
-  TuitionManagementView,
-  UnpaidManagementView,
   ClassManagementView,
-  ParentManagementView,
-  TeacherManagementView,
-  AcademyCalendarView,
-  AcademySettingsView,
+  ClassScheduleHubView,
   ConsultationRecordsView,
+  CustomerHubView,
+  SettingsHubView,
 } from '@/core/academy';
 import {
-  accountViewEntry,
   attendanceViewEntry,
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
-import { noticesViewEntry } from '@/core/notices';
 import { CareJournalView, MedicationRequestView } from './care';
-import { GuardianEnrollmentRequestsView } from '@/core/academy';
+import { DaycareCareHubView } from './components/DaycareCareHubView';
 
-/**
- * 어린이집 플러그인 셸.
- * 코어(원아·반·출결·수납·재무) + 보육 기록(알림장·투약·상담·가정통신문).
- */
+const daycareSettingsHub = () => (
+  <SettingsHubView
+    workplaceLabel="원"
+    staffLabel="교사"
+    extras={[{ tab: 'classes' as NavTab, label: '반 관리' }]}
+  />
+);
+
+const customerHub = () => (
+  <CustomerHubView listView={StudentListView} enrollmentLabel="학부모 등록 요청" />
+);
+
+const careHub = () => (
+  <DaycareCareHubView journalsView={CareJournalView} medicationsView={MedicationRequestView} />
+);
+
 const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DaycareDashboardView />,
-  students: () => <StudentListView />,
-  parents: () => <ParentManagementView />,
-  'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
+  students: customerHub,
+  parents: customerHub,
+  'enrollment-requests': customerHub,
   classes: () => <ClassManagementView />,
-  timetable: () => <WeeklyTimetableView />,
+  timetable: () => <ClassScheduleHubView />,
+  calendar: () => <ClassScheduleHubView />,
   ...attendanceViewEntry,
-  journals: () => <CareJournalView />,
-  medications: () => <MedicationRequestView />,
-  ...noticesViewEntry,
+  journals: careHub,
+  medications: careHub,
   consultations: () => <ConsultationRecordsView />,
-  tuition: () => <TuitionManagementView />,
-  unpaid: () => <UnpaidManagementView />,
-  teachers: () => <TeacherManagementView />,
-  calendar: () => <AcademyCalendarView />,
   ...financeViewEntries,
-  settings: () => <AcademySettingsView />,
-  ...accountViewEntry,
+  settings: daycareSettingsHub,
+  teachers: daycareSettingsHub,
+  notices: daycareSettingsHub,
+  account: daycareSettingsHub,
 };
 
 export const DaycareAppContent: FC = () => {
@@ -77,7 +80,6 @@ export const DaycareAppContent: FC = () => {
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
-          <PwaInstallPrompt />
           <ConfirmDialog />
           <ToastContainer />
         </>

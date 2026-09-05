@@ -42,7 +42,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             }
           : undefined
       }
-      className={`relative p-5 rounded-2xl border transition-all duration-200 ${
+      className={`relative p-3.5 sm:p-4 rounded-2xl border transition-all duration-200 ${
         onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500' : ''
       } ${
         highlight
@@ -50,14 +50,14 @@ export const StatCard: React.FC<StatCardProps> = ({
           : 'bg-white text-slate-800 border-slate-200 shadow-sm'
       }`}
     >
-      <div className="flex items-start justify-between">
-        <div className="flex-1 min-w-0 pr-2">
-          <p className={`text-sm font-medium ${highlight ? 'text-indigo-200' : 'text-slate-500'}`}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex-1 min-w-0">
+          <p className={`text-xs font-medium ${highlight ? 'text-indigo-200' : 'text-slate-500'}`}>
             {title}
           </p>
-          <div className="flex items-baseline gap-2 mt-1">
+          <div className="flex items-baseline gap-2 mt-0.5">
             <h3
-              className={`text-2xl sm:text-3xl font-bold font-mono tracking-tight ${highlight ? 'text-white' : 'text-slate-800'}`}
+              className={`text-xl sm:text-2xl font-bold font-mono tracking-tight ${highlight ? 'text-white' : 'text-slate-800'}`}
             >
               {value}
             </h3>
@@ -78,7 +78,7 @@ export const StatCard: React.FC<StatCardProps> = ({
             </p>
           )}
         </div>
-        <div className={`p-3 rounded-xl shrink-0 ${highlight ? 'bg-white/10 text-white' : iconBg}`}>
+        <div className={`p-2 rounded-lg shrink-0 ${highlight ? 'bg-white/10 text-white' : iconBg}`}>
           {icon}
         </div>
       </div>

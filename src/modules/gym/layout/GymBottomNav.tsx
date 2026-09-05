@@ -22,7 +22,7 @@ export const GymBottomNav: FC = () => {
         setActiveTab(tab);
       }}
       moreMenuTitle="전체 메뉴"
-      moreMenuDescription="체육관 운영 메뉴를 선택하세요"
+      moreMenuDescription="출결 · 차량 · 설정"
     />
   );
 };

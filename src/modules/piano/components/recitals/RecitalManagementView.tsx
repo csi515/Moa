@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
@@ -169,7 +169,7 @@ export const RecitalManagementView: React.FC = () => {
       : 0;
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Award className="w-6 h-6" />}
         iconClassName="text-purple-600"

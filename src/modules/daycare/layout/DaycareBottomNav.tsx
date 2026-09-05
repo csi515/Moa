@@ -22,7 +22,7 @@ export const DaycareBottomNav: FC = () => {
         setActiveTab(tab);
       }}
       moreMenuTitle="전체 메뉴"
-      moreMenuDescription="어린이집 운영 메뉴를 선택하세요"
+      moreMenuDescription="상담 · 출결 · 보육 · 설정"
     />
   );
 };

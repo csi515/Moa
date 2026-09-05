@@ -3,6 +3,7 @@ import { MoreHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { NavTab } from '@/context/AppContext';
 import type { NavMenuItem } from '@/core/auth/navUtils';
+import { isNavItemActive, resolveNavHighlightTab } from '@/core/auth/navUtils';
 import type { ModuleTheme } from './moduleTheme';
 import { MODULE_THEMES } from './moduleTheme';
 
@@ -36,13 +37,16 @@ export function ModuleBottomNav({
     setMoreOpen(false);
   };
 
-  const isMoreActive = moreTabs.some((item) => item.tab === activeTab);
+  const highlightTab = resolveNavHighlightTab(activeTab);
+  const isMoreActive = moreTabs.some(
+    (item) => isNavItemActive(item.tab, activeTab) && !mainTabs.some((m) => m.tab === highlightTab)
+  );
 
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1 flex items-center justify-around no-print safe-area-pb">
         {mainTabs.map((item) => {
-          const isActive = activeTab === item.tab && !moreOpen;
+          const isActive = isNavItemActive(item.tab, activeTab) && !moreOpen;
           return (
             <button
               key={item.tab}
@@ -86,14 +90,14 @@ export function ModuleBottomNav({
               animate={{ y: 0 }}
               exit={{ y: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="bg-white rounded-t-3xl p-5 max-h-[80vh] overflow-y-auto shadow-2xl border-t border-slate-200"
+              className="bg-white rounded-t-3xl p-4 max-h-[80vh] overflow-y-auto shadow-2xl border-t border-slate-200"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center justify-between pb-2 border-b border-slate-100">
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">{moreMenuTitle}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm">{moreMenuTitle}</h3>
                   {moreMenuDescription && (
-                    <p className="text-xs text-slate-500">{moreMenuDescription}</p>
+                    <p className="text-[11px] text-slate-500">{moreMenuDescription}</p>
                   )}
                 </div>
                 <button
@@ -106,7 +110,7 @@ export function ModuleBottomNav({
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-3 mt-4 pb-6 safe-area-pb">
+              <div className="grid grid-cols-3 gap-2.5 mt-3 pb-4 safe-area-pb">
                 {moreTabs.map((item) => {
                   const isActive = activeTab === item.tab;
                   return (
@@ -114,7 +118,7 @@ export function ModuleBottomNav({
                       key={item.tab}
                       type="button"
                       onClick={() => handleTab(item.tab)}
-                      className={`flex flex-col items-center justify-center min-h-[72px] p-3 rounded-2xl border transition-all text-center cursor-pointer ${
+                      className={`flex flex-col items-center justify-center min-h-[56px] p-2.5 rounded-2xl border transition-all text-center cursor-pointer ${
                         isActive
                           ? `${t.bottomSheetActive} font-bold shadow-xs`
                           : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'

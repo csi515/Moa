@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import type { ModuleLabels } from '@/modules/piano/config/labels';
 import type { NavMenuItem, NavMenuSection } from './navUtils';
 import {
-  AlertCircle,
   BarChart3,
   Calendar,
   CheckSquare,
@@ -10,9 +9,7 @@ import {
   CreditCard,
   GraduationCap,
   LayoutDashboard,
-  Receipt,
   Settings,
-  TrendingUp,
   UserSquare2,
   Users,
 } from 'lucide-react';
@@ -90,15 +87,15 @@ export function buildBillingNavSection(options?: {
   tuitionLabel?: string;
   extraItems?: NavMenuItem[];
 }): NavMenuSection {
+  /** @deprecated 재무 허브로 병합 — 호환용으로 수납 항목만 반환 */
   return {
     title: '수납',
     items: [
       {
-        tab: 'tuition',
-        label: options?.tuitionLabel ?? '수강료 및 수납',
+        tab: 'finance',
+        label: options?.tuitionLabel ?? '재무',
         icon: icon(<CreditCard className="w-4 h-4" />),
       },
-      { tab: 'unpaid', label: '미납 통합 관리', icon: icon(<AlertCircle className="w-4 h-4" />) },
       ...(options?.extraItems ?? []),
     ],
   };
@@ -106,13 +103,16 @@ export function buildBillingNavSection(options?: {
 
 export function buildFinanceNavSection(): NavMenuSection {
   return {
-    title: '재무 관리',
+    title: '재무',
     items: [
-      { tab: 'finance', label: '재무 요약', icon: icon(<BarChart3 className="w-4 h-4" />) },
-      { tab: 'income', label: '수입 관리', icon: icon(<TrendingUp className="w-4 h-4" />) },
-      { tab: 'expenses', label: '지출 관리', icon: icon(<Receipt className="w-4 h-4" />) },
+      { tab: 'finance', label: '재무', icon: icon(<BarChart3 className="w-4 h-4" />) },
     ],
   };
+}
+
+export function buildFinanceNavItem(size: 'sm' | 'md' = 'sm'): NavMenuItem {
+  const cls = size === 'md' ? 'w-5 h-5' : 'w-4 h-4';
+  return { tab: 'finance', label: '재무', icon: icon(<BarChart3 className={cls} />) };
 }
 
 export function buildStaffNavSection(
@@ -142,10 +142,26 @@ export function buildSettingsNavSection(settingsLabel: string): NavMenuSection {
   };
 }
 
+/** 설정 허브용 — 사업장·직원·안내·계정 */
+export function buildSettingsHubNavSection(
+  settingsLabel: string,
+  staffLabel: string
+): NavMenuSection {
+  return {
+    title: '설정',
+    items: [
+      { tab: 'settings', label: settingsLabel, icon: icon(<Settings className="w-4 h-4" />) },
+      {
+        tab: 'teachers',
+        label: staffLabel,
+        icon: icon(<GraduationCap className="w-4 h-4" />),
+      },
+      noticesNavItem('sm'),
+      accountNavItem('sm'),
+    ],
+  };
+}
+
 export function buildFinanceMoreTabs(): NavMenuItem[] {
-  return [
-    { tab: 'finance', label: '재무 요약', icon: icon(<BarChart3 className="w-5 h-5" />) },
-    { tab: 'income', label: '수입', icon: icon(<TrendingUp className="w-5 h-5" />) },
-    { tab: 'expenses', label: '지출', icon: icon(<Receipt className="w-5 h-5" />) },
-  ];
+  return [buildFinanceNavItem('md')];
 }

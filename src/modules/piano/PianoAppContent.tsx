@@ -1,9 +1,8 @@
 import { useState, useEffect, type FC, type ReactNode } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import {
-  PwaInstallPrompt,
   DirectorFloatingFab,
   ToastContainer,
   ConfirmDialog,
@@ -16,25 +15,20 @@ import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import {
-  accountViewEntry,
   attendanceViewEntry,
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
-import { noticesViewEntry } from '@/core/notices';
+import {
+  CustomerHubView,
+  SettingsHubView,
+  ClassManagementView,
+} from '@/core/academy';
 import {
   DashboardView,
-  StudentListView,
-  TuitionManagementView,
-  UnpaidManagementView,
-  MakeupManagementView,
   RecitalManagementView,
   TextbookManagementView,
-  ClassManagementView,
-  ParentManagementView,
   PracticeRecordsView,
   ResourceManagementView,
-  TeacherManagementView,
-  AcademySettingsView,
   CurriculumManagementView,
   AssignmentsManagementView,
   AchievementsManagementView,
@@ -42,36 +36,50 @@ import {
 } from './index';
 import { PianoScheduleView } from './components/schedule';
 import { PianoConsultationHubView } from './components/consultations';
-import { LessonsHubView } from './components/lessons/LessonsHubView';
-import { GuardianEnrollmentRequestsView } from '@/core/academy';
+
+const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
+  { tab: 'classes', label: '반 관리' },
+  { tab: 'assignments', label: '주간 과제' },
+  { tab: 'practice', label: '연습 기록' },
+  { tab: 'textbooks', label: '교재 판매' },
+  { tab: 'resources', label: '교재·곡 자료' },
+  { tab: 'recitals', label: '연주회·콩쿠르' },
+  { tab: 'curriculum', label: '커리큘럼·진도' },
+  { tab: 'achievements', label: '시험·등급' },
+  { tab: 'reports', label: '학습 리포트' },
+];
+
+const pianoSettingsHub = () => (
+  <SettingsHubView extras={PIANO_SETTINGS_EXTRAS} workplaceLabel="학원" staffLabel="강사" />
+);
+
+const customerHub = () => <CustomerHubView enrollmentLabel="등록 요청" />;
 
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DashboardView />,
-  students: () => <StudentListView />,
+  students: customerHub,
+  parents: customerHub,
+  'enrollment-requests': customerHub,
   ...attendanceViewEntry,
   timetable: () => <PianoScheduleView />,
-  tuition: () => <TuitionManagementView />,
-  unpaid: () => <UnpaidManagementView />,
-  makeups: () => <MakeupManagementView />,
-  textbooks: () => <TextbookManagementView />,
+  calendar: () => <PianoScheduleView />,
+  lessons: () => <PianoScheduleView />,
+  makeups: () => <PianoScheduleView />,
   ...financeViewEntries,
   classes: () => <ClassManagementView />,
-  parents: () => <ParentManagementView />,
-  'enrollment-requests': () => <GuardianEnrollmentRequestsView />,
-  lessons: () => <LessonsHubView />,
-  practice: () => <PracticeRecordsView />,
   consultations: () => <PianoConsultationHubView />,
-  ...noticesViewEntry,
+  practice: () => <PracticeRecordsView />,
   resources: () => <ResourceManagementView />,
-  teachers: () => <TeacherManagementView />,
-  calendar: () => <PianoScheduleView />,
+  textbooks: () => <TextbookManagementView />,
   recitals: () => <RecitalManagementView />,
   curriculum: () => <CurriculumManagementView />,
   assignments: () => <AssignmentsManagementView />,
   achievements: () => <AchievementsManagementView />,
   reports: () => <ReportsManagementView />,
-  settings: () => <AcademySettingsView />,
-  ...accountViewEntry,
+  settings: pianoSettingsHub,
+  teachers: pianoSettingsHub,
+  notices: pianoSettingsHub,
+  account: pianoSettingsHub,
 };
 
 export const PianoAppContent: FC = () => {
@@ -98,7 +106,6 @@ export const PianoAppContent: FC = () => {
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
-          <PwaInstallPrompt />
           {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
           <ConfirmDialog />
           <ToastContainer />

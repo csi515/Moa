@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -20,6 +20,7 @@ import {
   formatConflictSummary,
 } from '@/core/academy/utils/scheduleConflicts';
 import { notifyParentMakeupScheduled } from '@/core/academy/services/academyAlertService';
+import { getAcademyRoomNames } from '@/core/academy/utils/academyRooms';
 import {
   Sparkles,
   Calendar,
@@ -34,8 +35,6 @@ const STATUS_TABS: FilterTabItem<MakeupStatus | 'all'>[] = [
   { id: 'completed', label: '완료' },
   { id: 'all', label: '전체' },
 ];
-
-const DEFAULT_ROOMS = ['피아노 1실', '피아노 2실', '그랜드룸', '업라이트실', '이론실'];
 
 function addMinutes(hhmm: string, minutes: number): string {
   const [h, m] = hhmm.split(':').map((n) => parseInt(n, 10) || 0);
@@ -56,16 +55,20 @@ export const MakeupManagementView: React.FC = () => {
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
   const [startTime, setStartTime] = useState('16:00');
   const [endTime, setEndTime] = useState('16:50');
-  const [room, setRoom] = useState('피아노 1실');
+  const [room, setRoom] = useState('');
   const [teacherId, setTeacherId] = useState('');
 
   const allStudents = StorageService.getStudents();
   const teachers = StorageService.getTeachers().filter((t) => t.status === 'active');
   const classes = StorageService.getClasses();
-  const rooms = useMemo(() => {
-    const fromClasses = classes.map((c) => c.room).filter(Boolean);
-    return Array.from(new Set([...DEFAULT_ROOMS, ...fromClasses]));
-  }, [classes, refreshKey]);
+  const rooms = useMemo(
+    () =>
+      getAcademyRoomNames({
+        settings: StorageService.getSettings(),
+        classes,
+      }),
+    [classes, refreshKey]
+  );
 
   const allItems = useMemo(
     () => scopeMakeupItems(StorageService.getMakeupItems(), allStudents),
@@ -98,7 +101,7 @@ export const MakeupManagementView: React.FC = () => {
     setScheduleDate(item.makeUpDate || new Date().toISOString().slice(0, 10));
     setStartTime(start);
     setEndTime(item.makeUpEndTime || origin?.endTime || addMinutes(start, lessonMinutes));
-    setRoom(item.makeUpRoom || origin?.room || rooms[0] || '피아노 1실');
+    setRoom(item.makeUpRoom || origin?.room || rooms[0] || '');
     setTeacherId(item.makeUpTeacherId || origin?.teacherId || teachers[0]?.id || '');
   };
 
@@ -184,7 +187,7 @@ export const MakeupManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Sparkles className="w-6 h-6" />}
         iconClassName="text-purple-600"
@@ -335,17 +338,27 @@ export const MakeupManagementView: React.FC = () => {
             </FormField>
           </div>
           <FormField label="연습실">
-            <select
-              value={room}
-              onChange={(e) => setRoom(e.target.value)}
-              className={FORM_CONTROL_CLASS}
-            >
-              {rooms.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+            {rooms.length === 0 ? (
+              <input
+                type="text"
+                value={room}
+                onChange={(e) => setRoom(e.target.value)}
+                placeholder="학원 설정에서 실을 등록하거나 직접 입력"
+                className={FORM_CONTROL_CLASS}
+              />
+            ) : (
+              <select
+                value={room}
+                onChange={(e) => setRoom(e.target.value)}
+                className={FORM_CONTROL_CLASS}
+              >
+                {rooms.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            )}
           </FormField>
           <FormField label="담당 강사">
             <select

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { TuitionInvoice, PaymentMethod, Student } from '@/types';
@@ -22,7 +22,7 @@ import {
   formatYearMonthLabel,
 } from './tuitionUtils';
 
-export const TuitionManagementView: React.FC = () => {
+export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, setSelectedStudentId, setActiveTab, triggerRefresh } = useApp();
   const refreshKey = useStorageRefresh();
 
@@ -176,33 +176,39 @@ export const TuitionManagementView: React.FC = () => {
     setIsNewInvoiceModalOpen(true);
   };
 
+  const billingActions = (
+    <div className="flex flex-wrap items-center gap-2">
+      <button
+        onClick={handleBatchGenerate}
+        disabled={students.filter((s) => s.status === 'active').length === 0}
+        className="px-4 py-2.5 min-h-[44px] bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 text-xs sm:text-sm font-bold rounded-xl border border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+      >
+        <Clock className="w-4 h-4" />
+        {formatYearMonthLabel(selectedMonth)} 청구서 일괄 생성
+      </button>
+      <button
+        onClick={openNewInvoiceModal}
+        disabled={students.length === 0}
+        className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+      >
+        <Plus className="w-4 h-4" />
+        개별 청구서 발행
+      </button>
+    </div>
+  );
+
   return (
-    <div className="space-y-6 pb-12">
-      <PageHeader
-        icon={<CreditCard className="w-6 h-6" />}
-        title="수강료 및 수납 관리"
-        description="원생별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급"
-        actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={handleBatchGenerate}
-              disabled={students.filter((s) => s.status === 'active').length === 0}
-              className="px-4 py-2.5 min-h-[44px] bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 text-xs sm:text-sm font-bold rounded-xl border border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
-            >
-              <Clock className="w-4 h-4" />
-              {formatYearMonthLabel(selectedMonth)} 청구서 일괄 생성
-            </button>
-            <button
-              onClick={openNewInvoiceModal}
-              disabled={students.length === 0}
-              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              개별 청구서 발행
-            </button>
-          </div>
-        }
-      />
+    <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
+      {embedded ? (
+        <div className="flex flex-wrap justify-end gap-2">{billingActions}</div>
+      ) : (
+        <PageHeader
+          icon={<CreditCard className="w-6 h-6" />}
+          title="수강료 및 수납 관리"
+          description="원생별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급"
+          actions={billingActions}
+        />
+      )}
 
       <TuitionSummaryCards selectedMonth={formatYearMonthLabel(selectedMonth)} stats={stats} />
 

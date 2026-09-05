@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
@@ -7,6 +8,7 @@ import {
   findClassConflicts,
   formatConflictSummary,
 } from '@/core/academy/utils/scheduleConflicts';
+import { getAcademyRoomNames } from '@/core/academy/utils/academyRooms';
 import {
   GraduationCap,
   Plus,
@@ -25,10 +27,21 @@ const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const refreshKey = useStorageRefresh();
 
   const classes = StorageService.getClasses();
   const teachers = StorageService.getTeachers();
   const students = StorageService.getStudents();
+  const textbooks = StorageService.getTextbooks();
+  const roomNames = useMemo(
+    () =>
+      getAcademyRoomNames({
+        settings: StorageService.getSettings(),
+        classes,
+      }),
+    [classes, refreshKey]
+  );
+  const defaultRoom = roomNames[0] || '';
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClass, setEditingClass] = useState<ClassItem | null>(null);
@@ -41,14 +54,18 @@ export const ClassManagementView: React.FC = () => {
     endTime: '14:50',
     capacity: 4,
     teacherId: teachers[0]?.id || '',
-    room: '피아노 1실',
+    room: defaultRoom,
     color: '#4f46e5',
-    textbook: '바이엘 1권, 체르니 100',
+    textbook: '',
     memo: ''
   });
 
   const handleOpenCreate = () => {
     setEditingClass(null);
+    const rooms = getAcademyRoomNames({
+      settings: StorageService.getSettings(),
+      classes: StorageService.getClasses(),
+    });
     setFormData({
       name: '',
       targetLevel: '바이엘 하',
@@ -57,9 +74,9 @@ export const ClassManagementView: React.FC = () => {
       endTime: '15:50',
       capacity: 4,
       teacherId: teachers[0]?.id || '',
-      room: '피아노 1실',
+      room: rooms[0] || '',
       color: '#4f46e5',
-      textbook: '어린이 피아노 소곡집',
+      textbook: StorageService.getTextbooks()[0]?.title || '',
       memo: ''
     });
     setIsModalOpen(true);
@@ -169,7 +186,7 @@ export const ClassManagementView: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-4 pb-4">
       <PageHeader
         icon={<GraduationCap className="w-6 h-6" />}
         title="반 / 수업 관리"
@@ -400,17 +417,42 @@ export const ClassManagementView: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">강의실 / 연습실</label>
-                  <select
-                    value={formData.room}
-                    onChange={(e) => setFormData({ ...formData, room: e.target.value })}
-                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-                  >
-                    <option value="피아노 1실">피아노 1실</option>
-                    <option value="피아노 2실">피아노 2실</option>
-                    <option value="피아노 3실">피아노 3실</option>
-                    <option value="그랜드홀">그랜드홀 (연주홀)</option>
-                    <option value="이론실">음악이론실</option>
-                  </select>
+                  {roomNames.length === 0 ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                        등록된 실이 없습니다. 학원 설정에서 강의실·연습실을 먼저 등록해 주세요.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setActiveTab('settings');
+                        }}
+                        className="text-xs font-bold text-indigo-600 min-h-[44px]"
+                      >
+                        학원 설정으로 이동
+                      </button>
+                      <input
+                        type="text"
+                        value={formData.room}
+                        onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                        placeholder="임시로 실 이름 입력"
+                        className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                      />
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.room}
+                      onChange={(e) => setFormData({ ...formData, room: e.target.value })}
+                      className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                    >
+                      {roomNames.map((name) => (
+                        <option key={name} value={name}>
+                          {name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 
@@ -439,9 +481,27 @@ export const ClassManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">사용 교재</label>
+                {textbooks.length > 0 && (
+                  <select
+                    value={textbooks.some((t) => t.title === formData.textbook) ? formData.textbook : ''}
+                    onChange={(e) => setFormData({ ...formData, textbook: e.target.value })}
+                    className="w-full mb-2 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                  >
+                    <option value="">카탈로그에서 선택…</option>
+                    {textbooks.map((tb) => (
+                      <option key={tb.id} value={tb.title}>
+                        {tb.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <input
                   type="text"
-                  placeholder="예: 바이엘 상권, 어린이 피아노 소곡집"
+                  placeholder={
+                    textbooks.length > 0
+                      ? '선택하거나 직접 입력 (여러 권은 쉼표로)'
+                      : '예: 바이엘 상권 — 교재 관리에서 미리 등록할 수 있습니다'
+                  }
                   value={formData.textbook}
                   onChange={(e) => setFormData({ ...formData, textbook: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
