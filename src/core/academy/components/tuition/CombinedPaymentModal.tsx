@@ -1,13 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { Student, TuitionInvoice, TextbookSale, PaymentMethod } from '@/types';
+import React, { useMemo, useState } from 'react';
+import { Student, PaymentMethod } from '@/types';
 import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
-import { X, CreditCard, CheckSquare, Square, FileText, CheckCircle2, DollarSign, ArrowRight } from 'lucide-react';
+import { X, CreditCard, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 
 interface CombinedPaymentModalProps {
   student: Student;
-  /** 미지정 시 전체 미납 항목 조회, 수납 시에는 해당 월 기준 */
   yearMonth?: string;
   onSuccess: () => void;
   onClose: () => void;
@@ -17,7 +16,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   student,
   yearMonth,
   onSuccess,
-  onClose
+  onClose,
 }) => {
   const { showToast, triggerRefresh } = useApp();
   const effectiveYearMonth = yearMonth ?? new Date().toISOString().slice(0, 7);
@@ -26,23 +25,36 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   const unpaidInvoices = (billingSummary.invoices || []).filter((i) => i.unpaidAmount > 0);
   const unpaidSales = (billingSummary.textbookSales || []).filter((s) => s.unpaidAmount > 0);
 
-  // Selected items to pay
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(unpaidInvoices.map((i) => i.id));
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(
+    unpaidInvoices.map((i) => i.id)
+  );
   const [selectedSaleIds, setSelectedSaleIds] = useState<string[]>(unpaidSales.map((s) => s.id));
+  const [invoiceAmounts, setInvoiceAmounts] = useState<Record<string, number>>(() =>
+    Object.fromEntries(unpaidInvoices.map((i) => [i.id, i.unpaidAmount]))
+  );
+  const [saleAmounts, setSaleAmounts] = useState<Record<string, number>>(() =>
+    Object.fromEntries(unpaidSales.map((s) => [s.id, s.unpaidAmount]))
+  );
 
-  // Payment details
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
   const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
   const [memo, setMemo] = useState('');
 
-  // Selected totals
-  const selectedInvoiceTotal = unpaidInvoices
-    .filter((i) => selectedInvoiceIds.includes(i.id))
-    .reduce((sum, i) => sum + i.unpaidAmount, 0);
+  const selectedInvoiceTotal = useMemo(
+    () =>
+      unpaidInvoices
+        .filter((i) => selectedInvoiceIds.includes(i.id))
+        .reduce((sum, i) => sum + Math.min(invoiceAmounts[i.id] ?? 0, i.unpaidAmount), 0),
+    [unpaidInvoices, selectedInvoiceIds, invoiceAmounts]
+  );
 
-  const selectedSaleTotal = unpaidSales
-    .filter((s) => selectedSaleIds.includes(s.id))
-    .reduce((sum, s) => sum + s.unpaidAmount, 0);
+  const selectedSaleTotal = useMemo(
+    () =>
+      unpaidSales
+        .filter((s) => selectedSaleIds.includes(s.id))
+        .reduce((sum, s) => sum + Math.min(saleAmounts[s.id] ?? 0, s.unpaidAmount), 0),
+    [unpaidSales, selectedSaleIds, saleAmounts]
+  );
 
   const grandSelectedTotal = selectedInvoiceTotal + selectedSaleTotal;
 
@@ -62,40 +74,52 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
     e.preventDefault();
 
     if (grandSelectedTotal <= 0) {
-      showToast('납부할 항목을 1개 이상 선택해주세요.', 'warning');
+      showToast('납부할 항목을 1개 이상 선택하고 금액을 입력해주세요.', 'warning');
       return;
     }
 
     try {
+      const tuitionPayments = unpaidInvoices
+        .filter((i) => selectedInvoiceIds.includes(i.id))
+        .map((i) => ({
+          invoiceId: i.id,
+          amount: Math.min(Math.max(0, invoiceAmounts[i.id] ?? 0), i.unpaidAmount),
+        }))
+        .filter((i) => i.amount > 0);
+
       const textbookPayments = unpaidSales
         .filter((s) => selectedSaleIds.includes(s.id))
-        .map((s) => ({ saleId: s.id, amount: s.unpaidAmount }));
+        .map((s) => ({
+          saleId: s.id,
+          amount: Math.min(Math.max(0, saleAmounts[s.id] ?? 0), s.unpaidAmount),
+        }))
+        .filter((s) => s.amount > 0);
 
       const res = StorageService.recordCombinedPayment({
         studentId: student.id,
         yearMonth: effectiveYearMonth,
-        tuitionAmount: selectedInvoiceTotal,
+        tuitionPayments,
         textbookPayments,
         paymentMethod,
         paymentDate,
-        memo: memo.trim() || undefined
+        memo: memo.trim() || undefined,
       });
 
       showToast(
-        `${student.name} 원생의 통합 수납 ₩${res.totalPaidAmount.toLocaleString()}원 처리가 완료되었습니다!`,
+        `${student.name} 원생 통합 수납 ${formatCurrency(res.totalPaidAmount)} 처리 · 재무 수입에 반영됨`,
         'success'
       );
       triggerRefresh();
       onSuccess();
-    } catch (err: any) {
-      alert(err.message || '통합 수납 처리 중 오류가 발생했습니다.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : '통합 수납 처리 중 오류가 발생했습니다.';
+      showToast(message, 'error');
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
       <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-xl overflow-hidden flex flex-col max-h-[92vh]">
-        {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
             <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -103,197 +127,200 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">
-                {student.name} 원생 - 수강료 & 교재비 통합 수납
+                {student.name} · 통합 수납
               </h3>
               <p className="text-xs text-slate-500">
-                수강료와 미납 교재비를 선택하여 한 번에 수납 처리합니다.
+                항목별 납부 금액을 지정합니다. 자동 배분은 하지 않습니다.
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 rounded-lg transition-colors"
+            className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg min-h-[44px] min-w-[44px]"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
-          {/* Section 1: 미납 수강료 선택 */}
           <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-indigo-600"></span>
-                미납 수강료 청구서 ({unpaidInvoices.length}건)
-              </span>
-              <span className="text-[11px] text-slate-500">
-                선택 합계: <strong className="text-indigo-600">{formatCurrency(selectedInvoiceTotal)}</strong>
-              </span>
-            </div>
-
+            <span className="font-bold text-slate-800">미납 수강료 ({unpaidInvoices.length})</span>
             {unpaidInvoices.length === 0 ? (
-              <p className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center">
-                미납된 수강료 청구서가 없습니다.
-              </p>
+              <p className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center">미납 수강료 없음</p>
             ) : (
-              <div className="space-y-1.5">
-                {unpaidInvoices.map((inv) => {
-                  const isChecked = selectedInvoiceIds.includes(inv.id);
-                  return (
-                    <div
-                      key={inv.id}
+              unpaidInvoices.map((inv) => {
+                const isChecked = selectedInvoiceIds.includes(inv.id);
+                return (
+                  <div
+                    key={inv.id}
+                    className={`p-3 rounded-xl border space-y-2 ${
+                      isChecked ? 'border-indigo-300 bg-indigo-50/50' : 'border-slate-200'
+                    }`}
+                  >
+                    <button
+                      type="button"
                       onClick={() => toggleInvoice(inv.id)}
-                      className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                        isChecked
-                          ? 'border-indigo-300 bg-indigo-50/50'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
+                      className="w-full flex items-center justify-between gap-2 text-left min-h-[44px]"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <span className="flex items-center gap-2">
                         {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-indigo-600 shrink-0" />
+                          <CheckSquare className="w-4 h-4 text-indigo-600" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400 shrink-0" />
+                          <Square className="w-4 h-4 text-slate-400" />
                         )}
-                        <div>
-                          <span className="font-bold text-slate-900">{inv.yearMonth}월 수강료</span>
-                          <span className="text-slate-400 text-[11px] ml-2">납부기한: {inv.dueDate}</span>
-                        </div>
-                      </div>
-                      <div className="text-right font-black text-rose-600">
-                        {formatCurrency(inv.unpaidAmount)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                        <span className="font-bold text-slate-900">{inv.yearMonth} 수강료</span>
+                      </span>
+                      <span className="text-rose-600 font-black">
+                        잔액 {formatCurrency(inv.unpaidAmount)}
+                      </span>
+                    </button>
+                    {isChecked && (
+                      <label className="block">
+                        <span className="text-[11px] text-slate-500">이번 납부액</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={inv.unpaidAmount}
+                          value={invoiceAmounts[inv.id] ?? 0}
+                          onChange={(e) =>
+                            setInvoiceAmounts((prev) => ({
+                              ...prev,
+                              [inv.id]: Math.min(
+                                inv.unpaidAmount,
+                                Math.max(0, Number(e.target.value) || 0)
+                              ),
+                            }))
+                          }
+                          className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold min-h-[44px]"
+                        />
+                      </label>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
 
-          {/* Section 2: 미납 교재비 선택 */}
           <div className="space-y-2 pt-2 border-t border-slate-100">
-            <div className="flex items-center justify-between">
-              <span className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                미납 교재비 목록 ({unpaidSales.length}건)
-              </span>
-              <span className="text-[11px] text-slate-500">
-                선택 합계: <strong className="text-amber-600">{formatCurrency(selectedSaleTotal)}</strong>
-              </span>
-            </div>
-
+            <span className="font-bold text-slate-800">미납 교재비 ({unpaidSales.length})</span>
             {unpaidSales.length === 0 ? (
-              <p className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center">
-                미납된 교재비가 없습니다.
-              </p>
+              <p className="p-3 bg-slate-50 rounded-xl text-slate-400 text-center">미납 교재비 없음</p>
             ) : (
-              <div className="space-y-1.5">
-                {unpaidSales.map((sale) => {
-                  const isChecked = selectedSaleIds.includes(sale.id);
-                  return (
-                    <div
-                      key={sale.id}
+              unpaidSales.map((sale) => {
+                const isChecked = selectedSaleIds.includes(sale.id);
+                return (
+                  <div
+                    key={sale.id}
+                    className={`p-3 rounded-xl border space-y-2 ${
+                      isChecked ? 'border-amber-300 bg-amber-50/50' : 'border-slate-200'
+                    }`}
+                  >
+                    <button
+                      type="button"
                       onClick={() => toggleSale(sale.id)}
-                      className={`p-3 rounded-xl border cursor-pointer flex items-center justify-between transition-all ${
-                        isChecked
-                          ? 'border-amber-300 bg-amber-50/50'
-                          : 'border-slate-200 bg-white hover:bg-slate-50'
-                      }`}
+                      className="w-full flex items-center justify-between gap-2 text-left min-h-[44px]"
                     >
-                      <div className="flex items-center gap-2.5">
+                      <span className="flex items-center gap-2">
                         {isChecked ? (
-                          <CheckSquare className="w-4 h-4 text-amber-600 shrink-0" />
+                          <CheckSquare className="w-4 h-4 text-amber-600" />
                         ) : (
-                          <Square className="w-4 h-4 text-slate-400 shrink-0" />
+                          <Square className="w-4 h-4 text-slate-400" />
                         )}
-                        <div>
-                          <span className="font-bold text-slate-900">{sale.textbookTitle}</span>
-                          <span className="text-slate-400 text-[11px] ml-2">
-                            ({sale.quantity}권 / 판매일: {sale.saleDate})
-                          </span>
-                        </div>
-                      </div>
-                      <div className="text-right font-black text-rose-600">
-                        {formatCurrency(sale.unpaidAmount)}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                        <span className="font-bold text-slate-900">{sale.textbookTitle}</span>
+                      </span>
+                      <span className="text-rose-600 font-black">
+                        잔액 {formatCurrency(sale.unpaidAmount)}
+                      </span>
+                    </button>
+                    {isChecked && (
+                      <label className="block">
+                        <span className="text-[11px] text-slate-500">이번 납부액</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={sale.unpaidAmount}
+                          value={saleAmounts[sale.id] ?? 0}
+                          onChange={(e) =>
+                            setSaleAmounts((prev) => ({
+                              ...prev,
+                              [sale.id]: Math.min(
+                                sale.unpaidAmount,
+                                Math.max(0, Number(e.target.value) || 0)
+                              ),
+                            }))
+                          }
+                          className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold min-h-[44px]"
+                        />
+                      </label>
+                    )}
+                  </div>
+                );
+              })
             )}
           </div>
 
-          {/* Section 3: 결제 수단 및 날짜 */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-slate-50 p-3.5 rounded-xl">
             <div>
               <label className="block text-slate-700 font-semibold mb-1">결제 방법</label>
               <select
                 value={paymentMethod}
                 onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 font-medium"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white min-h-[44px]"
               >
-                <option value="card">신용 / 체크카드</option>
+                <option value="card">카드</option>
                 <option value="transfer">계좌이체</option>
                 <option value="cash">현금</option>
                 <option value="other">기타</option>
               </select>
             </div>
-
             <div>
               <label className="block text-slate-700 font-semibold mb-1">수납 일자</label>
               <input
                 type="date"
                 value={paymentDate}
                 onChange={(e) => setPaymentDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900"
+                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white min-h-[44px]"
               />
             </div>
           </div>
 
-          {/* Section 4: 메모 */}
-          <div>
-            <label className="block text-slate-700 font-semibold mb-1">수납 비고 / 메모</label>
-            <input
-              type="text"
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="예: 학부모 방문 카드 일괄 결제 (수강료+교재)"
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900"
-            />
-          </div>
+          <input
+            type="text"
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder="수납 메모 (선택)"
+            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white min-h-[44px]"
+          />
 
-          {/* Final Summary Card */}
-          <div className="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between text-xs">
+          <div className="p-4 bg-slate-900 text-white rounded-xl flex items-center justify-between">
             <div>
-              <span className="text-slate-400 block">선택 항목 합산 결제액</span>
+              <span className="text-slate-400 block text-[11px]">이번 납부 합계</span>
               <span className="text-xs text-slate-300">
-                수강료 ₩{selectedInvoiceTotal.toLocaleString()} + 교재비 ₩{selectedSaleTotal.toLocaleString()}
+                수강료 {formatCurrency(selectedInvoiceTotal)} + 교재{' '}
+                {formatCurrency(selectedSaleTotal)}
               </span>
             </div>
-            <div className="text-right">
-              <span className="text-xl font-black text-emerald-400">
-                {formatCurrency(grandSelectedTotal)}
-              </span>
-            </div>
+            <span className="text-xl font-black text-emerald-400">
+              {formatCurrency(grandSelectedTotal)}
+            </span>
           </div>
 
-          {/* Footer Buttons */}
-          <div className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+          <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
+              className="px-4 py-2.5 text-xs font-medium text-slate-600 bg-slate-100 rounded-xl min-h-[44px]"
             >
               취소
             </button>
             <button
               type="submit"
               disabled={grandSelectedTotal <= 0}
-              className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white disabled:opacity-50 min-h-[44px]"
             >
               <CheckCircle2 className="w-4 h-4" />
-              통합 수납 완료 ({formatCurrency(grandSelectedTotal)})
+              수납 · 수입 반영 ({formatCurrency(grandSelectedTotal)})
             </button>
           </div>
         </form>

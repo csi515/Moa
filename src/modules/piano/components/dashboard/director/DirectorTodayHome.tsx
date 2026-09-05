@@ -1,20 +1,19 @@
 ﻿import type { FC } from 'react';
 import type { NavTab } from '@/context/AppContext';
+import { useStudentNavigation } from '@/hooks';
 import { formatCurrency, formatKoreanDate } from '@/utils/formatters';
 import {
   AlertCircle,
-  ArrowRight,
   CalendarCheck,
-  CheckSquare,
-  Clock,
   Inbox,
   MessageSquareText,
   Piano,
   UserPlus,
   Users,
-  ChevronRight,
+  Clock,
 } from 'lucide-react';
 import type { useDirectorTodayDashboard } from './useDirectorTodayDashboard';
+import { TodayLessonView } from '../../lessons/TodayLessonView';
 
 type TodayData = ReturnType<typeof useDirectorTodayDashboard>;
 
@@ -34,15 +33,15 @@ function formatReservationTime(iso: string): string {
   });
 }
 
-/** 원장 홈 — 오늘 일정을 fold에 두는 고밀도 레이아웃 */
+/** 원장 홈 — 오늘 레슨 작업면 + 상담·미납 */
 export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
   currentUserName,
   data,
   setActiveTab,
 }) => {
+  const { openStudent } = useStudentNavigation();
   const {
     stats,
-    students,
     todayClasses,
     recentUnpaid,
     unpaidStudentCount,
@@ -53,25 +52,24 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
   } = data;
 
   const isEmpty = stats.activeStudents === 0 && stats.todayClassesCount === 0;
-  const nowHm = `${String(new Date().getHours()).padStart(2, '0')}:${String(new Date().getMinutes()).padStart(2, '0')}`;
 
   const kpiChips: { label: string; value: string; tab: NavTab; tone: string }[] = [
     {
-      label: '수업',
+      label: '레슨',
       value: `${stats.todayClassesCount}`,
-      tab: 'timetable',
+      tab: 'lessons',
       tone: 'bg-indigo-50 text-indigo-800 border-indigo-100',
     },
     {
       label: '출석',
       value: `${stats.todayPresent}`,
-      tab: 'attendance',
+      tab: 'lessons',
       tone: 'bg-emerald-50 text-emerald-800 border-emerald-100',
     },
     {
       label: '미출',
       value: `${stats.todayAbsent}`,
-      tab: makeupPendingCount > 0 ? 'makeups' : 'attendance',
+      tab: makeupPendingCount > 0 ? 'makeups' : 'lessons',
       tone: 'bg-amber-50 text-amber-800 border-amber-100',
     },
     {
@@ -101,7 +99,7 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
             </h2>
             {isEmpty && (
               <p className="text-xs text-indigo-100/90 mt-0.5">
-                학생·수업을 등록하면 오늘 일정이 표시됩니다.
+                학생·정규 레슨을 등록하면 오늘 일정이 표시됩니다.
               </p>
             )}
           </div>
@@ -128,89 +126,20 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
 
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-3">
         <div className="lg:col-span-3 bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs">
-          <div className="flex items-center justify-between mb-2.5">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
-              <Clock className="w-4 h-4 text-indigo-600" />
-              오늘 일정
-            </h3>
-            <button
-              type="button"
-              onClick={() => setActiveTab('timetable')}
-              className="text-xs font-bold text-indigo-600 hover:underline flex items-center gap-1 min-h-[44px] px-1"
-            >
-              전체 <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
           {todayClasses.length === 0 ? (
             <div className="py-6 text-center space-y-1.5">
               <CalendarCheck className="w-7 h-7 text-slate-300 mx-auto" />
-              <p className="text-sm font-bold text-slate-600">오늘 예정된 수업이 없습니다</p>
+              <p className="text-sm font-bold text-slate-600">오늘 예정된 레슨이 없습니다</p>
               <button
                 type="button"
                 onClick={() => setActiveTab('classes')}
                 className="text-xs font-bold text-indigo-600 min-h-[44px]"
               >
-                반/수업 관리로 이동
+                정규 레슨 관리로 이동
               </button>
             </div>
           ) : (
-            <ol className="space-y-1.5">
-              {todayClasses.map((cls) => {
-                const enrolled = students.filter(
-                  (s) => s.status === 'active' && s.classIds?.includes(cls.id)
-                ).length;
-                const isNow =
-                  !!cls.startTime &&
-                  !!cls.endTime &&
-                  cls.startTime <= nowHm &&
-                  nowHm < cls.endTime;
-                const isNext =
-                  !isNow &&
-                  !!cls.startTime &&
-                  cls.startTime > nowHm &&
-                  todayClasses.find((c) => c.startTime && c.startTime > nowHm)?.id === cls.id;
-
-                return (
-                  <li key={cls.id}>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('lessons')}
-                      className={`w-full text-left flex items-center gap-2.5 px-2.5 py-2 rounded-xl border min-h-[52px] transition-colors ${
-                        isNow
-                          ? 'bg-indigo-50 border-indigo-200 ring-1 ring-indigo-100'
-                          : isNext
-                            ? 'bg-emerald-50/70 border-emerald-200'
-                            : 'bg-slate-50 border-slate-100 hover:border-indigo-200'
-                      }`}
-                    >
-                      <div className="w-12 shrink-0 text-center">
-                        <p className="font-mono text-sm font-black text-indigo-700">
-                          {cls.startTime}
-                        </p>
-                        <p className="text-[10px] text-slate-400">~{cls.endTime}</p>
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="text-sm font-bold text-slate-900 truncate">{cls.name}</p>
-                        <p className="text-[11px] text-slate-500 truncate">
-                          {cls.teacherName} · {cls.room} · {enrolled}/{cls.capacity}명
-                        </p>
-                      </div>
-                      {(isNow || isNext) && (
-                        <span
-                          className={`text-[10px] font-black px-1.5 py-0.5 rounded shrink-0 ${
-                            isNow ? 'bg-indigo-600 text-white' : 'bg-emerald-600 text-white'
-                          }`}
-                        >
-                          {isNow ? '진행' : '다음'}
-                        </span>
-                      )}
-                      <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
-                    </button>
-                  </li>
-                );
-              })}
-            </ol>
+            <TodayLessonView embedded />
           )}
         </div>
 
@@ -267,17 +196,20 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
             ) : (
               <ul className="space-y-1.5">
                 {recentUnpaid.map((inv) => (
-                  <li
-                    key={inv.id}
-                    className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-rose-50/70 border border-rose-100 min-h-[44px]"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm font-bold text-slate-900 truncate">{inv.studentName}</p>
-                      <p className="text-[11px] text-slate-500">예정 {inv.dueDate.slice(5)}</p>
-                    </div>
-                    <p className="text-sm font-bold text-rose-700 shrink-0 tabular-nums">
-                      {formatCurrency(inv.unpaidAmount)}
-                    </p>
+                  <li key={inv.id}>
+                    <button
+                      type="button"
+                      onClick={() => openStudent(inv.studentId, 'tuition')}
+                      className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg bg-rose-50/70 border border-rose-100 min-h-[44px] text-left hover:border-rose-200"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-900 truncate">{inv.studentName}</p>
+                        <p className="text-[11px] text-slate-500">예정 {inv.dueDate.slice(5)}</p>
+                      </div>
+                      <p className="text-sm font-bold text-rose-700 shrink-0 tabular-nums">
+                        {formatCurrency(inv.unpaidAmount)}
+                      </p>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -289,7 +221,7 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
       <section className="grid grid-cols-3 gap-2">
         {[
           { tab: 'lessons' as const, label: '오늘 레슨', icon: Piano, primary: true },
-          { tab: 'attendance' as const, label: '출결', icon: CheckSquare, primary: false },
+          { tab: 'makeups' as const, label: '보강', icon: Clock, primary: false },
           { tab: 'students' as const, label: '학생', icon: UserPlus, primary: false },
         ].map(({ tab, label, icon: Icon, primary }) => (
           <button
@@ -314,6 +246,9 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
           재원 {stats.activeStudents}명
           {pendingReservationCount > 0 && (
             <span className="text-violet-600"> · 상담대기 {pendingReservationCount}</span>
+          )}
+          {makeupPendingCount > 0 && (
+            <span className="text-amber-600"> · 미보강 {makeupPendingCount}</span>
           )}
         </p>
         <button

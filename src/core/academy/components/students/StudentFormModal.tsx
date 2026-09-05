@@ -83,7 +83,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const [guardians, setGuardians] = useState<GuardianFormEntry[]>([newGuardianEntry(true)]);
   const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(!isEdit);
   const [revealedPin, setRevealedPin] = useState<string | null>(null);
   const [inviteModal, setInviteModal] = useState<StudentRegistrationInviteResult | null>(null);
 
@@ -371,7 +371,9 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               <h3 className="font-bold text-slate-900 text-base">
                 {isEdit ? `${student!.name} 정보 수정` : '신규 학생 등록'}
               </h3>
-              <p className="text-xs text-slate-500">학생·학부모를 links 기반으로 연결합니다</p>
+              <p className="text-xs text-slate-500">
+                학생 · 보호자 · 정규 레슨을 한 번에 등록합니다
+              </p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1.5">
@@ -456,6 +458,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           <StudentAdvancedSection
             formData={formData}
             teachers={teachers}
+            classes={classes}
             showAdvanced={showAdvanced}
             onToggle={() => setShowAdvanced((v) => !v)}
             onChange={updateFormData}

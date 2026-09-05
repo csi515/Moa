@@ -27,17 +27,23 @@ export function isParentRole(role: UserRole | string | null | undefined): boolea
   return role === 'parent';
 }
 
-/** 출입(PIN) 탭 — 사업장 설정으로 on/off */
-const ATTENDANCE_PIN_TAB: NavTab = 'attendance';
-
 function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
   return normalizeIndustryType(industry);
 }
 
-/** 출입(PIN) 꺼진 사업장에서는 attendance 탭만 숨김 */
+/**
+ * PIN 출결 꺼진 사업장에서 PIN 전용 탭만 숨김.
+ * - check-in 탭이 있으면(피아노): check-in만 숨김 — attendance는 레슨 출결
+ * - check-in 없으면(체육관 등): attendance가 PIN 화면이므로 숨김
+ */
 function filterAttendancePinTab(tabs: NavTab[], attendanceEnabled: boolean): NavTab[] {
   if (attendanceEnabled) return tabs;
-  return tabs.filter((t) => t !== ATTENDANCE_PIN_TAB);
+  const hasSeparateCheckIn = tabs.includes('check-in');
+  return tabs.filter((t) => {
+    if (t === 'check-in') return false;
+    if (t === 'attendance' && !hasSeparateCheckIn) return false;
+    return true;
+  });
 }
 
 function appendAccountTab(tabs: NavTab[]): NavTab[] {

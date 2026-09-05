@@ -94,16 +94,13 @@ export const AttendanceManagementView: React.FC = () => {
 
   const stats = useMemo(() => {
     let checkedIn = 0;
-    let checkedOut = 0;
     activeStudents.forEach((s) => {
       const sess = sessionMap.get(s.id);
       if (sess?.checkInAt) checkedIn++;
-      if (sess?.checkOutAt) checkedOut++;
     });
     return {
       total: activeStudents.length,
       checkedIn,
-      checkedOut,
       absent: activeStudents.length - checkedIn,
     };
   }, [activeStudents, sessionMap]);
@@ -143,8 +140,8 @@ export const AttendanceManagementView: React.FC = () => {
     return (
       <EmptyState
         icon={<CheckSquare className="w-10 h-10" />}
-        title="출입 관리가 꺼져 있습니다"
-        description="설정에서 출입 관리(핀번호)를 활성화하면 PIN 입·퇴실 기록을 사용할 수 있습니다."
+        title="PIN 출결이 꺼져 있습니다"
+        description="설정에서 학생 PIN 출결을 활성화하면 PIN 출석 키오스크를 사용할 수 있습니다."
         action={
           <button
             type="button"
@@ -166,14 +163,14 @@ export const AttendanceManagementView: React.FC = () => {
         density="compact"
         icon={<CheckSquare className="w-6 h-6" />}
         iconClassName={accent.icon}
-        title={isDaycare ? '등·하원 관리' : '출입 관리'}
+        title={isDaycare ? '등원 관리' : 'PIN 출석'}
         actions={
           <SegmentedControl
             value={subTab}
             options={ATTENDANCE_SUB_TABS}
             onChange={setSubTab}
             activeClassName={accentActive}
-            aria-label="출입 관리 보기"
+            aria-label="PIN 출석 보기"
             fullWidth
             className="sm:w-auto"
           />
@@ -183,6 +180,12 @@ export const AttendanceManagementView: React.FC = () => {
       {subTab === 'kiosk' ? (
         <div id="attendance-panel-kiosk" role="tabpanel" aria-labelledby="segment-kiosk">
           <PinCheckInKioskView />
+          <p className="text-center text-[11px] text-slate-400 mt-3">
+            입구 태블릿 전용:{' '}
+            <a href="/attendance-kiosk" className={`font-bold ${accent.icon}`}>
+              /attendance-kiosk
+            </a>
+          </p>
         </div>
       ) : (
         <div
@@ -191,17 +194,12 @@ export const AttendanceManagementView: React.FC = () => {
           aria-labelledby="segment-overview"
           className="space-y-4"
         >
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant={metricVariant} />
             <SummaryMetricCard
-              label={isDaycare ? '등원' : '입실'}
+              label={isDaycare ? '등원' : '출석'}
               value={`${stats.checkedIn}명`}
               variant="emerald"
-            />
-            <SummaryMetricCard
-              label={isDaycare ? '하원' : '퇴실'}
-              value={`${stats.checkedOut}명`}
-              variant="amber"
             />
             <SummaryMetricCard label="미출석" value={`${stats.absent}명`} />
           </div>
@@ -274,8 +272,7 @@ export const AttendanceManagementView: React.FC = () => {
                       <tr className="bg-slate-50 text-slate-500">
                         <th className="text-left px-4 py-3 font-bold">이름</th>
                         <th className="text-left px-4 py-3 font-bold">상태</th>
-                        <th className="text-left px-4 py-3 font-bold">{isDaycare ? '등원' : '입실'}</th>
-                        <th className="text-left px-4 py-3 font-bold">{isDaycare ? '하원' : '퇴실'}</th>
+                        <th className="text-left px-4 py-3 font-bold">{isDaycare ? '등원' : '출석 시각'}</th>
                         <th className="text-left px-4 py-3 font-bold">PIN</th>
                         <th className="text-left px-4 py-3 font-bold">메모</th>
                       </tr>
@@ -321,9 +318,6 @@ export const AttendanceManagementView: React.FC = () => {
                             </td>
                             <td className="px-4 py-3 font-mono text-slate-700">
                               {formatSessionTime(session?.checkInAt)}
-                            </td>
-                            <td className="px-4 py-3 font-mono text-slate-700">
-                              {formatSessionTime(session?.checkOutAt)}
                             </td>
                             <td className="px-4 py-3">
                               <span
@@ -391,21 +385,13 @@ export const AttendanceManagementView: React.FC = () => {
                             주의 · {student.specialNotes}
                           </p>
                         )}
-                        <div className="grid grid-cols-2 gap-1.5 text-xs">
+                        <div className="grid grid-cols-1 gap-1.5 text-xs">
                           <div className="bg-slate-50 rounded-lg px-2 py-1.5">
                             <p className="text-slate-400 font-semibold text-[10px]">
-                              {isDaycare ? '등원' : '입실'}
+                              {isDaycare ? '등원' : '출석 시각'}
                             </p>
                             <p className="font-mono font-bold text-slate-700">
                               {formatSessionTime(session?.checkInAt)}
-                            </p>
-                          </div>
-                          <div className="bg-slate-50 rounded-lg px-2 py-1.5">
-                            <p className="text-slate-400 font-semibold text-[10px]">
-                              {isDaycare ? '하원' : '퇴실'}
-                            </p>
-                            <p className="font-mono font-bold text-slate-700">
-                              {formatSessionTime(session?.checkOutAt)}
                             </p>
                           </div>
                         </div>
@@ -419,7 +405,7 @@ export const AttendanceManagementView: React.FC = () => {
                             className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-600 min-h-[44px]"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
-                            {session?.memo ? '메모 수정' : '하원 메모'}
+                            {session?.memo ? '메모 수정' : '메모'}
                           </button>
                         </div>
                         {session?.memo && (

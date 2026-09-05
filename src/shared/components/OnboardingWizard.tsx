@@ -21,8 +21,10 @@ import {
   BookOpen,
   Plus,
   Trash2,
+  KeyRound,
+  UserCheck,
 } from 'lucide-react';
-
+import { withAttendanceModuleEnabled } from '@/core/attendance/features';
 const DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 interface OnboardingWizardProps {
@@ -65,7 +67,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
     textbook: '',
   });
 
+  const [attendanceChoice, setAttendanceChoice] = useState<'pin' | 'manual' | 'later'>('later');
+
   const handleSkip = () => {
+    StorageService.saveSettings(
+      withAttendanceModuleEnabled(StorageService.getSettings(), false)
+    );
     StorageService.setOnboardingComplete();
     onComplete();
   };
@@ -76,14 +83,21 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
 
     setIsSaving(true);
     try {
+      const pinEnabled = attendanceChoice === 'pin';
       const settings = {
         name: academyForm.name.trim(),
         directorName: academyForm.directorName.trim(),
         phone: academyForm.phone.trim(),
         address: academyForm.address.trim(),
+        features: {
+          attendance: { enabled: pinEnabled },
+        },
       };
 
       StorageService.updateSettings(settings);
+      StorageService.saveSettings(
+        withAttendanceModuleEnabled(StorageService.getSettings(), pinEnabled)
+      );
 
       if (org?.currentOrganization) {
         await orgService.updateOrganization(org.currentOrganization.id, {
@@ -92,6 +106,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
             directorName: settings.directorName,
             phone: settings.phone,
             address: settings.address,
+            features: settings.features,
           },
         });
         await org.refreshOrganizations();
@@ -104,6 +119,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
           businessAddress: settings.address,
           industryCategory: academyForm.industryCategory.trim(),
           industryType: 'piano',
+          settings: { features: settings.features },
         });
       }
 
@@ -361,6 +377,45 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({ onComplete }
                   <option value="교습소">교습소</option>
                   <option value="음악교습">음악교습</option>
                 </select>
+              </div>
+              <div className="pt-2 border-t border-slate-100 space-y-2">
+                <p className="text-xs font-semibold text-slate-700">출결 관리 방식</p>
+                <p className="text-[11px] text-slate-500">나중에 설정에서 변경할 수 있습니다.</p>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceChoice('pin')}
+                  className={`w-full text-left p-3 rounded-xl border-2 min-h-[44px] ${
+                    attendanceChoice === 'pin' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'
+                  }`}
+                >
+                  <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+                    학생 PIN 출결
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceChoice('manual')}
+                  className={`w-full text-left p-3 rounded-xl border-2 min-h-[44px] ${
+                    attendanceChoice === 'manual' ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'
+                  }`}
+                >
+                  <p className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                    <UserCheck className="w-3.5 h-3.5 text-slate-600" />
+                    선생님 직접 출결
+                  </p>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAttendanceChoice('later')}
+                  className={`w-full text-left px-3 py-2 rounded-xl border text-[11px] font-semibold min-h-[44px] ${
+                    attendanceChoice === 'later'
+                      ? 'border-slate-400 text-slate-800 bg-slate-50'
+                      : 'border-slate-200 text-slate-500'
+                  }`}
+                >
+                  나중에 설정하기 (선생님 직접 출결과 동일)
+                </button>
               </div>
               <div className="flex justify-between pt-2">
                 <button

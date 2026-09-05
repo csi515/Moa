@@ -72,10 +72,10 @@ export function DaycareParentHome({
         </button>
       </div>
 
-      {todaySession && (todaySession.checkInAt || todaySession.checkOutAt) && (
-        <Section title="오늘 등·하원 시각">
+      {todaySession?.checkInAt && (
+        <Section title="오늘 등원">
           <p className="text-sm text-slate-700 font-mono">
-            {formatSessionTime(todaySession.checkInAt)} → {formatSessionTime(todaySession.checkOutAt)}
+            {formatSessionTime(todaySession.checkInAt)}
           </p>
           {todaySession.memo && (
             <p className="text-xs text-slate-500 mt-2">메모 · {todaySession.memo}</p>

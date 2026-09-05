@@ -17,7 +17,7 @@ const SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
 
 function tabToSegment(tab: string): ScheduleSegment {
   if (tab === 'calendar') return 'events';
-  if (tab === 'lessons') return 'lessons';
+  if (tab === 'lessons' || tab === 'attendance') return 'lessons';
   if (tab === 'makeups') return 'makeups';
   return 'classes';
 }

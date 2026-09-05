@@ -5,7 +5,8 @@ import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { ParentPortalProvider, useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import {
-  consumePendingGuardianLink,
+  clearPendingGuardianLink,
+  peekPendingGuardianLink,
   redeemGuardianLinkToken,
 } from '@/core/parent/services/guardianLinkService';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
@@ -63,6 +64,7 @@ function ParentShellContent() {
     setRedeeming(true);
     try {
       const result = await redeemGuardianLinkToken(token);
+      clearPendingGuardianLink();
       const mergeNote =
         result.mergedDuplicates && result.mergedDuplicates > 0
           ? ' (기존 자녀 정보와 통합됨)'
@@ -88,7 +90,7 @@ function ParentShellContent() {
   };
 
   useEffect(() => {
-    const pending = consumePendingGuardianLink();
+    const pending = peekPendingGuardianLink();
     if (!pending) return;
 
     requestRedeem(pending);

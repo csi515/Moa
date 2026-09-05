@@ -2,13 +2,22 @@ import type {
   Expense,
   Student,
   TuitionInvoice,
+  TuitionPayment,
   UnpaidInvoiceItem,
   StudentUnpaidSummary,
+  PaymentMethod,
 } from '../../types';
 import type { IncomeEntry, FinanceSummary } from '../../core/finance/types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import { notifyParentTuitionUnpaid } from '../../core/academy/services/academyAlertService';
+import {
+  backfillLinkedIncomeFromPayments,
+  deleteLinkedIncome,
+  getTuitionPayments as readTuitionPayments,
+  saveTuitionPaymentDirect,
+  upsertLinkedIncome,
+} from '../../core/finance/billingIncomeLink';
 
 /** 수강료·지출·수입·미납 도메인 */
 export function createFinanceStorage(api: StorageApi) {
@@ -26,6 +35,14 @@ export function createFinanceStorage(api: StorageApi) {
       return getItem<TuitionInvoice[]>(STORAGE_KEYS.INVOICES, []).map((inv) =>
         (api.normalizeInvoiceStatus as (i: TuitionInvoice) => TuitionInvoice)(inv)
       );
+    },
+
+    getTuitionPayments(): TuitionPayment[] {
+      return readTuitionPayments();
+    },
+
+    getTuitionPaymentsByInvoiceId(invoiceId: string): TuitionPayment[] {
+      return readTuitionPayments().filter((p) => p.invoiceId === invoiceId);
     },
 
     saveInvoice(inv: Omit<TuitionInvoice, 'id'> & { id?: string }): TuitionInvoice {
@@ -55,6 +72,14 @@ export function createFinanceStorage(api: StorageApi) {
       const list = (api.getInvoices as () => TuitionInvoice[])();
       const filtered = list.filter((i) => i.id !== id);
       if (filtered.length !== list.length) {
+        const payments = readTuitionPayments().filter((p) => p.invoiceId === id);
+        for (const p of payments) {
+          deleteLinkedIncome('tuition', p.id);
+        }
+        setItem(
+          STORAGE_KEYS.TUITION_PAYMENTS,
+          readTuitionPayments().filter((p) => p.invoiceId !== id)
+        );
         setItem(STORAGE_KEYS.INVOICES, filtered);
         return true;
       }
@@ -64,18 +89,22 @@ export function createFinanceStorage(api: StorageApi) {
     recordPayment(
       invoiceId: string,
       amount: number,
-      method: 'card' | 'transfer' | 'cash' | 'other',
-      notes?: string
+      method: PaymentMethod,
+      notes?: string,
+      paymentDate?: string
     ): TuitionInvoice | null {
       const list = (api.getInvoices as () => TuitionInvoice[])();
       const idx = list.findIndex((i) => i.id === invoiceId);
       if (idx === -1) return null;
 
       const inv = list[idx];
-      const newPaidAmount = inv.paidAmount + amount;
+      const payAmount = Math.min(amount, Math.max(0, inv.unpaidAmount));
+      if (payAmount <= 0) return inv;
+
+      const newPaidAmount = inv.paidAmount + payAmount;
       const newUnpaidAmount = Math.max(0, inv.totalAmount - newPaidAmount);
       const newStatus = newUnpaidAmount === 0 ? 'paid' : newPaidAmount > 0 ? 'partial' : 'unpaid';
-      const nowStr = new Date().toISOString().slice(0, 10);
+      const pDate = paymentDate || new Date().toISOString().slice(0, 10);
       const receiptNum = `REC-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 900) + 100)}`;
 
       const updated: TuitionInvoice = {
@@ -84,14 +113,68 @@ export function createFinanceStorage(api: StorageApi) {
         unpaidAmount: newUnpaidAmount,
         status: newStatus,
         paymentMethod: method,
-        paidAt: nowStr,
-        notes: notes ? `${inv.notes || ''} [${nowStr}] ${notes}`.trim() : inv.notes,
+        paidAt: pDate,
+        paidDate: pDate,
+        notes: notes ? `${inv.notes || ''} [${pDate}] ${notes}`.trim() : inv.notes,
         receiptNumber: inv.receiptNumber || receiptNum,
       };
 
       list[idx] = updated;
       setItem(STORAGE_KEYS.INVOICES, list);
+
+      const payment = saveTuitionPaymentDirect({
+        invoiceId: inv.id,
+        studentId: inv.studentId,
+        studentName: inv.studentName,
+        yearMonth: inv.yearMonth,
+        paymentDate: pDate,
+        amount: payAmount,
+        paymentMethod: method,
+        memo: notes,
+        receiptNumber: receiptNum,
+      });
+
+      upsertLinkedIncome({
+        sourceType: 'tuition',
+        paymentId: payment.id,
+        date: pDate,
+        amount: payAmount,
+        paymentMethod: method,
+        description: `${inv.yearMonth} 수강료 · ${inv.studentName}`,
+        payer: inv.studentName,
+        memo: notes,
+      });
+
       return updated;
+    },
+
+    /** 연동 납부 삭제 — charge 잔액·income 동시 복원 */
+    reverseTuitionPayment(paymentId: string): boolean {
+      const payments = readTuitionPayments();
+      const payment = payments.find((p) => p.id === paymentId);
+      if (!payment) return false;
+
+      const list = (api.getInvoices as () => TuitionInvoice[])();
+      const idx = list.findIndex((i) => i.id === payment.invoiceId);
+      if (idx >= 0) {
+        const inv = list[idx];
+        const newPaid = Math.max(0, inv.paidAmount - payment.amount);
+        const newUnpaid = Math.max(0, inv.totalAmount - newPaid);
+        list[idx] = {
+          ...inv,
+          paidAmount: newPaid,
+          unpaidAmount: newUnpaid,
+          status: newUnpaid === 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid',
+        };
+        setItem(STORAGE_KEYS.INVOICES, list);
+      }
+
+      setItem(
+        STORAGE_KEYS.TUITION_PAYMENTS,
+        payments.filter((p) => p.id !== paymentId)
+      );
+      deleteLinkedIncome('tuition', paymentId);
+      return true;
     },
 
     createInvoiceForStudent(student: Student, yearMonth?: string): TuitionInvoice {
@@ -222,12 +305,25 @@ export function createFinanceStorage(api: StorageApi) {
 
     deleteIncomeEntry(id: string): boolean {
       const list = (api.getIncomeEntries as () => IncomeEntry[])();
-      const filtered = list.filter((e) => e.id !== id);
-      if (filtered.length !== list.length) {
-        setItem(STORAGE_KEYS.INCOME_ENTRIES, filtered);
+      const entry = list.find((e) => e.id === id);
+      if (!entry) return false;
+
+      if (entry.sourceType === 'tuition' && entry.sourceId) {
+        (api.reverseTuitionPayment as (paymentId: string) => boolean)(entry.sourceId);
         return true;
       }
-      return false;
+      if (entry.sourceType === 'textbook' && entry.sourceId) {
+        (api.reverseTextbookPayment as (paymentId: string) => boolean)(entry.sourceId);
+        return true;
+      }
+
+      const filtered = list.filter((e) => e.id !== id);
+      setItem(STORAGE_KEYS.INCOME_ENTRIES, filtered);
+      return true;
+    },
+
+    backfillBillingLinkedIncome() {
+      return backfillLinkedIncomeFromPayments();
     },
 
     getFinanceSummary(industry: string = 'piano'): FinanceSummary {
@@ -235,30 +331,23 @@ export function createFinanceStorage(api: StorageApi) {
       const incomeEntries = (api.getIncomeEntries as () => IncomeEntry[])();
       const currentYearMonth = new Date().toISOString().slice(0, 7);
 
-      const getLinkedIncomeForMonth = (ym: string): number => {
-        if (industry !== 'piano') return 0;
-        const tuitionPaid = (api.getInvoices as () => TuitionInvoice[])()
-          .filter((i) => i.yearMonth === ym)
-          .reduce((sum, i) => sum + i.paidAmount, 0);
-        const textbookPaid = (
-          api.getTextbookSales as () => import('../../types').TextbookSale[]
-        )()
-          .filter((s) => s.saleDate.startsWith(ym))
-          .reduce((sum, s) => sum + (s.paidAmount || 0), 0);
-        return tuitionPaid + textbookPaid;
-      };
-
-      const getManualIncomeForMonth = (ym: string): number =>
+      const getIncomeForMonth = (ym: string, linkedOnly?: boolean): number =>
         incomeEntries
-          .filter((e) => e.date.startsWith(ym))
+          .filter((e) => {
+            if (!e.date.startsWith(ym)) return false;
+            if (linkedOnly === true) return e.sourceType === 'tuition' || e.sourceType === 'textbook';
+            if (linkedOnly === false) return !e.sourceType || e.sourceType === 'manual';
+            return true;
+          })
           .reduce((sum, e) => sum + e.amount, 0);
 
       const getExpenseForMonth = (ym: string): number =>
         expenses.filter((e) => e.date.startsWith(ym)).reduce((sum, e) => sum + e.amount, 0);
 
-      const manualIncomeThisMonth = getManualIncomeForMonth(currentYearMonth);
-      const linkedIncomeThisMonth = getLinkedIncomeForMonth(currentYearMonth);
-      const totalIncomeThisMonth = manualIncomeThisMonth + linkedIncomeThisMonth;
+      const manualIncomeThisMonth = getIncomeForMonth(currentYearMonth, false);
+      const linkedIncomeThisMonth =
+        industry === 'piano' ? getIncomeForMonth(currentYearMonth, true) : 0;
+      const totalIncomeThisMonth = getIncomeForMonth(currentYearMonth);
       const totalExpenseThisMonth = getExpenseForMonth(currentYearMonth);
 
       const months: string[] = [];
@@ -269,7 +358,7 @@ export function createFinanceStorage(api: StorageApi) {
       }
 
       const monthlyTrend = months.map((ym) => {
-        const income = getManualIncomeForMonth(ym) + getLinkedIncomeForMonth(ym);
+        const income = getIncomeForMonth(ym);
         const expense = getExpenseForMonth(ym);
         return {
           yearMonth: ym,
@@ -411,27 +500,25 @@ export function createFinanceStorage(api: StorageApi) {
       totalRevenue: number;
     } {
       const ym = yearMonth || new Date().toISOString().slice(0, 7);
-
-      const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
-        (inv) => inv.paidAt && inv.paidAt.startsWith(ym)
+      const entries = (api.getIncomeEntries as () => IncomeEntry[])().filter((e) =>
+        e.date.startsWith(ym)
       );
-      const tuitionRevenue = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
 
-      const textbookPayments = (
-        api.getTextbookPayments as () => import('../../types').TextbookPayment[]
-      )().filter((p) => p.paymentDate.startsWith(ym));
-      const textbookRevenue = textbookPayments.reduce((sum, p) => sum + p.amount, 0);
-
-      const otherInvoices = invoices.reduce((sum, inv) => sum + (inv.extraFee || 0), 0);
-      const otherRevenue = otherInvoices;
-
-      const totalRevenue = tuitionRevenue + textbookRevenue + otherRevenue;
+      const tuitionRevenue = entries
+        .filter((e) => e.sourceType === 'tuition')
+        .reduce((sum, e) => sum + e.amount, 0);
+      const textbookRevenue = entries
+        .filter((e) => e.sourceType === 'textbook')
+        .reduce((sum, e) => sum + e.amount, 0);
+      const otherRevenue = entries
+        .filter((e) => !e.sourceType || e.sourceType === 'manual' || e.sourceType === 'booking')
+        .reduce((sum, e) => sum + e.amount, 0);
 
       return {
         tuitionRevenue,
         textbookRevenue,
         otherRevenue,
-        totalRevenue,
+        totalRevenue: tuitionRevenue + textbookRevenue + otherRevenue,
       };
     },
   };

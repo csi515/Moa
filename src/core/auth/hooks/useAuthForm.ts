@@ -122,6 +122,7 @@ export function useAuthForm() {
           phone: business.phone,
           address: business.address,
           businessNumber: business.businessNumber,
+          features: { attendance: { enabled: false } },
         });
       } else {
         await signUp(email.trim(), password, fullName.trim(), accountType);

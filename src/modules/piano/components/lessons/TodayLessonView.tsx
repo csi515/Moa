@@ -1,5 +1,5 @@
-import { useMemo, useState, type FC } from 'react';
-import { CheckCircle2, ChevronRight, Clock, MapPin, Piano, Users } from 'lucide-react';
+import { useMemo, useState, type FC, type MouseEvent } from 'react';
+import { CheckCircle2, ChevronRight, Clock, MapPin, Piano, Users, XCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -41,9 +41,12 @@ function nowHm(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 오늘 수업별 원생을 돌며 출석·레슨·과제를 한 번에 처리 */
-export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader = false }) => {
-  const { currentUser, showToast } = useApp();
+/** 오늘 레슨 타임라인 — 원탭 출결 + 레슨 노트 */
+export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }> = ({
+  compactHeader = false,
+  embedded = false,
+}) => {
+  const { currentUser, showToast, openConfirmDialog, setActiveTab } = useApp();
   const refreshKey = useStorageRefresh();
   const { staffId, scopeStudents, scopeClasses, scopeLessons } = useStaffScope();
 
@@ -87,14 +90,25 @@ export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader
     return { total, done };
   }, [classes, students, attendance, today]);
 
-  const progressPct =
-    stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
+  const progressPct = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
 
-  const handleSave = (form: LessonSessionForm) => {
-    if (!target) return;
-    const { student, classItem } = target;
+  const offerMakeup = (studentName: string) => {
+    openConfirmDialog({
+      title: '보강 일정',
+      message: `${studentName} 원생 결석이 저장되었습니다. 지금 보강 일정을 잡을까요?`,
+      confirmText: '보강 일정 잡기',
+      cancelText: '나중에',
+      onConfirm: () => setActiveTab('makeups'),
+    });
+  };
+
+  const persistAttendance = (
+    student: Student,
+    classItem: ClassItem,
+    status: AttendanceStatus,
+    memo?: string
+  ) => {
     const existingAtt = findAttendance(student.id, classItem.id);
-
     StorageService.saveAttendanceRecord({
       ...(existingAtt ? { id: existingAtt.id } : {}),
       date: today,
@@ -102,21 +116,45 @@ export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader
       studentName: student.name,
       classId: classItem.id,
       className: classItem.name,
-      status: form.status,
-      memo: form.memo.trim() || undefined,
+      status,
+      memo: memo?.trim() || undefined,
       createdBy: currentUser.name,
     });
 
-    if (form.status === 'absent') {
+    if (status === 'absent') {
       notifyParentAbsence({
         studentId: student.id,
         studentName: student.name,
         parentPhone: student.parentPhone,
         className: classItem.name,
         date: today,
-        reason: form.memo.trim() || undefined,
+        reason: memo?.trim() || undefined,
       });
     }
+  };
+
+  const handleQuickStatus = (
+    e: MouseEvent,
+    student: Student,
+    classItem: ClassItem,
+    status: 'present' | 'absent'
+  ) => {
+    e.stopPropagation();
+    persistAttendance(student, classItem, status);
+    showToast(
+      status === 'absent'
+        ? `${student.name} 원생 결석 처리되었습니다.`
+        : `${student.name} 원생 출석 처리되었습니다.`,
+      'success'
+    );
+    if (status === 'absent') offerMakeup(student.name);
+  };
+
+  const handleSave = (form: LessonSessionForm) => {
+    if (!target) return;
+    const { student, classItem } = target;
+
+    persistAttendance(student, classItem, form.status, form.memo);
 
     if (form.status !== 'absent') {
       if (!form.songTitle.trim()) {
@@ -157,56 +195,74 @@ export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader
       'success'
     );
     setTarget(null);
+    if (form.status === 'absent') offerMakeup(student.name);
   };
 
-  return (
-    <div className="space-y-4 pb-8">
-      {compactHeader ? (
-        <div className="flex items-end justify-between gap-3 px-0.5">
-          <div>
-            <p className="text-[11px] font-semibold text-indigo-600">{todayKorean}요일 · {today}</p>
-            <h2 className="text-lg font-extrabold text-slate-900 tracking-tight">오늘 레슨</h2>
-          </div>
-          <p className="text-xs font-bold text-slate-500 tabular-nums">
-            {stats.done}/{stats.total} 완료
-          </p>
-        </div>
-      ) : (
-        <PageHeader
-          icon={<Piano className="w-6 h-6" />}
-          title="오늘 레슨"
-          description="출석 · 레슨 노트 · 과제를 한 화면에서 저장합니다."
-        />
-      )}
-
-      <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4">
-        <div className="flex items-center justify-between gap-3 mb-2.5">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
-              <Clock className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-slate-500">처리 현황</p>
-              <p className="text-sm font-bold text-slate-900">
-                수업 {classes.length}개 · 원생 {stats.total}명
-              </p>
-            </div>
-          </div>
-          <p className="text-2xl font-black text-indigo-700 tabular-nums">{progressPct}%</p>
-        </div>
-        <div className="h-2 rounded-full bg-indigo-100 overflow-hidden">
-          <div
-            className="h-full rounded-full bg-indigo-600 transition-all duration-500"
-            style={{ width: `${progressPct}%` }}
-          />
-        </div>
+  const headerBlock = compactHeader || embedded ? (
+    <div className="flex items-end justify-between gap-3 px-0.5">
+      <div>
+        <p className="text-[11px] font-semibold text-indigo-600">
+          {todayKorean}요일 · {today}
+        </p>
+        <h2 className={`font-extrabold text-slate-900 tracking-tight ${embedded ? 'text-sm' : 'text-lg'}`}>
+          오늘 레슨
+        </h2>
       </div>
+      <p className="text-xs font-bold text-slate-500 tabular-nums">
+        {stats.done}/{stats.total} 완료
+      </p>
+    </div>
+  ) : (
+    <PageHeader
+      icon={<Piano className="w-6 h-6" />}
+      title="오늘 레슨"
+      description="출석 · 레슨 노트 · 과제를 한 화면에서 저장합니다."
+    />
+  );
+
+  return (
+    <div className={embedded ? 'space-y-3' : 'space-y-4 pb-8'}>
+      {headerBlock}
+
+      {!embedded && (
+        <div className="rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4">
+          <div className="flex items-center justify-between gap-3 mb-2.5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                <Clock className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-slate-500">처리 현황</p>
+                <p className="text-sm font-bold text-slate-900">
+                  레슨 {classes.length}개 · 원생 {stats.total}명
+                </p>
+              </div>
+            </div>
+            <p className="text-2xl font-black text-indigo-700 tabular-nums">{progressPct}%</p>
+          </div>
+          <div className="h-2 rounded-full bg-indigo-100 overflow-hidden">
+            <div
+              className="h-full rounded-full bg-indigo-600 transition-all duration-500"
+              style={{ width: `${progressPct}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {classes.length === 0 ? (
         <EmptyState
           icon={<Clock className="w-8 h-8" />}
-          title="오늘 예정된 수업이 없습니다"
-          description="반 일정에 오늘 요일이 포함되어 있는지 확인해 주세요."
+          title="오늘 예정된 레슨이 없습니다"
+          description="정규 레슨 일정에 오늘 요일이 포함되어 있는지 확인해 주세요."
+          action={
+            <button
+              type="button"
+              onClick={() => setActiveTab('classes')}
+              className="text-xs font-bold text-indigo-600 min-h-[44px]"
+            >
+              정규 레슨 관리로 이동
+            </button>
+          }
         />
       ) : (
         <div className="space-y-3">
@@ -236,7 +292,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader
                 }`}
               >
                 <div
-                  className={`px-4 py-3 flex items-center justify-between gap-3 ${
+                  className={`px-3 sm:px-4 py-2.5 flex items-center justify-between gap-3 ${
                     isNow ? 'bg-indigo-50' : isNext ? 'bg-emerald-50/70' : 'bg-slate-50/80'
                   }`}
                 >
@@ -284,48 +340,64 @@ export const TodayLessonView: FC<{ compactHeader?: boolean }> = ({ compactHeader
 
                       return (
                         <li key={student.id}>
-                          <button
-                            type="button"
-                            onClick={() => setTarget({ student, classItem: cls })}
-                            className="w-full text-left px-4 py-3.5 min-h-[60px] flex items-center gap-3 hover:bg-indigo-50/50 active:bg-indigo-50 transition-colors"
-                          >
-                            <span
-                              className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
-                                done
-                                  ? att?.status === 'absent'
-                                    ? 'bg-rose-100 text-rose-700'
-                                    : 'bg-emerald-100 text-emerald-700'
-                                  : 'bg-indigo-50 text-indigo-700'
-                              }`}
+                          <div className="flex items-stretch gap-1 px-2 sm:px-3 py-2 min-h-[60px]">
+                            <button
+                              type="button"
+                              onClick={() => setTarget({ student, classItem: cls })}
+                              className="flex-1 text-left flex items-center gap-2.5 min-w-0 hover:bg-indigo-50/50 active:bg-indigo-50 rounded-xl px-1.5 py-1 transition-colors"
                             >
-                              {student.name.slice(0, 1)}
-                            </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="font-bold text-slate-900 truncate">{student.name}</p>
-                              <p className="text-xs text-slate-500 truncate mt-0.5">
-                                {lesson?.songTitle
-                                  ? lesson.songTitle
-                                  : student.level || '탭하여 레슨 작성'}
-                              </p>
-                            </div>
-                            {done ? (
                               <span
-                                className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg shrink-0 ${
-                                  att?.status === 'absent'
-                                    ? 'bg-rose-50 text-rose-700'
-                                    : 'bg-emerald-50 text-emerald-700'
+                                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
+                                  done
+                                    ? att?.status === 'absent'
+                                      ? 'bg-rose-100 text-rose-700'
+                                      : 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-indigo-50 text-indigo-700'
                                 }`}
                               >
-                                <CheckCircle2 className="w-3.5 h-3.5" />
-                                {STATUS_LABEL[att!.status]}
+                                {student.name.slice(0, 1)}
                               </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-indigo-600 shrink-0">
-                                작성
-                                <ChevronRight className="w-4 h-4" />
-                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-slate-900 truncate">{student.name}</p>
+                                <p className="text-xs text-slate-500 truncate mt-0.5">
+                                  {done
+                                    ? STATUS_LABEL[att!.status]
+                                    : lesson?.songTitle || '미처리 · 탭하여 레슨'}
+                                </p>
+                              </div>
+                              {done ? (
+                                <CheckCircle2
+                                  className={`w-4 h-4 shrink-0 ${
+                                    att?.status === 'absent' ? 'text-rose-500' : 'text-emerald-500'
+                                  }`}
+                                />
+                              ) : (
+                                <ChevronRight className="w-4 h-4 text-indigo-400 shrink-0" />
+                              )}
+                            </button>
+
+                            {!done && (
+                              <div className="flex items-center gap-1 shrink-0 pr-1">
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleQuickStatus(e, student, cls, 'present')}
+                                  className="min-h-[44px] min-w-[44px] px-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-100 hover:bg-emerald-100"
+                                  aria-label={`${student.name} 출석`}
+                                >
+                                  출석
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(e) => handleQuickStatus(e, student, cls, 'absent')}
+                                  className="min-h-[44px] min-w-[44px] px-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-100 hover:bg-rose-100"
+                                  aria-label={`${student.name} 결석`}
+                                >
+                                  <XCircle className="w-4 h-4 mx-auto sm:hidden" />
+                                  <span className="hidden sm:inline">결석</span>
+                                </button>
+                              </div>
                             )}
-                          </button>
+                          </div>
                         </li>
                       );
                     })}

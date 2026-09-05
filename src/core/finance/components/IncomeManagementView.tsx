@@ -61,6 +61,10 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   };
 
   const handleOpenEdit = (entry: IncomeEntry) => {
+    if (entry.sourceType === 'tuition' || entry.sourceType === 'textbook') {
+      showToast('수납 연동 수입은 수납 화면에서 수정·삭제하세요.', 'warning');
+      return;
+    }
     setEditingEntry(entry);
     setFormData({
       date: entry.date,
@@ -75,14 +79,20 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   };
 
   const handleDelete = (entry: IncomeEntry) => {
+    const linked = entry.sourceType === 'tuition' || entry.sourceType === 'textbook';
     openConfirmDialog({
-      title: '수입 항목 삭제',
-      message: `'${entry.description}' 수입(${formatCurrency(entry.amount)})을 삭제하시겠습니까?`,
+      title: linked ? '수납 연동 수입 삭제' : '수입 항목 삭제',
+      message: linked
+        ? `'${entry.description}'을(를) 삭제하면 학생 납부·미납 잔액도 함께 되돌립니다. 계속할까요?`
+        : `'${entry.description}' 수입(${formatCurrency(entry.amount)})을 삭제하시겠습니까?`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
         StorageService.deleteIncomeEntry(entry.id);
-        showToast('수입 내역이 삭제되었습니다.', 'info');
+        showToast(
+          linked ? '연동 납부와 수입이 함께 취소되었습니다.' : '수입 내역이 삭제되었습니다.',
+          'info'
+        );
       },
     });
   };
@@ -123,7 +133,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
               수입 관리
             </h2>
             <p className="text-xs sm:text-sm text-slate-500 mt-1">
-              회원권, 세션, 대관, 기타 사업 수입을 기록합니다.
+              일반 수입과 수납(월회비·교재) 연동 수입을 함께 확인합니다.
             </p>
           </div>
         )}
@@ -208,7 +218,16 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
                           {getCategoryLabel(categoryOptions, entry.category)}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-900">{entry.description}</td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-900">
+                        <span className="inline-flex flex-wrap items-center gap-1.5">
+                          {entry.description}
+                          {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook') && (
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                              {entry.sourceType === 'tuition' ? '수강료 연동' : '교재 연동'}
+                            </span>
+                          )}
+                        </span>
+                      </td>
                       <td className="py-3.5 px-4 font-black text-emerald-600 text-sm">
                         {formatCurrency(entry.amount)}
                       </td>
@@ -253,7 +272,14 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
               <div key={entry.id} className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-4 space-y-2">
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-bold text-slate-900 text-sm">{entry.description}</p>
+                    <p className="font-bold text-slate-900 text-sm">
+                      {entry.description}
+                      {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook') && (
+                        <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">
+                          {entry.sourceType === 'tuition' ? '수강료' : '교재'}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[11px] text-slate-400 font-mono">{entry.date}</p>
                   </div>
                   <p className="font-black text-emerald-600 text-sm">{formatCurrency(entry.amount)}</p>

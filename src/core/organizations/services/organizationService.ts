@@ -81,6 +81,7 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
           slug,
           settings,
           is_active,
+          public_code,
           created_at,
           updated_at
         )
@@ -125,6 +126,7 @@ export async function fetchUserMembershipsWithContext(): Promise<OrganizationMem
       slug: row.organization_slug,
       settings: row.organization_settings,
       is_active: row.organization_is_active,
+      public_code: row.organization_public_code ?? '',
       created_at: '',
       updated_at: '',
     } as Organization,

@@ -43,27 +43,33 @@ const iconClass = 'w-3.5 h-3.5';
 
 /**
  * 학생 상세 탭
- * - primary: 기본정보 / 일정 / 출결 / 상담 / 수납
- * - more: 교재·연습·영상·메모 (숨기지 않고 하위로 유지)
+ * - primary: 기본 · 레슨 · 기록 · 교육 · 상담 · 수납
+ * - more: 교재 · 연주영상 · 메모
  */
 export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem[] {
   return [
     {
       id: 'info',
-      label: '기본정보',
+      label: '기본',
       icon: React.createElement(User, { className: iconClass }),
       group: 'primary',
     },
     {
       id: 'classes',
-      label: `일정 (${counts.enrolledClasses})`,
+      label: `레슨 (${counts.enrolledClasses})`,
       icon: React.createElement(Clock, { className: iconClass }),
       group: 'primary',
     },
     {
       id: 'attendance',
-      label: `출결 (${counts.attRate}%)`,
+      label: `기록 (${counts.attRate}%)`,
       icon: React.createElement(CheckCircle2, { className: iconClass }),
+      group: 'primary',
+    },
+    {
+      id: 'practice',
+      label: `교육 (${counts.practiceCount})`,
+      icon: React.createElement(Piano, { className: iconClass }),
       group: 'primary',
     },
     {
@@ -82,12 +88,6 @@ export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem
       id: 'textbooks',
       label: `교재 (${counts.salesCount})`,
       icon: React.createElement(BookOpen, { className: iconClass }),
-      group: 'more',
-    },
-    {
-      id: 'practice',
-      label: `연습/레슨 (${counts.practiceCount})`,
-      icon: React.createElement(Piano, { className: iconClass }),
       group: 'more',
     },
     {

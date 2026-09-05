@@ -191,8 +191,8 @@ export const MakeupManagementView: React.FC = () => {
       <PageHeader
         icon={<Sparkles className="w-6 h-6" />}
         iconClassName="text-purple-600"
-        title="보강 수업 관리"
-        description="결석 원생의 보강 일정을 시간·연습실·강사까지 등록합니다"
+        title="보강 일정"
+        description="결석 후 보강 가능 시간을 정해 일정을 등록합니다"
       />
 
       <div className="grid grid-cols-3 gap-3">

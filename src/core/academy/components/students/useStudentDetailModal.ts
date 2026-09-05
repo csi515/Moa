@@ -141,7 +141,10 @@ export function useStudentDetailModal({
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
   const recitalEvents = RecitalService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
-  const billingSummary = StorageService.getStudentBillingSummary(student.id);
+  const billingSummary = StorageService.getStudentBillingSummary(
+    student.id,
+    new Date().toISOString().slice(0, 7)
+  );
   const guardians = getGuardiansForStudent(student.id);
   const primaryGuardian = guardians.find((g) => g.isPrimary) || guardians[0];
 

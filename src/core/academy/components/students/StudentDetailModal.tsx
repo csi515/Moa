@@ -311,6 +311,7 @@ const StudentDetailModalContent: React.FC<
               {modal.currentTab === 'tuition' && (
                 <StudentDetailTuitionTab
                   allInvoices={modal.allInvoices}
+                  billingSummary={modal.billingSummary}
                   payInvoiceId={modal.tuition.payInvoiceId}
                   setPayInvoiceId={modal.tuition.setPayInvoiceId}
                   payAmount={modal.tuition.payAmount}

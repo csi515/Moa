@@ -39,8 +39,8 @@ export const StudentDetailPracticeTab: React.FC<StudentDetailPracticeTabProps> =
     <div>
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h4 className="text-sm font-bold text-slate-900">원생 연습 일지</h4>
-          <p className="text-xs text-slate-500">누적 연습시간: {totalPracticeMinutes}분</p>
+          <h4 className="text-sm font-bold text-slate-900">연습 · 진도</h4>
+          <p className="text-xs text-slate-500">누적 연습시간: {totalPracticeMinutes}분 · 레슨 노트는 아래에서 확인</p>
         </div>
         <button
           onClick={() => setIsAddPrOpen(true)}

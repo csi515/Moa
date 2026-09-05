@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
-import { buildFinanceNavItem, buildNavSection } from '@/core/auth/navBuilders';
+import { buildNavSection } from '@/core/auth/navBuilders';
 import {
   Award,
   BarChart3,
@@ -9,10 +9,12 @@ import {
   BookOpenCheck,
   CalendarDays,
   CheckSquare,
+  Fingerprint,
   GraduationCap,
   LayoutDashboard,
   MessageSquareText,
   Music2,
+  Piano,
   Settings,
   Users,
 } from 'lucide-react';
@@ -20,8 +22,8 @@ import {
 const icon = (node: ReactNode) => node;
 
 /**
- * Core: 홈·고객·일정·출결·상담·재무 · 설정
- * 레슨·보강은 일정 허브 세그먼트, 부가 기능은 설정>부가
+ * Core: 홈·학생·일정·출결(오늘 레슨)·상담·수납 · 설정
+ * PIN 출석·교육 부가는 더보기/설정>부가
  */
 export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] {
   return [
@@ -37,13 +39,13 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         label: '일정',
         icon: icon(<CalendarDays className="w-4 h-4" />),
       },
-      { tab: 'attendance', label: '출결', icon: icon(<CheckSquare className="w-4 h-4" />) },
+      { tab: 'lessons', label: '출결', icon: icon(<CheckSquare className="w-4 h-4" />) },
       {
         tab: 'consultations',
         label: '상담',
         icon: icon(<MessageSquareText className="w-4 h-4" />),
       },
-      buildFinanceNavItem('sm'),
+      { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-4 h-4" />) },
     ]),
     buildNavSection('설정', [
       { tab: 'settings', label: '설정', icon: icon(<Settings className="w-4 h-4" />) },
@@ -51,17 +53,17 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
   ];
 }
 
-/** 모바일: 홈 · 고객 · 일정 · 재무 */
+/** 모바일: 홈 · 학생 · 오늘 · 일정 (수납·상담은 더보기) */
 export function getPianoMainTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-5 h-5" />) },
     { tab: 'students', label: labels.customer.singular, icon: icon(<Users className="w-5 h-5" />) },
+    { tab: 'lessons', label: '오늘', icon: icon(<Piano className="w-5 h-5" />) },
     { tab: 'timetable', label: '일정', icon: icon(<CalendarDays className="w-5 h-5" />) },
-    buildFinanceNavItem('md'),
   ];
 }
 
-/** 더보기: 상담·출결·설정·반·부가 */
+/** 더보기: 상담·수납·설정·정규 레슨·PIN 출석·교육 부가 */
 export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     {
@@ -69,12 +71,17 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       label: '상담',
       icon: icon(<MessageSquareText className="w-5 h-5" />),
     },
-    { tab: 'attendance', label: '출결', icon: icon(<CheckSquare className="w-5 h-5" />) },
+    { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-5 h-5" />) },
     { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
     {
       tab: 'classes',
       label: labels.service.singular,
       icon: icon(<GraduationCap className="w-5 h-5" />),
+    },
+    {
+      tab: 'check-in',
+      label: 'PIN 출석',
+      icon: icon(<Fingerprint className="w-5 h-5" />),
     },
     {
       tab: 'assignments',

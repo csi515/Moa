@@ -11,6 +11,11 @@ import type {
 } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
+import {
+  deleteLinkedIncome,
+  deleteLinkedIncomesForPaymentIds,
+  upsertLinkedIncome,
+} from '../../core/finance/billingIncomeLink';
 
 /** 교재 판매·수납·통합 청구 */
 export function createTextbookSalesStorage(api: StorageApi) {
@@ -145,6 +150,16 @@ export function createTextbookSalesStorage(api: StorageApi) {
           paymentMethod: data.paymentMethod || 'card',
           memo: '교재 판매 시 현장 수납',
         });
+        upsertLinkedIncome({
+          sourceType: 'textbook',
+          paymentId: payment.id,
+          date: saleDate,
+          amount: initialPaid,
+          paymentMethod: data.paymentMethod || 'card',
+          description: `교재비 · ${tb.title} · ${student.name}`,
+          payer: student.name,
+          memo: '교재 판매 시 현장 수납',
+        });
       }
 
       return { sale: newSale, payment, transaction: tx };
@@ -185,6 +200,8 @@ export function createTextbookSalesStorage(api: StorageApi) {
       setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
 
       const payments = (api.getTextbookPayments as () => TextbookPayment[])();
+      const removedIds = payments.filter((p) => p.textbookSaleId === saleId).map((p) => p.id);
+      deleteLinkedIncomesForPaymentIds('textbook', removedIds);
       const remainingPayments = payments.filter((p) => p.textbookSaleId !== saleId);
       setItem(STORAGE_KEYS.TEXTBOOK_PAYMENTS, remainingPayments);
 
@@ -278,7 +295,47 @@ export function createTextbookSalesStorage(api: StorageApi) {
             : `교재비 부분 납부 (잔액 ₩${newUnpaidAmount.toLocaleString()})`),
       });
 
+      upsertLinkedIncome({
+        sourceType: 'textbook',
+        paymentId: payment.id,
+        date: pDate,
+        amount: payAmount,
+        paymentMethod,
+        description: `교재비 · ${sale.textbookTitle} · ${sale.studentName}`,
+        payer: sale.studentName,
+        memo: payment.memo,
+      });
+
       return { payment, updatedSale };
+    },
+
+    reverseTextbookPayment(paymentId: string): boolean {
+      const payments = (api.getTextbookPayments as () => TextbookPayment[])();
+      const payment = payments.find((p) => p.id === paymentId);
+      if (!payment) return false;
+
+      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      const idx = sales.findIndex((s) => s.id === payment.textbookSaleId);
+      if (idx >= 0) {
+        const sale = sales[idx];
+        const newPaid = Math.max(0, sale.paidAmount - payment.amount);
+        const newUnpaid = Math.max(0, sale.totalAmount - newPaid);
+        sales[idx] = {
+          ...sale,
+          paidAmount: newPaid,
+          unpaidAmount: newUnpaid,
+          status: newUnpaid === 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid',
+          updatedAt: new Date().toISOString(),
+        };
+        setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
+      }
+
+      setItem(
+        STORAGE_KEYS.TEXTBOOK_PAYMENTS,
+        payments.filter((p) => p.id !== paymentId)
+      );
+      deleteLinkedIncome('textbook', paymentId);
+      return true;
     },
 
     getStudentBillingSummary(studentId: string, yearMonth?: string): StudentMonthlyBillingSummary {
@@ -365,24 +422,34 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const textbookPayments: TextbookPayment[] = [];
       let totalPaid = 0;
 
-      if (req.tuitionAmount > 0) {
-        const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
-          (i) => i.studentId === req.studentId && i.yearMonth === req.yearMonth
-        );
-        if (invoices.length > 0) {
-          const inv = invoices[0];
-          const res = (
-            api.recordPayment as (
-              id: string,
-              amount: number,
-              method: PaymentMethod,
-              notes?: string
-            ) => TuitionInvoice | null
-          )(inv.id, req.tuitionAmount, req.paymentMethod, req.memo);
-          if (res) {
-            tuitionInvoice = res;
-            totalPaid += req.tuitionAmount;
-          }
+      const tuitionItems =
+        req.tuitionPayments && req.tuitionPayments.length > 0
+          ? req.tuitionPayments
+          : req.tuitionAmount && req.tuitionAmount > 0
+            ? (() => {
+                const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
+                  (i) => i.studentId === req.studentId && i.yearMonth === req.yearMonth
+                );
+                return invoices[0]
+                  ? [{ invoiceId: invoices[0].id, amount: req.tuitionAmount }]
+                  : [];
+              })()
+            : [];
+
+      for (const item of tuitionItems) {
+        if (item.amount <= 0) continue;
+        const res = (
+          api.recordPayment as (
+            id: string,
+            amount: number,
+            method: PaymentMethod,
+            notes?: string,
+            paymentDate?: string
+          ) => TuitionInvoice | null
+        )(item.invoiceId, item.amount, req.paymentMethod, req.memo, req.paymentDate);
+        if (res) {
+          tuitionInvoice = res;
+          totalPaid += item.amount;
         }
       }
 

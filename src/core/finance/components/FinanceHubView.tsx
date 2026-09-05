@@ -19,27 +19,39 @@ const SEGMENT_TO_TAB: Record<FinanceHubSegment, NavTab> = {
   unpaid: 'unpaid',
 };
 
-function tabToSegment(tab: string): FinanceHubSegment {
+function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSegment {
   if (tab === 'income') return 'income';
   if (tab === 'expenses') return 'expenses';
   if (tab === 'tuition') return 'tuition';
   if (tab === 'unpaid') return 'unpaid';
+  if (tab === 'finance' && preferTuitionDefault) return 'tuition';
   return 'overview';
 }
 
-/** 재무 업무 영역 허브 — 요약·수입·지출·수납·미수금 */
+/** 재무 업무 영역 허브 — 요약·수입·지출·수납·미납 */
 export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = true }) => {
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const billingEnabled = showBilling && industry !== 'pilates';
+  const isPiano = industry === 'piano';
+  const hubTitle = isPiano ? '수납' : '재무';
 
   const segment = useMemo(() => {
-    const next = tabToSegment(activeTab);
+    const next = tabToSegment(activeTab, isPiano && billingEnabled);
     if (!billingEnabled && (next === 'tuition' || next === 'unpaid')) return 'overview';
     return next;
-  }, [activeTab, billingEnabled]);
+  }, [activeTab, billingEnabled, isPiano]);
 
   const options = useMemo(() => {
+    if (billingEnabled && isPiano) {
+      return [
+        { value: 'tuition' as const, label: '수납' },
+        { value: 'unpaid' as const, label: '미납' },
+        { value: 'overview' as const, label: '요약' },
+        { value: 'income' as const, label: '수입' },
+        { value: 'expenses' as const, label: '지출' },
+      ];
+    }
     const base: { value: FinanceHubSegment; label: string }[] = [
       { value: 'overview', label: '요약' },
       { value: 'income', label: '수입' },
@@ -48,24 +60,27 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
     if (billingEnabled) {
       base.push(
         { value: 'tuition', label: industry === 'daycare' ? '보육료' : '수납' },
-        { value: 'unpaid', label: '미수금' }
+        { value: 'unpaid', label: '미납' }
       );
     }
     return base;
-  }, [billingEnabled, industry]);
+  }, [billingEnabled, industry, isPiano]);
 
   return (
     <div className="space-y-4 pb-4">
       <PageHeader
         density="compact"
         icon={<BarChart3 className="w-6 h-6" />}
-        title="재무"
+        title={hubTitle}
+        description={
+          industry === 'piano' ? '월 수강료·미납을 확인하고 수입·지출을 함께 관리합니다' : undefined
+        }
         actions={
           <SegmentedControl
             value={segment}
             options={options}
             onChange={(next) => setActiveTab(SEGMENT_TO_TAB[next])}
-            aria-label="재무 메뉴"
+            aria-label={`${hubTitle} 메뉴`}
             fullWidth
             className="w-full sm:w-auto min-w-[260px]"
           />

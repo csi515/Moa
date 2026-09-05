@@ -31,7 +31,10 @@ export async function findCustomerByPinAsync(
   return null;
 }
 
-/** PIN 토글: 입실 → 퇴실 */
+/**
+ * PIN 출석(입실)만 처리. 퇴실 토글 없음.
+ * 당일 이미 checkInAt이 있으면 already_checked_in.
+ */
 export async function toggleCheckInByPinLocal(params: {
   organizationId: string;
   pin: string;
@@ -64,6 +67,17 @@ export async function toggleCheckInByPinLocal(params: {
     (s) => s.customerId === pinRecord.customerId && s.sessionDate === today
   );
 
+  if (idx >= 0 && next[idx].checkInAt) {
+    return {
+      result: {
+        success: false,
+        error: 'already_checked_in',
+        customerName: student.name,
+      },
+      sessions: next,
+    };
+  }
+
   if (idx < 0) {
     const created: AttendanceSession = {
       id: `att-sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -75,59 +89,19 @@ export async function toggleCheckInByPinLocal(params: {
       createdAt: now,
     };
     next.unshift(created);
-    return {
-      result: {
-        success: true,
-        action: 'check_in',
-        customerId: student.id,
-        customerName: student.name,
-        at: now,
-      },
-      sessions: next,
-    };
-  }
-
-  const existing = next[idx];
-  if (existing.checkOutAt) {
-    return {
-      result: {
-        success: false,
-        error: 'already_checked_out',
-        customerName: student.name,
-      },
-      sessions: next,
-    };
-  }
-
-  if (!existing.checkInAt) {
+  } else {
     next[idx] = {
-      ...existing,
+      ...next[idx],
       checkInAt: now,
       checkInMethod: method,
       updatedAt: now,
     };
-    return {
-      result: {
-        success: true,
-        action: 'check_in',
-        customerId: student.id,
-        customerName: student.name,
-        at: now,
-      },
-      sessions: next,
-    };
   }
 
-  next[idx] = {
-    ...existing,
-    checkOutAt: now,
-    checkOutMethod: method,
-    updatedAt: now,
-  };
   return {
     result: {
       success: true,
-      action: 'check_out',
+      action: 'check_in',
       customerId: student.id,
       customerName: student.name,
       at: now,
@@ -189,7 +163,7 @@ export async function generateUniquePin(params: {
   return { pin, pinHash: result.pinHash };
 }
 
-/** 세션 상태 라벨 */
+/** 세션 상태 라벨 (출석만 — 퇴실 미사용) */
 export function getSessionStatusLabel(session?: AttendanceSession): {
   label: string;
   tone: 'success' | 'warning' | 'muted' | 'error';
@@ -197,10 +171,7 @@ export function getSessionStatusLabel(session?: AttendanceSession): {
   if (!session || !session.checkInAt) {
     return { label: '미출석', tone: 'muted' };
   }
-  if (!session.checkOutAt) {
-    return { label: '입실', tone: 'success' };
-  }
-  return { label: '퇴실', tone: 'warning' };
+  return { label: '출석', tone: 'success' };
 }
 
 export function formatSessionTime(iso?: string): string {

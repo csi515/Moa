@@ -9,6 +9,11 @@ export const DEFAULT_SETTINGS: AcademySettings = {
   defaultTuitionFee: 180000,
   defaultPaymentDay: 25,
   consultationSlotMinutes: 30,
+  features: {
+    attendance: {
+      enabled: false,
+    },
+  },
 };
 
 export function getItem<T>(key: StorageKey, defaultValue: T): T {

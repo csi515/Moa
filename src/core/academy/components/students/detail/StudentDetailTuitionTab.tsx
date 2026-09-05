@@ -1,10 +1,11 @@
 import React from 'react';
-import { TuitionInvoice } from '@/types';
+import { TuitionInvoice, StudentMonthlyBillingSummary } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
 import { Plus } from 'lucide-react';
 
 interface StudentDetailTuitionTabProps {
   allInvoices: TuitionInvoice[];
+  billingSummary?: StudentMonthlyBillingSummary;
   payInvoiceId: string | null;
   setPayInvoiceId: (id: string | null) => void;
   payAmount: number;
@@ -20,6 +21,7 @@ interface StudentDetailTuitionTabProps {
 
 export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = ({
   allInvoices,
+  billingSummary,
   payInvoiceId,
   setPayInvoiceId,
   payAmount,
@@ -33,14 +35,54 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
   onProcessPayment,
 }) => (
   <div className="space-y-4">
+    {billingSummary && (
+      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2">
+        <p className="text-xs font-bold text-indigo-800">{billingSummary.yearMonth} 수납 요약</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+          <div className="bg-white rounded-xl p-2 border border-slate-100">
+            <p className="text-[10px] text-slate-500">월회비 청구</p>
+            <p className="text-sm font-black text-slate-900">
+              {formatCurrency(billingSummary.tuitionBilled)}
+            </p>
+            <p className="text-[10px] text-slate-400">
+              납 {formatCurrency(billingSummary.tuitionPaid)} · 미{' '}
+              {formatCurrency(billingSummary.tuitionUnpaid)}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-2 border border-slate-100">
+            <p className="text-[10px] text-slate-500">교재비</p>
+            <p className="text-sm font-black text-slate-900">
+              {formatCurrency(billingSummary.textbookBilled)}
+            </p>
+            <p className="text-[10px] text-slate-400">
+              납 {formatCurrency(billingSummary.textbookPaid)} · 미{' '}
+              {formatCurrency(billingSummary.textbookUnpaid)}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-2 border border-slate-100">
+            <p className="text-[10px] text-slate-500">총 납부</p>
+            <p className="text-sm font-black text-emerald-700">
+              {formatCurrency(billingSummary.totalPaid)}
+            </p>
+          </div>
+          <div className="bg-white rounded-xl p-2 border border-slate-100">
+            <p className="text-[10px] text-slate-500">총 미납</p>
+            <p className="text-sm font-black text-rose-600">
+              {formatCurrency(billingSummary.totalUnpaid)}
+            </p>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className="flex items-center justify-between">
       <div>
         <h4 className="text-sm font-bold text-slate-900">수강료 청구 및 납부 내역</h4>
-        <p className="text-xs text-slate-500">월별 수납 청구서 및 결제 영수증</p>
+        <p className="text-xs text-slate-500">납부 시 재무 수입에 자동 반영됩니다</p>
       </div>
       <button
         onClick={onCreateInvoice}
-        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[44px]"
       >
         <Plus className="w-3.5 h-3.5" /> 청구서 추가 발행
       </button>

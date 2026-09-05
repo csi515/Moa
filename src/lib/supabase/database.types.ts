@@ -52,6 +52,7 @@ export interface Database {
           slug: string | null;
           settings: Json;
           is_active: boolean;
+          public_code: string;
           created_at: string;
           updated_at: string;
         };
@@ -62,6 +63,7 @@ export interface Database {
           slug?: string | null;
           settings?: Json;
           is_active?: boolean;
+          public_code?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -72,6 +74,7 @@ export interface Database {
           slug?: string | null;
           settings?: Json;
           is_active?: boolean;
+          public_code?: string;
           created_at?: string;
           updated_at?: string;
         };

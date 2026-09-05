@@ -7,15 +7,21 @@ import {
   Sparkles,
   CheckCircle2,
   Loader2,
+  KeyRound,
+  UserCheck,
 } from 'lucide-react';
 import { type IndustryType } from '../industry/types';
 import { IndustryPicker } from '../industry/IndustryPicker';
+import { StorageService } from '@/services/storage';
+import { withAttendanceModuleEnabled } from '@/core/attendance/features';
 
 interface CreateOrganizationWizardProps {
   onComplete: () => void;
   onCancel: () => void;
   initialIndustryType?: IndustryType;
 }
+
+type AttendanceChoice = 'pin' | 'manual' | 'later';
 
 export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> = ({
   onComplete,
@@ -26,6 +32,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
   const [step, setStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attendanceChoice, setAttendanceChoice] = useState<AttendanceChoice>('later');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -35,27 +42,34 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
     industryType: initialIndustryType,
   });
 
-  const handleStep1 = (e: React.FormEvent) => {
+  const handleStepInfo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.directorName.trim() || !formData.phone.trim()) {
       setError('필수 항목을 모두 입력해 주세요');
       return;
     }
     setError(null);
-    void handleFinish();
+    setStep(1);
   };
 
-  const handleFinish = async () => {
+  const handleFinish = async (choice: AttendanceChoice = attendanceChoice) => {
     setIsSaving(true);
     setError(null);
+    const pinEnabled = choice === 'pin';
     try {
       await org.createOrganization(formData.name.trim(), formData.industryType, {
         directorName: formData.directorName.trim(),
         phone: formData.phone.trim(),
         address: formData.address.trim(),
+        features: {
+          attendance: { enabled: pinEnabled },
+        },
       });
-      
-      setStep(1);
+
+      const local = StorageService.getSettings();
+      StorageService.saveSettings(withAttendanceModuleEnabled(local, pinEnabled));
+
+      setStep(2);
       setTimeout(() => {
         onComplete();
       }, 1500);
@@ -67,6 +81,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
 
   const steps = [
     { icon: Building2, label: '학원 정보' },
+    { icon: KeyRound, label: '출결 방식' },
     { icon: CheckCircle2, label: '완료' },
   ];
 
@@ -78,7 +93,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             <Sparkles className="w-5 h-5 text-indigo-600" />
             <h2 className="font-bold text-slate-900">새 학원 등록</h2>
           </div>
-          {step < 1 && (
+          {step < 2 && (
             <button
               onClick={onCancel}
               className="text-slate-400 hover:text-slate-600 p-1 min-w-[44px] min-h-[44px] flex items-center justify-center"
@@ -99,20 +114,12 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
                 <React.Fragment key={s.label}>
                   <div
                     className={`flex items-center gap-1.5 text-xs font-bold ${
-                      isActive
-                        ? 'text-indigo-600'
-                        : isDone
-                          ? 'text-emerald-600'
-                          : 'text-slate-400'
+                      isActive ? 'text-indigo-600' : isDone ? 'text-emerald-600' : 'text-slate-400'
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center ${
-                        isActive
-                          ? 'bg-indigo-100'
-                          : isDone
-                            ? 'bg-emerald-50'
-                            : 'bg-slate-100'
+                        isActive ? 'bg-indigo-100' : isDone ? 'bg-emerald-50' : 'bg-slate-100'
                       }`}
                     >
                       <Icon className="w-3.5 h-3.5" />
@@ -131,7 +138,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
         </div>
 
         {step === 0 && (
-          <form onSubmit={handleStep1} className="p-6 space-y-4">
+          <form onSubmit={handleStepInfo} className="p-6 space-y-4">
             <p className="text-sm text-slate-500">학원 기본 정보를 입력해 주세요.</p>
 
             <div>
@@ -211,24 +218,103 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
-                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center gap-1 min-h-[44px] disabled:opacity-50"
+                className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl min-h-[44px]"
               >
-                {isSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> 등록 중...
-                  </>
-                ) : (
-                  <>
-                    등록하기 <CheckCircle2 className="w-4 h-4" />
-                  </>
-                )}
+                다음
               </button>
             </div>
           </form>
         )}
 
         {step === 1 && (
+          <div className="p-6 space-y-4">
+            <div>
+              <h3 className="font-bold text-slate-900">출결 관리 방식을 선택해주세요</h3>
+              <p className="text-xs text-slate-500 mt-1">나중에 설정에서 언제든지 변경할 수 있습니다.</p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setAttendanceChoice('pin')}
+              className={`w-full text-left p-4 rounded-2xl border-2 min-h-[44px] transition-colors ${
+                attendanceChoice === 'pin'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <p className="font-bold text-slate-900 flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-indigo-600" />
+                학생 PIN 출결
+              </p>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                입구 태블릿에서 학생이 PIN을 입력해 출석합니다. 선생님이 일일이 체크하지 않아도 됩니다.
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setAttendanceChoice('manual')}
+              className={`w-full text-left p-4 rounded-2xl border-2 min-h-[44px] transition-colors ${
+                attendanceChoice === 'manual'
+                  ? 'border-indigo-500 bg-indigo-50'
+                  : 'border-slate-200 hover:border-slate-300'
+              }`}
+            >
+              <p className="font-bold text-slate-900 flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-slate-600" />
+                선생님 직접 출결
+              </p>
+              <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                선생님·관리자가 MOA에서 출석을 직접 처리합니다. PIN·키오스크는 숨겨집니다.
+              </p>
+            </button>
+
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setStep(0)}
+                disabled={isSaving}
+                className="text-xs text-slate-400 hover:text-slate-600 min-h-[44px] px-3"
+              >
+                이전
+              </button>
+              <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => void handleFinish('later')}
+                  className="px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl min-h-[44px] disabled:opacity-50"
+                >
+                  나중에 설정하기
+                </button>
+                <button
+                  type="button"
+                  disabled={isSaving}
+                  onClick={() => void handleFinish(attendanceChoice === 'later' ? 'manual' : attendanceChoice)}
+                  className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center justify-center gap-1 min-h-[44px] disabled:opacity-50"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> 등록 중...
+                    </>
+                  ) : (
+                    <>
+                      등록하기 <CheckCircle2 className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {step === 2 && (
           <div className="p-6 space-y-5 text-center">
             <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto">
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />

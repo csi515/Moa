@@ -1,4 +1,14 @@
 import { getCoreClient } from '@/lib/supabase';
+import type { Json } from '@/lib/supabase/database.types';
+import {
+  DEFAULT_ACADEMY_SHARED_FIELDS,
+  type AcademySharedField,
+} from '@/core/parent/services/parentChildService';
+import {
+  getSessionItem,
+  removeSessionItem,
+  setSessionItem,
+} from '@/core/parent/services/sessionStorageSafe';
 
 export interface GuardianLinkTokenResult {
   id: string;
@@ -84,12 +94,6 @@ export async function revokeGuardianLinkToken(
   if (error) throw error;
 }
 
-import type { Json } from '@/lib/supabase/database.types';
-import {
-  DEFAULT_ACADEMY_SHARED_FIELDS,
-  type AcademySharedField,
-} from '@/core/parent/services/parentChildService';
-
 export async function redeemGuardianLinkToken(
   token: string,
   sharedFields: AcademySharedField[] = [...DEFAULT_ACADEMY_SHARED_FIELDS]
@@ -111,16 +115,27 @@ export async function redeemGuardianLinkToken(
   };
 }
 
-/** URL ?link=CODE 또는 sessionStorage pending token */
+/** URL ?link=CODE 또는 sessionStorage pending token (가입/OAuth 후에도 유지) */
 const PENDING_LINK_KEY = 'moa_pending_guardian_link';
 
 export function storePendingGuardianLink(token: string): void {
-  sessionStorage.setItem(PENDING_LINK_KEY, token.trim().toUpperCase());
+  const normalized = token.trim().toUpperCase();
+  if (!normalized) return;
+  setSessionItem(PENDING_LINK_KEY, normalized);
 }
 
+export function peekPendingGuardianLink(): string | null {
+  return getSessionItem(PENDING_LINK_KEY);
+}
+
+export function clearPendingGuardianLink(): void {
+  removeSessionItem(PENDING_LINK_KEY);
+}
+
+/** 소비 후 제거. redeem 실패 시에는 peek로 유지할 것 */
 export function consumePendingGuardianLink(): string | null {
-  const token = sessionStorage.getItem(PENDING_LINK_KEY);
-  if (token) sessionStorage.removeItem(PENDING_LINK_KEY);
+  const token = peekPendingGuardianLink();
+  if (token) clearPendingGuardianLink();
   return token;
 }
 

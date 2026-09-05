@@ -1,6 +1,7 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
+import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
@@ -27,6 +28,8 @@ const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const labels = useModuleLabels();
+  const serviceLabel = labels.service.singular;
   const refreshKey = useStorageRefresh();
 
   const classes = StorageService.getClasses();
@@ -102,13 +105,13 @@ export const ClassManagementView: React.FC = () => {
 
   const handleDelete = (cls: ClassItem) => {
     openConfirmDialog({
-      title: '반/수업 삭제',
-      message: `'${cls.name}' 수업을 삭제하시겠습니까?\n배정된 원생 정보는 유지되지만 시간표에서 제외됩니다.`,
+      title: `${serviceLabel} 삭제`,
+      message: `'${cls.name}' ${serviceLabel}을(를) 삭제하시겠습니까?\n배정된 원생 정보는 유지되지만 시간표에서 제외됩니다.`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
         StorageService.deleteClass(cls.id);
-        showToast(`'${cls.name}' 수업이 삭제되었습니다.`, 'info');
+        showToast(`'${cls.name}' ${serviceLabel}이(가) 삭제되었습니다.`, 'info');
       }
     });
   };
@@ -128,7 +131,7 @@ export const ClassManagementView: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('필수 항목: 반 이름을 입력해 주세요', 'warning');
+      showToast(`필수 항목: ${serviceLabel} 이름을 입력해 주세요`, 'warning');
       return;
     }
     if (formData.daysOfWeek.length === 0) {
@@ -165,8 +168,8 @@ export const ClassManagementView: React.FC = () => {
 
       showToast(
         editingClass
-          ? `'${formData.name}' 수업이 수정되었습니다.`
-          : `'${formData.name}' 수업이 개설되었습니다.`,
+          ? `'${formData.name}' ${serviceLabel}이(가) 수정되었습니다.`
+          : `'${formData.name}' ${serviceLabel}이(가) 개설되었습니다.`,
         'success'
       );
       setIsModalOpen(false);
@@ -189,15 +192,15 @@ export const ClassManagementView: React.FC = () => {
     <div className="space-y-4 pb-4">
       <PageHeader
         icon={<GraduationCap className="w-6 h-6" />}
-        title="반 / 수업 관리"
-        description={`개설된 피아노 정규 및 특별 클래스 ${classes.length}개`}
+        title={labels.service.management}
+        description={`등록된 ${serviceLabel} ${classes.length}개 · 요일·시간에 맞춰 오늘 레슨이 자동 표시됩니다`}
         actions={
           <button
             onClick={handleOpenCreate}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            신규 반 개설
+            {serviceLabel} 추가
           </button>
         }
       />
@@ -206,16 +209,16 @@ export const ClassManagementView: React.FC = () => {
       {classes.length === 0 ? (
         <div className="bg-white rounded-3xl p-12 text-center border border-slate-200">
           <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="font-bold text-slate-700 mb-2">개설된 반/수업이 없습니다</p>
+          <p className="font-bold text-slate-700 mb-2">등록된 {serviceLabel}이(가) 없습니다</p>
           <p className="text-sm text-slate-500 mb-4">
-            첫 번째 수업을 개설하여 원생들을 배정해 보세요
+            예: 월·수 16:00 — 학생을 배정하면 해당 요일에 오늘 레슨이 나타납니다
           </p>
           <button
             onClick={handleOpenCreate}
             className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold rounded-xl transition-all flex items-center gap-2 mx-auto min-h-[44px]"
           >
             <Plus className="w-4 h-4" />
-            신규 반 개설
+            {serviceLabel} 추가
           </button>
         </div>
       ) : (
@@ -327,7 +330,7 @@ export const ClassManagementView: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-base">
-                {editingClass ? '수업 반 수정' : '신규 반 개설'}
+                {editingClass ? `${serviceLabel} 수정` : `${serviceLabel} 추가`}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -340,12 +343,12 @@ export const ClassManagementView: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  반 이름 <span className="text-rose-500">*</span>
+                  {serviceLabel} 이름 <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="예: 기초 피아노 A반 (월/수/금)"
+                  placeholder="예: 월수 16시 개인레슨"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -354,7 +357,7 @@ export const ClassManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  수업 요일 선택 <span className="text-rose-500">*</span>
+                  레슨 요일 <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {DAYS_OF_WEEK.map((d) => {
@@ -509,10 +512,10 @@ export const ClassManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">수업 메모</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">레슨 메모</label>
                 <textarea
                   rows={2}
-                  placeholder="수업 특성 및 유의사항..."
+                  placeholder="레슨 특성 및 유의사항..."
                   value={formData.memo}
                   onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"
@@ -532,7 +535,7 @@ export const ClassManagementView: React.FC = () => {
                   className="px-5 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
-                  {editingClass ? '수정 내용 저장' : '수업 개설 완료'}
+                  {editingClass ? '수정 내용 저장' : `${serviceLabel} 저장`}
                 </button>
               </div>
             </form>

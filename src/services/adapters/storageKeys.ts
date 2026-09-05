@@ -9,6 +9,7 @@ export const STORAGE_KEYS = {
   ATTENDANCE_SESSIONS: 'core_attendance_sessions',
   CUSTOMER_PINS: 'core_customer_pins',
   INVOICES: 'piano_app_invoices',
+  TUITION_PAYMENTS: 'piano_app_tuition_payments',
   EXPENSES: 'core_expenses',
   INCOME_ENTRIES: 'core_income_entries',
   CONSULTATIONS: 'piano_app_consultations',
@@ -98,6 +99,7 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SESSION_PASSES,
   STORAGE_KEYS.SLOT_RECRUITMENTS,
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
+  STORAGE_KEYS.TUITION_PAYMENTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

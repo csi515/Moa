@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
@@ -8,29 +9,66 @@ import { Delete, RotateCcw, Settings } from 'lucide-react';
 import { getIndustryAccent } from '@/core/industry/industryUi';
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'enter'] as const;
+const ADMIN_EXIT_HOLD_MS = 2000;
 
 interface PinCheckInKioskViewProps {
   method?: CheckInMethod;
+  /** 전용 라우트 전체화면 모드 */
+  standalone?: boolean;
 }
 
-export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method = 'pin' }) => {
+export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
+  method = 'pin',
+  standalone = false,
+}) => {
   const { showToast } = useApp();
+  const navigate = useNavigate();
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
   const industry = org?.currentOrganization?.industry_type || 'piano';
   const settings = StorageService.getSettings();
 
   const [pin, setPin] = useState('');
-  const [feedback, setFeedback] = useState<{ text: string; tone: 'success' | 'error' | 'info' } | null>(null);
+  const [feedback, setFeedback] = useState<{ text: string; tone: 'success' | 'error' | 'info' } | null>(
+    null
+  );
   const [processing, setProcessing] = useState(false);
+  const [exitPrompt, setExitPrompt] = useState(false);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const moduleEnabled = isAttendanceModuleEnabled(settings, industry);
   const accent = getIndustryAccent(industry);
-  
+
   const customerPins = StorageService.getCustomerPins();
   const hasPinsConfigured = customerPins.length > 0;
 
   const maskedPin = useMemo(() => (pin ? '●'.repeat(pin.length) : ''), [pin]);
+
+  useEffect(() => {
+    return () => {
+      if (holdTimer.current) clearTimeout(holdTimer.current);
+    };
+  }, []);
+
+  const clearHold = () => {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  };
+
+  const startAdminExitHold = () => {
+    if (!standalone) return;
+    clearHold();
+    holdTimer.current = setTimeout(() => {
+      setExitPrompt(true);
+    }, ADMIN_EXIT_HOLD_MS);
+  };
+
+  const confirmAdminExit = () => {
+    setExitPrompt(false);
+    navigate('/', { replace: true });
+  };
 
   const handleKey = useCallback(
     async (key: (typeof KEYPAD)[number]) => {
@@ -55,18 +93,18 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
             organizationId
           );
           if (result.success) {
-            const actionLabel = result.action === 'check_in' ? '입실' : '퇴실';
             setFeedback({
-              text: `${result.customerName}님 ${actionLabel} 완료`,
+              text: `${result.customerName} 학생 출석이 완료되었습니다.`,
               tone: 'success',
             });
-            showToast(`${result.customerName}님 ${actionLabel} 처리되었습니다.`, 'success');
+            showToast(`${result.customerName} 학생 출석이 완료되었습니다.`, 'success');
           } else if (result.success === false) {
             const err = result.error;
             const messages: Record<string, string> = {
               invalid_pin: '등록되지 않은 PIN입니다.',
-              already_checked_out: `${result.customerName ?? '회원'}님은 이미 퇴실 처리되었습니다.`,
-              module_disabled: '출결 모듈이 비활성화되어 있습니다.',
+              already_checked_in: `${result.customerName ?? '학생'}님은 이미 출석 처리되었습니다.`,
+              already_checked_out: `${result.customerName ?? '학생'}님은 이미 출석 처리되었습니다.`,
+              module_disabled: 'PIN 출결이 비활성화되어 있습니다.',
             };
             setFeedback({
               text: messages[err] || '처리할 수 없습니다.',
@@ -87,37 +125,43 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
     [pin, processing, method, organizationId, showToast]
   );
 
+  const shellClass = standalone
+    ? 'min-h-[100dvh] w-full flex flex-col items-center justify-center bg-slate-950 px-4 py-8'
+    : 'max-w-md mx-auto pb-4 md:pb-0';
+
   if (!moduleEnabled) {
     return (
-      <div className="bg-white rounded-3xl border border-amber-200 p-8 sm:p-10 text-center shadow-sm">
-        <div className="w-16 h-16 mx-auto bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
-          <Settings className="w-8 h-8 text-amber-600" />
+      <div className={shellClass}>
+        <div className="bg-white rounded-3xl border border-amber-200 p-8 sm:p-10 text-center shadow-sm max-w-md w-full">
+          <div className="w-16 h-16 mx-auto bg-amber-50 rounded-2xl flex items-center justify-center mb-4">
+            <Settings className="w-8 h-8 text-amber-600" />
+          </div>
+          <h3 className="font-bold text-slate-900 text-lg mb-2">PIN 출결이 꺼져 있습니다</h3>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            설정에서 학생 PIN 출결을 활성화한 뒤 사용할 수 있습니다.
+          </p>
+          {!standalone && (
+            <button
+              type="button"
+              onClick={() => window.history.back()}
+              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
+            >
+              뒤로 가기
+            </button>
+          )}
         </div>
-        <h3 className="font-bold text-slate-900 text-lg mb-2">출입 관리가 비활성화되어 있습니다</h3>
-        <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          설정 메뉴에서 출입 관리(PIN 번호) 기능을<br />
-          활성화한 후 사용하실 수 있습니다
-        </p>
-        <button
-          type="button"
-          onClick={() => window.history.back()}
-          className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
-        >
-          뒤로 가기
-        </button>
       </div>
     );
   }
 
   if (!hasPinsConfigured) {
     return (
-      <div className="max-w-md mx-auto pb-4 md:pb-0">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+      <div className={shellClass}>
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-md w-full">
           <div className="text-center mb-6">
-            <p className="text-xs text-slate-500 font-semibold">출결 키패드</p>
+            <p className="text-xs text-slate-500 font-semibold">학생 출석</p>
             <h3 className="text-2xl font-black text-slate-900 mt-1">PIN 입력</h3>
           </div>
-          
           <div className="bg-amber-50 rounded-2xl border border-amber-100 p-6 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center mx-auto">
               <Delete className="w-6 h-6 text-amber-600" />
@@ -125,8 +169,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
             <div>
               <p className="font-bold text-amber-900 mb-2">등록된 PIN이 없습니다</p>
               <p className="text-xs text-amber-700 leading-relaxed">
-                출결 PIN을 사용하려면 먼저 학생별로 PIN을 발급해야 합니다.<br />
-                <strong>학생 관리 &gt; 학생 상세 &gt; 출결 PIN</strong> 탭에서 PIN을 발급하세요.
+                학생 관리에서 출결 PIN을 먼저 발급해 주세요.
               </p>
             </div>
           </div>
@@ -136,12 +179,24 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
   }
 
   return (
-    <div className="max-w-md mx-auto pb-4 md:pb-0">
-      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8">
+    <div className={shellClass}>
+      {standalone && (
+        <button
+          type="button"
+          aria-label="관리자 종료 (길게 누르기)"
+          className="absolute top-0 left-0 w-16 h-16 opacity-0"
+          onPointerDown={startAdminExitHold}
+          onPointerUp={clearHold}
+          onPointerLeave={clearHold}
+          onPointerCancel={clearHold}
+        />
+      )}
+
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 max-w-md w-full relative">
         <div className="text-center mb-6">
-          <p className="text-xs text-slate-500 font-semibold">출결 키패드</p>
-          <h3 className="text-2xl font-black text-slate-900 mt-1">PIN 입력</h3>
-          <p className="text-xs text-slate-400 mt-2">같은 PIN을 다시 입력하면 퇴실 처리됩니다</p>
+          <p className="text-xs text-slate-500 font-semibold">학생 출석</p>
+          <h3 className="text-2xl font-black text-slate-900 mt-1">PIN 번호를 입력해주세요</h3>
+          <p className="text-xs text-slate-400 mt-2">이미 출석한 학생이 다시 입력하면 안내만 표시됩니다</p>
         </div>
 
         <div
@@ -172,26 +227,29 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
         )}
 
         <div className="grid grid-cols-3 gap-3">
-          {KEYPAD.map((key) => {
-            const isAction = key === 'clear' || key === 'enter';
-            return (
-              <button
-                key={key}
-                type="button"
-                disabled={processing}
-                onClick={() => handleKey(key)}
-                className={`min-h-[56px] rounded-2xl text-lg font-black transition-all active:scale-95 ${
-                  key === 'enter'
-                    ? `${accent.btn} text-white ${accent.btnHover}`
-                    : key === 'clear'
-                      ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50'
-                } ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
-              >
-                {key === 'clear' ? <Delete className="w-5 h-5 mx-auto" /> : key === 'enter' ? '확인' : key}
-              </button>
-            );
-          })}
+          {KEYPAD.map((key) => (
+            <button
+              key={key}
+              type="button"
+              disabled={processing}
+              onClick={() => handleKey(key)}
+              className={`min-h-[56px] rounded-2xl text-lg font-black transition-all active:scale-95 ${
+                key === 'enter'
+                  ? `${accent.btn} text-white ${accent.btnHover}`
+                  : key === 'clear'
+                    ? 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    : 'bg-white border border-slate-200 text-slate-800 hover:bg-slate-50'
+              } ${processing ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}
+            >
+              {key === 'clear' ? (
+                <Delete className="w-5 h-5 mx-auto" />
+              ) : key === 'enter' ? (
+                '확인'
+              ) : (
+                key
+              )}
+            </button>
+          ))}
         </div>
 
         <button
@@ -200,12 +258,39 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({ method
             setPin('');
             setFeedback(null);
           }}
-          className="mt-4 w-full py-2 text-xs text-slate-500 font-semibold flex items-center justify-center gap-1"
+          className="mt-4 w-full py-2 text-xs text-slate-500 font-semibold flex items-center justify-center gap-1 min-h-[44px]"
         >
           <RotateCcw className="w-3.5 h-3.5" />
           초기화
         </button>
       </div>
+
+      {exitPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
+            <h4 className="font-bold text-slate-900 text-lg">관리자 화면으로 나가기</h4>
+            <p className="text-sm text-slate-500">
+              키오스크를 종료하고 일반 관리 화면으로 이동합니다. 학생이 아닌 관리자만 진행하세요.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setExitPrompt(false)}
+                className="flex-1 min-h-[44px] rounded-xl border border-slate-200 text-sm font-bold text-slate-600"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                onClick={confirmAdminExit}
+                className={`flex-1 min-h-[44px] rounded-xl text-sm font-bold text-white ${accent.btn}`}
+              >
+                종료
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -75,6 +75,17 @@ export const ParentManagementView: React.FC = () => {
 
   const filteredParents = searchParents(searchQuery);
 
+  const statusSummary = useMemo(() => {
+    const counts = { connected: 0, invited: 0, none: 0 };
+    for (const parent of parents) {
+      const status = statusMap.get(parent.id)?.status || 'none';
+      if (status === 'connected') counts.connected += 1;
+      else if (status === 'invited') counts.invited += 1;
+      else counts.none += 1;
+    }
+    return counts;
+  }, [parents, statusMap]);
+
   const resolveStatus = (parent: Parent): ParentAccountStatus => {
     return statusMap.get(parent.id)?.status || 'none';
   };
@@ -152,6 +163,23 @@ export const ParentManagementView: React.FC = () => {
         title="학부모 관리"
         description="학부모 계정을 초대하면 출결·과제·리포트를 학부모 앱에서 확인할 수 있습니다."
       />
+
+      {canInvite && parents.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-3 py-3 text-center">
+            <p className="text-lg font-black text-emerald-700">{statusSummary.connected}</p>
+            <p className="text-[11px] font-bold text-emerald-800/80">연결 완료</p>
+          </div>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50/70 px-3 py-3 text-center">
+            <p className="text-lg font-black text-amber-700">{statusSummary.invited}</p>
+            <p className="text-[11px] font-bold text-amber-800/80">초대중</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3 text-center">
+            <p className="text-lg font-black text-slate-700">{statusSummary.none}</p>
+            <p className="text-[11px] font-bold text-slate-600">미연결</p>
+          </div>
+        </div>
+      )}
 
       <FilterBar>
         <SearchField

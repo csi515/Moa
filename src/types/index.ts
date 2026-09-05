@@ -185,6 +185,21 @@ export interface TuitionInvoice {
   receiptNumber?: string;
 }
 
+/** 월회비 납부 원장 — 청구항목(TuitionInvoice)에 대한 실제 입금 */
+export interface TuitionPayment {
+  id: string;
+  invoiceId: string;
+  studentId: string;
+  studentName: string;
+  yearMonth: string;
+  paymentDate: string; // YYYY-MM-DD
+  amount: number;
+  paymentMethod: PaymentMethod;
+  memo?: string;
+  receiptNumber?: string;
+  createdAt?: string;
+}
+
 export type ConsultationType = 'parent' | 'student' | 'career' | 'learning' | 'other';
 
 export interface Consultation {
@@ -366,11 +381,11 @@ export interface StudentMonthlyBillingSummary {
 export interface CombinedPaymentRequest {
   studentId: string;
   yearMonth: string;
-  tuitionAmount: number;
-  textbookPayments: {
-    saleId: string;
-    amount: number;
-  }[];
+  /** @deprecated tuitionPayments 사용 권장 */
+  tuitionAmount?: number;
+  /** 항목별 월회비 납부 (부분납 지원) */
+  tuitionPayments?: { invoiceId: string; amount: number }[];
+  textbookPayments: { saleId: string; amount: number }[];
   paymentMethod: PaymentMethod;
   paymentDate: string;
   memo?: string;

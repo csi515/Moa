@@ -1,6 +1,7 @@
 import type { AcademySettings, User } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { getIndustryType } from '../adapters/storageContext';
+import { resolveAttendanceEnabledForBackfill } from '../../core/attendance/features';
 import { DEFAULT_SETTINGS, getItem, setItem, type StorageApi } from './helpers';
 
 /** 설정·사용자·온보딩·백업 */
@@ -33,6 +34,25 @@ export function createSettingsStorage(api: StorageApi) {
     saveSettings(settings: AcademySettings): AcademySettings {
       setItem(STORAGE_KEYS.SETTINGS, settings);
       return settings;
+    },
+
+    /**
+     * 기존 데이터에 features.attendance.enabled가 없으면 확정 저장.
+     * PIN/세션 있으면 true, 없으면 false(MANUAL).
+     */
+    backfillAttendanceFeatureFlag(): { changed: boolean; enabled: boolean } {
+      const settings = this.getSettings();
+      const pins = (api.getCustomerPins as () => unknown[])();
+      const sessions = (api.getAttendanceSessions as () => unknown[])();
+      const hasPinOrSessionData = pins.length > 0 || sessions.length > 0;
+      const result = resolveAttendanceEnabledForBackfill({
+        settings,
+        hasPinOrSessionData,
+      });
+      if (result.changed) {
+        this.saveSettings(result.settings);
+      }
+      return { changed: result.changed, enabled: result.enabled };
     },
 
     exportDatabaseJSON(): string {

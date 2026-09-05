@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react';
 import type { GlobalStudent, ParentPortalTree, StudentEnrollment } from '../types/globalParent';
+import { ACTIVE_ENROLLMENT_STATUSES } from '../types/globalParent';
 import { fetchParentPortalTree } from '../services/parentPortalService';
 
 export type ParentShellStep = 'children' | 'academies' | 'portal';
@@ -48,7 +49,13 @@ export const ParentPortalProvider: React.FC<{ children: ReactNode }> = ({ childr
   const selectStudent = useCallback((student: GlobalStudent) => {
     setSelectedStudent(student);
     setSelectedEnrollment(null);
-    if (student.enrollments.length === 1) {
+    const active = student.enrollments.filter((e) =>
+      ACTIVE_ENROLLMENT_STATUSES.includes(e.status)
+    );
+    if (active.length === 1) {
+      setSelectedEnrollment(active[0]);
+      setStep('portal');
+    } else if (active.length === 0 && student.enrollments.length === 1) {
       setSelectedEnrollment(student.enrollments[0]);
       setStep('portal');
     } else {

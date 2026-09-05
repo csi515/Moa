@@ -146,7 +146,7 @@ export function ParentAttendanceView({
                   <div className="text-right">
                     <span className="text-xs font-bold text-slate-700">{status.label}</span>
                     <p className="text-[10px] text-slate-400 font-mono">
-                      {formatSessionTime(s.checkInAt)} → {formatSessionTime(s.checkOutAt)}
+                      {formatSessionTime(s.checkInAt)}
                     </p>
                   </div>
                 </div>

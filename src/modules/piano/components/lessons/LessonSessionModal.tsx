@@ -237,7 +237,7 @@ export const LessonSessionModal: FC<LessonSessionModalProps> = ({
                 : 'bg-indigo-600 hover:bg-indigo-700'
             }`}
           >
-            {skipLessonFields ? '결석 저장' : '저장하기'}
+            {skipLessonFields ? '결석 저장 · 보강으로' : '저장하기'}
           </button>
         </div>
       </form>

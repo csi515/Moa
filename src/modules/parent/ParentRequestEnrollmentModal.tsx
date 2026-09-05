@@ -74,7 +74,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">학원 찾기</h3>
+          <h3 className="font-bold text-lg">학원 연결</h3>
           <button type="button" onClick={onClose} aria-label="닫기">
             <X className="w-5 h-5 text-slate-400" />
           </button>

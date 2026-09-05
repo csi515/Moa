@@ -48,9 +48,12 @@ export function resolveNavHighlightTab(tab: NavTab): NavTab {
     case 'passes':
       return 'members';
     case 'calendar':
-    case 'lessons':
     case 'makeups':
       return 'timetable';
+    case 'attendance':
+      return 'lessons';
+    case 'check-in':
+      return 'settings';
     case 'services':
       return 'bookings';
     case 'medications':

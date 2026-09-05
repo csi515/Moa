@@ -51,7 +51,7 @@ export const DirectorFloatingFab: React.FC = () => {
 
           <button
             type="button"
-            onClick={() => handleAction('attendance')}
+            onClick={() => handleAction('lessons')}
             className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-teal-50 hover:text-teal-600 transition-all active:scale-95"
           >
             <span>오늘 출결 체크</span>

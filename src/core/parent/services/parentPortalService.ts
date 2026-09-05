@@ -1,5 +1,13 @@
 import { getCoreClient } from '@/lib/supabase';
-import type { ParentPortalTree, GlobalParent, GlobalStudent, StudentEnrollment, EnrollmentStatus } from '../types/globalParent';
+import type {
+  ParentPortalTree,
+  GlobalParent,
+  GlobalStudent,
+  StudentEnrollment,
+  EnrollmentStatus,
+  EnrollmentRequestInfo,
+  EnrollmentRequestStatus,
+} from '../types/globalParent';
 import type { GuardianRelationship } from '../types';
 
 function parseEnrollment(raw: Record<string, unknown>): StudentEnrollment {
@@ -31,6 +39,21 @@ function parseChild(raw: Record<string, unknown>): GlobalStudent {
   };
 }
 
+function parseEnrollmentRequest(raw: Record<string, unknown>): EnrollmentRequestInfo {
+  return {
+    id: String(raw.id),
+    studentId: String(raw.student_id ?? ''),
+    studentName: String(raw.student_name ?? ''),
+    organizationId: String(raw.organization_id ?? ''),
+    organizationName: String(raw.organization_name ?? ''),
+    industryType: String(raw.industry_type ?? ''),
+    status: (raw.status as EnrollmentRequestStatus) ?? 'pending',
+    requestedAt: String(raw.requested_at ?? ''),
+    reviewedAt: raw.reviewed_at ? String(raw.reviewed_at) : null,
+    rejectionReason: raw.rejection_reason ? String(raw.rejection_reason) : null,
+  };
+}
+
 function parsePortalTree(data: unknown): ParentPortalTree {
   const root = (data ?? {}) as Record<string, unknown>;
   const parentRaw = root.parent as Record<string, unknown> | null;
@@ -48,7 +71,11 @@ function parsePortalTree(data: unknown): ParentPortalTree {
     ? (root.children as Record<string, unknown>[]).map(parseChild)
     : [];
 
-  return { parent, children };
+  const enrollmentRequests = Array.isArray(root.enrollment_requests)
+    ? (root.enrollment_requests as Record<string, unknown>[]).map(parseEnrollmentRequest)
+    : [];
+
+  return { parent, children, enrollmentRequests };
 }
 
 export async function ensureGlobalParentProfile(): Promise<string | null> {

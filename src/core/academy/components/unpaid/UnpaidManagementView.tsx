@@ -154,7 +154,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
                     <tr key={s.studentId} className="hover:bg-indigo-50/30 transition-colors">
                       <td className="py-3.5 px-4">
                         <button
-                          onClick={() => openStudent(s.studentId)}
+                          onClick={() => openStudent(s.studentId, 'tuition')}
                           className="font-bold text-slate-900 hover:text-indigo-600 text-left"
                         >
                           {s.studentName}
@@ -219,7 +219,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
                     <button
-                      onClick={() => openStudent(s.studentId)}
+                      onClick={() => openStudent(s.studentId, 'tuition')}
                       className="font-bold text-slate-900 hover:text-indigo-600 text-sm"
                     >
                       {s.studentName}

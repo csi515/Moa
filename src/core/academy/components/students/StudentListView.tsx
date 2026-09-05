@@ -161,7 +161,7 @@ export const StudentListView: React.FC = () => {
     const names = student.classIds
       .map((id) => classNameById.get(id))
       .filter(Boolean) as string[];
-    if (names.length === 0) return `${student.classIds.length}개 반`;
+    if (names.length === 0) return `${student.classIds.length}개 레슨`;
     if (names.length === 1) return names[0];
     return `${names[0]} 외 ${names.length - 1}`;
   };
@@ -276,7 +276,7 @@ export const StudentListView: React.FC = () => {
               onChange={(e) => setClassFilter(e.target.value)}
               className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
             >
-              <option value="ALL">수업 전체</option>
+              <option value="ALL">레슨 전체</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -372,7 +372,7 @@ export const StudentListView: React.FC = () => {
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
                     <th className="py-2.5 px-3">이름</th>
-                    <th className="py-2.5 px-3">수업</th>
+                    <th className="py-2.5 px-3">레슨</th>
                     <th className="py-2.5 px-3">보호자</th>
                     <th className="py-2.5 px-3">상태</th>
                     <th className="py-2.5 px-3 text-right">관리</th>

@@ -16,6 +16,7 @@ import { ParentScheduleView } from './views/ParentScheduleView';
 import { ParentBookingsView } from './views/ParentBookingsView';
 import { PilatesParentBookingsView } from './views/PilatesParentBookingsView';
 import { ParentShuttleView } from './views/ParentShuttleView';
+import { ParentMoreView } from './views/ParentMoreView';
 import { normalizeIndustryType } from '@/core/industry/types';
 
 export function ParentPortalTabs({
@@ -27,6 +28,7 @@ export function ParentPortalTabs({
   onRefresh,
   onNavigate,
   industryType = 'piano',
+  onSwitchChild,
 }: {
   tab: ParentPortalTab;
   student: Student;
@@ -36,6 +38,7 @@ export function ParentPortalTabs({
   onRefresh: () => void;
   onNavigate: (t: ParentPortalTab) => void;
   industryType?: IndustryType | string;
+  onSwitchChild?: () => void;
 }) {
   const industry = normalizeIndustryType(industryType);
 
@@ -102,6 +105,14 @@ export function ParentPortalTabs({
           readOnly={readOnly}
           showToast={showToast}
           onRefresh={onRefresh}
+        />
+      );
+    case 'more':
+      return (
+        <ParentMoreView
+          onNavigate={onNavigate}
+          onSwitchChild={onSwitchChild}
+          industryType={industryType}
         />
       );
     default:

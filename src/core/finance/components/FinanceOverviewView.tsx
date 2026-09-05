@@ -22,14 +22,15 @@ import {
 } from 'recharts';
 
 export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
-  const { setActiveTab } = useApp();
+  const { setActiveTab, showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [summaryTick, setSummaryTick] = useState(0);
   const monthOptions = getRecentYearMonths(12);
 
   const summary = useMemo(
     () => StorageService.getFinanceSummary(industry),
-    [industry]
+    [industry, summaryTick]
   );
 
   const monthDetail = useMemo(() => {
@@ -45,7 +46,7 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
       incomeCount: incomeEntries.length,
       expenseCount: expenses.length,
     };
-  }, [selectedMonth, summary.monthlyTrend]);
+  }, [selectedMonth, summary.monthlyTrend, summaryTick]);
 
   const isPiano = industry === 'piano';
 
@@ -77,8 +78,8 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
             {formatCurrency(summary.totalIncomeThisMonth)}
           </p>
           <p className="text-[11px] text-slate-400 mt-1">
-            직접 등록 {formatCurrency(summary.manualIncomeThisMonth)}
-            {isPiano && ` · 연동 ${formatCurrency(summary.linkedIncomeThisMonth)}`}
+            일반 {formatCurrency(summary.manualIncomeThisMonth)}
+            {isPiano && ` · 수납연동 ${formatCurrency(summary.linkedIncomeThisMonth)}`}
           </p>
         </button>
 
@@ -154,11 +155,26 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
       </div>
 
       {isPiano && (
-        <div className="bg-indigo-50/60 rounded-2xl p-3.5 border border-indigo-100">
+        <div className="bg-indigo-50/60 rounded-2xl p-3.5 border border-indigo-100 space-y-3">
           <p className="text-xs text-indigo-800 leading-relaxed">
-            피아노 학원의 수강료·교재 매출은 각 메뉴에서 관리되며, 재무 요약에 자동 반영됩니다.
-            수입 관리에서는 기타 수입(대관, 부대사업 등)을 직접 등록할 수 있습니다.
+            수강료·교재 납부는 납부일 기준으로 수입 원장에 연동됩니다. 수입 관리에서는 일반 수입(대관
+            등)을 직접 등록할 수 있습니다.
           </p>
+          <button
+            type="button"
+            onClick={() => {
+              const result = StorageService.backfillBillingLinkedIncome();
+              setSummaryTick((t) => t + 1);
+              triggerRefresh();
+              showToast(
+                `수납 수입 동기화 완료 (월회비 ${result.tuitionCreated}건 · 교재 ${result.textbookCreated}건)`,
+                'success'
+              );
+            }}
+            className="w-full sm:w-auto min-h-[44px] px-4 text-xs font-bold rounded-xl bg-white border border-indigo-200 text-indigo-800 hover:bg-indigo-50"
+          >
+            과거 수납 → 수입 원장 동기화
+          </button>
         </div>
       )}
     </div>

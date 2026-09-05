@@ -6,6 +6,8 @@ export * from './services/parentPortalService';
 export * from './services/parentInviteService';
 export * from './services/parentAttendanceService';
 export * from './services/guardianLinkService';
+export * from './services/enrollmentUnlinkService';
+export * from './services/pendingOrgConnect';
 export * from './services/appModeService';
 export * from './services/parentChildService';
 export * from './services/parentNotificationService';

@@ -1,4 +1,4 @@
-﻿import { useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
+﻿import { useEffect, useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -42,7 +42,7 @@ import {
 import type { AcademyRoomKind } from '@/types';
 export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh, openConfirmDialog, setActiveTab } = useApp();
-  const { industry, isOwner } = usePermissions();
+  const { industry, isOwner, isAdmin } = usePermissions();
   const org = useOrganization();
   const importInputRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<File | null>(null);
@@ -60,6 +60,16 @@ export const AcademySettingsView: FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
   const rooms = getConfiguredRooms(settings);
+  const canEditAttendanceMode = isAdmin;
+
+  useEffect(() => {
+    const result = StorageService.backfillAttendanceFeatureFlag();
+    if (result.changed) {
+      setSettings(StorageService.getSettings());
+      triggerRefresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const updateRoom = (id: string, patch: { name?: string; kind?: AcademyRoomKind }) => {
     setSettings({
@@ -292,6 +302,27 @@ export const AcademySettingsView: FC = () => {
               />
             </FormField>
 
+            {org.currentOrganization?.public_code && (
+              <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
+                <p className="text-xs font-bold text-indigo-900">학부모 학원 연결코드</p>
+                <p className="font-mono text-lg font-black tracking-widest text-indigo-700">
+                  {org.currentOrganization.public_code}
+                </p>
+                <p className="text-xs text-indigo-800/80 leading-relaxed">
+                  학부모가 검색·공개 페이지에서 이 코드로 학원을 찾아 연결을 요청할 수 있습니다.
+                  자동 연결되지 않으며, 등록 요청 승인 후 연결됩니다.
+                </p>
+                <a
+                  href={`/c/${org.currentOrganization.public_code}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center text-xs font-bold text-indigo-600 hover:underline min-h-[44px]"
+                >
+                  공개 페이지 열기 (/c/{org.currentOrganization.public_code})
+                </a>
+              </div>
+            )}
+
             <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField label="기본 월 수강료 기준 (₩)">
                 <CurrencyInput
@@ -399,13 +430,25 @@ export const AcademySettingsView: FC = () => {
               )}
             </div>
 
-            <div className="pt-4 border-t border-slate-100">
+            <div className="pt-4 border-t border-slate-100 space-y-3">
               <AttendanceFeatureToggle
                 enabled={attendanceEnabled}
-                onChange={(enabled) => setSettings(withAttendanceModuleEnabled(settings, enabled))}
+                onChange={(enabled) => {
+                  if (!canEditAttendanceMode) return;
+                  setSettings(withAttendanceModuleEnabled(settings, enabled));
+                }}
                 activeClassName={accent.btn}
                 iconClassName={accentIcon}
+                canEdit={canEditAttendanceMode}
               />
+              {attendanceEnabled && (
+                <a
+                  href="/attendance-kiosk"
+                  className={`inline-flex items-center gap-1.5 text-xs font-bold min-h-[44px] ${accentIcon}`}
+                >
+                  출석 키오스크 열기 (/attendance-kiosk)
+                </a>
+              )}
             </div>
 
             <div className="flex justify-end pt-4">

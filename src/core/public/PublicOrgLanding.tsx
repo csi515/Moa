@@ -13,6 +13,7 @@ import {
   Calendar,
   Users,
   ChevronRight,
+  Link2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import type { PublicOrgInfo, ConsultationSubmission, BookableSchedule, ReservationRequest } from '@/types';
@@ -21,6 +22,8 @@ import { coreScheduleService, reservationService } from '@/core/schedules';
 import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
 import { getIndustryLabel } from '@/core/industry/types';
+import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
+import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
 
 interface PublicOrgLandingProps {
   code: string;
@@ -98,8 +101,23 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
   };
 
   const handleJoinRequest = () => {
-    // Navigate to customer sign up flow with pre-selected org
+    // 고객(원생) 가입 신청 — 가디언 연결과 별개
     navigate('/signup/customer', { state: { selectedOrgId: org?.id } });
+  };
+
+  const handleParentConnect = () => {
+    if (!org) return;
+    storePendingOrgPublicCode(org.public_code);
+    setParentPortalModeActive(true);
+    if (isAuthenticated) {
+      navigate('/', { state: { openParentPortal: true } });
+      return;
+    }
+    navigate('/', {
+      state: {
+        openParentPortal: true,
+      },
+    });
   };
 
   const handleConsultSubmit = async (e: FormEvent) => {
@@ -294,21 +312,34 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
           </dl>
         </section>
 
-        {/* Action Buttons */}
+        {/* Action Buttons — 학부모 연결 vs 고객 가입 분리 */}
         <section className="space-y-3">
           <button
-            onClick={handleJoinRequest}
-            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+            type="button"
+            onClick={handleParentConnect}
+            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 min-h-[44px]"
           >
-            <CheckCircle2 className="w-6 h-6" />
-            회원 가입 신청
+            <Link2 className="w-6 h-6" />
+            우리 아이 학원 연결
+          </button>
+          <p className="text-xs text-slate-500 text-center -mt-1">
+            학부모 계정으로 로그인 후 자녀·학원 연결을 요청합니다 (학원 승인 필요)
+          </p>
+          <button
+            type="button"
+            onClick={handleJoinRequest}
+            className="w-full py-4 bg-white text-slate-800 border-2 border-slate-200 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+          >
+            <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+            회원·상담 가입 신청
           </button>
           <button
+            type="button"
             onClick={() => {
               setShowConsultForm(true);
               setConsultSubmitted(false);
             }}
-            className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
+            className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
           >
             <MessageSquare className="w-6 h-6" />
             무료 상담 예약

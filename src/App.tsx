@@ -10,6 +10,7 @@ import { MobileBootstrap } from './core/platform';
 import { getPublicLegalPage, LegalPageView, type LegalPageId } from './core/legal';
 import { PublicOrgLanding } from './core/public/PublicOrgLanding';
 import { CustomerSignUpFlow } from './core/customer/CustomerSignUpFlow';
+import { AttendanceKioskPage } from './core/attendance';
 
 function PublicOrgRoute() {
   const { code } = useParams<{ code: string }>();
@@ -54,6 +55,8 @@ export default function App() {
               
               {/* Customer sign-up flow */}
               <Route path="/signup/customer" element={<CustomerSignUpRoute />} />
+              
+              <Route path="/attendance-kiosk" element={<AttendanceKioskPage />} />
               
               {/* Main app */}
               <Route path="/*" element={<SupabaseAppGate />} />

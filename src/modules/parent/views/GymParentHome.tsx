@@ -70,10 +70,10 @@ export function GymParentHome({
         />
       </button>
 
-      {todaySession && (todaySession.checkInAt || todaySession.checkOutAt) && (
-        <Section title="오늘 입·퇴실">
+      {todaySession?.checkInAt && (
+        <Section title="오늘 출석">
           <p className="text-sm text-slate-700 font-mono">
-            {formatSessionTime(todaySession.checkInAt)} → {formatSessionTime(todaySession.checkOutAt)}
+            {formatSessionTime(todaySession.checkInAt)}
           </p>
         </Section>
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ChevronRight, Users, Building2, Plus, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
@@ -12,7 +12,13 @@ import {
 import { ParentRequestEnrollmentModal } from './ParentRequestEnrollmentModal';
 import { ParentChildSelectorModal } from './ParentChildSelectorModal';
 import { ParentEnrollmentConsentModal } from './ParentEnrollmentConsentModal';
-import { requestEnrollment, cancelEnrollmentRequest, type OrganizationSearchResult } from '@/core/parent/services/enrollmentRequestService';
+import {
+  requestEnrollment,
+  cancelEnrollmentRequest,
+  findOrganizationByCode,
+  type OrganizationSearchResult,
+} from '@/core/parent/services/enrollmentRequestService';
+import { consumePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { useApp } from '@/context/AppContext';
 
 export const ParentChildrenHome: React.FC = () => {
@@ -26,6 +32,35 @@ export const ParentChildrenHome: React.FC = () => {
   const [showConsent, setShowConsent] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<OrganizationSearchResult | null>(null);
   const [selectedChild, setSelectedChild] = useState<GlobalStudent | null>(null);
+
+  useEffect(() => {
+    const code = consumePendingOrgPublicCode();
+    if (!code) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const org = await findOrganizationByCode(code);
+        if (cancelled || !org) {
+          if (!cancelled && !org) {
+            showToast('학원 코드를 찾을 수 없습니다. 다시 검색해 주세요.', 'error');
+          }
+          return;
+        }
+        setSelectedOrg(org);
+        setShowChildSelector(true);
+        showToast(`${org.name} 학원 연결을 이어서 진행합니다`, 'info');
+      } catch (err) {
+        if (!cancelled) {
+          showToast(err instanceof Error ? err.message : '학원 조회에 실패했습니다', 'error');
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showToast]);
 
   const handleOrgSelect = (org: OrganizationSearchResult) => {
     setSelectedOrg(org);
@@ -49,7 +84,7 @@ export const ParentChildrenHome: React.FC = () => {
         notes,
       });
 
-      showToast(`${result.organizationName}에 ${result.studentName} 등록을 요청했습니다`, 'success');
+      showToast(`${result.organizationName}에 ${result.studentName} 연결을 요청했습니다`, 'success');
       setShowConsent(false);
       setSelectedOrg(null);
       setSelectedChild(null);
@@ -62,7 +97,7 @@ export const ParentChildrenHome: React.FC = () => {
   const handleCancelRequest = async (requestId: string) => {
     try {
       await cancelEnrollmentRequest(requestId);
-      showToast('등록 요청을 취소했습니다', 'success');
+      showToast('학원 연결 요청을 취소했습니다', 'success');
       await refreshPortalTree();
     } catch (err) {
       showToast(err instanceof Error ? err.message : '요청 취소에 실패했습니다', 'error');
@@ -71,24 +106,32 @@ export const ParentChildrenHome: React.FC = () => {
 
   if (children.length === 0) {
     return (
-      <div className="bg-white rounded-2xl p-8 sm:p-10 text-center border border-slate-200 shadow-sm">
-        <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
-          <Users className="w-8 h-8 text-slate-400" />
+      <>
+        <div className="bg-white rounded-2xl p-8 sm:p-10 text-center border border-slate-200 shadow-sm">
+          <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
+            <Users className="w-8 h-8 text-slate-400" />
+          </div>
+          <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 자녀가 없습니다</h3>
+          <p className="text-sm text-slate-500 leading-relaxed mb-6">
+            학원에서 발급한 8자리 연결 코드를 입력하거나<br />
+            내 자녀를 직접 등록해 주세요
+          </p>
+          {selectedOrg && (
+            <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4">
+              {selectedOrg.name} 연결을 이어가려면 먼저 자녀를 등록해 주세요.
+            </p>
+          )}
+          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
+            <p className="text-xs font-bold text-indigo-900 mb-2">학원 연결 방법</p>
+            <ul className="text-xs text-indigo-700 space-y-1">
+              <li>• 학원에 연결 코드를 요청하세요</li>
+              <li>• 위의 코드 입력으로 바로 연결할 수 있습니다</li>
+              <li>• QR 코드가 있다면 QR로 스캔할 수 있습니다</li>
+              <li>• 자녀 등록 후 학원 검색·공개코드로 연결을 요청할 수 있습니다</li>
+            </ul>
+          </div>
         </div>
-        <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 자녀가 없습니다</h3>
-        <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          학원에서 발급한 8자리 연결 코드를 입력하거나<br />
-          내 자녀를 직접 등록해 주세요
-        </p>
-        <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
-          <p className="text-xs font-bold text-indigo-900 mb-2">💡 연결 방법</p>
-          <ul className="text-xs text-indigo-700 space-y-1">
-            <li>• 학원에 연결 코드를 요청하세요</li>
-            <li>• 위의 '코드 입력하기' 버튼을 눌러 코드를 입력합니다</li>
-            <li>• QR 코드가 있다면 QR 버튼으로 스캔할 수 있습니다</li>
-          </ul>
-        </div>
-      </div>
+      </>
     );
   }
 
@@ -100,10 +143,10 @@ export const ParentChildrenHome: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowOrgSearch(true)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors min-h-[44px]"
           >
             <Plus className="w-3.5 h-3.5" />
-            학원 등록 요청
+            학원 연결 요청
           </button>
         </div>
 
@@ -115,7 +158,7 @@ export const ParentChildrenHome: React.FC = () => {
 
         {requests.length > 0 && (
           <div className="mt-6">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">등록 요청 현황</p>
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">학원 연결 요청 현황</p>
             <div className="space-y-2">
               {requests.map((request) => (
                 <EnrollmentRequestCard
@@ -143,7 +186,7 @@ export const ParentChildrenHome: React.FC = () => {
         }}
         children={children}
         onSelect={handleChildSelect}
-        title="등록할 자녀 선택"
+        title="연결할 자녀 선택"
       />
 
       {selectedOrg && selectedChild && (

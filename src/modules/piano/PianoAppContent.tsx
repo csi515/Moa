@@ -14,10 +14,8 @@ import { PianoBottomNav } from './layout/PianoBottomNav';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
-import {
-  attendanceViewEntry,
-  financeViewEntries,
-} from '@/core/industry/commonViewEntries';
+import { financeViewEntries } from '@/core/industry/commonViewEntries';
+import { AttendanceManagementView } from '@/core/attendance';
 import {
   CustomerHubView,
   SettingsHubView,
@@ -38,7 +36,8 @@ import { PianoScheduleView } from './components/schedule';
 import { PianoConsultationHubView } from './components/consultations';
 
 const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
-  { tab: 'classes', label: '반 관리' },
+  { tab: 'classes', label: '정규 레슨' },
+      { tab: 'check-in', label: 'PIN 출석' },
   { tab: 'assignments', label: '주간 과제' },
   { tab: 'practice', label: '연습 기록' },
   { tab: 'textbooks', label: '교재 판매' },
@@ -60,10 +59,12 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   students: customerHub,
   parents: customerHub,
   'enrollment-requests': customerHub,
-  ...attendanceViewEntry,
+  /** 레슨 출결 정본 — PIN 출석과 분리 */
+  attendance: () => <PianoScheduleView />,
+  lessons: () => <PianoScheduleView />,
+  'check-in': () => <AttendanceManagementView />,
   timetable: () => <PianoScheduleView />,
   calendar: () => <PianoScheduleView />,
-  lessons: () => <PianoScheduleView />,
   makeups: () => <PianoScheduleView />,
   ...financeViewEntries,
   classes: () => <ClassManagementView />,
