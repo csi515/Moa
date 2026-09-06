@@ -9,11 +9,15 @@ import {
   Loader2,
   KeyRound,
   UserCheck,
+  Search,
+  MapPin,
 } from 'lucide-react';
 import { type IndustryType } from '../industry/types';
 import { IndustryPicker } from '../industry/IndustryPicker';
 import { StorageService } from '@/services/storage';
 import { withAttendanceModuleEnabled } from '@/core/attendance/features';
+import { AddressSearchModal } from '@/shared/components/AddressSearchModal';
+import type { AddressSearchResult } from '@/services/address/addressSearchService';
 
 interface CreateOrganizationWizardProps {
   onComplete: () => void;
@@ -33,6 +37,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attendanceChoice, setAttendanceChoice] = useState<AttendanceChoice>('later');
+  const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -77,6 +82,10 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
       setError(err instanceof Error ? err.message : '학원 등록 중 오류가 발생했습니다');
       setIsSaving(false);
     }
+  };
+
+  const handleAddressSelect = (selectedAddress: AddressSearchResult) => {
+    setFormData({ ...formData, address: selectedAddress.fullAddress });
   };
 
   const steps = [
@@ -193,14 +202,33 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">학원 주소</label>
-              <input
-                type="text"
-                placeholder="예: 서울시 강남구 테헤란로 123"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
-              />
+              <div className="space-y-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddressSearchOpen(true)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-xl hover:bg-indigo-100 transition-colors min-h-[44px]"
+                >
+                  <Search className="w-4 h-4" />
+                  주소 검색
+                </button>
+                <div className="relative">
+                  <MapPin className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="주소 검색 또는 직접 입력"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    className="w-full pl-10 pr-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
+                  />
+                </div>
+              </div>
             </div>
+
+            <AddressSearchModal
+              isOpen={isAddressSearchOpen}
+              onClose={() => setIsAddressSearchOpen(false)}
+              onSelect={handleAddressSelect}
+            />
 
             {error && (
               <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">

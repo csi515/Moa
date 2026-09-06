@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import type { IndustryType } from '@/core/industry/types';
 import { IndustryPicker } from '@/core/industry/IndustryPicker';
-import { Building2, MapPin, Phone } from 'lucide-react';
+import { Building2, MapPin, Phone, Search } from 'lucide-react';
 import { normalizePhoneInput } from '../utils/validateSignup';
+import { AddressSearchModal } from '@/shared/components/AddressSearchModal';
+import type { AddressSearchResult } from '@/services/address/addressSearchService';
 
 interface SignupBusinessFieldsProps {
   industryType: IndustryType;
@@ -28,6 +31,12 @@ export function SignupBusinessFields({
   onAddressChange,
   onBusinessNumberChange,
 }: SignupBusinessFieldsProps) {
+  const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false);
+
+  const handleAddressSelect = (selectedAddress: AddressSearchResult) => {
+    onAddressChange(selectedAddress.fullAddress);
+  };
+
   return (
     <div className="space-y-4 pt-1 border-t border-slate-100">
       <p className="text-xs font-bold text-slate-500">사업장 정보</p>
@@ -75,18 +84,34 @@ export function SignupBusinessFields({
 
       <div>
         <label className="block text-xs font-bold text-slate-600 mb-1.5">사업장 주소</label>
-        <div className="relative">
-          <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-          <textarea
-            value={address}
-            onChange={(event) => onAddressChange(event.target.value)}
-            placeholder="도로명 주소, 상세 주소"
-            rows={2}
-            autoComplete="street-address"
-            className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none"
-          />
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => setIsAddressSearchOpen(true)}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-xl hover:bg-indigo-100 transition-colors min-h-[44px]"
+          >
+            <Search className="w-4 h-4" />
+            주소 검색
+          </button>
+          <div className="relative">
+            <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
+            <textarea
+              value={address}
+              onChange={(event) => onAddressChange(event.target.value)}
+              placeholder="주소 검색 또는 직접 입력"
+              rows={2}
+              autoComplete="street-address"
+              className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none"
+            />
+          </div>
         </div>
       </div>
+
+      <AddressSearchModal
+        isOpen={isAddressSearchOpen}
+        onClose={() => setIsAddressSearchOpen(false)}
+        onSelect={handleAddressSelect}
+      />
 
       <div>
         <label className="block text-xs font-bold text-slate-600 mb-1.5">
