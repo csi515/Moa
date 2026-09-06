@@ -68,6 +68,9 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const tb = textbooks.find((t) => t.id === data.textbookId);
 
       if (!tb) throw new Error('선택한 교재 정보를 찾을 수 없습니다.');
+      if (tb.isForSale === false) {
+        throw new Error('사용 중지된 교재입니다. 교재 관리에서 다시 사용 설정한 뒤 판매하세요.');
+      }
       if (!student) throw new Error('선택한 원생 정보를 찾을 수 없습니다.');
 
       const qty = Math.max(1, Number(data.quantity) || 1);

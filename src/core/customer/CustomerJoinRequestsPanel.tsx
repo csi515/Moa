@@ -10,14 +10,14 @@ import {
   ChevronDown,
   ChevronUp 
 } from 'lucide-react';
-import type { CustomerJoinRequest } from '@/types';
+import type { CustomerJoinRequest, JoinRequestType } from '@/types';
 import { customerJoinService } from './services/customerJoinService';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 
 function getStatusLabel(status: string): { label: string; color: string } {
   const labels: Record<string, { label: string; color: string }> = {
-    pending: { label: '승인 대기', color: 'bg-yellow-100 text-yellow-700' },
-    approved: { label: '승인 완료', color: 'bg-green-100 text-green-700' },
+    pending: { label: '문의 대기', color: 'bg-yellow-100 text-yellow-700' },
+    approved: { label: '처리 완료', color: 'bg-green-100 text-green-700' },
     rejected: { label: '반려됨', color: 'bg-red-100 text-red-700' },
     cancelled: { label: '취소됨', color: 'bg-slate-100 text-slate-700' },
   };
@@ -204,7 +204,17 @@ function RequestCard({ request, onApprove, onReject }: RequestCardProps) {
   );
 }
 
-export function CustomerJoinRequestsPanel() {
+export function CustomerJoinRequestsPanel({
+  embedded = false,
+  requestType,
+  title = '고객 가입 신청',
+  description,
+}: {
+  embedded?: boolean;
+  requestType?: JoinRequestType;
+  title?: string;
+  description?: string;
+} = {}) {
   const { currentOrganization } = useOrganization();
   const [requests, setRequests] = useState<CustomerJoinRequest[]>([]);
   const [filter, setFilter] = useState<'pending' | 'all'>('pending');
@@ -214,7 +224,7 @@ export function CustomerJoinRequestsPanel() {
     if (currentOrganization) {
       loadRequests();
     }
-  }, [currentOrganization, filter]);
+  }, [currentOrganization, filter, requestType]);
 
   const loadRequests = async () => {
     if (!currentOrganization) return;
@@ -223,7 +233,8 @@ export function CustomerJoinRequestsPanel() {
       setLoading(true);
       const data = await customerJoinService.getOrgJoinRequests(
         currentOrganization.id,
-        filter === 'pending' ? 'pending' : undefined
+        filter === 'pending' ? 'pending' : undefined,
+        requestType
       );
       setRequests(data);
     } catch (err) {
@@ -259,43 +270,52 @@ export function CustomerJoinRequestsPanel() {
     );
   }
 
-  const pendingCount = requests.filter(r => r.status === 'pending').length;
+  const pendingCount = requests.filter((r) => r.status === 'pending').length;
+  const subtitle =
+    description ||
+    (pendingCount > 0
+      ? `${pendingCount}건의 대기 중인 신청이 있습니다`
+      : '대기 중인 신청이 없습니다');
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-indigo-600" />
-            고객 가입 신청
-          </h2>
-          <p className="text-sm text-slate-600 mt-1">
-            {pendingCount > 0 ? `${pendingCount}건의 승인 대기 중인 신청이 있습니다` : '승인 대기 중인 신청이 없습니다'}
-          </p>
+    <div className={embedded ? 'space-y-4' : 'space-y-6'}>
+      {!embedded && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+              <Users className="w-6 h-6 text-indigo-600" />
+              {title}
+            </h2>
+            <p className="text-sm text-slate-600 mt-1">{subtitle}</p>
+          </div>
         </div>
-      </div>
+      )}
+      {embedded && (
+        <div>
+          <h3 className="text-sm font-bold text-slate-900">{title}</h3>
+          <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+        </div>
+      )}
 
-      {/* Filters */}
       <div className="flex gap-2">
         <button
+          type="button"
           onClick={() => setFilter('pending')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-4 py-2 min-h-[44px] rounded-lg font-medium transition-colors ${
             filter === 'pending'
               ? 'bg-indigo-600 text-white'
               : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
           }`}
         >
-          승인 대기
+          대기
           {pendingCount > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-sm">
-              {pendingCount}
-            </span>
+            <span className="ml-2 px-2 py-0.5 bg-white/20 rounded-full text-sm">{pendingCount}</span>
           )}
         </button>
         <button
+          type="button"
           onClick={() => setFilter('all')}
-          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+          className={`px-4 py-2 min-h-[44px] rounded-lg font-medium transition-colors ${
             filter === 'all'
               ? 'bg-indigo-600 text-white'
               : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -305,20 +325,17 @@ export function CustomerJoinRequestsPanel() {
         </button>
       </div>
 
-      {/* Requests List */}
       {loading ? (
         <div className="text-center py-12">
           <div className="inline-block w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
           <p className="mt-4 text-slate-600">로딩 중...</p>
         </div>
       ) : requests.length === 0 ? (
-        <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-12 text-center">
-          <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-slate-900 mb-2">신청 내역이 없습니다</h3>
+        <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center">
+          <Clock className="w-10 h-10 text-slate-400 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-slate-900 mb-1">신청 내역이 없습니다</h3>
           <p className="text-sm text-slate-600">
-            {filter === 'pending' 
-              ? '승인 대기 중인 신청이 없습니다' 
-              : '아직 고객 가입 신청이 없습니다'}
+            {filter === 'pending' ? '대기 중인 신청이 없습니다' : '아직 신청이 없습니다'}
           </p>
         </div>
       ) : (

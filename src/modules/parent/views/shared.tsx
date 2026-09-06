@@ -16,29 +16,6 @@ export const Section: React.FC<{
   );
 };
 
-export function StatCard({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
-  return (
-    <div
-      className={`rounded-2xl p-3.5 border min-h-[76px] flex flex-col justify-center ${
-        warn
-          ? 'bg-rose-50 border-rose-200'
-          : 'bg-white border-slate-200'
-      }`}
-    >
-      <p className={`text-[11px] font-semibold ${warn ? 'text-rose-600' : 'text-slate-500'}`}>
-        {label}
-      </p>
-      <p
-        className={`text-lg font-black mt-0.5 tabular-nums tracking-tight ${
-          warn ? 'text-rose-700' : 'text-slate-900'
-        }`}
-      >
-        {value}
-      </p>
-    </div>
-  );
-}
-
 export function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-slate-50 rounded-lg p-2 text-center">

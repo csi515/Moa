@@ -121,11 +121,17 @@ Git 히스토리 재작성은 협업에 영향을 주므로 수행하지 않았�
 
 ## Edge Functions (Supabase)
 
-이메일 발송 등을 위한 Edge Function 환경 변수는 **Supabase Secrets**로 관리합니다:
+이메일 발송·주소검색·공휴일 등을 위한 Edge Function 환경 변수는 **Supabase Secrets**로 관리합니다:
 
 ```bash
 supabase secrets set RESEND_API_KEY="re_..."
 supabase secrets set INVITE_FROM_EMAIL="모두의 아카데미 모아 <noreply@yourdomain.com>"
+
+# 도로명주소 (search-address)
+supabase secrets set JUSO_CONFM_KEY="..."
+
+# 공공데이터포털 특일정보/공휴일 (get-public-holidays) — 디코딩된 일반 인증키
+supabase secrets set DATA_GO_KR_SERVICE_KEY="..."
 ```
 
 자세한 내용은 [Supabase Secrets 문서](https://supabase.com/docs/guides/functions/secrets)를 참고하세요.

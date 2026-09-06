@@ -89,7 +89,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       icon: icon(<BookOpenCheck className="w-5 h-5" />),
     },
     { tab: 'practice', label: '연습', icon: icon(<BookOpenCheck className="w-5 h-5" />) },
-    { tab: 'textbooks', label: '교재', icon: icon(<BookOpen className="w-5 h-5" />) },
+    { tab: 'textbooks', label: '교재 관리', icon: icon(<BookOpen className="w-5 h-5" />) },
     { tab: 'resources', label: '자료', icon: icon(<Music2 className="w-5 h-5" />) },
     { tab: 'recitals', label: '연주회', icon: icon(<Award className="w-5 h-5" />) },
     { tab: 'curriculum', label: '커리큘럼', icon: icon(<BookOpen className="w-5 h-5" />) },

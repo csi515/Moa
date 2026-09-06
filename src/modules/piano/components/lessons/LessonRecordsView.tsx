@@ -2,7 +2,7 @@
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
+import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { LessonRecord } from '@/types';
 import {
   Piano,

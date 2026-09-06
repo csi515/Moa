@@ -18,6 +18,12 @@ function PublicOrgRoute() {
   return <PublicOrgLanding code={code} />;
 }
 
+function PublicConsultationRoute() {
+  const { code } = useParams<{ code: string }>();
+  if (!code) return <Navigate to="/" replace />;
+  return <PublicOrgLanding code={code} mode="consultation" />;
+}
+
 function CustomerSignUpRoute() {
   return <CustomerSignUpFlow />;
 }
@@ -52,6 +58,7 @@ export default function App() {
             <Routes>
               {/* Public organization landing page */}
               <Route path="/c/:code" element={<PublicOrgRoute />} />
+              <Route path="/c/:code/consultation" element={<PublicConsultationRoute />} />
               
               {/* Customer sign-up flow */}
               <Route path="/signup/customer" element={<CustomerSignUpRoute />} />

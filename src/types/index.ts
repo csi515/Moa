@@ -559,6 +559,11 @@ export interface AcademySettings {
     holder: string;
   };
   announcement?: string;
+  /**
+   * 공개 페이지용 운영 시간 문구.
+   * organizations.settings.business_hours 와 동일 키로 동기화됨.
+   */
+  business_hours?: string;
   /** 강의실·연습실 목록 (반 개설·보강 선택용) */
   rooms?: AcademyRoom[];
   /** Industry Module 기능 플래그 */

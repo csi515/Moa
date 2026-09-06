@@ -27,15 +27,18 @@ import { setParentPortalModeActive } from '@/core/parent/services/appModeService
 
 interface PublicOrgLandingProps {
   code: string;
+  /** consultation: QR 전용 — 슬롯·신청 중심 UI */
+  mode?: 'default' | 'consultation';
 }
 
-export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
+export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingProps) {
   const navigate = useNavigate();
+  const isConsultationMode = mode === 'consultation';
   const [org, setOrg] = useState<PublicOrgInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
-  const [showConsultForm, setShowConsultForm] = useState(false);
+  const [showConsultForm, setShowConsultForm] = useState(mode === 'consultation');
   const [consultSubmitted, setConsultSubmitted] = useState(false);
   const [consultForm, setConsultForm] = useState<ConsultationSubmission>({
     contact_name: '',
@@ -43,6 +46,8 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
     message: '',
     preferred_time: '',
   });
+  const [studentName, setStudentName] = useState('');
+  const [selectedDateKey, setSelectedDateKey] = useState('');
 
   // Booking related states
   const [bookableSchedules, setBookableSchedules] = useState<BookableSchedule[]>([]);
@@ -126,7 +131,14 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
     if (!org) return;
 
     try {
-      await publicOrgService.submitConsultation(org.id, consultForm);
+      const messageParts = [
+        studentName.trim() ? `학생: ${studentName.trim()}` : '',
+        consultForm.message.trim(),
+      ].filter(Boolean);
+      await publicOrgService.submitConsultation(org.id, {
+        ...consultForm,
+        message: messageParts.join('\n') || consultForm.message,
+      });
       setConsultSubmitted(true);
       setConsultForm({
         contact_name: '',
@@ -134,6 +146,7 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
         message: '',
         preferred_time: '',
       });
+      setStudentName('');
     } catch (err) {
       alert(err instanceof Error ? err.message : '상담 신청에 실패했습니다');
     }
@@ -141,9 +154,14 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
 
   const handleOpenBookingForm = (schedule: BookableSchedule) => {
     if (!isAuthenticated) {
-      // Redirect to login/signup
       alert('예약하려면 로그인이 필요합니다.');
-      navigate('/login', { state: { redirectTo: `/c/${code}` } });
+      navigate('/login', {
+        state: {
+          redirectTo: isConsultationMode
+            ? `/c/${code}/consultation`
+            : `/c/${code}`,
+        },
+      });
       return;
     }
     setSelectedSchedule(schedule);
@@ -218,14 +236,51 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
 
   const currentUrl = window.location.origin + `/c/${org.public_code}`;
 
+  const dateKeys = (
+    Array.from(
+      new Set(
+        bookableSchedules.map((s) => {
+          const d = new Date(s.starts_at);
+          const y = d.getFullYear();
+          const m = String(d.getMonth() + 1).padStart(2, '0');
+          const day = String(d.getDate()).padStart(2, '0');
+          return `${y}-${m}-${day}`;
+        })
+      )
+    ) as string[]
+  ).sort();
+
+  const effectiveDateKey = selectedDateKey || dateKeys[0] || '';
+  const slotsForDate = bookableSchedules.filter((s) => {
+    if (!effectiveDateKey) return true;
+    const d = new Date(s.starts_at);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}` === effectiveDateKey;
+  });
+
+  const formatDateLabel = (key: string) => {
+    const [y, m, d] = key.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('ko-KR', {
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+    });
+  };
+
+  const formatTimeOnly = (iso: string) =>
+    new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50">
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+            onClick={() => navigate(isConsultationMode ? `/c/${code}` : '/')}
+            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors min-h-[44px]"
           >
             <ArrowLeft className="w-5 h-5" />
             <span className="hidden sm:inline">뒤로 가기</span>
@@ -243,124 +298,180 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         {/* Organization Info Card */}
         <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-8 h-8 text-white" />
+          <div className="flex items-start gap-4 mb-4">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
             </div>
             <div className="flex-1 min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">{org.name}</h1>
-              <p className="text-sm text-slate-600 inline-flex items-center gap-2">
-                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
-                  {getIndustryLabel(org.industry_type)}
-                </span>
-                <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-mono">
-                  {org.public_code}
-                </span>
-              </p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">{org.name}</h1>
+              {isConsultationMode ? (
+                <p className="text-base font-semibold text-indigo-700">상담 신청</p>
+              ) : (
+                <p className="text-sm text-slate-600 inline-flex items-center gap-2 flex-wrap">
+                  <span className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">
+                    {getIndustryLabel(org.industry_type)}
+                  </span>
+                  <span className="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-mono">
+                    {org.public_code}
+                  </span>
+                </p>
+              )}
             </div>
           </div>
 
-          {org.description && (
+          {!isConsultationMode && org.description && (
             <p className="text-slate-700 mb-6 leading-relaxed">{org.description}</p>
           )}
 
-          <dl className="space-y-3">
-            {org.address && (
-              <div className="flex items-start gap-3">
-                <MapPin className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <dt className="text-sm font-medium text-slate-500">주소</dt>
-                  <dd className="text-slate-900">{org.address}</dd>
+          {!isConsultationMode && (
+            <dl className="space-y-3">
+              {org.address && (
+                <div className="flex items-start gap-3">
+                  <MapPin className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <dt className="text-sm font-medium text-slate-500">주소</dt>
+                    <dd className="text-slate-900">{org.address}</dd>
+                  </div>
                 </div>
-              </div>
-            )}
-            {org.phone && (
-              <div className="flex items-start gap-3">
-                <Phone className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <dt className="text-sm font-medium text-slate-500">전화</dt>
-                  <dd className="text-slate-900">
-                    <a href={`tel:${org.phone}`} className="hover:text-indigo-600 transition-colors">
-                      {org.phone}
-                    </a>
-                  </dd>
+              )}
+              {org.phone && (
+                <div className="flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <dt className="text-sm font-medium text-slate-500">전화</dt>
+                    <dd className="text-slate-900">
+                      <a href={`tel:${org.phone}`} className="hover:text-indigo-600 transition-colors">
+                        {org.phone}
+                      </a>
+                    </dd>
+                  </div>
                 </div>
-              </div>
-            )}
-            {org.email && (
-              <div className="flex items-start gap-3">
-                <Mail className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <dt className="text-sm font-medium text-slate-500">이메일</dt>
-                  <dd className="text-slate-900">
-                    <a href={`mailto:${org.email}`} className="hover:text-indigo-600 transition-colors">
-                      {org.email}
-                    </a>
-                  </dd>
+              )}
+              {org.email && (
+                <div className="flex items-start gap-3">
+                  <Mail className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <dt className="text-sm font-medium text-slate-500">이메일</dt>
+                    <dd className="text-slate-900">
+                      <a href={`mailto:${org.email}`} className="hover:text-indigo-600 transition-colors">
+                        {org.email}
+                      </a>
+                    </dd>
+                  </div>
                 </div>
-              </div>
-            )}
-            {org.business_hours && (
-              <div className="flex items-start gap-3">
-                <Clock className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                <div>
-                  <dt className="text-sm font-medium text-slate-500">운영 시간</dt>
-                  <dd className="text-slate-900 whitespace-pre-line">{org.business_hours}</dd>
+              )}
+              {org.business_hours && (
+                <div className="flex items-start gap-3">
+                  <Clock className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <dt className="text-sm font-medium text-slate-500">운영 시간</dt>
+                    <dd className="text-slate-900 whitespace-pre-line">{org.business_hours}</dd>
+                  </div>
                 </div>
-              </div>
-            )}
-          </dl>
+              )}
+            </dl>
+          )}
         </section>
 
-        {/* Action Buttons — 학부모 연결 vs 고객 가입 분리 */}
-        <section className="space-y-3">
-          <button
-            type="button"
-            onClick={handleParentConnect}
-            className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 min-h-[44px]"
-          >
-            <Link2 className="w-6 h-6" />
-            우리 아이 학원 연결
-          </button>
-          <p className="text-xs text-slate-500 text-center -mt-1">
-            학부모 계정으로 로그인 후 자녀·학원 연결을 요청합니다 (학원 승인 필요)
-          </p>
-          <button
-            type="button"
-            onClick={handleJoinRequest}
-            className="w-full py-4 bg-white text-slate-800 border-2 border-slate-200 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <CheckCircle2 className="w-6 h-6 text-indigo-600" />
-            회원·상담 가입 신청
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setShowConsultForm(true);
-              setConsultSubmitted(false);
-            }}
-            className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
-          >
-            <MessageSquare className="w-6 h-6" />
-            무료 상담 예약
-          </button>
-        </section>
+        {/* Default landing CTAs */}
+        {!isConsultationMode && (
+          <section className="space-y-3">
+            <button
+              type="button"
+              onClick={handleParentConnect}
+              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 min-h-[44px]"
+            >
+              <Link2 className="w-6 h-6" />
+              우리 아이 학원 연결
+            </button>
+            <p className="text-xs text-slate-500 text-center -mt-1">
+              학부모 계정으로 로그인 후 자녀·학원 연결을 요청합니다 (학원 승인 필요)
+            </p>
+            <button
+              type="button"
+              onClick={handleJoinRequest}
+              className="w-full py-4 bg-white text-slate-800 border-2 border-slate-200 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              <CheckCircle2 className="w-6 h-6 text-indigo-600" />
+              회원·상담 가입 신청
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowConsultForm(true);
+                setConsultSubmitted(false);
+              }}
+              className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+            >
+              <MessageSquare className="w-6 h-6" />
+              무료 상담 예약
+            </button>
+          </section>
+        )}
 
-        {/* Bookable Schedules */}
-        {bookableSchedules.length > 0 && (
+        {/* Bookable Schedules — consultation mode: date + time chips */}
+        {(bookableSchedules.length > 0 || isConsultationMode) && (
           <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
             <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
               <Calendar className="w-6 h-6 text-indigo-600" />
-              예약 가능한 일정
+              {isConsultationMode ? '희망 날짜 · 시간' : '예약 가능한 일정'}
             </h2>
             <p className="text-sm text-slate-600 mb-6">
-              원하시는 시간대를 선택하여 예약하세요
+              {isConsultationMode
+                ? '가능한 날짜와 시간을 선택해 주세요'
+                : '원하시는 시간대를 선택하여 예약하세요'}
             </p>
-            
+
             {loadingSchedules ? (
               <div className="text-center py-8">
                 <div className="inline-block w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
                 <p className="mt-2 text-sm text-slate-600">일정을 불러오는 중...</p>
+              </div>
+            ) : bookableSchedules.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-4">
+                현재 예약 가능한 시간이 없습니다. 아래 문의 양식을 이용해 주세요.
+              </p>
+            ) : isConsultationMode ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-xs font-bold text-slate-500 mb-2">희망 날짜</p>
+                  <div className="flex flex-wrap gap-2">
+                    {dateKeys.map((key) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setSelectedDateKey(key)}
+                        className={`min-h-[44px] px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
+                          effectiveDateKey === key
+                            ? 'bg-indigo-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {formatDateLabel(key)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-500 mb-2">희망 시간</p>
+                  <div className="flex flex-wrap gap-2">
+                    {slotsForDate.map((schedule) => (
+                      <button
+                        key={schedule.id}
+                        type="button"
+                        disabled={schedule.available_slots === 0}
+                        onClick={() => handleOpenBookingForm(schedule)}
+                        className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
+                          schedule.available_slots === 0
+                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                            : 'bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                        }`}
+                      >
+                        {formatTimeOnly(schedule.starts_at)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-3">
@@ -389,7 +500,7 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
                       <button
                         onClick={() => handleOpenBookingForm(schedule)}
                         disabled={schedule.available_slots === 0}
-                        className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-1 transition-colors ${
+                        className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-1 transition-colors min-h-[44px] ${
                           schedule.available_slots === 0
                             ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
                             : 'bg-indigo-600 text-white hover:bg-indigo-700'
@@ -409,22 +520,26 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
         {/* Consultation Form */}
         {showConsultForm && !consultSubmitted && (
           <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">상담 신청</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-2">
+              {isConsultationMode ? '상담 문의' : '상담 신청'}
+            </h2>
             <p className="text-sm text-slate-600 mb-6">
-              담당자가 확인 후 빠른 시일 내에 연락드리겠습니다
+              {isConsultationMode
+                ? '예약 가능한 시간이 없거나 별도 문의가 필요할 때 이용해 주세요'
+                : '담당자가 확인 후 빠른 시일 내에 연락드리겠습니다'}
             </p>
             <form onSubmit={handleConsultSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  이름 <span className="text-red-500">*</span>
+                  보호자 이름 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={consultForm.contact_name}
                   onChange={(e) => setConsultForm({ ...consultForm, contact_name: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="이름을 입력하세요"
+                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="보호자 이름"
                 />
               </div>
               <div>
@@ -436,50 +551,48 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
                   required
                   value={consultForm.contact_phone}
                   onChange={(e) => setConsultForm({ ...consultForm, contact_phone: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   placeholder="010-0000-0000"
                 />
               </div>
+              {isConsultationMode && (
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">학생 이름</label>
+                  <input
+                    type="text"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="학생 이름"
+                  />
+                </div>
+              )}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  희망 상담 시간 (선택)
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">희망 시간</label>
                 <input
                   type="text"
                   value={consultForm.preferred_time}
                   onChange={(e) => setConsultForm({ ...consultForm, preferred_time: e.target.value })}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="예: 평일 오후 2-4시"
+                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="예: 평일 오후 3시 이후"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  문의 내용 <span className="text-red-500">*</span>
-                </label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">상담 내용</label>
                 <textarea
-                  required
                   value={consultForm.message}
                   onChange={(e) => setConsultForm({ ...consultForm, message: e.target.value })}
                   rows={4}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                  placeholder="궁금하신 사항을 자유롭게 작성해주세요"
+                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="상담하고 싶은 내용을 적어 주세요"
                 />
               </div>
-              <div className="flex gap-3">
-                <button
-                  type="button"
-                  onClick={() => setShowConsultForm(false)}
-                  className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
-                >
-                  취소
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
-                >
-                  상담 신청
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full py-3.5 min-h-[44px] bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
+              >
+                상담 신청
+              </button>
             </form>
           </section>
         )}
@@ -630,32 +743,46 @@ export function PublicOrgLanding({ code }: PublicOrgLandingProps) {
           </div>
         )}
 
-        {/* QR Code Section */}
-        <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-          <div className="text-center">
+        {/* QR Code Section — 공개 랜딩에서만 */}
+        {!isConsultationMode && (
+          <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
+            <div className="text-center">
+              <button
+                onClick={() => setShowQR(!showQR)}
+                className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium min-h-[44px]"
+              >
+                <QrCode className="w-5 h-5" />
+                {showQR ? 'QR 코드 숨기기' : 'QR 코드 보기'}
+              </button>
+              
+              {showQR && (
+                <div className="mt-6 inline-block p-4 bg-white rounded-2xl border-2 border-slate-200">
+                  <QRCodeSVG 
+                    value={currentUrl} 
+                    size={200} 
+                    level="H"
+                    includeMargin
+                  />
+                  <p className="text-xs text-slate-500 mt-3">
+                    QR 코드를 스캔하여 접속하세요
+                  </p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
+
+        {isConsultationMode && (
+          <section className="text-center">
             <button
-              onClick={() => setShowQR(!showQR)}
-              className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-medium"
+              type="button"
+              onClick={() => navigate(`/c/${code}`)}
+              className="text-sm font-bold text-slate-500 hover:text-indigo-600 min-h-[44px]"
             >
-              <QrCode className="w-5 h-5" />
-              {showQR ? 'QR 코드 숨기기' : 'QR 코드 보기'}
+              학원 소개 페이지로 이동
             </button>
-            
-            {showQR && (
-              <div className="mt-6 inline-block p-4 bg-white rounded-2xl border-2 border-slate-200">
-                <QRCodeSVG 
-                  value={currentUrl} 
-                  size={200} 
-                  level="H"
-                  includeMargin
-                />
-                <p className="text-xs text-slate-500 mt-3">
-                  QR 코드를 스캔하여 접속하세요
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
+          </section>
+        )}
 
         {/* Footer */}
         <footer className="text-center text-xs text-slate-500 py-4">

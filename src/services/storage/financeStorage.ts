@@ -189,7 +189,7 @@ export function createFinanceStorage(api: StorageApi) {
         yearMonth: ym,
         baseFee: student.tuitionFee,
         discount: 0,
-        textbookFee: 0,
+        textbookFee: 0, // 교재는 일회성 TextbookSale — 월 청구에 포함하지 않음
         extraFee: 0,
         totalAmount: student.tuitionFee,
         paidAmount: 0,

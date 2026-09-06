@@ -1,11 +1,12 @@
 import React from 'react';
-import { TuitionInvoice, StudentMonthlyBillingSummary } from '@/types';
+import { TuitionInvoice, StudentMonthlyBillingSummary, TextbookSale } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
-import { Plus } from 'lucide-react';
+import { BookOpen, Plus } from 'lucide-react';
 
 interface StudentDetailTuitionTabProps {
   allInvoices: TuitionInvoice[];
   billingSummary?: StudentMonthlyBillingSummary;
+  studentSales?: TextbookSale[];
   payInvoiceId: string | null;
   setPayInvoiceId: (id: string | null) => void;
   payAmount: number;
@@ -17,11 +18,16 @@ interface StudentDetailTuitionTabProps {
   onCreateInvoice: () => void;
   onOpenPayModal: (inv: TuitionInvoice) => void;
   onProcessPayment: (e: React.FormEvent) => void;
+  /** 일회성 교재 수납 등록 */
+  onOpenTextbookSale?: () => void;
+  onOpenTextbookTab?: () => void;
+  onOpenTextbookPayment?: (sale: TextbookSale) => void;
 }
 
 export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = ({
   allInvoices,
   billingSummary,
+  studentSales = [],
   payInvoiceId,
   setPayInvoiceId,
   payAmount,
@@ -33,162 +39,257 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
   onCreateInvoice,
   onOpenPayModal,
   onProcessPayment,
-}) => (
-  <div className="space-y-4">
-    {billingSummary && (
-      <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2">
-        <p className="text-xs font-bold text-indigo-800">{billingSummary.yearMonth} 수납 요약</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
-          <div className="bg-white rounded-xl p-2 border border-slate-100">
-            <p className="text-[10px] text-slate-500">월회비 청구</p>
-            <p className="text-sm font-black text-slate-900">
-              {formatCurrency(billingSummary.tuitionBilled)}
-            </p>
-            <p className="text-[10px] text-slate-400">
-              납 {formatCurrency(billingSummary.tuitionPaid)} · 미{' '}
-              {formatCurrency(billingSummary.tuitionUnpaid)}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-2 border border-slate-100">
-            <p className="text-[10px] text-slate-500">교재비</p>
-            <p className="text-sm font-black text-slate-900">
-              {formatCurrency(billingSummary.textbookBilled)}
-            </p>
-            <p className="text-[10px] text-slate-400">
-              납 {formatCurrency(billingSummary.textbookPaid)} · 미{' '}
-              {formatCurrency(billingSummary.textbookUnpaid)}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-2 border border-slate-100">
-            <p className="text-[10px] text-slate-500">총 납부</p>
-            <p className="text-sm font-black text-emerald-700">
-              {formatCurrency(billingSummary.totalPaid)}
-            </p>
-          </div>
-          <div className="bg-white rounded-xl p-2 border border-slate-100">
-            <p className="text-[10px] text-slate-500">총 미납</p>
-            <p className="text-sm font-black text-rose-600">
-              {formatCurrency(billingSummary.totalUnpaid)}
-            </p>
+  onOpenTextbookSale,
+  onOpenTextbookTab,
+  onOpenTextbookPayment,
+}) => {
+  const unpaidInvoices = allInvoices.filter((inv) => inv.status !== 'paid' && inv.unpaidAmount > 0);
+  const unpaidTextbookSales = studentSales.filter((s) => s.unpaidAmount > 0);
+
+  return (
+    <div className="space-y-4">
+      {billingSummary && (
+        <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2">
+          <p className="text-xs font-bold text-indigo-800">{billingSummary.yearMonth} 수납 요약</p>
+          <p className="text-[11px] text-indigo-700/80">
+            월회비와 교재비(일회성)를 구분해 표시합니다. 교재비는 월회비에 자동 포함되지 않습니다.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+            <div className="bg-white rounded-xl p-2 border border-slate-100">
+              <p className="text-[10px] text-slate-500">월회비 청구</p>
+              <p className="text-sm font-black text-slate-900">
+                {formatCurrency(billingSummary.tuitionBilled)}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                납 {formatCurrency(billingSummary.tuitionPaid)} · 미{' '}
+                <span className={billingSummary.tuitionUnpaid > 0 ? 'text-rose-600 font-bold' : ''}>
+                  {formatCurrency(billingSummary.tuitionUnpaid)}
+                </span>
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-2 border border-slate-100">
+              <p className="text-[10px] text-slate-500">교재비 (일회성)</p>
+              <p className="text-sm font-black text-slate-900">
+                {(billingSummary.textbookBilled || 0) > 0
+                  ? formatCurrency(billingSummary.textbookBilled)
+                  : '-'}
+              </p>
+              <p className="text-[10px] text-slate-400">
+                {(billingSummary.textbookBilled || 0) > 0
+                  ? `납 ${formatCurrency(billingSummary.textbookPaid)} · 미 ${formatCurrency(billingSummary.textbookUnpaid)}`
+                  : '구매 없음'}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-2 border border-slate-100">
+              <p className="text-[10px] text-slate-500">총 납부</p>
+              <p className="text-sm font-black text-emerald-700">
+                {formatCurrency(billingSummary.totalPaid)}
+              </p>
+            </div>
+            <div className="bg-white rounded-xl p-2 border border-slate-100">
+              <p className="text-[10px] text-slate-500">총 미납</p>
+              <p className="text-sm font-black text-rose-600">
+                {formatCurrency(billingSummary.totalUnpaid)}
+              </p>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
-    <div className="flex items-center justify-between">
-      <div>
-        <h4 className="text-sm font-bold text-slate-900">수강료 청구 및 납부 내역</h4>
-        <p className="text-xs text-slate-500">납부 시 재무 수입에 자동 반영됩니다</p>
-      </div>
-      <button
-        onClick={onCreateInvoice}
-        className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[44px]"
-      >
-        <Plus className="w-3.5 h-3.5" /> 청구서 추가 발행
-      </button>
-    </div>
-
-    {payInvoiceId && (
-      <form onSubmit={onProcessPayment} className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 space-y-3">
-        <h5 className="text-xs font-bold text-emerald-900">수강료 수납 처리</h5>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div>
-            <label className="text-[11px] font-semibold text-slate-700 block mb-1">수납 금액 (₩)</label>
-            <input
-              type="number"
-              step="1000"
-              value={payAmount}
-              onChange={(e) => setPayAmount(Number(e.target.value))}
-              className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-bold"
-            />
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-slate-700 block mb-1">결제 방법</label>
-            <select
-              value={payMethod}
-              onChange={(e) => setPayMethod(e.target.value as 'card' | 'transfer' | 'cash' | 'other')}
-              className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-medium"
-            >
-              <option value="card">카드 결제</option>
-              <option value="transfer">계좌 이체</option>
-              <option value="cash">현금</option>
-              <option value="other">기타</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[11px] font-semibold text-slate-700 block mb-1">수납 메모</label>
-            <input
-              type="text"
-              placeholder="영수증 메모..."
-              value={payMemo}
-              onChange={(e) => setPayMemo(e.target.value)}
-              className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={() => setPayInvoiceId(null)}
-            className="px-3 py-1 text-xs text-slate-600 bg-white border border-slate-200 rounded-lg"
-          >
-            취소
-          </button>
-          <button
-            type="submit"
-            className="px-4 py-1 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
-          >
-            수납 완료 저장
-          </button>
-        </div>
-      </form>
-    )}
-
-    {allInvoices.length === 0 ? (
-      <p className="text-xs text-slate-500 p-8 text-center bg-slate-50 rounded-2xl">청구된 수강료 내역이 없습니다.</p>
-    ) : (
-      <div className="space-y-3">
-        {allInvoices.map((inv) => {
-          const badge = getInvoiceStatusBadge(inv.status);
-          return (
+      {(unpaidInvoices.length > 0 || unpaidTextbookSales.length > 0) && (
+        <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-3 space-y-2">
+          <p className="text-xs font-bold text-rose-800">미납 항목</p>
+          {unpaidInvoices.map((inv) => (
             <div
               key={inv.id}
-              className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              className="flex items-center justify-between gap-2 text-xs bg-white rounded-xl px-3 py-2 border border-rose-100"
             >
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-sm text-slate-900">{inv.yearMonth}월 청구서</span>
-                  <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${badge.bg}`}>
-                    {badge.label}
-                  </span>
-                  {inv.receiptNumber && (
-                    <span className="text-[10px] font-mono text-slate-400">
-                      #{inv.receiptNumber}
-                    </span>
-                  )}
-                </div>
-                <p className="text-slate-500 mt-1">
-                  납부기한: {inv.dueDate} | 총 청구: <strong>{formatCurrency(inv.totalAmount)}</strong>
-                  {inv.paidAmount > 0 && ` (납부: ${formatCurrency(inv.paidAmount)})`}
-                  {inv.unpaidAmount > 0 && ` [미납: ${formatCurrency(inv.unpaidAmount)}]`}
-                </p>
-                {inv.notes && <p className="text-slate-600 text-[11px] mt-1 italic">{inv.notes}</p>}
-              </div>
-
-              <div className="flex items-center gap-2 self-end sm:self-center">
-                {inv.status !== 'paid' && (
+              <span className="font-semibold text-slate-800">
+                월회비 {inv.yearMonth} · {formatCurrency(inv.unpaidAmount)}
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenPayModal(inv)}
+                className="min-h-[36px] px-2.5 font-bold text-emerald-700"
+              >
+                수납
+              </button>
+            </div>
+          ))}
+          {unpaidTextbookSales.map((sale) => (
+              <div
+                key={sale.id}
+                className="flex items-center justify-between gap-2 text-xs bg-white rounded-xl px-3 py-2 border border-rose-100"
+              >
+                <span className="font-semibold text-slate-800 truncate">
+                  교재 {sale.textbookTitle} · {formatCurrency(sale.unpaidAmount)}
+                </span>
+                {onOpenTextbookPayment && (
                   <button
-                    onClick={() => onOpenPayModal(inv)}
-                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
+                    type="button"
+                    onClick={() => onOpenTextbookPayment(sale)}
+                    className="min-h-[36px] px-2.5 font-bold text-emerald-700 shrink-0"
                   >
-                    수납 결제
+                    수납
                   </button>
                 )}
               </div>
-            </div>
-          );
-        })}
+            ))}
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h4 className="text-sm font-bold text-slate-900">월회비 청구 · 납부</h4>
+          <p className="text-xs text-slate-500">납부 시 재무 수입에 자동 반영됩니다</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {onOpenTextbookSale && (
+            <button
+              type="button"
+              onClick={onOpenTextbookSale}
+              className="px-3 py-1.5 bg-white border border-indigo-200 text-indigo-700 hover:bg-indigo-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[44px]"
+            >
+              <Plus className="w-3.5 h-3.5" /> 교재 수납
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onCreateInvoice}
+            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[44px]"
+          >
+            <Plus className="w-3.5 h-3.5" /> 월회비 청구
+          </button>
+        </div>
       </div>
-    )}
-  </div>
-);
+
+      {onOpenTextbookTab && (
+        <button
+          type="button"
+          onClick={onOpenTextbookTab}
+          className="w-full flex items-center justify-between gap-2 px-3 py-2.5 min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 hover:bg-white"
+        >
+          <span className="inline-flex items-center gap-1.5">
+            <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+            교재 구매·미납 상세
+          </span>
+          <span className="text-indigo-600">
+            {studentSales.length}건
+            {(billingSummary?.textbookUnpaid || 0) > 0
+              ? ` · 미납 ${formatCurrency(billingSummary!.textbookUnpaid)}`
+              : ''}
+          </span>
+        </button>
+      )}
+
+      {payInvoiceId && (
+        <form onSubmit={onProcessPayment} className="p-4 bg-emerald-50/80 rounded-2xl border border-emerald-200 space-y-3">
+          <h5 className="text-xs font-bold text-emerald-900">수강료 수납 처리</h5>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div>
+              <label className="text-[11px] font-semibold text-slate-700 block mb-1">수납 금액 (₩)</label>
+              <input
+                type="number"
+                step="1000"
+                value={payAmount}
+                onChange={(e) => setPayAmount(Number(e.target.value))}
+                className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-bold min-h-[44px]"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-700 block mb-1">결제 방법</label>
+              <select
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value as 'card' | 'transfer' | 'cash' | 'other')}
+                className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-medium min-h-[44px]"
+              >
+                <option value="card">카드 결제</option>
+                <option value="transfer">계좌 이체</option>
+                <option value="cash">현금</option>
+                <option value="other">기타</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-slate-700 block mb-1">수납 메모</label>
+              <input
+                type="text"
+                placeholder="영수증 메모..."
+                value={payMemo}
+                onChange={(e) => setPayMemo(e.target.value)}
+                className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg min-h-[44px]"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setPayInvoiceId(null)}
+              className="px-3 py-2 min-h-[44px] text-xs text-slate-600 bg-white border border-slate-200 rounded-lg"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 min-h-[44px] text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700"
+            >
+              수납 완료 저장
+            </button>
+          </div>
+        </form>
+      )}
+
+      {allInvoices.length === 0 ? (
+        <p className="text-xs text-slate-500 p-8 text-center bg-slate-50 rounded-2xl">
+          청구된 월회비 내역이 없습니다.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {allInvoices.map((inv) => {
+            const badge = getInvoiceStatusBadge(inv.status);
+            return (
+              <div
+                key={inv.id}
+                className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+              >
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold text-sm text-slate-900">{inv.yearMonth}월 청구서</span>
+                    <span className={`px-2 py-0.5 rounded-md font-bold text-[11px] ${badge.bg}`}>
+                      {badge.label}
+                    </span>
+                    {inv.receiptNumber && (
+                      <span className="text-[10px] font-mono text-slate-400">#{inv.receiptNumber}</span>
+                    )}
+                  </div>
+                  <p className="text-slate-500 mt-1">
+                    납부기한: {inv.dueDate} | 총 청구: <strong>{formatCurrency(inv.totalAmount)}</strong>
+                    {inv.paidAmount > 0 && ` (납부: ${formatCurrency(inv.paidAmount)})`}
+                    {inv.unpaidAmount > 0 && (
+                      <span className="text-rose-600 font-bold">
+                        {' '}
+                        [미납: {formatCurrency(inv.unpaidAmount)}]
+                      </span>
+                    )}
+                  </p>
+                  {inv.notes && <p className="text-slate-600 text-[11px] mt-1 italic">{inv.notes}</p>}
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-center">
+                  {inv.status !== 'paid' && (
+                    <button
+                      type="button"
+                      onClick={() => onOpenPayModal(inv)}
+                      className="px-3 py-1.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl shadow-xs"
+                    >
+                      수납 결제
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};

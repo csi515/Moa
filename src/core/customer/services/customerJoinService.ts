@@ -66,7 +66,11 @@ export const customerJoinService = {
   /**
    * Get pending join requests for an organization (owner/admin only)
    */
-  async getOrgJoinRequests(orgId: string, status?: string): Promise<CustomerJoinRequest[]> {
+  async getOrgJoinRequests(
+    orgId: string,
+    status?: string,
+    requestType?: JoinRequestType
+  ): Promise<CustomerJoinRequest[]> {
     let query = supabase
       .from('customer_join_requests')
       .select('*')
@@ -75,6 +79,9 @@ export const customerJoinService = {
 
     if (status) {
       query = query.eq('status', status);
+    }
+    if (requestType) {
+      query = query.eq('request_type', requestType);
     }
 
     const { data, error } = await query;

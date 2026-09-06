@@ -1,8 +1,9 @@
 import { useMemo, type FC } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { WeeklyTimetableView, AcademyCalendarView } from '@/core/academy';
 import { SegmentedControl } from '@/shared/components';
+import { WeeklyTimetableView } from '../timetable/WeeklyTimetableView';
+import { AcademyCalendarView } from '../calendar/AcademyCalendarView';
 
 type ScheduleSegment = 'classes' | 'events';
 

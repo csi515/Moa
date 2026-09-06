@@ -33,7 +33,7 @@ interface StudentFormModalProps {
   student?: Student | null;
   isOpen: boolean;
   onClose: () => void;
-  onSaved: (student: Student) => void;
+  onSaved: (student: Student, options?: { openTab?: 'attendance' | 'tuition' | 'consultations' | 'classes' }) => void;
 }
 
 export const StudentFormModal: React.FC<StudentFormModalProps> = ({
@@ -86,6 +86,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const [showAdvanced, setShowAdvanced] = useState(!isEdit);
   const [revealedPin, setRevealedPin] = useState<string | null>(null);
   const [inviteModal, setInviteModal] = useState<StudentRegistrationInviteResult | null>(null);
+  const [postSaveStudent, setPostSaveStudent] = useState<Student | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -164,6 +165,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     }
     setRevealedPin(null);
     setActiveSearchIdx(null);
+    setPostSaveStudent(null);
   }, [student, isOpen, attendanceEnabled, defaultLevel, teachers, classes, settings]);
 
   const searchResults = useMemo(() => {
@@ -342,16 +344,15 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       if (result.invitesSent > 0) message += ` (학부모 초대 ${result.invitesSent}건)`;
       showToast(message, 'success');
       result.inviteErrors.forEach((err) => showToast(err, 'warning'));
-      onSaved(result.student);
+      setPostSaveStudent(result.student);
 
       const invitedWithCodes = result.inviteResults.find(
         (item) => item.result.linkCodes.length > 0
       );
       if (invitedWithCodes) {
         setInviteModal(invitedWithCodes);
-      } else if (!result.generatedPin) {
-        onClose();
       }
+      // PIN·초대 모달이 없어도 바로 닫지 않고 다음 액션을 안내
     } catch (err) {
       showToast(err instanceof Error ? err.message : '저장 중 오류가 발생했습니다.', 'error');
     } finally {
@@ -372,11 +373,20 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 {isEdit ? `${student!.name} 정보 수정` : '신규 학생 등록'}
               </h3>
               <p className="text-xs text-slate-500">
-                학생 · 보호자 · 정규 레슨을 한 번에 등록합니다
+                {isEdit
+                  ? '필요한 항목만 수정하세요'
+                  : '이름은 필수, 나머지는 나중에 보완할 수 있습니다'}
               </p>
             </div>
           </div>
-          <button type="button" onClick={onClose} className="text-slate-400 hover:text-slate-600 p-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (postSaveStudent) onSaved(postSaveStudent);
+              onClose();
+            }}
+            className="text-slate-400 hover:text-slate-600 p-1.5 min-h-[44px] min-w-[44px]"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -385,13 +395,63 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           <div className="mx-6 mt-4 p-4 bg-indigo-600 text-white rounded-2xl text-center">
             <p className="text-xs opacity-90">발급된 출입 PIN</p>
             <p className="text-3xl font-black tracking-[0.4em] font-mono mt-1">{revealedPin}</p>
-            <button type="button" onClick={onClose} className="mt-3 px-4 py-2 bg-white/20 rounded-xl text-xs font-bold">
-              확인 후 닫기
-            </button>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[75vh] overflow-y-auto">
+        {postSaveStudent && !inviteModal && (
+          <div className="mx-6 mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
+            <p className="text-sm font-bold text-emerald-900">
+              {postSaveStudent.name} 등록 완료 — 다음으로?
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  onSaved(postSaveStudent);
+                  onClose();
+                }}
+                className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
+              >
+                상세 보기
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaved(postSaveStudent, { openTab: 'attendance' });
+                  onClose();
+                }}
+                className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
+              >
+                출결 기록
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaved(postSaveStudent, { openTab: 'tuition' });
+                  onClose();
+                }}
+                className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
+              >
+                수납 확인
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  onSaved(postSaveStudent);
+                  onClose();
+                }}
+                className="min-h-[44px] px-3 rounded-xl text-xs font-bold text-slate-600"
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        )}
+
+        <form
+          onSubmit={handleSubmit}
+          className={`p-6 space-y-5 max-h-[75vh] overflow-y-auto ${postSaveStudent ? 'opacity-60 pointer-events-none' : ''}`}
+        >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
             <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
 
@@ -470,8 +530,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || Boolean(revealedPin)}
-              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl flex items-center gap-2 disabled:opacity-50"
+              disabled={isSubmitting || Boolean(revealedPin) || Boolean(postSaveStudent)}
+              className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl flex items-center gap-2 disabled:opacity-50 min-h-[44px]"
             >
               {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               {isEdit ? '수정 저장' : '학생 등록'}
@@ -492,6 +552,10 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           emailMessage={inviteModal.emailMessage}
           onClose={() => {
             setInviteModal(null);
+            if (postSaveStudent) {
+              // 초대 모달 닫은 뒤 다음 액션 패널을 보여 줌
+              return;
+            }
             if (!revealedPin) onClose();
           }}
         />

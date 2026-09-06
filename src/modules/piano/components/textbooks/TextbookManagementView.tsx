@@ -24,7 +24,7 @@ import { TextbookPaymentsTab } from './tabs/TextbookPaymentsTab';
 import { TextbookHistoryTab } from './tabs/TextbookHistoryTab';
 
 export const TextbookManagementView: React.FC = () => {
-  const { showConfirm, showToast, refreshKey, triggerRefresh } = useApp();
+  const { openConfirmDialog, showToast, refreshKey, triggerRefresh } = useApp();
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('inventory');
   const [focusLowStock, setFocusLowStock] = useState(false);
@@ -69,27 +69,42 @@ export const TextbookManagementView: React.FC = () => {
   const currentYM = new Date().toISOString().slice(0, 7);
   const stats = StorageService.getTextbookStats(currentYM);
 
-  const handleDeleteTextbook = (id: string, title: string) => {
-    showConfirm({
-      title: '교재 삭제 확인',
-      message: `정말로 "${title}" 교재를 삭제하시겠습니까? 관련 판매 내역 데이터는 유지됩니다.`,
-      confirmLabel: '삭제하기',
+  const handleDeactivateTextbook = (id: string, title: string) => {
+    openConfirmDialog({
+      title: '교재 사용 중지',
+      message: `"${title}" 교재를 사용 중지할까요?\n신규 수납 목록에서는 제외되며, 과거 구매 이력은 그대로 유지됩니다.`,
+      confirmText: '사용 중지',
       isDestructive: true,
       onConfirm: () => {
-        const ok = StorageService.deleteTextbook(id);
+        const ok = StorageService.setTextbookForSale(id, false);
         if (ok) {
-          showToast('교재가 삭제되었습니다.', 'info');
+          showToast('교재를 사용 중지했습니다.', 'info');
           triggerRefresh();
         }
-      }
+      },
+    });
+  };
+
+  const handleReactivateTextbook = (id: string, title: string) => {
+    openConfirmDialog({
+      title: '교재 다시 사용',
+      message: `"${title}" 교재를 다시 판매 목록에 포함할까요?`,
+      confirmText: '다시 사용',
+      onConfirm: () => {
+        const ok = StorageService.setTextbookForSale(id, true);
+        if (ok) {
+          showToast('교재를 다시 사용하도록 설정했습니다.', 'success');
+          triggerRefresh();
+        }
+      },
     });
   };
 
   const handleCancelSale = (sale: TextbookSale) => {
-    showConfirm({
+    openConfirmDialog({
       title: '교재 판매 취소 / 반품',
       message: `${sale.studentName} 원생의 "${sale.textbookTitle}" (${sale.quantity}권) 판매를 취소하시겠습니까?\n차감되었던 재고 ${sale.quantity}권이 자동으로 복구됩니다.`,
-      confirmLabel: '판매 취소 (재고 원복)',
+      confirmText: '판매 취소 (재고 원복)',
       isDestructive: true,
       onConfirm: () => {
         const ok = StorageService.cancelSale(sale.id, '사용자 판매 취소/반품');
@@ -97,7 +112,7 @@ export const TextbookManagementView: React.FC = () => {
           showToast(`판매가 취소되고 재고가 복구되었습니다.`, 'success');
           triggerRefresh();
         }
-      }
+      },
     });
   };
 
@@ -127,8 +142,8 @@ export const TextbookManagementView: React.FC = () => {
     <div className="space-y-4 pb-4">
       <PageHeader
         icon={<BookOpen className="w-6 h-6" />}
-        title="교재 판매 및 교재비 관리"
-        description="피아노 교재 등록, 재고 실시간 관리, 원생 판매 및 분할 납부 수납을 통합 관리합니다."
+        title="교재 관리"
+        description="학원별 교재 마스터·재고·일회성 판매/수납을 관리합니다. 교재비는 월회비에 자동 포함되지 않습니다."
         actions={
           <div className="flex flex-wrap items-center gap-2">
             <button
@@ -171,7 +186,8 @@ export const TextbookManagementView: React.FC = () => {
           textbooks={textbooks}
           focusLowStock={focusLowStock}
           onFocusLowStockHandled={() => setFocusLowStock(false)}
-          onDeleteTextbook={handleDeleteTextbook}
+          onDeactivateTextbook={handleDeactivateTextbook}
+          onReactivateTextbook={handleReactivateTextbook}
           onOpenStockModal={(tb) => {
             setSelectedTextbookForStock(tb);
             setIsStockModalOpen(true);
@@ -233,6 +249,12 @@ export const TextbookManagementView: React.FC = () => {
             }
           }}
           onClose={() => setIsSaleModalOpen(false)}
+          onRegisterTextbooks={() => {
+            setIsSaleModalOpen(false);
+            setActiveSubTab('inventory');
+            setEditingTextbook(null);
+            setIsFormModalOpen(true);
+          }}
         />
       )}
 

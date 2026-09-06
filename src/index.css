@@ -31,6 +31,28 @@
   .no-print {
     display: none !important;
   }
+
+  .printable-area {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .printable-area,
+  .printable-area * {
+    visibility: visible;
+  }
+
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 2cm;
+  }
 }
 
 /* iOS safe area — 하단 네비·FAB·토스트와 겹침 방지 */

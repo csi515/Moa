@@ -10,7 +10,8 @@ import { ParentNoticePreview } from './parentHomeShared';
 import { CARE_JOURNAL_MOOD_LABEL, MEDICATION_STATUS_LABEL } from '@/modules/daycare/care';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
-import { Section, StatCard } from './shared';
+import { SummaryMetricCard } from '@/shared/components';
+import { Section } from './shared';
 
 export function DaycareParentHome({
   student,
@@ -60,16 +61,17 @@ export function DaycareParentHome({
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        <button type="button" onClick={() => onNavigate('attendance')} className="text-left">
-          <StatCard label="오늘 등하원" value={sessionStatus.label} />
-        </button>
-        <button type="button" onClick={() => onNavigate('tuition')} className="text-left">
-          <StatCard
-            label="미납 보육료"
-            value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
-            warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
-          />
-        </button>
+        <SummaryMetricCard
+          label="오늘 등하원"
+          value={sessionStatus.label}
+          onClick={() => onNavigate('attendance')}
+        />
+        <SummaryMetricCard
+          label="미납 보육료"
+          value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
+          variant={(summary.grandUnpaid ?? summary.totalUnpaid) > 0 ? 'rose' : 'default'}
+          onClick={() => onNavigate('tuition')}
+        />
       </div>
 
       {todaySession?.checkInAt && (

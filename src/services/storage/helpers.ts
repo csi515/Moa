@@ -8,6 +8,7 @@ export const DEFAULT_SETTINGS: AcademySettings = {
   directorName: '',
   defaultTuitionFee: 180000,
   defaultPaymentDay: 25,
+  defaultLessonMinutes: 50,
   consultationSlotMinutes: 30,
   features: {
     attendance: {

@@ -154,15 +154,39 @@ export function useStudentDetailModal({
 
   const totalPracticeMinutes = allPractice.reduce((sum, p) => sum + p.minutes, 0);
 
-  const handleDelete = () => {
+  /** 소프트 퇴원 — 하드 삭제하지 않고 이력 유지, 기본 목록(재원)에서 숨김 */
+  const handleWithdraw = () => {
+    if (student.status === 'withdrawn') {
+      openConfirmDialog({
+        title: '재원으로 복귀',
+        message: `${student.name} 원생을 재원 상태로 되돌릴까요?`,
+        confirmText: '재원 복귀',
+        onConfirm: () => {
+          StorageService.saveStudent({
+            ...student,
+            status: 'active',
+            leaveDate: undefined,
+          });
+          showToast(`${student.name} 원생이 재원으로 복귀했습니다.`, 'success');
+          triggerRefresh();
+        },
+      });
+      return;
+    }
+
     openConfirmDialog({
-      title: '원생 정보 삭제',
-      message: `${student.name} 원생을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.`,
+      title: '원생 퇴원 처리',
+      message: `${student.name} 원생을 퇴원 처리할까요?\n기록이 보존되며, 목록 기본(재원) 필터에서는 숨겨집니다.`,
       isDestructive: true,
-      confirmText: '삭제하기',
+      confirmText: '퇴원 처리',
       onConfirm: () => {
-        StorageService.deleteStudent(student.id);
-        showToast(`${student.name} 원생이 삭제되었습니다.`, 'info');
+        StorageService.saveStudent({
+          ...student,
+          status: 'withdrawn',
+          leaveDate: new Date().toISOString().slice(0, 10),
+        });
+        showToast(`${student.name} 원생이 퇴원 처리되었습니다.`, 'info');
+        triggerRefresh();
         onClose();
       },
     });
@@ -340,27 +364,43 @@ export function useStudentDetailModal({
   });
 
   const latestAttendance = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date))[0];
-  const latestConsultation = [...allConsultations].sort((a, b) => b.date.localeCompare(a.date))[0];
   const tuitionStatusLabel =
     billingSummary.tuitionStatus === 'overdue'
       ? '연체'
       : getInvoiceStatusBadge(billingSummary.tuitionStatus).label;
+  const monthUnpaid = billingSummary.totalUnpaid || 0;
   const tuitionLabel =
-    billingSummary.tuitionUnpaid > 0
-      ? `${tuitionStatusLabel} · ₩${billingSummary.tuitionUnpaid.toLocaleString()}`
-      : billingSummary.tuitionBilled > 0
+    monthUnpaid > 0
+      ? `미납 · ₩${monthUnpaid.toLocaleString()}`
+      : billingSummary.tuitionBilled > 0 || billingSummary.textbookBilled > 0
         ? tuitionStatusLabel
         : '청구 없음';
+
+  const guardianSummary = primaryGuardian
+    ? primaryGuardian.parentName
+    : student.parentName || '미등록';
 
   const summary = {
     nextClass: getNextClassLabel(enrolledClasses),
     recentAttendance: latestAttendance
       ? `${latestAttendance.date.slice(5)} ${getAttendanceBadge(latestAttendance.status).label}`
       : '기록 없음',
-    recentConsultation: latestConsultation
-      ? `${latestConsultation.date.slice(5)} 상담`
-      : '기록 없음',
     tuition: tuitionLabel,
+    guardian: guardianSummary,
+  };
+
+  const openQuickAttendance = () => {
+    setCurrentTab('attendance');
+    setIsAddAttOpen(true);
+  };
+
+  const openQuickConsultation = () => {
+    setCurrentTab('consultations');
+    setIsAddCstOpen(true);
+  };
+
+  const openQuickTuition = () => {
+    setCurrentTab('tuition');
   };
 
   return {
@@ -393,7 +433,10 @@ export function useStudentDetailModal({
     levelColor: getLevelColor(student.level),
     isSupabaseConfigured: isSupabaseConfigured(),
     onEdit,
-    handleDelete,
+    handleWithdraw,
+    openQuickAttendance,
+    openQuickConsultation,
+    openQuickTuition,
     attendance: {
       isAddAttOpen,
       setIsAddAttOpen,

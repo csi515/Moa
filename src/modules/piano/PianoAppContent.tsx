@@ -8,6 +8,8 @@ import {
   ConfirmDialog,
   OnboardingWizard,
 } from '@/shared/components';
+import { OnboardingResumeCard } from '@/shared/components/onboarding/OnboardingResumeCard';
+import { ONBOARDING_STEP_LABELS } from '@/shared/components/onboarding/onboardingHelpers';
 import { ModuleAppShell } from '@/shared/components/layout/ModuleAppShell';
 import { PianoSidebar } from './layout/PianoSidebar';
 import { PianoBottomNav } from './layout/PianoBottomNav';
@@ -37,10 +39,10 @@ import { PianoConsultationHubView } from './components/consultations';
 
 const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
   { tab: 'classes', label: '정규 레슨' },
-      { tab: 'check-in', label: 'PIN 출석' },
+  { tab: 'check-in', label: 'PIN 출석' },
   { tab: 'assignments', label: '주간 과제' },
   { tab: 'practice', label: '연습 기록' },
-  { tab: 'textbooks', label: '교재 판매' },
+  { tab: 'textbooks', label: '교재 관리' },
   { tab: 'resources', label: '교재·곡 자료' },
   { tab: 'recitals', label: '연주회·콩쿠르' },
   { tab: 'curriculum', label: '커리큘럼·진도' },
@@ -84,17 +86,60 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
 };
 
 export const PianoAppContent: FC = () => {
-  const { activeTab } = useApp();
+  const { activeTab, openConfirmDialog, showToast } = useApp();
   const { isAdmin, isOwner } = usePermissions();
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showResumeCard, setShowResumeCard] = useState(false);
+  const [resumeStepLabel, setResumeStepLabel] = useState<string | undefined>();
 
   useTabGuard();
 
-  useEffect(() => {
-    if (isAdmin) {
-      setShowOnboarding(StorageService.shouldShowOnboarding());
+  const refreshOnboardingUi = () => {
+    if (!isAdmin) {
+      setShowOnboarding(false);
+      setShowResumeCard(false);
+      return;
     }
+    const autoOpen = StorageService.shouldAutoOpenOnboarding();
+    const resume = StorageService.shouldShowOnboardingResume();
+    setShowOnboarding(autoOpen);
+    setShowResumeCard(resume);
+    if (resume) {
+      const step = StorageService.getOnboardingProgress().step;
+      setResumeStepLabel(ONBOARDING_STEP_LABELS[step] ?? undefined);
+    }
+  };
+
+  useEffect(() => {
+    refreshOnboardingUi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    refreshOnboardingUi();
+  };
+
+  const handleResumeContinue = () => {
+    setShowResumeCard(false);
+    setShowOnboarding(true);
+  };
+
+  const handleResumeSkip = () => {
+    openConfirmDialog({
+      title: '초기 설정을 건너뛸까요?',
+      message:
+        '나중에 설정 메뉴에서 학원 정보·수납·출결·상담을 변경할 수 있습니다. 앱은 바로 사용할 수 있습니다.',
+      confirmText: '건너뛰기',
+      cancelText: '취소',
+      onConfirm: () => {
+        StorageService.markOnboardingSkipped();
+        setShowResumeCard(false);
+        setShowOnboarding(false);
+        showToast('초기 설정을 건너뛰었습니다.', 'info');
+      },
+    });
+  };
 
   const renderView = PIANO_VIEW_MAP[activeTab] ?? PIANO_VIEW_MAP.dashboard;
 
@@ -107,12 +152,21 @@ export const PianoAppContent: FC = () => {
       overlays={
         <>
           {isOwner && <DirectorFloatingFab />}
-          {showOnboarding && <OnboardingWizard onComplete={() => setShowOnboarding(false)} />}
+          {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
           <ConfirmDialog />
           <ToastContainer />
         </>
       }
     >
+      {showResumeCard && activeTab === 'dashboard' && (
+        <div className="px-4 pt-3 max-w-3xl mx-auto w-full">
+          <OnboardingResumeCard
+            stepLabel={resumeStepLabel}
+            onContinue={handleResumeContinue}
+            onSkip={handleResumeSkip}
+          />
+        </div>
+      )}
       {renderView()}
     </ModuleAppShell>
   );

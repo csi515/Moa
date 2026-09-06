@@ -73,6 +73,16 @@ export const availabilityService = {
     organizationId: string,
     input: AvailabilityRuleInput
   ): Promise<AvailabilityRule> {
+    const slotMinutes = input.slot_minutes ?? 30;
+    const intervalMinutes = input.interval_minutes ?? slotMinutes;
+    const metadata = {
+      ...(input.metadata ?? {}),
+      ...(intervalMinutes !== slotMinutes ? { interval_minutes: intervalMinutes } : {}),
+    };
+    if (intervalMinutes === slotMinutes && metadata.interval_minutes == null) {
+      metadata.interval_minutes = intervalMinutes;
+    }
+
     const { data, error } = await getCoreClient()
       .from('availability_rules' as any)
       .insert({
@@ -80,16 +90,31 @@ export const availabilityService = {
         day_of_week: input.day_of_week,
         start_time: normalizeTime(input.start_time),
         end_time: normalizeTime(input.end_time),
-        slot_minutes: input.slot_minutes ?? 30,
+        slot_minutes: slotMinutes,
         title: input.title?.trim() || '상담',
         max_capacity: input.max_capacity ?? 1,
         is_active: true,
+        metadata,
       } as any)
       .select('*')
       .single();
 
     if (error) throw error;
     return mapRule(data as unknown as Record<string, unknown>);
+  },
+
+  /** 요일의 활성 규칙을 모두 비활성화 (일괄 교체 전) */
+  async deactivateRulesForDay(
+    organizationId: string,
+    dayOfWeek: AvailabilityRule['day_of_week']
+  ): Promise<void> {
+    const { error } = await getCoreClient()
+      .from('availability_rules' as any)
+      .update({ is_active: false } as any)
+      .eq('organization_id', organizationId)
+      .eq('day_of_week', dayOfWeek)
+      .eq('is_active', true);
+    if (error) throw error;
   },
 
   async deactivateRule(ruleId: string): Promise<void> {
@@ -126,19 +151,34 @@ export const availabilityService = {
     const existing = await this.listOverrides(organizationId, input.override_date, true);
     const sameDay = existing.find((o) => o.override_date === input.override_date);
 
+    const windows = input.windows?.filter((w) => w.start_time && w.end_time) ?? [];
+    const primary = windows[0];
+    const metadata: Record<string, unknown> = {
+      ...(input.metadata ?? {}),
+    };
+    if (!input.is_closed && windows.length > 0) {
+      metadata.windows = windows.map((w) => ({
+        start_time: w.start_time.slice(0, 5),
+        end_time: w.end_time.slice(0, 5),
+      }));
+    }
+
     const payload = {
       organization_id: organizationId,
       override_date: input.override_date,
       is_closed: input.is_closed,
       start_time: input.is_closed
         ? null
-        : normalizeTime(input.start_time || '00:00'),
-      end_time: input.is_closed ? null : normalizeTime(input.end_time || '00:00'),
+        : normalizeTime(primary?.start_time || input.start_time || '00:00'),
+      end_time: input.is_closed
+        ? null
+        : normalizeTime(primary?.end_time || input.end_time || '00:00'),
       slot_minutes: input.is_closed ? null : (input.slot_minutes ?? 30),
       title: input.title?.trim() || null,
       max_capacity: input.is_closed ? null : (input.max_capacity ?? 1),
       reason: input.reason?.trim() || null,
       is_active: true,
+      metadata,
     };
 
     if (sameDay) {

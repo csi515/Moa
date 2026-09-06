@@ -4,10 +4,11 @@ import {
   BookOpen,
   Search,
   AlertTriangle,
-  Trash2,
+  Ban,
+  RotateCcw,
   Edit2,
   PackagePlus,
-  ShoppingBag
+  ShoppingBag,
 } from 'lucide-react';
 import { TextbookSortOption } from '../textbookViewTypes';
 
@@ -15,7 +16,8 @@ interface TextbookInventoryTabProps {
   textbooks: Textbook[];
   focusLowStock?: boolean;
   onFocusLowStockHandled?: () => void;
-  onDeleteTextbook: (id: string, title: string) => void;
+  onDeactivateTextbook: (id: string, title: string) => void;
+  onReactivateTextbook: (id: string, title: string) => void;
   onOpenStockModal: (textbook: Textbook) => void;
   onEditTextbook: (textbook: Textbook) => void;
   onOpenSaleModal: (textbookId: string) => void;
@@ -25,14 +27,16 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
   textbooks,
   focusLowStock,
   onFocusLowStockHandled,
-  onDeleteTextbook,
+  onDeactivateTextbook,
+  onReactivateTextbook,
   onOpenStockModal,
   onEditTextbook,
-  onOpenSaleModal
+  onOpenSaleModal,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
   const [publisherFilter, setPublisherFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [onlyLowStock, setOnlyLowStock] = useState(false);
   const [sortOption, setSortOption] = useState<TextbookSortOption>('title');
 
@@ -65,8 +69,13 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
           const matchLevel = levelFilter === 'all' || t.level === levelFilter;
           const matchPublisher = publisherFilter === 'all' || t.publisher === publisherFilter;
           const matchLowStock = !onlyLowStock || t.stock <= t.minStock;
+          const isActive = t.isForSale !== false;
+          const matchStatus =
+            statusFilter === 'all' ||
+            (statusFilter === 'active' && isActive) ||
+            (statusFilter === 'inactive' && !isActive);
 
-          return matchQuery && matchLevel && matchPublisher && matchLowStock;
+          return matchQuery && matchLevel && matchPublisher && matchLowStock && matchStatus;
         })
         .sort((a, b) => {
           const priceA = a.salePrice || a.price || 0;
@@ -77,14 +86,12 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
           if (sortOption === 'stock_desc') return b.stock - a.stock;
           return a.title.localeCompare(b.title, 'ko');
         }),
-    [textbooks, searchQuery, levelFilter, publisherFilter, onlyLowStock, sortOption]
+    [textbooks, searchQuery, levelFilter, publisherFilter, onlyLowStock, sortOption, statusFilter]
   );
 
   return (
     <div className="space-y-4">
-      {/* Controls Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
@@ -92,17 +99,25 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
             placeholder="교재명, 저자, 출판사, ISBN 검색..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"
+            className="w-full pl-9 pr-4 py-2 min-h-[44px] text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"
           />
         </div>
 
-        {/* Filters */}
         <div className="flex flex-wrap items-center gap-2 text-xs">
-          {/* Level Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            className="px-3 py-2 min-h-[44px] rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
+          >
+            <option value="all">전체 상태</option>
+            <option value="active">사용중</option>
+            <option value="inactive">사용안함</option>
+          </select>
+
           <select
             value={levelFilter}
             onChange={(e) => setLevelFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
+            className="px-3 py-2 min-h-[44px] rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
           >
             <option value="all">전체 레벨</option>
             {levels.map((lvl) => (
@@ -112,11 +127,10 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
             ))}
           </select>
 
-          {/* Publisher Filter */}
           <select
             value={publisherFilter}
             onChange={(e) => setPublisherFilter(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
+            className="px-3 py-2 min-h-[44px] rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
           >
             <option value="all">전체 출판사</option>
             {publishers.map((pub) => (
@@ -126,11 +140,10 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
             ))}
           </select>
 
-          {/* Sort Filter */}
           <select
             value={sortOption}
             onChange={(e) => setSortOption(e.target.value as TextbookSortOption)}
-            className="px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
+            className="px-3 py-2 min-h-[44px] rounded-xl border border-slate-200 bg-white text-slate-700 font-medium"
           >
             <option value="title">교재명순</option>
             <option value="price_desc">판매가격 높은순</option>
@@ -139,10 +152,10 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
             <option value="stock_desc">재고 많은순</option>
           </select>
 
-          {/* Low Stock Toggle Button */}
           <button
+            type="button"
             onClick={() => setOnlyLowStock(!onlyLowStock)}
-            className={`px-3 py-2 rounded-xl border font-semibold flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-2 min-h-[44px] rounded-xl border font-semibold flex items-center gap-1.5 transition-all ${
               onlyLowStock
                 ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
@@ -154,40 +167,29 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
         </div>
       </div>
 
-      {/* Textbook Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredTextbooks.length === 0 ? (
           <div className="col-span-full py-16 text-center bg-white rounded-2xl border border-slate-200 space-y-3">
             <BookOpen className="w-10 h-10 text-slate-300 mx-auto" />
             <div>
               <p className="text-sm font-bold text-slate-700">
-                {searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock
-                  ? "조건에 맞는 교재가 없습니다"
-                  : "등록된 교재가 없습니다"}
+                {searchQuery.trim() ||
+                levelFilter !== 'all' ||
+                publisherFilter !== 'all' ||
+                onlyLowStock ||
+                statusFilter !== 'all'
+                  ? '조건에 맞는 교재가 없습니다'
+                  : '등록된 교재가 없습니다'}
               </p>
               <p className="text-xs text-slate-500 mt-1.5">
-                {searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock
-                  ? "검색어나 필터 조건을 변경해보세요. 다른 키워드나 레벨로 다시 검색할 수 있습니다."
-                  : "교재 관리 탭에서 첫 교재를 등록하고 재고를 관리해보세요."}
+                교재는 학원별 마스터로 관리되며, 필요할 때만 학생에게 일회성으로 판매합니다.
               </p>
             </div>
-            {(searchQuery.trim() || levelFilter !== 'all' || publisherFilter !== 'all' || onlyLowStock) && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setLevelFilter('all');
-                  setPublisherFilter('all');
-                  setOnlyLowStock(false);
-                }}
-                className="px-4 py-2 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-all mx-auto"
-              >
-                필터 초기화
-              </button>
-            )}
           </div>
         ) : (
           filteredTextbooks.map((tb) => {
             const isLow = tb.stock <= tb.minStock;
+            const isActive = tb.isForSale !== false;
             const salePrice = tb.salePrice || tb.price || 0;
             const costPrice = tb.costPrice || Math.round(salePrice * 0.6);
 
@@ -195,13 +197,25 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
               <div
                 key={tb.id}
                 className={`bg-white rounded-2xl p-4 border transition-all flex flex-col justify-between ${
-                  isLow ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200'
+                  !isActive
+                    ? 'border-slate-200 opacity-75'
+                    : isLow
+                      ? 'border-amber-300 ring-2 ring-amber-100'
+                      : 'border-slate-200'
                 } shadow-xs hover:shadow-md`}
               >
                 <div>
-                  {/* Top Badges */}
                   <div className="flex items-start justify-between gap-2 mb-2.5">
                     <div className="flex flex-wrap gap-1.5">
+                      <span
+                        className={`px-2 py-0.5 rounded-md font-semibold text-[11px] ${
+                          isActive
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {isActive ? '사용중' : '사용안함'}
+                      </span>
                       <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 font-semibold text-[11px]">
                         {tb.level}
                       </span>
@@ -210,20 +224,19 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
                       </span>
                     </div>
 
-                    {/* Stock Alert Badge */}
-                    {isLow ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[11px] font-bold">
-                        <AlertTriangle className="w-3 h-3" />
-                        재고 부족
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-medium">
-                        재고 양호
-                      </span>
-                    )}
+                    {isActive &&
+                      (isLow ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 text-[11px] font-bold">
+                          <AlertTriangle className="w-3 h-3" />
+                          재고 부족
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-medium">
+                          재고 양호
+                        </span>
+                      ))}
                   </div>
 
-                  {/* Title & Author */}
                   <h3 className="font-bold text-slate-900 text-sm leading-snug">{tb.title}</h3>
                   <p className="text-xs text-slate-500 mt-0.5">
                     {tb.author ? `저자: ${tb.author}` : '저자 미상'}{' '}
@@ -236,7 +249,6 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
                     </p>
                   )}
 
-                  {/* Price & Stock Info Box */}
                   <div className="grid grid-cols-2 gap-2 mt-3.5 p-2.5 bg-slate-50 rounded-xl border border-slate-100 text-xs">
                     <div>
                       <span className="text-slate-400 text-[10px] block">판매단가</span>
@@ -250,7 +262,9 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
 
                     <div className="text-right">
                       <span className="text-slate-400 text-[10px] block">현재 보유 재고</span>
-                      <span className={`font-black text-base ${isLow ? 'text-rose-600' : 'text-slate-900'}`}>
+                      <span
+                        className={`font-black text-base ${isLow ? 'text-rose-600' : 'text-slate-900'}`}
+                      >
                         {tb.stock}권
                       </span>
                       <span className="text-[10px] text-slate-400 block mt-0.5">
@@ -260,40 +274,58 @@ export const TextbookInventoryTab: React.FC<TextbookInventoryTabProps> = ({
                   </div>
                 </div>
 
-                {/* Card Actions */}
                 <div className="pt-3.5 mt-3.5 border-t border-slate-100 flex items-center justify-between gap-1.5">
                   <div className="flex items-center gap-1">
                     <button
+                      type="button"
                       onClick={() => onOpenStockModal(tb)}
-                      className="px-2.5 py-1.5 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1"
+                      className="px-2.5 py-1.5 min-h-[44px] text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors flex items-center gap-1"
                       title="입고/조정"
                     >
                       <PackagePlus className="w-3.5 h-3.5 text-indigo-600" />
                       입고/조정
                     </button>
                     <button
+                      type="button"
                       onClick={() => onEditTextbook(tb)}
-                      className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="p-1.5 min-h-[44px] min-w-[44px] text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors"
                       title="교재 수정"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      onClick={() => onDeleteTextbook(tb.id, tb.title)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                      title="교재 삭제"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isActive ? (
+                      <button
+                        type="button"
+                        onClick={() => onDeactivateTextbook(tb.id, tb.title)}
+                        className="p-1.5 min-h-[44px] min-w-[44px] text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                        title="사용 중지"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onReactivateTextbook(tb.id, tb.title)}
+                        className="p-1.5 min-h-[44px] min-w-[44px] text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                        title="다시 사용"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
-                  <button
-                    onClick={() => onOpenSaleModal(tb.id)}
-                    className="px-3 py-1.5 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1 shadow-xs"
-                  >
-                    <ShoppingBag className="w-3.5 h-3.5" />
-                    판매하기
-                  </button>
+                  {isActive ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenSaleModal(tb.id)}
+                      className="px-3 py-1.5 min-h-[44px] text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors flex items-center gap-1 shadow-xs"
+                    >
+                      <ShoppingBag className="w-3.5 h-3.5" />
+                      판매하기
+                    </button>
+                  ) : (
+                    <span className="text-[11px] font-semibold text-slate-400 px-2">판매 불가</span>
+                  )}
                 </div>
               </div>
             );

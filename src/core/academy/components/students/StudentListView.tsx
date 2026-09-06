@@ -7,36 +7,59 @@ import { studentUsesShuttleService } from '@/core/transport';
 import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
-import { Student } from '@/types';
+import type { DayOfWeek, Student } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
-import {
-  formatPhone,
-  getStudentStatusBadge,
-} from '@/utils/formatters';
+import { getStudentStatusBadge } from '@/utils/formatters';
 import { PageHeader, FilterBar, SearchField, EmptyState } from '@/shared/components';
+import { DENSITY } from '@/shared/styles/density';
 import {
   Users,
   UserPlus,
-  Phone,
   ArrowUpDown,
   ChevronRight,
   Bus,
   SlidersHorizontal,
 } from 'lucide-react';
+import {
+  WEEKDAY_FILTER_OPTIONS,
+  buildAttendanceByStudentToday,
+  buildBillingByStudent,
+  getClassLabel,
+  getCurrentYearMonth,
+  getMonthBillingSignal,
+  getTodayAttendanceSignal,
+  getTodayIsoDate,
+  studentHasWeekday,
+} from './studentListHelpers';
+
+const signalClass = (tone: 'ok' | 'warn' | 'muted') => {
+  if (tone === 'ok') return 'text-emerald-700';
+  if (tone === 'warn') return 'text-rose-600';
+  return 'text-slate-400';
+};
 
 export const StudentListView: React.FC = () => {
-  const { selectedStudentId, setSelectedStudentId, selectedStudentDetailTab, setSelectedStudentDetailTab, refreshKey } = useApp();
+  const {
+    selectedStudentId,
+    setSelectedStudentId,
+    selectedStudentDetailTab,
+    setSelectedStudentDetailTab,
+    refreshKey,
+  } = useApp();
   const { industry } = usePermissions();
   const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const labels = useModuleLabels();
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
   const allStudents = StorageService.getStudents();
-  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
+  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents, refreshKey]);
   const teachers = StorageService.getTeachers();
   const classes = useMemo(
-    () => (isScoped && staffId ? StorageService.getClasses().filter((c) => c.teacherId === staffId) : StorageService.getClasses()),
+    () =>
+      isScoped && staffId
+        ? StorageService.getClasses().filter((c) => c.teacherId === staffId)
+        : StorageService.getClasses(),
     [isScoped, staffId, refreshKey]
   );
   const classNameById = useMemo(() => {
@@ -44,13 +67,32 @@ export const StudentListView: React.FC = () => {
     classes.forEach((c) => map.set(c.id, c.name));
     return map;
   }, [classes]);
+  const classById = useMemo(() => {
+    const map = new Map(classes.map((c) => [c.id, c]));
+    return map;
+  }, [classes]);
+
+  const today = getTodayIsoDate();
+  const yearMonth = getCurrentYearMonth();
+
+  const todayAttendanceByStudent = useMemo(
+    () => buildAttendanceByStudentToday(StorageService.getAttendance(), today),
+    [today, refreshKey]
+  );
+  const billingByStudent = useMemo(
+    () => buildBillingByStudent(StorageService.getAllStudentsBillingSummary(yearMonth)),
+    [yearMonth, refreshKey]
+  );
 
   const [searchQuery, setSearchQuery] = useState('');
   const [teacherFilter, setTeacherFilter] = useState('ALL');
   const [classFilter, setClassFilter] = useState('ALL');
-  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [weekdayFilter, setWeekdayFilter] = useState<DayOfWeek | 'ALL'>('ALL');
+  const [statusFilter, setStatusFilter] = useState<string>('active');
   const [shuttleFilter, setShuttleFilter] = useState<'ALL' | 'SHUTTLE'>('ALL');
-  const [sortBy, setSortBy] = useState<'joinDateDesc' | 'joinDateAsc' | 'name' | 'paymentDay'>('joinDateDesc');
+  const [sortBy, setSortBy] = useState<'joinDateDesc' | 'joinDateAsc' | 'name' | 'paymentDay'>(
+    'joinDateDesc'
+  );
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
@@ -63,87 +105,93 @@ export const StudentListView: React.FC = () => {
     }
   }, [isScoped, staffId]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedStudentId) {
       const found = students.find((s) => s.id === selectedStudentId);
-      if (found) {
-        setDetailStudent(found);
-      }
+      if (found) setDetailStudent(found);
     }
   }, [selectedStudentId, students]);
+
+  // 퇴원/복귀 등 저장 후 상세 상태 동기화
+  useEffect(() => {
+    setDetailStudent((prev) => {
+      if (!prev) return prev;
+      return students.find((s) => s.id === prev.id) || prev;
+    });
+  }, [refreshKey]);
 
   const filteredStudents = useMemo(() => {
     return students
       .filter((s) => {
-        if (teacherFilter !== 'ALL' && s.teacherId !== teacherFilter) {
-          return false;
-        }
-
-        if (classFilter !== 'ALL' && !s.classIds.includes(classFilter)) {
-          return false;
-        }
-
-        if (statusFilter !== 'ALL' && s.status !== statusFilter) {
-          return false;
-        }
-
-        if (shuttleFilter === 'SHUTTLE' && !studentUsesShuttleService(s)) {
-          return false;
-        }
+        if (teacherFilter !== 'ALL' && s.teacherId !== teacherFilter) return false;
+        if (classFilter !== 'ALL' && !(s.classIds || []).includes(classFilter)) return false;
+        if (statusFilter !== 'ALL' && s.status !== statusFilter) return false;
+        if (shuttleFilter === 'SHUTTLE' && !studentUsesShuttleService(s)) return false;
+        if (weekdayFilter !== 'ALL' && !studentHasWeekday(s, weekdayFilter, classById)) return false;
 
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
-          const matchName = s.name.toLowerCase().includes(q);
-          const matchPhone =
-            studentMatchesGuardianQuery(s.id, searchQuery) ||
-            (s.emergencyContact && s.emergencyContact.includes(q));
-          const matchSchool = s.school.toLowerCase().includes(q);
-          const matchParent = studentMatchesGuardianQuery(s.id, searchQuery);
-          const matchNum = s.studentNumber.toLowerCase().includes(q);
-          const matchPickup = (s.pickupAddresses || []).some(
-            (a) =>
-              a.label.toLowerCase().includes(q) ||
-              a.address.toLowerCase().includes(q) ||
-              (a.detail || '').toLowerCase().includes(q)
-          );
-          if (!matchName && !matchPhone && !matchSchool && !matchParent && !matchNum && !matchPickup) {
-            return false;
-          }
+          const matchName = (s.name || '').toLowerCase().includes(q);
+          const matchGuardian = studentMatchesGuardianQuery(s.id, searchQuery);
+          const matchLegacyParent =
+            (s.parentName || '').toLowerCase().includes(q) ||
+            (s.parentPhone || '').includes(searchQuery.trim());
+          if (!matchName && !matchGuardian && !matchLegacyParent) return false;
         }
 
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === 'joinDateDesc') return b.joinDate.localeCompare(a.joinDate);
-        if (sortBy === 'joinDateAsc') return a.joinDate.localeCompare(b.joinDate);
-        if (sortBy === 'name') return a.name.localeCompare(b.name, 'ko-KR');
+        if (sortBy === 'joinDateDesc') return (b.joinDate || '').localeCompare(a.joinDate || '');
+        if (sortBy === 'joinDateAsc') return (a.joinDate || '').localeCompare(b.joinDate || '');
+        if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '', 'ko-KR');
         if (sortBy === 'paymentDay') return (a.paymentDay || 0) - (b.paymentDay || 0);
         return 0;
       });
-  }, [students, searchQuery, teacherFilter, classFilter, statusFilter, shuttleFilter, sortBy]);
+  }, [
+    students,
+    searchQuery,
+    teacherFilter,
+    classFilter,
+    statusFilter,
+    shuttleFilter,
+    weekdayFilter,
+    sortBy,
+    classById,
+  ]);
 
   const activeCount = students.filter((s) => s.status === 'active').length;
   const leaveCount = students.filter((s) => s.status === 'leave').length;
   const withdrawnCount = students.filter((s) => s.status === 'withdrawn').length;
   const shuttleCount = students.filter((s) => studentUsesShuttleService(s)).length;
 
-  const hasActiveFilters =
+  const hasSearchOrExtraFilters =
     Boolean(searchQuery.trim()) ||
     teacherFilter !== 'ALL' ||
     classFilter !== 'ALL' ||
-    statusFilter !== 'ALL' ||
+    weekdayFilter !== 'ALL' ||
+    statusFilter !== 'active' ||
     shuttleFilter !== 'ALL';
 
   const advancedFilterCount = [
     !isScoped && teacherFilter !== 'ALL',
     classFilter !== 'ALL',
+    weekdayFilter !== 'ALL',
     shuttleFilter !== 'ALL',
     sortBy !== 'joinDateDesc',
   ].filter(Boolean).length;
 
-  const handleOpenDetail = (student: Student) => {
-    setDetailStudent(student);
+  const resetFilters = () => {
+    setSearchQuery('');
+    setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
+    setClassFilter('ALL');
+    setWeekdayFilter('ALL');
+    setStatusFilter('active');
+    setShuttleFilter('ALL');
+    setSortBy('joinDateDesc');
   };
+
+  const handleOpenDetail = (student: Student) => setDetailStudent(student);
 
   const handleCloseDetail = () => {
     setDetailStudent(null);
@@ -156,52 +204,32 @@ export const StudentListView: React.FC = () => {
     setDetailStudent(null);
   };
 
-  const getClassLabel = (student: Student) => {
-    if (!student.classIds?.length) return '미배정';
-    const names = student.classIds
-      .map((id) => classNameById.get(id))
-      .filter(Boolean) as string[];
-    if (names.length === 0) return `${student.classIds.length}개 레슨`;
-    if (names.length === 1) return names[0];
-    return `${names[0]} 외 ${names.length - 1}`;
-  };
-
-  const getGuardianLabel = (student: Student) => {
-    const primary = getPrimaryGuardian(student.id);
-    if (primary) {
-      return {
-        name: primary.parentName,
-        phone: primary.parentPhone,
-      };
-    }
-    return {
-      name: student.parentName || '-',
-      phone: student.parentPhone || '',
-    };
-  };
-
   const statusChips: Array<{ value: string; label: string; count: number }> = [
-    { value: 'ALL', label: '전체', count: students.length },
     { value: 'active', label: '재원', count: activeCount },
     { value: 'leave', label: '휴원', count: leaveCount },
     { value: 'withdrawn', label: '퇴원', count: withdrawnCount },
+    { value: 'ALL', label: '전체', count: students.length },
   ];
 
+  const isTrulyEmpty = students.length === 0;
+  const isFilterEmpty = !isTrulyEmpty && filteredStudents.length === 0;
+
   return (
-    <div className="space-y-4 pb-4">
+    <div className={DENSITY.pageStack}>
       <PageHeader
         density="compact"
         icon={<Users className="w-5 h-5" />}
         title={labels.customer.management}
-        description={`${labels.customer.singular} 등록·검색·수업·출결·수납`}
+        description={`${labels.customer.singular} 상태·레슨·출결·수납을 한눈에`}
         actions={
           !isScoped ? (
             <button
+              type="button"
               onClick={() => {
                 setEditingStudent(null);
                 setIsFormModalOpen(true);
               }}
-              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
             >
               <UserPlus className="w-4 h-4" />
               {labels.customer.add}
@@ -214,7 +242,7 @@ export const StudentListView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder={labels.customer.search || '이름, 보호자, 학교, 번호 검색...'}
+          placeholder="이름 · 보호자 · 보호자 전화"
           className="w-full"
         />
 
@@ -255,7 +283,7 @@ export const StudentListView: React.FC = () => {
         </div>
 
         {showAdvancedFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
             {!isScoped && (
               <select
                 value={teacherFilter}
@@ -280,6 +308,19 @@ export const StudentListView: React.FC = () => {
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                </option>
+              ))}
+            </select>
+
+            <select
+              value={weekdayFilter}
+              onChange={(e) => setWeekdayFilter(e.target.value as DayOfWeek | 'ALL')}
+              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+            >
+              <option value="ALL">요일 전체</option>
+              {WEEKDAY_FILTER_OPTIONS.map((d) => (
+                <option key={d} value={d}>
+                  {d}요일
                 </option>
               ))}
             </select>
@@ -313,20 +354,15 @@ export const StudentListView: React.FC = () => {
 
         <div className="flex items-center justify-between text-xs text-slate-500 w-full">
           <span>
-            검색된 {labels.customer.singular}:{' '}
+            표시 중:{' '}
             <strong className="text-slate-800">{filteredStudents.length}명</strong>
+            {statusFilter === 'active' && !hasSearchOrExtraFilters ? ' (재원)' : ''}
           </span>
-          {hasActiveFilters && (
+          {hasSearchOrExtraFilters && (
             <button
               type="button"
-              onClick={() => {
-                setSearchQuery('');
-                setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
-                setClassFilter('ALL');
-                setStatusFilter('ALL');
-                setShuttleFilter('ALL');
-              }}
-              className="font-bold text-indigo-600 hover:text-indigo-700"
+              onClick={resetFilters}
+              className="font-bold text-indigo-600 hover:text-indigo-700 min-h-[44px]"
             >
               초기화
             </button>
@@ -334,54 +370,62 @@ export const StudentListView: React.FC = () => {
         </div>
       </FilterBar>
 
-      {filteredStudents.length === 0 ? (
+      {isTrulyEmpty ? (
         <EmptyState
           icon={<Users className="w-12 h-12" />}
-          title={
-            hasActiveFilters
-              ? `조건에 일치하는 ${labels.customer.singular}이 없습니다`
-              : `등록된 ${labels.customer.singular}이 없습니다`
-          }
-          description={
-            hasActiveFilters
-              ? '검색어나 필터를 변경해보세요.'
-              : `상단 '${labels.customer.add}' 버튼으로 첫 번째 ${labels.customer.singular}을 등록해보세요.`
-          }
+          title={`등록된 ${labels.customer.singular}이 없습니다`}
+          description={`상단 '${labels.customer.add}'으로 첫 ${labels.customer.singular}을 등록하세요.`}
           action={
-            hasActiveFilters ? (
+            !isScoped ? (
               <button
+                type="button"
                 onClick={() => {
-                  setSearchQuery('');
-                  setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
-                  setClassFilter('ALL');
-                  setStatusFilter('ALL');
-                  setShuttleFilter('ALL');
+                  setEditingStudent(null);
+                  setIsFormModalOpen(true);
                 }}
-                className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all"
+                className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl"
               >
-                필터 초기화
+                {labels.customer.add}
               </button>
             ) : undefined
           }
         />
+      ) : isFilterEmpty ? (
+        <EmptyState
+          icon={<Users className="w-12 h-12" />}
+          title={`조건에 맞는 ${labels.customer.singular}이 없습니다`}
+          description="검색어나 필터를 바꿔보세요. 퇴원 원생은 ‘퇴원’ 또는 ‘전체’에서 볼 수 있습니다."
+          action={
+            <button
+              type="button"
+              onClick={resetFilters}
+              className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl"
+            >
+              필터 초기화
+            </button>
+          }
+        />
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
+          {/* Desktop: compact columns */}
+          <div className="hidden md:block bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-3">이름</th>
+                    <th className="py-2.5 px-3">원생</th>
                     <th className="py-2.5 px-3">레슨</th>
-                    <th className="py-2.5 px-3">보호자</th>
-                    <th className="py-2.5 px-3">상태</th>
-                    <th className="py-2.5 px-3 text-right">관리</th>
+                    <th className="py-2.5 px-3">담당</th>
+                    <th className="py-2.5 px-3">오늘 출결</th>
+                    <th className="py-2.5 px-3">이번 달 수납</th>
+                    <th className="py-2.5 px-3 text-right"> </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredStudents.map((st) => {
                     const badge = getStudentStatusBadge(st.status);
-                    const guardian = getGuardianLabel(st);
+                    const att = getTodayAttendanceSignal(st.id, todayAttendanceByStudent);
+                    const bill = getMonthBillingSignal(billingByStudent.get(st.id));
                     return (
                       <tr
                         key={st.id}
@@ -389,18 +433,25 @@ export const StudentListView: React.FC = () => {
                         className="hover:bg-indigo-50/40 transition-colors cursor-pointer group"
                       >
                         <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-2.5">
+                          <div className="flex items-center gap-2.5 min-w-0">
                             <div
-                              className="w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center shadow-2xs"
+                              className="w-7 h-7 rounded-lg text-white font-bold text-xs flex items-center justify-center shrink-0"
                               style={{ backgroundColor: st.avatarColor || '#4f46e5' }}
                             >
-                              {st.name.slice(0, 1)}
+                              {(st.name || '?').slice(0, 1)}
                             </div>
                             <div className="min-w-0">
-                              <div className="flex items-center gap-1.5">
-                                <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-bold text-slate-900 group-hover:text-indigo-600">
                                   {st.name}
                                 </span>
+                                {st.status !== 'active' && (
+                                  <span
+                                    className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${badge.bg}`}
+                                  >
+                                    {badge.label}
+                                  </span>
+                                )}
                                 {showPickupFields && studentUsesShuttleService(st) && (
                                   <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
                                     <Bus className="w-3 h-3" />
@@ -408,45 +459,23 @@ export const StudentListView: React.FC = () => {
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[10px] text-slate-400 font-mono">{st.studentNumber}</p>
                             </div>
                           </div>
                         </td>
-                        <td className="py-2.5 px-3 text-slate-700 font-medium">
-                          {getClassLabel(st)}
+                        <td className="py-2.5 px-3 text-slate-700 font-medium truncate max-w-[10rem]">
+                          {getClassLabel(st, classNameById)}
                         </td>
-                        <td className="py-2.5 px-3">
-                          <div className="flex items-center gap-1.5 min-w-0">
-                            {guardian.phone ? (
-                              <a
-                                href={`tel:${guardian.phone}`}
-                                onClick={(e) => e.stopPropagation()}
-                                className="text-indigo-600 hover:underline font-semibold font-mono"
-                              >
-                                {formatPhone(guardian.phone)}
-                              </a>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                            <span className="text-slate-400 text-[10px] truncate">({guardian.name})</span>
-                          </div>
+                        <td className="py-2.5 px-3 text-slate-600 font-medium">
+                          {st.teacherName || '-'}
                         </td>
-                        <td className="py-2.5 px-3">
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
-                            {badge.label}
-                          </span>
+                        <td className={`py-2.5 px-3 font-bold ${signalClass(att.tone)}`}>
+                          {att.label}
+                        </td>
+                        <td className={`py-2.5 px-3 font-bold ${signalClass(bill.tone)}`}>
+                          {bill.label}
                         </td>
                         <td className="py-2.5 px-3 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleOpenDetail(st);
-                            }}
-                            className="p-1.5 text-slate-400 group-hover:text-indigo-600 hover:bg-white rounded-lg transition-colors"
-                            aria-label="상세 보기"
-                          >
-                            <ChevronRight className="w-4 h-4" />
-                          </button>
+                          <ChevronRight className="w-4 h-4 text-slate-300 group-hover:text-indigo-600 inline-block" />
                         </td>
                       </tr>
                     );
@@ -456,61 +485,56 @@ export const StudentListView: React.FC = () => {
             </div>
           </div>
 
+          {/* Mobile: compact cards */}
           <div className="md:hidden space-y-2">
             {filteredStudents.map((st) => {
               const badge = getStudentStatusBadge(st.status);
-              const guardian = getGuardianLabel(st);
+              const att = getTodayAttendanceSignal(st.id, todayAttendanceByStudent);
+              const bill = getMonthBillingSignal(billingByStudent.get(st.id));
+              const guardian = getPrimaryGuardian(st.id);
               return (
-                <div
+                <button
                   key={st.id}
+                  type="button"
                   onClick={() => handleOpenDetail(st)}
-                  className="bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs active:bg-slate-50 transition-all cursor-pointer space-y-2"
+                  className="w-full text-left bg-white p-3 rounded-2xl border border-slate-200/80 shadow-xs active:bg-slate-50 transition-all space-y-2 min-h-[44px]"
                 >
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <div
-                        className="w-9 h-9 rounded-xl text-white font-extrabold text-sm flex items-center justify-center shadow-xs shrink-0"
+                        className="w-9 h-9 rounded-xl text-white font-extrabold text-sm flex items-center justify-center shrink-0"
                         style={{ backgroundColor: st.avatarColor || '#4f46e5' }}
                       >
-                        {st.name.slice(0, 1)}
+                        {(st.name || '?').slice(0, 1)}
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <h4 className="font-bold text-sm text-slate-900">{st.name}</h4>
-                          {showPickupFields && studentUsesShuttleService(st) && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-sky-100 text-sky-800 font-bold inline-flex items-center gap-0.5">
-                              <Bus className="w-3 h-3" />
-                              셔틀
+                          {st.status !== 'active' && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${badge.bg}`}
+                            >
+                              {badge.label}
                             </span>
                           )}
-                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
-                            {badge.label}
-                          </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 truncate">{getClassLabel(st)}</p>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {getClassLabel(st, classNameById)}
+                          {st.teacherName ? ` · ${st.teacherName}` : ''}
+                        </p>
                       </div>
                     </div>
                     <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
                   </div>
 
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
-                    <div className="flex items-center gap-1 text-slate-600 min-w-0">
-                      <Phone className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                      {guardian.phone ? (
-                        <a
-                          href={`tel:${guardian.phone}`}
-                          onClick={(e) => e.stopPropagation()}
-                          className="text-indigo-600 font-semibold font-mono"
-                        >
-                          {formatPhone(guardian.phone)}
-                        </a>
-                      ) : (
-                        <span className="text-slate-400">연락처 없음</span>
-                      )}
-                      <span className="text-slate-400 truncate">· {guardian.name}</span>
-                    </div>
+                  <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] font-bold">
+                    <span className={signalClass(att.tone)}>출결 {att.label}</span>
+                    <span className={signalClass(bill.tone)}>{bill.label}</span>
                   </div>
-                </div>
+                  {guardian?.parentName && (
+                    <p className="text-[10px] text-slate-400 truncate">보호자 {guardian.parentName}</p>
+                  )}
+                </button>
               );
             })}
           </div>
@@ -524,8 +548,11 @@ export const StudentListView: React.FC = () => {
           setIsFormModalOpen(false);
           setEditingStudent(null);
         }}
-        onSaved={(saved) => {
+        onSaved={(saved, options) => {
           setDetailStudent(saved);
+          if (options?.openTab) {
+            setSelectedStudentDetailTab(options.openTab);
+          }
         }}
       />
 

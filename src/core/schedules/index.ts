@@ -12,5 +12,7 @@ export { availabilityService } from './services/availabilityService';
 export { materializeAvailabilitySlots } from './services/materializeAvailabilitySlots';
 export { AvailabilitySettingsView } from './components/AvailabilitySettingsView';
 export { ReservationInboxView } from './components/ReservationInboxView';
+export { ConsultationQrModal } from './components/ConsultationQrModal';
+export { CreateConsultationScheduleModal } from './components/CreateConsultationScheduleModal';
 export * from './types';
 export * from './types/availability';

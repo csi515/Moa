@@ -53,6 +53,13 @@ export interface Database {
           settings: Json;
           is_active: boolean;
           public_code: string;
+          postal: string | null;
+          sido: string | null;
+          sigungu: string | null;
+          dong: string | null;
+          jibun: string | null;
+          road_address: string | null;
+          address_detail: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -64,6 +71,13 @@ export interface Database {
           settings?: Json;
           is_active?: boolean;
           public_code?: string;
+          postal?: string | null;
+          sido?: string | null;
+          sigungu?: string | null;
+          dong?: string | null;
+          jibun?: string | null;
+          road_address?: string | null;
+          address_detail?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -75,6 +89,13 @@ export interface Database {
           settings?: Json;
           is_active?: boolean;
           public_code?: string;
+          postal?: string | null;
+          sido?: string | null;
+          sigungu?: string | null;
+          dong?: string | null;
+          jibun?: string | null;
+          road_address?: string | null;
+          address_detail?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -793,9 +814,21 @@ export interface Database {
       create_organization: {
         Args: {
           p_name: string;
+          p_business_registration_number: string;
+          p_representative_name: string;
+          p_business_phone: string;
+          p_business_address: string;
+          p_industry_category: string;
           p_industry_type?: string;
           p_slug?: string | null;
           p_settings?: Record<string, unknown> | null;
+          p_postal?: string | null;
+          p_sido?: string | null;
+          p_sigungu?: string | null;
+          p_dong?: string | null;
+          p_jibun?: string | null;
+          p_road_address?: string | null;
+          p_address_detail?: string | null;
         };
         Returns: string;
       };

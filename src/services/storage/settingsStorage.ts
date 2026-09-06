@@ -4,6 +4,20 @@ import { getIndustryType } from '../adapters/storageContext';
 import { resolveAttendanceEnabledForBackfill } from '../../core/attendance/features';
 import { DEFAULT_SETTINGS, getItem, setItem, type StorageApi } from './helpers';
 
+export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
+
+export interface OnboardingProgress {
+  status: OnboardingStatus;
+  /** 0-based wizard step index */
+  step: number;
+  updatedAt?: string;
+}
+
+const DEFAULT_ONBOARDING_PROGRESS: OnboardingProgress = {
+  status: 'not_started',
+  step: 0,
+};
+
 /** 설정·사용자·온보딩·백업 */
 export function createSettingsStorage(api: StorageApi) {
   return {
@@ -130,9 +144,45 @@ export function createSettingsStorage(api: StorageApi) {
 
     setOnboardingComplete(complete = true): void {
       setItem(STORAGE_KEYS.INITIALIZED, complete);
+      if (complete) {
+        const prev = this.getOnboardingProgress();
+        if (prev.status !== 'skipped') {
+          this.setOnboardingProgress({ status: 'completed', step: prev.step });
+        }
+      }
     },
 
-    isNewOrganization(): boolean {
+    getOnboardingProgress(): OnboardingProgress {
+      return getItem<OnboardingProgress>(
+        STORAGE_KEYS.ONBOARDING_PROGRESS,
+        DEFAULT_ONBOARDING_PROGRESS
+      );
+    },
+
+    setOnboardingProgress(progress: Partial<OnboardingProgress> & Pick<OnboardingProgress, 'status'>): OnboardingProgress {
+      const current = this.getOnboardingProgress();
+      const next: OnboardingProgress = {
+        ...current,
+        ...progress,
+        step: typeof progress.step === 'number' ? progress.step : current.step,
+        updatedAt: new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.ONBOARDING_PROGRESS, next);
+      return next;
+    },
+
+    markOnboardingSkipped(): void {
+      setItem(STORAGE_KEYS.INITIALIZED, true);
+      this.setOnboardingProgress({ status: 'skipped', step: 0 });
+    },
+
+    markOnboardingCompleted(step = 0): void {
+      setItem(STORAGE_KEYS.INITIALIZED, true);
+      this.setOnboardingProgress({ status: 'completed', step });
+    },
+
+    /** 학생·반이 없으면 초기 설정 대상 (이름만 있어도 표시 — CreateOrganization 이후 가이드용) */
+    isEligibleForOnboarding(): boolean {
       const industry = getIndustryType();
       if (industry === 'pilates') {
         return (
@@ -143,13 +193,28 @@ export function createSettingsStorage(api: StorageApi) {
       }
       return (
         (api.getStudents as () => unknown[])().length === 0 &&
-        (api.getClasses as () => unknown[])().length === 0 &&
-        !this.getSettings().name?.trim()
+        (api.getClasses as () => unknown[])().length === 0
       );
     },
 
+    /** @deprecated isEligibleForOnboarding 사용 권장 */
+    isNewOrganization(): boolean {
+      return this.isEligibleForOnboarding();
+    },
+
     shouldShowOnboarding(): boolean {
-      return !this.isOnboardingComplete() && this.isNewOrganization();
+      return !this.isOnboardingComplete() && this.isEligibleForOnboarding();
+    },
+
+    /** 진행 중이면 모달 강제 대신 홈 이어하기 카드 */
+    shouldAutoOpenOnboarding(): boolean {
+      if (!this.shouldShowOnboarding()) return false;
+      return this.getOnboardingProgress().status !== 'in_progress';
+    },
+
+    shouldShowOnboardingResume(): boolean {
+      if (!this.shouldShowOnboarding()) return false;
+      return this.getOnboardingProgress().status === 'in_progress';
     },
   };
 }

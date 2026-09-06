@@ -4,7 +4,7 @@ import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal'
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
-import { X, Phone, Edit, Trash2, ChevronDown } from 'lucide-react';
+import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown } from 'lucide-react';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
 import { StudentDetailAttendanceTab } from './detail/StudentDetailAttendanceTab';
@@ -16,6 +16,7 @@ import { StudentDetailVideosTab } from './detail/StudentDetailVideosTab';
 import { StudentDetailMemoTab } from './detail/StudentDetailMemoTab';
 import { useStudentDetailModal } from './useStudentDetailModal';
 import type { DetailTab } from './detail/types';
+import { useApp } from '@/context/AppContext';
 
 export type { DetailTab } from './detail/types';
 
@@ -51,6 +52,7 @@ const StudentDetailModalContent: React.FC<
     onClose,
     onEdit,
   });
+  const { setActiveTab } = useApp();
   const [showMoreTabs, setShowMoreTabs] = useState(false);
 
   const primaryTabs = useMemo(
@@ -67,8 +69,8 @@ const StudentDetailModalContent: React.FC<
   const summaryItems = [
     { label: '다음 수업', value: modal.summary.nextClass },
     { label: '최근 출결', value: modal.summary.recentAttendance },
-    { label: '최근 상담', value: modal.summary.recentConsultation },
-    { label: '수납', value: modal.summary.tuition },
+    { label: '이번 달 수납', value: modal.summary.tuition },
+    { label: '보호자', value: modal.summary.guardian },
   ];
 
   const selectPrimaryTab = (tabId: DetailTab) => {
@@ -127,11 +129,19 @@ const StudentDetailModalContent: React.FC<
                 <Edit className="w-4 h-4" />
               </button>
               <button
-                onClick={modal.handleDelete}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 bg-white border border-slate-200 rounded-xl hover:bg-rose-50 transition-colors"
-                title="학생 삭제"
+                onClick={modal.handleWithdraw}
+                className={`min-h-[44px] min-w-[44px] flex items-center justify-center bg-white border border-slate-200 rounded-xl transition-colors ${
+                  student.status === 'withdrawn'
+                    ? 'text-emerald-600 hover:bg-emerald-50'
+                    : 'text-slate-400 hover:text-amber-700 hover:bg-amber-50'
+                }`}
+                title={student.status === 'withdrawn' ? '재원 복귀' : '퇴원 처리'}
               >
-                <Trash2 className="w-4 h-4" />
+                {student.status === 'withdrawn' ? (
+                  <UserCheck className="w-4 h-4" />
+                ) : (
+                  <UserMinus className="w-4 h-4" />
+                )}
               </button>
             </>
             <button
@@ -144,7 +154,7 @@ const StudentDetailModalContent: React.FC<
           </div>
         </div>
 
-        {/* 핵심 요약: 다음 수업 / 출결 / 상담 / 수납 */}
+        {/* 핵심 요약: 다음 수업 / 출결 / 수납 / 보호자 */}
         <div
           className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4 sm:px-6 py-3 border-b border-slate-100 bg-white shrink-0"
           aria-label="학생 핵심 요약"
@@ -160,6 +170,42 @@ const StudentDetailModalContent: React.FC<
               </p>
             </div>
           ))}
+        </div>
+
+        {/* 빠른 액션 — 기존 모달/탭 재사용 */}
+        <div className="flex flex-wrap gap-2 px-4 sm:px-6 py-2.5 border-b border-slate-100 bg-slate-50/50 shrink-0">
+          <button
+            type="button"
+            onClick={modal.openQuickAttendance}
+            className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 inline-flex items-center gap-1.5"
+          >
+            <ClipboardCheck className="w-3.5 h-3.5" />
+            출결 기록
+          </button>
+          <button
+            type="button"
+            onClick={() => onEdit(student)}
+            className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 inline-flex items-center gap-1.5"
+          >
+            <Edit className="w-3.5 h-3.5" />
+            레슨·정보 변경
+          </button>
+          <button
+            type="button"
+            onClick={modal.openQuickTuition}
+            className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 inline-flex items-center gap-1.5"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            수납
+          </button>
+          <button
+            type="button"
+            onClick={modal.openQuickConsultation}
+            className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 inline-flex items-center gap-1.5"
+          >
+            <MessageSquare className="w-3.5 h-3.5" />
+            상담 기록
+          </button>
         </div>
 
         <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -312,6 +358,7 @@ const StudentDetailModalContent: React.FC<
                 <StudentDetailTuitionTab
                   allInvoices={modal.allInvoices}
                   billingSummary={modal.billingSummary}
+                  studentSales={modal.studentSales}
                   payInvoiceId={modal.tuition.payInvoiceId}
                   setPayInvoiceId={modal.tuition.setPayInvoiceId}
                   payAmount={modal.tuition.payAmount}
@@ -323,6 +370,12 @@ const StudentDetailModalContent: React.FC<
                   onCreateInvoice={modal.tuition.onCreateInvoice}
                   onOpenPayModal={modal.tuition.onOpenPayModal}
                   onProcessPayment={modal.tuition.onProcessPayment}
+                  onOpenTextbookSale={() => modal.textbooks.setIsStudentSaleModalOpen(true)}
+                  onOpenTextbookTab={() => modal.setCurrentTab('textbooks')}
+                  onOpenTextbookPayment={(sale) => {
+                    modal.textbooks.setSelectedStudentSaleForPay(sale);
+                    modal.textbooks.setIsStudentTbPaymentModalOpen(true);
+                  }}
                 />
               )}
 
@@ -421,6 +474,11 @@ const StudentDetailModalContent: React.FC<
             modal.triggerRefresh();
           }}
           onClose={() => modal.textbooks.setIsStudentSaleModalOpen(false)}
+          onRegisterTextbooks={() => {
+            modal.textbooks.setIsStudentSaleModalOpen(false);
+            onClose();
+            setActiveTab('textbooks');
+          }}
         />
       )}
 

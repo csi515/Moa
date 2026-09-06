@@ -1,4 +1,8 @@
 import type { IndustryType } from '@/core/industry/types';
+import {
+  formatOrganizationAddress,
+  type OrganizationAddressValue,
+} from '@/core/address';
 import type { AcademySettings } from '@/types';
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
@@ -14,6 +18,8 @@ export interface CreateOrganizationOptions {
   industryCategory: string;
   industryType?: IndustryType | string;
   settings?: Partial<AcademySettings>;
+  /** 구조화 주소 (선택) — Juso 필드만 저장 */
+  addressParts?: OrganizationAddressValue;
 }
 
 /** 가입·마법사 폼 필드 → createOrganization 옵션 매핑 */
@@ -23,6 +29,7 @@ export type CreateOrganizationFormExtras = Partial<AcademySettings> & {
   address?: string;
   businessNumber?: string;
   industryCategory?: string;
+  addressParts?: OrganizationAddressValue;
 };
 
 export function toCreateOrganizationOptions(
@@ -30,6 +37,12 @@ export function toCreateOrganizationOptions(
   industryType: IndustryType | string = 'piano',
   extras?: CreateOrganizationFormExtras
 ): CreateOrganizationOptions {
+  const addressParts = extras?.addressParts;
+  const formatted =
+    (addressParts && formatOrganizationAddress(addressParts)) ||
+    extras?.address?.trim() ||
+    '-';
+
   return {
     name,
     industryType,
@@ -37,8 +50,9 @@ export function toCreateOrganizationOptions(
     businessRegistrationNumber: extras?.businessNumber?.trim() || '000-00-00000',
     representativeName: extras?.directorName?.trim() || name,
     businessPhone: extras?.phone?.trim() || '00000000000',
-    businessAddress: extras?.address?.trim() || '-',
+    businessAddress: formatted,
     industryCategory: extras?.industryCategory?.trim() || String(industryType),
+    addressParts,
   };
 }
 
@@ -82,6 +96,13 @@ export async function fetchUserOrganizations(userId: string): Promise<Organizati
           settings,
           is_active,
           public_code,
+          postal,
+          sido,
+          sigungu,
+          dong,
+          jibun,
+          road_address,
+          address_detail,
           created_at,
           updated_at
         )
@@ -202,6 +223,7 @@ export async function createOrganization(
     throw new Error('업종을 입력해 주세요.');
   }
 
+  const parts = options.addressParts;
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: name,
     p_business_registration_number: options.businessRegistrationNumber.trim(),
@@ -212,6 +234,13 @@ export async function createOrganization(
     p_industry_type: resolvedIndustryType,
     p_slug: slug,
     p_settings: (options.settings ?? {}) as Record<string, unknown>,
+    p_postal: parts?.postal ?? null,
+    p_sido: parts?.sido ?? null,
+    p_sigungu: parts?.sigungu ?? null,
+    p_dong: parts?.dong ?? null,
+    p_jibun: parts?.jibun ?? null,
+    p_road_address: parts?.roadAddress?.trim() || null,
+    p_address_detail: parts?.addressDetail?.trim() || null,
   });
 
   if (error) throw error;
@@ -246,21 +275,55 @@ export async function deleteOrganization(organizationId: string): Promise<void> 
   if (!data) throw new Error('조직 삭제에 실패했습니다.');
 }
 
-/** 조직 이름 및 설정 업데이트 */
+/** 조직 이름·설정·구조화 주소 업데이트 */
 export async function updateOrganization(
   organizationId: string,
   updates: {
     name?: string;
     settings?: Partial<AcademySettings>;
+    addressParts?: OrganizationAddressValue;
   }
 ): Promise<void> {
-  const payload: any = {};
+  const payload: Record<string, unknown> = {};
 
   if (updates.name !== undefined) {
     payload.name = updates.name;
   }
 
-  if (updates.settings !== undefined) {
+  if (updates.addressParts) {
+    const parts = updates.addressParts;
+    const display = formatOrganizationAddress(parts);
+    payload.postal = parts.postal;
+    payload.sido = parts.sido;
+    payload.sigungu = parts.sigungu;
+    payload.dong = parts.dong;
+    payload.jibun = parts.jibun;
+    payload.road_address = parts.roadAddress.trim() || null;
+    payload.address_detail = parts.addressDetail.trim() || null;
+
+    const { data: currentOrg, error: fetchError } = await getCoreClient()
+      .from('organizations')
+      .select('settings')
+      .eq('id', organizationId)
+      .single();
+
+    if (fetchError) throw fetchError;
+
+    const currentSettings = (currentOrg?.settings as Record<string, unknown>) ?? {};
+    const mergedSettings: Record<string, unknown> = {
+      ...currentSettings,
+      ...(updates.settings ?? {}),
+    };
+    // 도로명 미선택 시 레거시 businessAddress/address 를 비우지 않음
+    if (display) {
+      mergedSettings.address = display;
+      mergedSettings.businessAddress = display;
+    } else if (updates.settings?.address) {
+      mergedSettings.address = updates.settings.address;
+      mergedSettings.businessAddress = updates.settings.address;
+    }
+    payload.settings = mergedSettings;
+  } else if (updates.settings !== undefined) {
     const { data: currentOrg, error: fetchError } = await getCoreClient()
       .from('organizations')
       .select('settings')
@@ -275,8 +338,38 @@ export async function updateOrganization(
 
   const { error } = await getCoreClient()
     .from('organizations')
-    .update(payload)
+    // Supabase Update 타입이 과도하게 좁혀져 payload(Record)를 직접 받지 못함
+    .update(payload as never)
     .eq('id', organizationId);
 
   if (error) throw error;
+}
+
+/** 조직 구조화 주소 조회 (편집 화면 hydrate용) */
+export async function fetchOrganizationAddress(
+  organizationId: string
+): Promise<OrganizationAddressValue & { legacyAddress: string }> {
+  const { data, error } = await getCoreClient()
+    .from('organizations')
+    .select('postal, sido, sigungu, dong, jibun, road_address, address_detail, settings')
+    .eq('id', organizationId)
+    .single();
+
+  if (error) throw error;
+
+  const settings = (data?.settings as Record<string, unknown>) ?? {};
+  const legacyAddress = String(
+    settings.address || settings.businessAddress || ''
+  );
+
+  return {
+    roadAddress: String(data?.road_address ?? ''),
+    addressDetail: String(data?.address_detail ?? ''),
+    postal: data?.postal ? String(data.postal) : null,
+    sido: data?.sido ? String(data.sido) : null,
+    sigungu: data?.sigungu ? String(data.sigungu) : null,
+    dong: data?.dong ? String(data.dong) : null,
+    jibun: data?.jibun ? String(data.jibun) : null,
+    legacyAddress,
+  };
 }

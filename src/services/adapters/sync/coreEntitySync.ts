@@ -127,7 +127,8 @@ export async function hydrateCoreEntities(
     defaultTuitionFee: 180000,
   });
   const settings = parseOrganizationSettings(orgResult.data?.settings, defaultSettings);
-  if (!settings.name && orgResult.data?.name) settings.name = orgResult.data.name;
+  // organizations.name 컬럼이 표시명의 소스 — settings JSON의 구 name보다 우선
+  if (orgResult.data?.name) settings.name = orgResult.data.name;
 
   const teachers = (staffResult.data || []).map(staffRowToTeacher);
 

@@ -98,14 +98,39 @@ export function createTextbookCatalogStorage(api: StorageApi) {
       return saved;
     },
 
+    /** 판매 가능한(사용중) 교재만 — 신규 수납 선택용 */
+    getActiveTextbooks(): Textbook[] {
+      return (api.getTextbooks as () => Textbook[])().filter((t) => t.isForSale !== false);
+    },
+
+    /**
+     * 교재는 과거 구매 이력이 있을 수 있어 hard delete 하지 않는다.
+     * isForSale=false 로 비활성화한다.
+     */
     deleteTextbook(id: string): boolean {
       const list = (api.getTextbooks as () => Textbook[])();
-      const filtered = list.filter((t) => t.id !== id);
-      if (filtered.length !== list.length) {
-        setItem(STORAGE_KEYS.TEXTBOOKS, filtered);
-        return true;
-      }
-      return false;
+      const idx = list.findIndex((t) => t.id === id);
+      if (idx < 0) return false;
+      list[idx] = {
+        ...list[idx],
+        isForSale: false,
+        updatedAt: new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.TEXTBOOKS, list);
+      return true;
+    },
+
+    setTextbookForSale(id: string, forSale: boolean): boolean {
+      const list = (api.getTextbooks as () => Textbook[])();
+      const idx = list.findIndex((t) => t.id === id);
+      if (idx < 0) return false;
+      list[idx] = {
+        ...list[idx],
+        isForSale: forSale,
+        updatedAt: new Date().toISOString(),
+      };
+      setItem(STORAGE_KEYS.TEXTBOOKS, list);
+      return true;
     },
 
     adjustStock(

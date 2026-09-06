@@ -115,7 +115,11 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
                         )}
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <p className="font-bold text-slate-900">{formatCurrency(summary.textbookBilled || 0)}</p>
+                        <p className="font-bold text-slate-900">
+                          {(summary.textbookBilled || 0) > 0
+                            ? formatCurrency(summary.textbookBilled || 0)
+                            : '-'}
+                        </p>
                         {summary.textbookUnpaid > 0 ? (
                           <p className="text-[11px] font-bold text-rose-600">미납: {formatCurrency(summary.textbookUnpaid)}</p>
                         ) : (summary.textbookBilled || 0) > 0 ? (
@@ -199,7 +203,11 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
                   </div>
                   <div className="bg-slate-50 rounded-xl p-2.5">
                     <p className="text-slate-500 font-semibold mb-0.5">교재비</p>
-                    <p className="font-bold text-slate-900">{formatCurrency(summary.textbookBilled || 0)}</p>
+                    <p className="font-bold text-slate-900">
+                      {(summary.textbookBilled || 0) > 0
+                        ? formatCurrency(summary.textbookBilled || 0)
+                        : '-'}
+                    </p>
                     {summary.textbookUnpaid > 0 && (
                       <p className="text-[11px] font-bold text-rose-600">미납 {formatCurrency(summary.textbookUnpaid)}</p>
                     )}

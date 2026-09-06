@@ -14,6 +14,7 @@ import { useOptionalAuth } from '../auth/AuthProvider';
 import { useOptionalOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
 import type { MemberRole } from '@/lib/supabase';
+import { StorageService } from '@/services/storage';
 
 interface MembershipGroup {
   organizationId: string;
@@ -30,12 +31,16 @@ interface MembershipGroup {
 export const RoleContextSwitcher: React.FC = () => {
   const auth = useOptionalAuth();
   const org = useOptionalOrganization();
-  const { currentUser, setActiveTab } = useApp();
+  const { currentUser, setActiveTab, refreshKey } = useApp();
   const [open, setOpen] = useState(false);
 
-  if (!auth || !org?.memberships || org.memberships.length === 0) return null;
+  const memberships = org?.memberships ?? [];
+  const selectedMembership = org?.selectedMembership;
+  const settingsName = StorageService.getSettings().name?.trim();
+  const currentOrgId = selectedMembership?.organizationId;
 
-  const { memberships, selectedMembership, switchMembership, clearOrganization } = org;
+  // refreshKey: 설정에서 학원명 변경 시 재렌더
+  void refreshKey;
 
   const groupedMemberships = useMemo(() => {
     const groups = new Map<string, MembershipGroup>();
@@ -43,9 +48,11 @@ export const RoleContextSwitcher: React.FC = () => {
     memberships.forEach((membership) => {
       const orgId = membership.organizationId;
       if (!groups.has(orgId)) {
+        const isCurrent = orgId === currentOrgId;
         groups.set(orgId, {
           organizationId: orgId,
-          organizationName: membership.organization.name,
+          organizationName:
+            isCurrent && settingsName ? settingsName : membership.organization.name,
           memberships: [],
         });
       }
@@ -58,9 +65,14 @@ export const RoleContextSwitcher: React.FC = () => {
     });
 
     return Array.from(groups.values());
-  }, [memberships]);
+  }, [memberships, currentOrgId, settingsName]);
 
-  const currentOrgName = selectedMembership?.organization.name ?? '';
+  if (!auth || !org || memberships.length === 0) return null;
+
+  const { switchMembership, clearOrganization } = org;
+
+  const currentOrgName =
+    settingsName || selectedMembership?.organization.name || '';
   const currentRoleLabel = selectedMembership ? getRoleLabel(selectedMembership.role) : '';
   const displayName = currentUser.name?.trim() || auth.user?.email || '사용자';
 

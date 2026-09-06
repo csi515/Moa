@@ -1,36 +1,52 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { AlertTriangle, X } from 'lucide-react';
+import { AlertTriangle } from 'lucide-react';
+import { Modal } from './ui/Modal';
 
 export const ConfirmDialog: React.FC = () => {
   const { confirmDialog, closeConfirmDialog } = useApp();
 
+  useEffect(() => {
+    if (!confirmDialog) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      confirmDialog.onCancel?.();
+      closeConfirmDialog();
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [confirmDialog, closeConfirmDialog]);
+
   if (!confirmDialog) return null;
 
+  const handleCancel = () => {
+    confirmDialog.onCancel?.();
+    closeConfirmDialog();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-sm overflow-hidden p-6 space-y-4 animate-in fade-in zoom-in-95 duration-200">
+    <Modal isOpen onClose={handleCancel} title={confirmDialog.title} maxWidth="sm">
+      <div className="p-6 space-y-4">
         <div className="flex items-start gap-3">
           <div
             className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
               confirmDialog.isDestructive ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'
             }`}
           >
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-6 h-6" aria-hidden />
           </div>
-          <div className="flex-1 pt-1">
-            <h3 className="font-bold text-slate-900 text-base leading-tight">{confirmDialog.title}</h3>
-          </div>
+          <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line pt-1">
+            {confirmDialog.message}
+          </p>
         </div>
-
-        <p className="text-sm text-slate-600 leading-relaxed">
-          {confirmDialog.message}
-        </p>
 
         <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
           <button
             type="button"
-            onClick={closeConfirmDialog}
+            onClick={handleCancel}
             className="px-4 py-2.5 min-h-[44px] text-sm font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-colors"
           >
             {confirmDialog.cancelText || '취소'}
@@ -51,6 +67,6 @@ export const ConfirmDialog: React.FC = () => {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 };

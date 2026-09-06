@@ -40,11 +40,14 @@ interface JusoApiResponse {
 }
 
 interface AddressSearchResult {
-  roadAddr: string;
-  jibunAddr: string;
-  zipNo: string;
+  roadAddress: string;
   fullAddress: string;
-  region: string;
+  jibun: string | null;
+  postal: string | null;
+  sido: string | null;
+  sigungu: string | null;
+  dong: string | null;
+  buildingName: string | null;
 }
 
 function validateKeyword(keyword: string): { valid: boolean; error?: string } {
@@ -158,16 +161,16 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const results: AddressSearchResult[] = (jusoData.results.juso || []).map((item) => {
-      const region = [item.siNm, item.sggNm, item.emdNm].filter(Boolean).join(" ");
-      return {
-        roadAddr: item.roadAddr,
-        jibunAddr: item.jibunAddr,
-        zipNo: item.zipNo,
-        fullAddress: item.roadAddr,
-        region,
-      };
-    });
+    const results: AddressSearchResult[] = (jusoData.results.juso || []).map((item) => ({
+      roadAddress: item.roadAddr,
+      fullAddress: item.roadAddr,
+      jibun: item.jibunAddr || null,
+      postal: item.zipNo || null,
+      sido: item.siNm || null,
+      sigungu: item.sggNm || null,
+      dong: item.emdNm || null,
+      buildingName: item.bdNm || null,
+    }));
 
     return new Response(
       JSON.stringify({

@@ -14,10 +14,11 @@ type CustomerSegment = 'list' | 'parents' | 'enrollment';
 export const CustomerHubView: FC<{
   listView?: FC;
   enrollmentLabel?: string;
-}> = ({ listView: ListView = StudentListView, enrollmentLabel = '등록 요청' }) => {
+}> = ({ listView, enrollmentLabel = '등록 요청' }) => {
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const listTab = getCustomerListTab(industry) as NavTab;
+  const ListView = listView ?? StudentListView;
 
   const segment: CustomerSegment = useMemo(() => {
     if (activeTab === 'parents') return 'parents';

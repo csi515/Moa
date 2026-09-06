@@ -42,6 +42,8 @@ export const STORAGE_KEYS = {
   MEDICATION_REQUESTS: 'daycare_medication_requests',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
+  /** 온보딩 진행 상태 (org 스코프) — completed/skipped는 INITIALIZED와 함께 기록 */
+  ONBOARDING_PROGRESS: 'piano_app_onboarding_progress_v1',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
@@ -96,6 +98,7 @@ export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
 export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
   STORAGE_KEYS.INITIALIZED,
+  STORAGE_KEYS.ONBOARDING_PROGRESS,
   STORAGE_KEYS.SESSION_PASSES,
   STORAGE_KEYS.SLOT_RECRUITMENTS,
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,

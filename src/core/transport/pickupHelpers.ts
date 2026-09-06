@@ -29,17 +29,21 @@ export function normalizePickupAddresses(addresses: PickupAddress[] | undefined)
 export function studentUsesShuttleService(student: Student): boolean {
   return Boolean(
     student.usesShuttleService &&
-      student.pickupAddresses?.some((a) => a.address.trim().length > 0)
+      student.pickupAddresses?.some((a) => (a.address || '').trim().length > 0)
   );
 }
 
 export function getDefaultPickupAddress(student: Student): PickupAddress | undefined {
   const list = student.pickupAddresses || [];
-  return list.find((a) => a.isDefault) || list.find((a) => a.address.trim()) || list[0];
+  return (
+    list.find((a) => a.isDefault) ||
+    list.find((a) => (a.address || '').trim()) ||
+    list[0]
+  );
 }
 
 export function formatPickupAddressLine(address: PickupAddress): string {
-  const parts = [address.address.trim()];
+  const parts = [(address.address || '').trim()];
   if (address.detail?.trim()) parts.push(address.detail.trim());
   return parts.filter(Boolean).join(' ');
 }
@@ -59,8 +63,8 @@ export function sanitizePickupAddressesForSave(
     addresses
       .map((a) => ({
         ...a,
-        label: a.label.trim() || '주소',
-        address: a.address.trim(),
+        label: (a.label || '').trim() || '주소',
+        address: (a.address || '').trim(),
         detail: a.detail?.trim() || undefined,
         contactName: a.contactName?.trim() || undefined,
         contactPhone: a.contactPhone?.trim() || undefined,

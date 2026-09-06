@@ -8,7 +8,8 @@ import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttend
 import { useStorageRefresh } from '@/hooks';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
-import { Section, StatCard } from './shared';
+import { SummaryMetricCard } from '@/shared/components';
+import { Section } from './shared';
 import { ParentHeroCard, ParentNoticePreview } from './parentHomeShared';
 
 /** 체육관 학부모 홈 */
@@ -51,24 +52,24 @@ export function GymParentHome({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <button type="button" onClick={() => onNavigate('attendance')} className="text-left">
-          <StatCard label="오늘 출입" value={sessionStatus.label} />
-        </button>
-        <button type="button" onClick={() => onNavigate('shuttle')} className="text-left">
-          <StatCard
-            label="오늘 차량"
-            value={todayRides.length > 0 ? `${todayRides.length}건` : '신청'}
-          />
-        </button>
+        <SummaryMetricCard
+          label="오늘 출입"
+          value={sessionStatus.label}
+          onClick={() => onNavigate('attendance')}
+        />
+        <SummaryMetricCard
+          label="오늘 차량"
+          value={todayRides.length > 0 ? `${todayRides.length}건` : '신청'}
+          onClick={() => onNavigate('shuttle')}
+        />
       </div>
 
-      <button type="button" onClick={() => onNavigate('tuition')} className="w-full text-left">
-        <StatCard
-          label="미납 수강료"
-          value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
-          warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
-        />
-      </button>
+      <SummaryMetricCard
+        label="미납 수강료"
+        value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
+        variant={(summary.grandUnpaid ?? summary.totalUnpaid) > 0 ? 'rose' : 'default'}
+        onClick={() => onNavigate('tuition')}
+      />
 
       {todaySession?.checkInAt && (
         <Section title="오늘 출석">

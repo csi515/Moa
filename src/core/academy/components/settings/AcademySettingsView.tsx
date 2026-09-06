@@ -40,6 +40,12 @@ import {
   getConfiguredRooms,
 } from '@/core/academy/utils/academyRooms';
 import type { AcademyRoomKind } from '@/types';
+import {
+  EMPTY_ORGANIZATION_ADDRESS,
+  OrganizationAddressFields,
+  formatOrganizationAddress,
+  type OrganizationAddressValue,
+} from '@/core/address';
 export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh, openConfirmDialog, setActiveTab } = useApp();
   const { industry, isOwner, isAdmin } = usePermissions();
@@ -53,6 +59,10 @@ export const AcademySettingsView: FC = () => {
   const accentHover = accent.hoverBg;
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
+  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(
+    EMPTY_ORGANIZATION_ADDRESS
+  );
+  const [legacyAddress, setLegacyAddress] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -70,6 +80,42 @@ export const AcademySettingsView: FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const orgId = org.currentOrganization?.id;
+    if (!orgId) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const loaded = await orgService.fetchOrganizationAddress(orgId);
+        if (cancelled) return;
+        setAddressParts({
+          roadAddress: loaded.roadAddress,
+          addressDetail: loaded.addressDetail,
+          postal: loaded.postal,
+          sido: loaded.sido,
+          sigungu: loaded.sigungu,
+          dong: loaded.dong,
+          jibun: loaded.jibun,
+        });
+        setLegacyAddress(loaded.legacyAddress);
+        if (loaded.legacyAddress || loaded.roadAddress) {
+          setSettings((prev) => ({
+            ...prev,
+            address:
+              formatOrganizationAddress(loaded) || loaded.legacyAddress || prev.address,
+          }));
+        }
+      } catch {
+        // 로컬 설정 유지
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [org.currentOrganization?.id]);
 
   const updateRoom = (id: string, patch: { name?: string; kind?: AcademyRoomKind }) => {
     setSettings({
@@ -96,19 +142,25 @@ export const AcademySettingsView: FC = () => {
     e.preventDefault();
     setIsSaving(true);
     try {
-      StorageService.saveSettings({
+      const displayAddress =
+        formatOrganizationAddress(addressParts) || settings.address || legacyAddress;
+      const nextSettings = {
         ...settings,
+        address: displayAddress,
         rooms: getConfiguredRooms(settings),
-      });
+      };
+      StorageService.saveSettings(nextSettings);
       
       if (org.currentOrganization) {
         await orgService.updateOrganization(org.currentOrganization.id, {
           name: settings.name,
+          addressParts,
           settings: {
+            name: settings.name,
             directorName: settings.directorName,
             phone: settings.phone,
             businessNumber: settings.businessNumber,
-            address: settings.address,
+            address: displayAddress,
             defaultTuitionFee: settings.defaultTuitionFee,
             defaultPaymentDay: settings.defaultPaymentDay,
             bankAccount: settings.bankAccount,
@@ -116,10 +168,12 @@ export const AcademySettingsView: FC = () => {
             rooms: getConfiguredRooms(settings),
           },
         });
-        
+
+        org.patchOrganization(org.currentOrganization.id, { name: settings.name });
         await org.refreshOrganizations();
       }
       
+      setSettings(nextSettings);
       triggerRefresh();
       showToast('사업장 설정이 저장되었습니다.', 'success');
     } catch (err) {
@@ -293,14 +347,18 @@ export const AcademySettingsView: FC = () => {
               </FormField>
             </div>
 
-            <FormField label="학원 소재지 주소">
-              <input
-                type="text"
-                value={settings.address}
-                onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                className={FORM_CONTROL_CLASS}
-              />
-            </FormField>
+            <OrganizationAddressFields
+              value={addressParts}
+              onChange={(next) => {
+                setAddressParts(next);
+                setSettings({
+                  ...settings,
+                  address: formatOrganizationAddress(next) || settings.address,
+                });
+              }}
+              legacyAddress={legacyAddress}
+              label="학원 소재지 주소"
+            />
 
             {org.currentOrganization?.public_code && (
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">

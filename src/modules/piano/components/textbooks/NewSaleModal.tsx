@@ -10,20 +10,29 @@ interface NewSaleModalProps {
   initialTextbookId?: string;
   onSuccess: (saleId: string) => void;
   onClose: () => void;
+  /** 활성 교재가 없을 때 교재 관리로 이동 */
+  onRegisterTextbooks?: () => void;
 }
 
 export const NewSaleModal: React.FC<NewSaleModalProps> = ({
   initialStudentId,
   initialTextbookId,
   onSuccess,
-  onClose
+  onClose,
+  onRegisterTextbooks,
 }) => {
-  const { showToast } = useApp();
+  const { showToast, setActiveTab } = useApp();
   const students = StorageService.getStudents().filter((s) => s.status === 'active');
-  const textbooks = StorageService.getTextbooks();
+  const textbooks = StorageService.getActiveTextbooks
+    ? StorageService.getActiveTextbooks()
+    : StorageService.getTextbooks().filter((t) => t.isForSale !== false);
 
   const [selectedStudentId, setSelectedStudentId] = useState(initialStudentId || (students[0]?.id || ''));
-  const [selectedTextbookId, setSelectedTextbookId] = useState(initialTextbookId || (textbooks[0]?.id || ''));
+  const [selectedTextbookId, setSelectedTextbookId] = useState(
+    initialTextbookId && textbooks.some((t) => t.id === initialTextbookId)
+      ? initialTextbookId
+      : textbooks[0]?.id || ''
+  );
   const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(15000);
@@ -69,15 +78,15 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     e.preventDefault();
 
     if (!selectedStudentId) {
-      alert('원생을 선택해주세요.');
+      showToast('원생을 선택해주세요.', 'warning');
       return;
     }
     if (!selectedTextbookId) {
-      alert('교재를 선택해주세요.');
+      showToast('교재를 선택해주세요.', 'warning');
       return;
     }
     if (quantity <= 0) {
-      alert('판매 수량은 1권 이상이어야 합니다.');
+      showToast('판매 수량은 1권 이상이어야 합니다.', 'warning');
       return;
     }
 
@@ -100,7 +109,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
       );
       onSuccess(res.sale.id);
     } catch (err: any) {
-      alert(err.message || '교재 판매 등록 중 오류가 발생했습니다.');
+      showToast(err.message || '교재 판매 등록 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -195,6 +204,29 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
           {/* 2. 교재 선택 및 재고 알림 */}
           <div className="bg-indigo-50/40 p-4 rounded-xl border border-indigo-100/70 space-y-3">
+            {textbooks.length === 0 ? (
+              <div className="text-center space-y-3 py-4">
+                <BookOpen className="w-8 h-8 text-indigo-300 mx-auto" />
+                <div>
+                  <p className="text-sm font-bold text-slate-800">등록된 교재가 없습니다</p>
+                  <p className="text-xs text-slate-500 mt-1">
+                    교재 마스터를 먼저 등록한 뒤 학생에게 일회성으로 판매할 수 있습니다.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    if (onRegisterTextbooks) onRegisterTextbooks();
+                    else setActiveTab('textbooks');
+                  }}
+                  className="inline-flex items-center justify-center px-4 py-2.5 min-h-[44px] text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl"
+                >
+                  교재 등록하기
+                </button>
+              </div>
+            ) : (
+              <>
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-slate-800 font-semibold">
@@ -213,7 +245,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <select
                 value={selectedTextbookId}
                 onChange={(e) => setSelectedTextbookId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-indigo-200 bg-white text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3 py-2.5 min-h-[44px] rounded-xl border border-indigo-200 bg-white text-slate-900 font-semibold focus:outline-hidden focus:ring-2 focus:ring-indigo-500"
               >
                 {filteredTextbooks.map((t) => (
                   <option key={t.id} value={t.id}>
@@ -241,6 +273,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
                   </div>
                 )}
               </div>
+            )}
+              </>
             )}
           </div>
 
@@ -411,7 +445,8 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
             </button>
             <button
               type="submit"
-              className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs"
+              disabled={textbooks.length === 0}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 min-h-[44px] text-xs font-semibold rounded-xl bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs disabled:opacity-50 disabled:pointer-events-none"
             >
               <ShoppingBag className="w-4 h-4" />
               교재 판매 등록 (재고 자동 차감)

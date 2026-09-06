@@ -3,7 +3,8 @@ import { formatCurrency } from '@/utils/formatters';
 import { ScheduleService } from '@/core/services/scheduleService';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
-import { Section, StatCard } from './shared';
+import { SummaryMetricCard } from '@/shared/components';
+import { Section } from './shared';
 import { ParentHeroCard, ParentNoticePreview } from './parentHomeShared';
 
 function formatBookingWhen(iso: string): string {
@@ -39,19 +40,23 @@ export function PilatesParentHome({
       />
 
       <div className="grid grid-cols-2 gap-3">
-        <button type="button" onClick={() => onNavigate('bookings')} className="text-left">
-          <StatCard label="이용권 잔여" value={`${remaining}회`} />
-        </button>
-        <button type="button" onClick={() => onNavigate('bookings')} className="text-left">
-          <StatCard label="다음 예약" value={next ? formatBookingWhen(next.startsAt) : '없음'} />
-        </button>
-        <button type="button" onClick={() => onNavigate('tuition')} className="text-left col-span-2">
-          <StatCard
-            label="미납액"
-            value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
-            warn={(summary.grandUnpaid ?? summary.totalUnpaid) > 0}
-          />
-        </button>
+        <SummaryMetricCard
+          label="이용권 잔여"
+          value={`${remaining}회`}
+          onClick={() => onNavigate('bookings')}
+        />
+        <SummaryMetricCard
+          label="다음 예약"
+          value={next ? formatBookingWhen(next.startsAt) : '없음'}
+          onClick={() => onNavigate('bookings')}
+        />
+        <SummaryMetricCard
+          className="col-span-2"
+          label="미납액"
+          value={formatCurrency(summary.grandUnpaid ?? summary.totalUnpaid)}
+          variant={(summary.grandUnpaid ?? summary.totalUnpaid) > 0 ? 'rose' : 'default'}
+          onClick={() => onNavigate('tuition')}
+        />
       </div>
 
       <Section title="다가오는 예약">

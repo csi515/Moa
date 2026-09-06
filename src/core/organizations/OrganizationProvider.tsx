@@ -44,6 +44,8 @@ interface OrganizationContextType {
     settings?: orgService.CreateOrganizationFormExtras
   ) => Promise<void>;
   refreshOrganizations: () => Promise<void>;
+  /** 설정 저장 직후 헤더·사업장 선택 UI에 이름 반영 */
+  patchOrganization: (organizationId: string, patch: { name: string }) => void;
   enterParentPortal: () => void;
   exitParentPortal: () => void;
 }
@@ -284,6 +286,27 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     [refreshOrganizations, selectOrganization]
   );
 
+  const patchOrganization = useCallback((organizationId: string, patch: { name: string }) => {
+    const nextName = patch.name.trim();
+    if (!nextName) return;
+
+    setOrganizations((prev) =>
+      prev.map((m) =>
+        m.organizationId === organizationId
+          ? { ...m, organization: { ...m.organization, name: nextName } }
+          : m
+      )
+    );
+    setCurrentOrganization((prev) =>
+      prev?.id === organizationId ? { ...prev, name: nextName } : prev
+    );
+    setSelectedMembership((prev) =>
+      prev?.organizationId === organizationId
+        ? { ...prev, organization: { ...prev.organization, name: nextName } }
+        : prev
+    );
+  }, []);
+
   const enterParentPortal = useCallback(() => {
     setParentPortalActiveState(true);
     setParentPortalModeActive(true);
@@ -315,6 +338,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         clearOrganization,
         createOrganization,
         refreshOrganizations,
+        patchOrganization,
         enterParentPortal,
         exitParentPortal,
       }}

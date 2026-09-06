@@ -21,9 +21,10 @@ export const StudentDetailTextbooksTab: React.FC<StudentDetailTextbooksTabProps>
   <div className="space-y-4">
     <div className="flex items-center justify-between">
       <div>
-        <h4 className="text-sm font-bold text-slate-900">교재 구매 및 교재비 내역</h4>
+        <h4 className="text-sm font-bold text-slate-900">교재 구매 이력</h4>
         <p className="text-xs text-slate-500">
-          원생에게 지급된 교재 목록 및 미납/수납 내역입니다. (총 {studentSales.length}건)
+          일회성 구매만 기록됩니다. 마스터 가격이 바뀌어도 과거 거래 금액은 유지됩니다. (총{' '}
+          {studentSales.length}건)
         </p>
       </div>
       <button

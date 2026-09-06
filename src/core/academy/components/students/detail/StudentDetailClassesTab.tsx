@@ -48,7 +48,7 @@ export const StudentDetailClassesTab: React.FC<StudentDetailClassesTabProps> = (
                 </span>
               </div>
               <p className="text-xs text-slate-600">
-                요일: <strong>{cls.daysOfWeek.join(', ')}</strong> · {cls.startTime}–{cls.endTime}
+                요일: <strong>{(cls.daysOfWeek || []).join(', ')}</strong> · {cls.startTime}–{cls.endTime}
               </p>
               <p className="text-xs text-slate-500">
                 선생님: {cls.teacherName} · 교재: {cls.textbook || '-'}

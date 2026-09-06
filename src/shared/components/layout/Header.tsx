@@ -15,6 +15,7 @@ export const Header: React.FC = () => {
     globalSearchQuery,
     setGlobalSearchQuery,
     setSelectedStudentId,
+    refreshKey,
   } = useApp();
 
   const supabaseOrg = useOptionalOrganization();
@@ -24,7 +25,13 @@ export const Header: React.FC = () => {
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
 
-  const displayName = supabaseOrg?.currentOrganization?.name ?? StorageService.getSettings().name;
+  // refreshKey: 설정 저장 후 로컬 학원명 재조회
+  void refreshKey;
+  const settingsName = StorageService.getSettings().name?.trim();
+  const displayName =
+    settingsName ||
+    supabaseOrg?.currentOrganization?.name ||
+    '학원';
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 
