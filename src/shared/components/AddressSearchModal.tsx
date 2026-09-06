@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Search, MapPin, X } from 'lucide-react';
 import type { AddressSearchResult } from '@/services/address/addressSearchService';
 import { searchKoreanAddress } from '@/services/address/addressSearchService';
-import { useToast } from '@/shared/hooks/useToast';
+import { useApp } from '@/context/AppContext';
 
 interface AddressSearchModalProps {
   isOpen: boolean;
@@ -11,7 +11,7 @@ interface AddressSearchModalProps {
 }
 
 export function AddressSearchModal({ isOpen, onClose, onSelect }: AddressSearchModalProps) {
-  const { showToast } = useToast();
+  const { showToast } = useApp();
   const [keyword, setKeyword] = useState('');
   const [results, setResults] = useState<AddressSearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
