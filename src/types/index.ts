@@ -705,6 +705,9 @@ export type JoinRequestType = 'membership' | 'trial' | 'consultation';
 export interface CustomerJoinRequest {
   id: string;
   organization_id: string;
+  /** list_my_customer_join_requests RPC에서 채움 */
+  organization_name?: string | null;
+  organization_public_code?: string | null;
   applicant_user_id: string;
   applicant_name: string;
   applicant_phone: string | null;

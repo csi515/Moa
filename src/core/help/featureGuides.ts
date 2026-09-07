@@ -514,3 +514,94 @@ export function getIndustryFeatureGuide(industry: IndustryType | string | null |
     sections: GUIDE_BY_INDUSTRY[type] ?? GENERIC_GUIDE,
   };
 }
+
+/** 성인 수강생(본인) 포털 이용 안내 */
+const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
+  {
+    id: 'adult-home',
+    title: '홈',
+    description: '이용권·미납·오늘 출결·최근 알림을 한눈에 봅니다.',
+    items: [
+      {
+        id: 'adult-pass',
+        title: '이용권·미납',
+        summary: '잔여 이용권과 학원이 발송한 청구서의 미납만 표시됩니다.',
+        howTo: '초안(미발송) 청구서는 보이지 않습니다. 청구서를 눌러 계좌·현금영수증을 확인하세요.',
+      },
+      {
+        id: 'adult-alerts',
+        title: '청구·잔여 알림',
+        summary: '청구서 도착·이용권 잔여 부족 시 홈 상단에 안내가 뜹니다.',
+      },
+    ],
+  },
+  {
+    id: 'adult-schedule-attendance',
+    title: '일정·출결',
+    description: '이번 주 수업과 출입 기록을 확인합니다.',
+    items: [
+      {
+        id: 'adult-schedule',
+        title: '일정',
+        summary: '오늘·이번 주 수업과 연습실 예약을 모아서 봅니다.',
+      },
+      {
+        id: 'adult-attendance',
+        title: '출결',
+        summary: '입·퇴실·보강 등 출결 기록을 확인합니다.',
+        howTo: '키오스크·PIN 출석은 학원에서 기능을 켠 경우에만 사용할 수 있습니다.',
+      },
+    ],
+  },
+  {
+    id: 'adult-practice',
+    title: '연습실',
+    description: '피아노 학원에서만 표시됩니다.',
+    items: [
+      {
+        id: 'adult-practice-book',
+        title: '예약·취소',
+        summary: '날짜별 빈 시간을 골라 예약하고, 내 예약을 취소할 수 있습니다.',
+        howTo: '취소는 되돌릴 수 없으니 확인 후 진행하세요. 충돌·운영시간 밖은 예약되지 않습니다.',
+      },
+    ],
+  },
+  {
+    id: 'adult-notices-billing',
+    title: '알림·수납',
+    description: '학원 안내와 청구·납부 안내입니다. 알림은 앱 푸시만 사용합니다.',
+    items: [
+      {
+        id: 'adult-notices',
+        title: '알림함',
+        summary: '홈의 최근 알림과 계정 탭에서 안내·청구·출결 알림을 확인합니다.',
+        howTo: '카카오·문자는 보내지 않습니다. 앱에서 알림 권한을 허용하면 푸시를 받습니다.',
+      },
+      {
+        id: 'adult-billing',
+        title: '청구서 납부',
+        summary: '계좌이체·현장 결제(카드·지역사랑상품권 등)로 정산합니다. 앱 자동결제는 없습니다.',
+        howTo: '청구서 상세에서 계좌번호를 복사하거나, 현금영수증 발행을 요청할 수 있습니다.',
+      },
+    ],
+  },
+];
+
+export function getAdultStudentPortalGuide(industry?: IndustryType | string | null): {
+  intro: { title: string; body: string };
+  sections: FeatureGuideSection[];
+} {
+  const type = industry ? normalizeIndustryType(industry) : null;
+  const sections =
+    type === 'piano'
+      ? ADULT_STUDENT_PORTAL_SECTIONS
+      : ADULT_STUDENT_PORTAL_SECTIONS.filter((s) => s.id !== 'adult-practice');
+
+  return {
+    intro: {
+      title: '성인 수강생 이용 안내',
+      body: '본인 계정으로 일정·출결·청구·알림을 확인합니다. 자녀 연결은 학부모 포털을 이용하세요.',
+    },
+    sections,
+  };
+}

@@ -47,18 +47,40 @@ export const customerJoinService = {
       throw new Error('Not authenticated');
     }
 
-    const { data, error } = await getCoreClient()
+    const { data, error } = await getCoreClient().rpc('list_my_customer_join_requests' as never);
+
+    if (!error && data) {
+      const rows = (typeof data === 'string' ? JSON.parse(data) : data) as CustomerJoinRequest[];
+      return Array.isArray(rows) ? rows : [];
+    }
+
+    // RPC 미적용 환경 폴백
+    const { data: fallback, error: fallbackError } = await getCoreClient()
       .from('customer_join_requests')
       .select('*')
       .eq('applicant_user_id', user.user.id)
       .order('created_at', { ascending: false });
 
-    if (error) {
-      console.error('Failed to fetch join requests:', error);
+    if (fallbackError) {
+      console.error('Failed to fetch join requests:', fallbackError);
       throw new Error('가입 신청 목록을 가져오는데 실패했습니다');
     }
 
-    return (data || []) as CustomerJoinRequest[];
+    return (fallback || []) as CustomerJoinRequest[];
+  },
+
+  async cancelMyJoinRequest(requestId: string): Promise<void> {
+    const { error } = await getCoreClient().rpc('cancel_my_customer_join_request' as never, {
+      p_request_id: requestId,
+    } as never);
+
+    if (error) {
+      console.error('Failed to cancel join request:', error);
+      if (error.message.includes('Only pending')) {
+        throw new Error('대기 중인 신청만 취소할 수 있습니다');
+      }
+      throw new Error('가입 신청 취소에 실패했습니다');
+    }
   },
 
   async getOrgJoinRequests(

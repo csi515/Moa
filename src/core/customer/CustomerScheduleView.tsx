@@ -1,36 +1,46 @@
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { StorageService } from '@/services/storage';
-import type { Student } from '@/types';
 import {
   practiceRoomReservationService,
   seoulDateFromIso,
   seoulTimeFromIso,
   type RoomReservationRow,
-} from '@/core/customer/services/practiceRoomReservationService';
-import { Section } from './shared';
+} from './services/practiceRoomReservationService';
 import {
   getTodayClasses,
   getUpcomingWeekOccurrences,
-} from '../utils/parentScheduleHelpers';
+} from '@/modules/parent/utils/parentScheduleHelpers';
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-/** 등록 반·오늘/이번 주·연습실 예약 (canonical room_reservations) */
-export function ParentScheduleView({
-  student,
+function statusLabel(status: string): string {
+  if (status === 'pending') return '승인 대기';
+  if (status === 'approved') return '승인';
+  return status;
+}
+
+/** 성인 수강생 — 등록 반 + 연습실 일정 */
+export function CustomerScheduleView({
+  customerId,
   organizationId,
+  displayName,
 }: {
-  student: Student;
+  customerId: string;
   organizationId: string;
+  displayName: string;
 }) {
+  const student = useMemo(() => {
+    return StorageService.getStudents().find((s) => s.id === customerId) || null;
+  }, [customerId]);
+
   const classes = useMemo(() => {
-    const ids = new Set(student.classIds || []);
+    const ids = new Set(student?.classIds || []);
     return StorageService.getClasses()
       .filter((c) => ids.has(c.id))
       .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.name.localeCompare(b.name, 'ko'));
-  }, [student.classIds]);
+  }, [student?.classIds]);
 
   const todayClasses = useMemo(() => getTodayClasses(classes), [classes]);
   const weekOccurrences = useMemo(() => getUpcomingWeekOccurrences(classes), [classes]);
@@ -40,55 +50,35 @@ export function ParentScheduleView({
   useEffect(() => {
     let cancelled = false;
     void practiceRoomReservationService
-      .listForCustomer(organizationId, student.id, { fromDate: todayIso(), limit: 10 })
+      .listForCustomer(organizationId, customerId, { fromDate: todayIso(), limit: 10 })
       .then((rows) => {
         if (!cancelled) setPracticeBookings(rows);
       })
       .catch(() => {
-        // RLS/마이그레이션 미적용 시 레거시 로컬 캐시 폴백
-        if (cancelled) return;
-        const legacy = StorageService.getPracticeRoomBookings(student.id)
-          .filter((b) => b.status === 'scheduled' && b.date >= todayIso())
-          .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
-          .slice(0, 10)
-          .map(
-            (b): RoomReservationRow => ({
-              id: b.id,
-              organization_id: organizationId,
-              room_id: '',
-              customer_id: student.id,
-              requested_by: '',
-              starts_at: `${b.date}T${b.startTime}:00+09:00`,
-              ends_at: `${b.date}T${b.endTime}:00+09:00`,
-              status: 'approved',
-              memo: b.memo,
-              practice_rooms: { name: b.room },
-              customers: { name: student.name },
-            })
-          );
-        setPracticeBookings(legacy);
+        if (!cancelled) setPracticeBookings([]);
       });
     return () => {
       cancelled = true;
     };
-  }, [organizationId, student.id, student.name]);
+  }, [organizationId, customerId]);
 
   const today = todayIso();
   const todayPractice = practiceBookings.filter((b) => seoulDateFromIso(b.starts_at) === today);
 
   if (classes.length === 0 && practiceBookings.length === 0) {
     return (
-      <Section title={`${student.name} 수업 일정`}>
-        <p className="text-sm text-slate-400 text-center py-6">
-          등록된 수업 반이 없습니다. 학원에 문의해 주세요.
+      <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
+        <p className="text-sm text-slate-400">
+          {displayName}님의 등록된 수업·연습 일정이 없습니다. 학원에 문의해 주세요.
         </p>
-      </Section>
+      </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <Section title="오늘">
+      <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+        <h2 className="text-sm font-black text-slate-900">오늘</h2>
         {todayClasses.length === 0 && todayPractice.length === 0 ? (
           <p className="text-sm text-slate-500 py-2">오늘 예정된 수업·연습이 없습니다.</p>
         ) : (
@@ -118,21 +108,18 @@ export function ParentScheduleView({
                 <p className="font-bold text-sm text-slate-900 mt-1">
                   연습실 · {b.practice_rooms?.name || '연습실'}
                   <span className="ml-2 text-[10px] font-bold text-amber-800">
-                    {b.status === 'pending' ? '승인 대기' : b.status === 'approved' ? '승인' : b.status}
+                    {statusLabel(b.status)}
                   </span>
                 </p>
-                {b.memo && <p className="text-[11px] text-slate-500 mt-1">{b.memo}</p>}
               </li>
             ))}
           </ul>
         )}
-      </Section>
+      </section>
 
       {practiceBookings.length > 0 && (
-        <Section title="연습실 예약">
-          <p className="text-[11px] text-slate-500 mb-2 leading-relaxed">
-            연습실 예약 신청·변경은 학원에 요청해 주세요. (성인 수강생 앱에서는 본인 신청 가능)
-          </p>
+        <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
+          <h2 className="text-sm font-black text-slate-900">연습실 예약</h2>
           <ul className="space-y-2">
             {practiceBookings.map((b) => (
               <li
@@ -144,24 +131,18 @@ export function ParentScheduleView({
                     {seoulDateFromIso(b.starts_at)} {seoulTimeFromIso(b.starts_at)}–
                     {seoulTimeFromIso(b.ends_at)} · {b.practice_rooms?.name || '연습실'}
                   </p>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    {b.status === 'pending'
-                      ? '승인 대기'
-                      : b.status === 'approved'
-                        ? '승인됨'
-                        : b.status}
-                    {b.memo ? ` · ${b.memo}` : ''}
-                  </p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">{statusLabel(b.status)}</p>
                 </div>
               </li>
             ))}
           </ul>
-        </Section>
+        </section>
       )}
 
       {classes.length > 0 && (
         <>
-          <Section title="이번 주">
+          <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
+            <h2 className="text-sm font-black text-slate-900">이번 주</h2>
             <ul className="space-y-2">
               {weekOccurrences.map((occ) => (
                 <li
@@ -180,15 +161,13 @@ export function ParentScheduleView({
                 </li>
               ))}
             </ul>
-          </Section>
+          </section>
 
-          <Section title="등록 반 (매주)">
+          <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
+            <h2 className="text-sm font-black text-slate-900">등록 반</h2>
             <ul className="space-y-3">
               {classes.map((cls) => (
-                <li
-                  key={cls.id}
-                  className="p-4 rounded-2xl border border-slate-100 bg-white"
-                >
+                <li key={cls.id} className="p-4 rounded-2xl border border-slate-100 bg-slate-50/50">
                   <p className="font-bold text-sm text-slate-900">{cls.name}</p>
                   <p className="text-xs text-slate-600 mt-1.5">
                     {cls.daysOfWeek.join('·')} · {cls.startTime}–{cls.endTime}
@@ -197,13 +176,10 @@ export function ParentScheduleView({
                     {cls.teacherName}
                     {cls.room ? ` · ${cls.room}` : ''}
                   </p>
-                  {cls.memo && (
-                    <p className="text-[11px] text-slate-400 mt-2 whitespace-pre-wrap">{cls.memo}</p>
-                  )}
                 </li>
               ))}
             </ul>
-          </Section>
+          </section>
         </>
       )}
     </div>

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   practiceRoomReservationService,
+  seoulDateFromIso,
+  seoulTimeFromIso,
   type PracticeRoomRow,
   type RoomReservationRow,
   toSeoulIso,
@@ -15,12 +17,57 @@ function statusLabel(status: string): string {
   return status;
 }
 
-/** 성인 수강생 — 연습실 타임슬롯 신청 */
+function statusClass(status: string): string {
+  if (status === 'pending') return 'bg-amber-50 text-amber-800';
+  if (status === 'approved') return 'bg-emerald-50 text-emerald-700';
+  if (status === 'rejected') return 'bg-rose-50 text-rose-700';
+  if (status === 'cancelled') return 'bg-slate-100 text-slate-500';
+  return 'bg-slate-50 text-slate-600';
+}
+
+function parseHm(t: string): number {
+  const [h, m] = t.slice(0, 5).split(':').map(Number);
+  return h * 60 + (m || 0);
+}
+
+function formatHm(mins: number): string {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/** 운영 시간 1시간 단위 슬롯 */
+function buildHourSlots(openTime: string, closeTime: string): string[] {
+  const open = parseHm(openTime);
+  const close = parseHm(closeTime);
+  const slots: string[] = [];
+  for (let t = open; t + 60 <= close; t += 60) {
+    slots.push(formatHm(t));
+  }
+  return slots;
+}
+
+function overlapsSlot(
+  reservation: RoomReservationRow,
+  date: string,
+  slotStart: string
+): boolean {
+  if (seoulDateFromIso(reservation.starts_at) !== date) return false;
+  const slotStartM = parseHm(slotStart);
+  const slotEndM = slotStartM + 60;
+  const resStart = parseHm(seoulTimeFromIso(reservation.starts_at));
+  const resEnd = parseHm(seoulTimeFromIso(reservation.ends_at));
+  return resStart < slotEndM && resEnd > slotStartM;
+}
+
+/** 성인 수강생 — 연습실 타임슬롯 신청 (일별 점유 표시) */
 export function CustomerPracticeRoomView({ organizationId }: { organizationId: string }) {
   const [rooms, setRooms] = useState<PracticeRoomRow[]>([]);
   const [mine, setMine] = useState<RoomReservationRow[]>([]);
+  const [dayBookings, setDayBookings] = useState<RoomReservationRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [roomId, setRoomId] = useState('');
   const [startTime, setStartTime] = useState('18:00');
@@ -33,27 +80,68 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
     [rooms, roomId]
   );
 
-  const reload = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const hourSlots = useMemo(() => {
+    if (!selectedRoom) return [];
+    return buildHourSlots(String(selectedRoom.open_time), String(selectedRoom.close_time));
+  }, [selectedRoom]);
+
+  const roomDayBookings = useMemo(
+    () => dayBookings.filter((b) => !selectedRoom || b.room_id === selectedRoom.id),
+    [dayBookings, selectedRoom]
+  );
+
+  const reloadMineAndRooms = useCallback(async () => {
+    const [r, m] = await Promise.all([
+      practiceRoomReservationService.listRooms(organizationId),
+      practiceRoomReservationService.listMyReservations(organizationId),
+    ]);
+    setRooms(r.filter((x) => x.is_active));
+    setMine(m);
+    setRoomId((prev) => {
+      if (prev && r.some((x) => x.id === prev && x.is_active)) return prev;
+      return r.find((x) => x.is_active)?.id || '';
+    });
+  }, [organizationId]);
+
+  const reloadDay = useCallback(async () => {
     try {
-      const [r, m] = await Promise.all([
-        practiceRoomReservationService.listRooms(organizationId),
-        practiceRoomReservationService.listMyReservations(organizationId),
-      ]);
-      setRooms(r.filter((x) => x.is_active));
-      setMine(m);
-      if (!roomId && r[0]) setRoomId(r[0].id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '불러오기 실패');
-    } finally {
-      setLoading(false);
+      const rows = await practiceRoomReservationService.listByDate(organizationId, date);
+      setDayBookings(rows);
+    } catch {
+      setDayBookings([]);
     }
-  }, [organizationId, roomId]);
+  }, [organizationId, date]);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        await reloadMineAndRooms();
+        if (!cancelled) await reloadDay();
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : '불러오기 실패');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadMineAndRooms, reloadDay]);
+
+  useEffect(() => {
+    void reloadDay();
+  }, [reloadDay]);
+
+  const handlePickSlot = (slot: string) => {
+    setStartTime(slot);
+    const end = formatHm(parseHm(slot) + 60);
+    setEndTime(end);
+    setError(null);
+    setSuccess(null);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,8 +150,15 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
       setError('종료 시간은 시작 시간보다 늦어야 합니다. (자정 넘김 불가)');
       return;
     }
+    const open = String(selectedRoom.open_time).slice(0, 5);
+    const close = String(selectedRoom.close_time).slice(0, 5);
+    if (startTime < open || endTime > close) {
+      setError(`운영 시간(${open}–${close}) 안에서만 예약할 수 있습니다.`);
+      return;
+    }
     setSubmitting(true);
     setError(null);
+    setSuccess(null);
     try {
       await practiceRoomReservationService.request({
         organizationId,
@@ -73,7 +168,8 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
         memo,
       });
       setMemo('');
-      await reload();
+      setSuccess('예약 신청이 접수되었습니다. 학원 승인 후 확정됩니다.');
+      await Promise.all([reloadMineAndRooms(), reloadDay()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : '신청 실패');
     } finally {
@@ -82,9 +178,11 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
   };
 
   const handleCancel = async (id: string) => {
+    if (!confirm('이 예약을 취소할까요?')) return;
     try {
       await practiceRoomReservationService.cancel(id);
-      await reload();
+      setSuccess('예약을 취소했습니다.');
+      await Promise.all([reloadMineAndRooms(), reloadDay()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : '취소 실패');
     }
@@ -99,6 +197,11 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
       {error && (
         <p className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-xl px-3 py-2">
           {error}
+        </p>
+      )}
+      {success && (
+        <p className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+          {success}
         </p>
       )}
 
@@ -135,6 +238,48 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
               className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
             />
           </label>
+
+          {hourSlots.length > 0 && (
+            <div>
+              <p className="text-xs font-semibold text-slate-700 mb-2">시간대 (탭하여 선택)</p>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {hourSlots.map((slot) => {
+                  const busy = roomDayBookings.some((b) => overlapsSlot(b, date, slot));
+                  const selected = startTime === slot;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      disabled={busy}
+                      onClick={() => handlePickSlot(slot)}
+                      className={`min-h-[44px] rounded-xl text-[11px] font-bold border transition-colors ${
+                        busy
+                          ? 'bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed'
+                          : selected
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      {slot}
+                      {busy ? ' 예약됨' : ''}
+                    </button>
+                  );
+                })}
+              </div>
+              {roomDayBookings.length > 0 && (
+                <ul className="mt-3 space-y-1">
+                  {roomDayBookings.map((b) => (
+                    <li key={b.id} className="text-[11px] text-slate-500">
+                      {seoulTimeFromIso(b.starts_at)}–{seoulTimeFromIso(b.ends_at)} ·{' '}
+                      {statusLabel(b.status)}
+                      {b.customers?.name ? ` · ${b.customers.name}` : ''}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-2">
             <label className="block text-xs font-semibold text-slate-700">
               시작
@@ -183,12 +328,19 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
               className="flex items-start justify-between gap-2 py-2 border-b border-slate-50 text-sm"
             >
               <div>
-                <p className="font-bold text-slate-800">
-                  {r.practice_rooms?.name || '연습실'} · {statusLabel(r.status)}
+                <p className="font-bold text-slate-800 flex flex-wrap items-center gap-2">
+                  {r.practice_rooms?.name || '연습실'}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${statusClass(r.status)}`}>
+                    {statusLabel(r.status)}
+                  </span>
                 </p>
-                <p className="text-[11px] text-slate-500 font-mono">
-                  {r.starts_at.slice(0, 16).replace('T', ' ')} ~ {r.ends_at.slice(11, 16)}
+                <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                  {seoulDateFromIso(r.starts_at)} {seoulTimeFromIso(r.starts_at)}–
+                  {seoulTimeFromIso(r.ends_at)}
                 </p>
+                {r.status === 'rejected' && r.memo && (
+                  <p className="text-[11px] text-rose-600 mt-1">사유 · {r.memo}</p>
+                )}
               </div>
               {(r.status === 'pending' || r.status === 'approved') && (
                 <button

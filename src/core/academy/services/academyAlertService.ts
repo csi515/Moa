@@ -116,7 +116,7 @@ export function notifyParentTuitionUnpaid(params: {
   });
 }
 
-/** 청구서 수동 발송 시 학부모 포털 알림 + 앱 푸시 */
+/** 청구서 수동 발송 시 학부모·성인 수강생 포털 알림 + 앱 푸시 */
 export function notifyParentTuitionInvoiceSent(params: {
   studentId: string;
   studentName: string;
@@ -132,7 +132,7 @@ export function notifyParentTuitionInvoiceSent(params: {
   publishParentAlert({
     type: 'tuition_unpaid',
     title: '수강료 청구서 도착',
-    message: `${params.studentName} 원생 ${monthLabel} 수강료 청구서가 도착했습니다. 금액 ₩${params.amount.toLocaleString()} · 납기 ${params.dueDate}`,
+    message: `${params.studentName} ${monthLabel} 수강료 청구서가 도착했습니다. 금액 ₩${params.amount.toLocaleString()} · 납기 ${params.dueDate}`,
     student: {
       id: params.studentId,
       name: params.studentName,

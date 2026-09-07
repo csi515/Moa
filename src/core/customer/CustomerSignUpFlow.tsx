@@ -1,14 +1,14 @@
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  Search, 
-  Building2, 
-  MapPin, 
-  ChevronRight, 
-  CheckCircle2, 
+import {
+  Search,
+  Building2,
+  MapPin,
+  ChevronRight,
+  CheckCircle2,
   Clock,
   AlertCircle,
-  X
+  X,
 } from 'lucide-react';
 import type { PublicOrgInfo, CustomerJoinRequest } from '@/types';
 import { publicOrgService } from '@/core/public/services/publicOrgService';
@@ -17,6 +17,13 @@ import { useAuth } from '@/core/auth/AuthProvider';
 import { getIndustryLabel } from '@/core/industry/types';
 
 type Step = 'search' | 'form' | 'pending';
+
+type LocationState = {
+  selectedOrgId?: string;
+  publicCode?: string;
+  orgName?: string;
+  openPending?: boolean;
+};
 
 function getStatusLabel(status: string): { label: string; color: string } {
   const labels: Record<string, { label: string; color: string }> = {
@@ -38,6 +45,8 @@ export function CustomerSignUpFlow() {
   const [searching, setSearching] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<PublicOrgInfo | null>(null);
   const [myRequests, setMyRequests] = useState<CustomerJoinRequest[]>([]);
+  const [preloadError, setPreloadError] = useState<string | null>(null);
+  const [preloading, setPreloading] = useState(false);
   const [form, setForm] = useState({
     applicantName: user?.email?.split('@')[0] || '',
     applicantPhone: '',
@@ -46,18 +55,61 @@ export function CustomerSignUpFlow() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // If pre-selected org from PublicOrgLanding
+  // 랜딩에서 넘어온 학원 자동 선택
   useEffect(() => {
-    const selectedOrgId = location.state?.selectedOrgId;
-    if (selectedOrgId && step === 'search') {
-      // Try to fetch the org and go to form step
-      // For now, just proceed with search step
+    const state = (location.state || {}) as LocationState;
+    if (state.openPending) {
+      setStep('pending');
+      return;
     }
-  }, [location.state, step]);
+    if (!state.publicCode && !state.selectedOrgId) return;
+    if (selectedOrg) return;
+
+    let cancelled = false;
+    const load = async () => {
+      setPreloading(true);
+      setPreloadError(null);
+      try {
+        let org: PublicOrgInfo | null = null;
+        if (state.publicCode) {
+          org = await publicOrgService.getOrganizationByCode(state.publicCode);
+        }
+        if (!org && state.publicCode) {
+          const results = await publicOrgService.searchOrganizations(state.publicCode);
+          org = results.find((r) => r.id === state.selectedOrgId) || results[0] || null;
+        }
+        if (!org && state.orgName) {
+          const results = await publicOrgService.searchOrganizations(state.orgName);
+          org =
+            results.find((r) => r.id === state.selectedOrgId) ||
+            results.find((r) => r.name === state.orgName) ||
+            null;
+        }
+        if (cancelled) return;
+        if (org) {
+          setSelectedOrg(org);
+          setStep('form');
+          navigate(location.pathname, { replace: true, state: {} });
+        } else {
+          setPreloadError('학원 정보를 불러오지 못했습니다. 검색으로 다시 찾아주세요.');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setPreloadError(err instanceof Error ? err.message : '학원 정보를 불러오지 못했습니다.');
+        }
+      } finally {
+        if (!cancelled) setPreloading(false);
+      }
+    };
+    void load();
+    return () => {
+      cancelled = true;
+    };
+  }, [location.state, location.pathname, navigate, selectedOrg]);
 
   useEffect(() => {
     if (user && step === 'pending') {
-      loadMyRequests();
+      void loadMyRequests();
     }
   }, [user, step]);
 
@@ -120,8 +172,9 @@ export function CustomerSignUpFlow() {
           <h2 className="text-xl font-bold text-slate-900 mb-2">로그인이 필요합니다</h2>
           <p className="text-slate-600 mb-6">가입 신청을 하려면 먼저 로그인해주세요</p>
           <button
+            type="button"
             onClick={() => navigate('/login')}
-            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            className="w-full py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors min-h-[44px]"
           >
             로그인하기
           </button>
@@ -132,38 +185,47 @@ export function CustomerSignUpFlow() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <h1 className="text-xl font-bold text-slate-900">고객 가입 신청</h1>
+            <h1 className="text-xl font-bold text-slate-900">수강생 가입 신청</h1>
             <button
+              type="button"
               onClick={() => navigate('/')}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-slate-500 hover:text-slate-700 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="닫기"
             >
               <X className="w-6 h-6" />
             </button>
           </div>
-          {/* Progress Indicator */}
           <div className="flex items-center gap-2 mt-4">
             <div className={`flex-1 h-1 rounded ${step === 'search' ? 'bg-indigo-600' : 'bg-indigo-200'}`} />
-            <div className={`flex-1 h-1 rounded ${step === 'form' ? 'bg-indigo-600' : step === 'pending' ? 'bg-indigo-200' : 'bg-slate-200'}`} />
+            <div
+              className={`flex-1 h-1 rounded ${
+                step === 'form' ? 'bg-indigo-600' : step === 'pending' ? 'bg-indigo-200' : 'bg-slate-200'
+              }`}
+            />
             <div className={`flex-1 h-1 rounded ${step === 'pending' ? 'bg-indigo-600' : 'bg-slate-200'}`} />
           </div>
         </div>
       </header>
 
-      {/* Content */}
       <main className="max-w-2xl mx-auto px-4 py-8">
-        {/* Step 1: Search Organizations */}
+        {preloading && (
+          <p className="text-center text-sm text-slate-500 mb-4">학원 정보를 불러오는 중...</p>
+        )}
+        {preloadError && (
+          <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            {preloadError}
+          </div>
+        )}
+
         {step === 'search' && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
               <h2 className="text-2xl font-bold text-slate-900 mb-2">학원 검색</h2>
-              <p className="text-slate-600 mb-6">
-                가입하고 싶은 학원을 검색하세요
-              </p>
-              
+              <p className="text-slate-600 mb-6">가입하고 싶은 학원을 검색하세요</p>
+
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="relative">
                   <input
@@ -178,24 +240,30 @@ export function CustomerSignUpFlow() {
                 <button
                   type="submit"
                   disabled={searching || !searchQuery.trim()}
-                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                 >
                   {searching ? '검색 중...' : '검색'}
                 </button>
               </form>
+
+              <button
+                type="button"
+                onClick={() => setStep('pending')}
+                className="w-full mt-4 py-3 text-sm font-bold text-indigo-600 min-h-[44px]"
+              >
+                내 신청 현황 보기
+              </button>
             </div>
 
-            {/* Search Results */}
             {searchResults.length > 0 && (
               <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-slate-900">
-                  검색 결과 ({searchResults.length})
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-900">검색 결과 ({searchResults.length})</h3>
                 {searchResults.map((org) => (
                   <button
                     key={org.id}
+                    type="button"
                     onClick={() => handleSelectOrg(org)}
-                    className="w-full bg-white rounded-xl border-2 border-slate-200 p-4 hover:border-indigo-500 hover:bg-indigo-50 transition-all duration-200 text-left"
+                    className="w-full bg-white rounded-xl border-2 border-slate-200 p-4 hover:border-indigo-500 hover:bg-indigo-50 transition-all duration-200 text-left min-h-[44px]"
                   >
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
@@ -226,13 +294,13 @@ export function CustomerSignUpFlow() {
           </div>
         )}
 
-        {/* Step 2: Join Request Form */}
         {step === 'form' && selectedOrg && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
               <button
+                type="button"
                 onClick={() => setStep('search')}
-                className="text-indigo-600 hover:text-indigo-700 font-medium mb-4"
+                className="text-indigo-600 hover:text-indigo-700 font-medium mb-4 min-h-[44px]"
               >
                 ← 다른 학원 검색
               </button>
@@ -245,9 +313,7 @@ export function CustomerSignUpFlow() {
               </div>
 
               <h2 className="text-2xl font-bold text-slate-900 mb-2">가입 신청서</h2>
-              <p className="text-slate-600 mb-6">
-                학원 담당자가 승인하면 알림을 보내드립니다
-              </p>
+              <p className="text-slate-600 mb-6">학원 담당자가 승인하면 알림을 보내드립니다</p>
 
               <form onSubmit={handleSubmitRequest} className="space-y-4">
                 <div>
@@ -279,9 +345,7 @@ export function CustomerSignUpFlow() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    이메일
-                  </label>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">이메일</label>
                   <input
                     type="email"
                     value={form.applicantEmail}
@@ -307,7 +371,7 @@ export function CustomerSignUpFlow() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-h-[44px]"
                 >
                   {submitting ? '제출 중...' : '가입 신청'}
                 </button>
@@ -316,22 +380,19 @@ export function CustomerSignUpFlow() {
           </div>
         )}
 
-        {/* Step 3: Pending Requests */}
         {step === 'pending' && (
           <div className="space-y-6">
             <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 sm:p-8 text-center">
               <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-8 h-8 text-white" />
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">가입 신청 완료</h2>
-              <p className="text-slate-700">
-                학원 담당자가 승인하면 알림을 보내드립니다
-              </p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">가입 신청 현황</h2>
+              <p className="text-slate-700">학원 담당자가 승인하면 수강생 포털을 이용할 수 있습니다</p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-              <h3 className="text-xl font-bold text-slate-900 mb-4">내 신청 현황</h3>
-              
+              <h3 className="text-xl font-bold text-slate-900 mb-4">내 신청 목록</h3>
+
               {myRequests.length === 0 ? (
                 <p className="text-center text-slate-500 py-8">신청 내역이 없습니다</p>
               ) : (
@@ -339,29 +400,61 @@ export function CustomerSignUpFlow() {
                   {myRequests.map((request) => {
                     const statusInfo = getStatusLabel(request.status);
                     return (
-                      <div
-                        key={request.id}
-                        className="border border-slate-200 rounded-xl p-4"
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <h4 className="font-semibold text-slate-900">{request.applicant_name}</h4>
+                      <div key={request.id} className="border border-slate-200 rounded-xl p-4">
+                        <div className="flex items-start justify-between mb-2 gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-slate-900">
+                              {request.organization_name || request.applicant_name}
+                            </h4>
                             <p className="text-sm text-slate-600 mt-1">
+                              {request.organization_name
+                                ? `신청자 ${request.applicant_name} · `
+                                : ''}
                               신청일: {new Date(request.created_at).toLocaleDateString('ko-KR')}
+                              {request.organization_public_code
+                                ? ` · ${request.organization_public_code}`
+                                : ''}
                             </p>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${statusInfo.color}`}>
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium shrink-0 ${statusInfo.color}`}>
                             {statusInfo.label}
                           </span>
                         </div>
-                        
+
                         {request.status === 'pending' && (
-                          <div className="flex items-center gap-2 mt-3 text-sm text-slate-600">
-                            <Clock className="w-4 h-4" />
-                            <span>승인 대기 중입니다</span>
+                          <div className="mt-3 flex flex-col gap-2">
+                            <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <Clock className="w-4 h-4" />
+                              <span>승인 대기 중입니다</span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!confirm('이 가입 신청을 취소할까요?')) return;
+                                try {
+                                  await customerJoinService.cancelMyJoinRequest(request.id);
+                                  await loadMyRequests();
+                                } catch (err) {
+                                  alert(err instanceof Error ? err.message : '취소에 실패했습니다');
+                                }
+                              }}
+                              className="w-full py-2.5 border border-slate-200 text-slate-700 rounded-xl text-sm font-bold min-h-[44px]"
+                            >
+                              신청 취소
+                            </button>
                           </div>
                         )}
-                        
+
+                        {request.status === 'approved' && (
+                          <button
+                            type="button"
+                            onClick={() => navigate('/')}
+                            className="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold min-h-[44px]"
+                          >
+                            포털 열기
+                          </button>
+                        )}
+
                         {request.status === 'rejected' && request.reject_reason && (
                           <div className="mt-3 p-3 bg-red-50 rounded-lg">
                             <p className="text-sm text-red-700">
@@ -376,13 +469,14 @@ export function CustomerSignUpFlow() {
               )}
 
               <button
+                type="button"
                 onClick={() => {
                   setStep('search');
                   setSearchQuery('');
                   setSearchResults([]);
                   setSelectedOrg(null);
                 }}
-                className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+                className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors min-h-[44px]"
               >
                 다른 학원 신청하기
               </button>

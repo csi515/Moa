@@ -21,9 +21,10 @@ import { publicOrgService } from './services/publicOrgService';
 import { coreScheduleService, reservationService } from '@/core/schedules';
 import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
-import { getIndustryLabel } from '@/core/industry/types';
+import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
+import { PENDING_PORTAL_TAB_KEY } from '@/core/push';
 
 interface PublicOrgLandingProps {
   code: string;
@@ -35,6 +36,10 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
   const navigate = useNavigate();
   const isConsultationMode = mode === 'consultation';
   const [org, setOrg] = useState<PublicOrgInfo | null>(null);
+  const adultFirst =
+    !!org &&
+    (normalizeIndustryType(org.industry_type) === 'pilates' ||
+      normalizeIndustryType(org.industry_type) === 'gym');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showQR, setShowQR] = useState(false);
@@ -107,7 +112,13 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
 
   const handleJoinRequest = () => {
     // 고객(원생) 가입 신청 — 가디언 연결과 별개
-    navigate('/signup/customer', { state: { selectedOrgId: org?.id } });
+    navigate('/signup/customer', {
+      state: {
+        selectedOrgId: org?.id,
+        publicCode: org?.public_code,
+        orgName: org?.name,
+      },
+    });
   };
 
   const handleParentConnect = () => {
@@ -373,39 +384,80 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
           )}
         </section>
 
-        {/* Default landing CTAs */}
+        {/* Audience chooser */}
         {!isConsultationMode && (
           <section className="space-y-3">
-            <button
-              type="button"
-              onClick={handleParentConnect}
-              className="w-full py-4 bg-indigo-600 text-white rounded-xl font-semibold text-lg hover:bg-indigo-700 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 shadow-lg shadow-indigo-200 min-h-[44px]"
-            >
-              <Link2 className="w-6 h-6" />
-              우리 아이 학원 연결
-            </button>
-            <p className="text-xs text-slate-500 text-center -mt-1">
-              학부모 계정으로 로그인 후 자녀·학원 연결을 요청합니다 (학원 승인 필요)
-            </p>
-            <button
-              type="button"
-              onClick={handleJoinRequest}
-              className="w-full py-4 bg-white text-slate-800 border-2 border-slate-200 rounded-xl font-semibold text-lg hover:bg-slate-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              <CheckCircle2 className="w-6 h-6 text-indigo-600" />
-              회원·상담 가입 신청
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowConsultForm(true);
-                setConsultSubmitted(false);
-              }}
-              className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              <MessageSquare className="w-6 h-6" />
-              무료 상담 예약
-            </button>
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">이용 대상 선택</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                {adultFirst
+                  ? '본인 수강·회원 가입, 또는 자녀 연결·상담을 선택하세요'
+                  : '학부모 연결, 성인 수강생 가입, 상담 문의를 선택하세요'}
+              </p>
+            </div>
+
+            {(adultFirst
+              ? (['adult', 'parent', 'consult'] as const)
+              : (['parent', 'adult', 'consult'] as const)
+            ).map((kind) => {
+              if (kind === 'parent') {
+                return (
+                  <div key="parent" className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={handleParentConnect}
+                      className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px] ${
+                        adultFirst
+                          ? 'bg-white text-slate-800 border-2 border-slate-200 hover:bg-slate-50'
+                          : 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'
+                      }`}
+                    >
+                      <Link2 className="w-6 h-6" />
+                      학부모 · 우리 아이 학원 연결
+                    </button>
+                    <p className="text-xs text-slate-500 text-center">
+                      보호자 계정으로 자녀·학원 연결 (학원 승인 필요)
+                    </p>
+                  </div>
+                );
+              }
+              if (kind === 'adult') {
+                return (
+                  <div key="adult" className="space-y-1">
+                    <button
+                      type="button"
+                      onClick={handleJoinRequest}
+                      className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px] ${
+                        adultFirst
+                          ? 'bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-200'
+                          : 'bg-white text-slate-800 border-2 border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <CheckCircle2 className={`w-6 h-6 ${adultFirst ? '' : 'text-indigo-600'}`} />
+                      성인 수강생 · 회원 가입
+                    </button>
+                    <p className="text-xs text-slate-500 text-center">
+                      본인 계정으로 가입 신청 후 학원 승인을 기다립니다
+                    </p>
+                  </div>
+                );
+              }
+              return (
+                <div key="consult" className="space-y-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowConsultForm(true);
+                      setConsultSubmitted(false);
+                    }}
+                    className="w-full py-4 bg-white text-indigo-600 border-2 border-indigo-600 rounded-xl font-semibold text-lg hover:bg-indigo-50 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2 min-h-[44px]"
+                  >
+                    <MessageSquare className="w-6 h-6" />
+                    상담만 문의
+                  </button>
+                </div>
+              );
+            })}
           </section>
         )}
 
@@ -531,7 +583,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
             <form onSubmit={handleConsultSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  보호자 이름 <span className="text-red-500">*</span>
+                  신청자 이름 <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -539,7 +591,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                   value={consultForm.contact_name}
                   onChange={(e) => setConsultForm({ ...consultForm, contact_name: e.target.value })}
                   className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="보호자 이름"
+                  placeholder="이름"
                 />
               </div>
               <div>
@@ -555,18 +607,18 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                   placeholder="010-0000-0000"
                 />
               </div>
-              {isConsultationMode && (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">학생 이름</label>
-                  <input
-                    type="text"
-                    value={studentName}
-                    onChange={(e) => setStudentName(e.target.value)}
-                    className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="학생 이름"
-                  />
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  수강 희망자 이름 (선택)
+                </label>
+                <input
+                  type="text"
+                  value={studentName}
+                  onChange={(e) => setStudentName(e.target.value)}
+                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  placeholder="본인 또는 자녀 이름"
+                />
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">희망 시간</label>
                 <input
@@ -640,8 +692,16 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                       닫기
                     </button>
                     <button
-                      onClick={() => navigate('/parent/bookings')}
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem(PENDING_PORTAL_TAB_KEY, 'bookings');
+                        } catch {
+                          /* ignore */
+                        }
+                        setParentPortalModeActive(true);
+                        navigate('/', { state: { openParentPortal: true } });
+                      }}
+                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors min-h-[44px]"
                     >
                       내 예약 보기
                     </button>
