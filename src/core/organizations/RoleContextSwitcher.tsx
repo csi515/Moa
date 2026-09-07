@@ -69,7 +69,7 @@ export const RoleContextSwitcher: React.FC = () => {
 
   if (!auth || !org || memberships.length === 0) return null;
 
-  const { switchMembership, clearOrganization } = org;
+  const { switchMembership, clearOrganization, enterParentPortal, canAccessParentPortal, enterCustomerPortal, canAccessCustomerPortal } = org;
 
   const currentOrgName =
     settingsName || selectedMembership?.organization.name || '';
@@ -222,6 +222,34 @@ export const RoleContextSwitcher: React.FC = () => {
             ))}
 
             <div className="border-t border-slate-100 mt-1 pt-2 space-y-1">
+              {canAccessParentPortal && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    enterParentPortal();
+                    setOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
+                >
+                  <Users className="w-4 h-4" />
+                  학부모 포털
+                </button>
+              )}
+              {canAccessCustomerPortal && (
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    enterCustomerPortal();
+                    setOpen(false);
+                  }}
+                  className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
+                >
+                  <UserRound className="w-4 h-4" />
+                  수강생 포털
+                </button>
+              )}
               <button
                 type="button"
                 role="menuitem"

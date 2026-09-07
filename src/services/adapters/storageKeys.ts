@@ -36,6 +36,8 @@ export const STORAGE_KEYS = {
   SLOT_RECRUITMENTS: 'core_slot_recruitments',
   /** 체육관 등 — 차량 운행 신청 */
   SHUTTLE_RIDE_REQUESTS: 'core_shuttle_ride_requests',
+  /** 연습실 예약 (core.schedules metadata.kind=practice_room) */
+  PRACTICE_ROOM_BOOKINGS: 'core_practice_room_bookings',
   /** 어린이집 플러그인 — 알림장 */
   CARE_JOURNALS: 'daycare_care_journals',
   /** 어린이집 플러그인 — 투약 의뢰 */
@@ -57,6 +59,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.PARENT_STUDENT_LINKS,
   STORAGE_KEYS.CLASSES,
   STORAGE_KEYS.INVOICES,
+  STORAGE_KEYS.TUITION_PAYMENTS,
   STORAGE_KEYS.CONSULTATIONS,
   STORAGE_KEYS.NOTIFICATIONS,
   STORAGE_KEYS.SCHEDULES,
@@ -65,6 +68,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.INCOME_ENTRIES,
   STORAGE_KEYS.ATTENDANCE_SESSIONS,
   STORAGE_KEYS.CUSTOMER_PINS,
+  STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS,
 ]);
 
 /** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */
@@ -102,7 +106,6 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SESSION_PASSES,
   STORAGE_KEYS.SLOT_RECRUITMENTS,
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
-  STORAGE_KEYS.TUITION_PAYMENTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

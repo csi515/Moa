@@ -2,6 +2,8 @@
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
+import { LessonService } from '@/core/lessons';
 import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { LessonRecord } from '@/types';
 import {
@@ -24,8 +26,8 @@ export const LessonRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
   const { staffId, scopeStudents, scopeLessons } = useStaffScope();
 
-  const lessons = useMemo(() => scopeLessons(StorageService.getLessonRecords()), [scopeLessons]);
-  const students = useMemo(() => scopeStudents(StorageService.getStudents()), [scopeStudents]);
+  const lessons = useMemo(() => scopeLessons(LessonService.getLessonRecords()), [scopeLessons]);
+  const students = useMemo(() => scopeStudents(StudentService.getStudents()), [scopeStudents]);
   const teachers = StorageService.getTeachers();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,7 +103,7 @@ export const LessonRecordsView: React.FC = () => {
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
-        StorageService.deleteLessonRecord(lesson.id);
+        LessonService.deleteLessonRecord(lesson.id);
         showToast('레슨 일지가 삭제되었습니다.', 'info');
       }
     });
@@ -119,7 +121,7 @@ export const LessonRecordsView: React.FC = () => {
       return;
     }
 
-    StorageService.saveLessonRecord({
+    LessonService.saveLessonRecord({
       ...(editingLesson ? { id: editingLesson.id } : {}),
       studentId: st.id,
       studentName: st.name,

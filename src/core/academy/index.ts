@@ -21,4 +21,10 @@ export {
   formatAcademyRoomLabel,
   getAcademyRoomNames,
   getConfiguredRooms,
+  getPracticeRoomNames,
 } from './utils/academyRooms';
+export {
+  isMonthlyBillingStudent,
+  isSessionPassBillingStudent,
+  resolveDefaultBillingMode,
+} from './utils/billingMode';

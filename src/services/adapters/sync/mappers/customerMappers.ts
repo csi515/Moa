@@ -31,6 +31,7 @@ interface CustomerMetadata {
   level?: string;
   tuitionFee?: number;
   paymentDay?: number;
+  billingMode?: string;
   specialNotes?: string;
   avatarColor?: string;
   teacherId?: string;
@@ -58,6 +59,7 @@ export function studentToCustomerRow(student: Student, organizationId: string) {
     level: student.level,
     tuitionFee: student.tuitionFee,
     paymentDay: student.paymentDay,
+    billingMode: student.billingMode || 'monthly',
     specialNotes: student.specialNotes,
     avatarColor: student.avatarColor,
     teacherId: student.teacherId,
@@ -121,6 +123,7 @@ export function customerRowToStudent(
     level: (meta.level as Student['level']) || '바이엘 상',
     tuitionFee: meta.tuitionFee ?? 180000,
     paymentDay: meta.paymentDay ?? 25,
+    billingMode: meta.billingMode === 'session_pass' ? 'session_pass' : 'monthly',
     specialNotes: meta.specialNotes,
     memo: row.memo || undefined,
     avatarColor: meta.avatarColor,

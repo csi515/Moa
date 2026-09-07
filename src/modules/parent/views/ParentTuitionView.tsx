@@ -1,18 +1,124 @@
 import React, { useMemo, useState } from 'react';
 import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
+import { ScheduleService } from '@/core/services/scheduleService';
+import { getPassRemaining } from '@/core/schedules/sessionPassUtils';
 import {
   formatCurrency,
   formatDate,
   getInvoiceStatusBadge,
 } from '@/utils/formatters';
+import {
+  formatBankAccountText,
+  isInvoiceVisibleToParent,
+} from '@/core/finance/paymentMethodLabels';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
-import type { Student } from '@/types';
+import type { Student, TuitionInvoice } from '@/types';
+import { Copy, X } from 'lucide-react';
 import { Section } from './shared';
 
 function statusLabel(status: 'paid' | 'partial' | 'unpaid'): string {
   if (status === 'paid') return '완납';
   if (status === 'partial') return '일부 납부';
   return '미납';
+}
+
+function ParentInvoiceDetailModal({
+  invoice,
+  bankAccountText,
+  onClose,
+  onRequestCashReceipt,
+}: {
+  invoice: TuitionInvoice;
+  bankAccountText: string;
+  onClose: () => void;
+  onRequestCashReceipt: () => void;
+}) {
+  const [copied, setCopied] = useState(false);
+  const monthLabel = invoice.yearMonth.includes('-')
+    ? `${invoice.yearMonth.split('-')[1]}월`
+    : invoice.yearMonth;
+
+  const handleCopy = async () => {
+    if (!bankAccountText) return;
+    try {
+      await navigator.clipboard.writeText(bankAccountText);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
+      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white">
+          <div>
+            <h3 className="font-bold text-slate-900 text-base">{monthLabel} 수강료 청구서</h3>
+            <p className="text-xs text-slate-500">{invoice.title || `${invoice.yearMonth} 수강료`}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400"
+            aria-label="닫기"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <div className="rounded-2xl bg-slate-50 border border-slate-100 p-4 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">청구 금액</span>
+              <span className="font-black text-slate-900">{formatCurrency(invoice.totalAmount)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">미납</span>
+              <span className="font-bold text-rose-600">{formatCurrency(invoice.unpaidAmount)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">납부 기한</span>
+              <span className="font-mono font-bold text-slate-800">{invoice.dueDate}</span>
+            </div>
+          </div>
+
+          {bankAccountText ? (
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
+              <p className="text-xs font-bold text-indigo-800">학원 계좌번호</p>
+              <p className="text-sm font-semibold text-slate-900 break-all">{bankAccountText}</p>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 min-h-[44px] rounded-xl bg-white border border-indigo-200 text-xs font-bold text-indigo-700"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                {copied ? '복사됨' : '계좌번호 복사'}
+              </button>
+            </div>
+          ) : null}
+
+          <p className="text-[12px] leading-relaxed text-slate-600 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+            지역사랑상품권 및 현장 카드는 학원 방문 시 결제 가능합니다.
+          </p>
+
+          {invoice.unpaidAmount > 0 && (
+            <button
+              type="button"
+              onClick={onRequestCashReceipt}
+              disabled={invoice.cashReceiptRequested === true}
+              className="w-full min-h-[44px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 disabled:opacity-60"
+            >
+              {invoice.cashReceiptRequested
+                ? '현금영수증 발행을 요청했습니다'
+                : '현금영수증 발행 요청'}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function ParentTuitionView({
@@ -24,9 +130,11 @@ export function ParentTuitionView({
 }) {
   const industry = normalizeIndustryType(industryType);
   const showTextbooks = industry === 'piano';
+  const settings = TuitionService.getSettings();
+  const bankAccountText = formatBankAccountText(settings.bankAccount);
 
-  const allSummary = StorageService.getStudentBillingSummary(student.id);
-  const invoices = StorageService.getInvoices().filter((i) => i.studentId === student.id);
+  const allSummary = TuitionService.getStudentBillingSummary(student.id);
+  const invoices = TuitionService.getInvoicesByStudent(student.id).filter(isInvoiceVisibleToParent);
   const sales = showTextbooks ? StorageService.getTextbookSalesByStudentId(student.id) : [];
   const payments = showTextbooks
     ? StorageService.getTextbookPayments().filter((p) => p.studentId === student.id)
@@ -44,7 +152,8 @@ export function ParentTuitionView({
   }, [invoices, sales]);
 
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]);
-  const monthSummary = StorageService.getStudentBillingSummary(student.id, selectedMonth);
+  const [detailInvoice, setDetailInvoice] = useState<TuitionInvoice | null>(null);
+  const monthSummary = TuitionService.getStudentBillingSummary(student.id, selectedMonth);
   const monthInvoices = invoices.filter((i) => i.yearMonth === selectedMonth);
   const monthSales = sales.filter((s) => s.saleDate.startsWith(selectedMonth));
 
@@ -56,9 +165,66 @@ export function ParentTuitionView({
         : '월회비';
 
   const grandUnpaid = allSummary.grandUnpaid ?? allSummary.totalUnpaid;
+  const isPassStudent = student.billingMode === 'session_pass';
+  const sessionPasses = isPassStudent
+    ? ScheduleService.getCustomerSessionPasses(student.id)
+    : [];
+  const passRemaining = isPassStudent
+    ? ScheduleService.getCustomerRemainingSessions(student.id)
+    : 0;
+
+  const latestArrived = invoices.find(
+    (inv) => inv.unpaidAmount > 0 && inv.status !== 'cancelled' && inv.invoiceSent === true
+  );
 
   return (
     <div className="space-y-4">
+      {latestArrived && (
+        <button
+          type="button"
+          onClick={() => setDetailInvoice(latestArrived)}
+          className="w-full text-left rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5 min-h-[44px]"
+        >
+          <p className="text-xs font-bold text-rose-700">
+            {latestArrived.yearMonth.split('-')[1] || ''}월 수강료 청구서가 도착했습니다
+          </p>
+          <p className="text-sm font-black text-slate-900 mt-0.5">
+            {formatCurrency(latestArrived.unpaidAmount)} · 납기 {latestArrived.dueDate}
+          </p>
+        </button>
+      )}
+
+      {isPassStudent && (
+        <Section title="회차권">
+          <div className="rounded-2xl border border-indigo-100 bg-indigo-50/50 p-4 mb-3">
+            <p className="text-xs text-indigo-600 font-bold">잔여 합계</p>
+            <p className="text-2xl font-black text-slate-900 mt-0.5">{passRemaining}회</p>
+          </div>
+          {sessionPasses.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-4">등록된 회차권이 없습니다.</p>
+          ) : (
+            <ul className="space-y-2">
+              {sessionPasses.map((pass) => (
+                <li
+                  key={pass.id}
+                  className="rounded-xl border border-slate-100 bg-white p-3"
+                >
+                  <p className="text-sm font-bold text-slate-900">{pass.label}</p>
+                  <p className="text-xs text-indigo-700 font-semibold mt-1">
+                    잔여 {getPassRemaining(pass)}회 / 전체 {pass.totalSessions}회
+                  </p>
+                  {pass.expiresAt && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      ~{pass.expiresAt.slice(0, 10)}
+                    </p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Section>
+      )}
+
       <div className="bg-white rounded-2xl p-4 border border-slate-200 space-y-3">
         <div>
           <p className="text-xs text-slate-500">전체 미납</p>
@@ -186,9 +352,11 @@ export function ParentTuitionView({
           <p className="text-sm text-slate-400 text-center py-4">해당 월 청구가 없습니다.</p>
         ) : (
           monthInvoices.map((inv) => (
-            <div
+            <button
+              type="button"
               key={inv.id}
-              className="flex justify-between items-center py-2 border-b border-slate-50 text-sm"
+              onClick={() => setDetailInvoice(inv)}
+              className="w-full flex justify-between items-center py-2.5 min-h-[44px] border-b border-slate-50 text-sm text-left"
             >
               <div>
                 <p className="font-bold">{inv.yearMonth}월</p>
@@ -196,6 +364,14 @@ export function ParentTuitionView({
                   청구 {formatCurrency(inv.totalAmount)} · 미납{' '}
                   {formatCurrency(inv.unpaidAmount)}
                 </p>
+                {((inv.textbookFee || 0) > 0 || (inv.extraFee || 0) > 0) && (
+                  <p className="text-[10px] text-indigo-600 mt-0.5">
+                    {(inv.textbookFee || 0) > 0 && `교재 ${formatCurrency(inv.textbookFee || 0)}`}
+                    {(inv.textbookFee || 0) > 0 && (inv.extraFee || 0) > 0 ? ' · ' : ''}
+                    {(inv.extraFee || 0) > 0 &&
+                      `${inv.extraFeeLabel || '행사비'} ${formatCurrency(inv.extraFee || 0)}`}
+                  </p>
+                )}
               </div>
               <div className="text-right">
                 <span
@@ -207,7 +383,7 @@ export function ParentTuitionView({
                   <p className="text-[10px] text-slate-400 mt-1">영수증 {inv.receiptNumber}</p>
                 )}
               </div>
-            </div>
+            </button>
           ))
         )}
       </Section>
@@ -218,12 +394,25 @@ export function ParentTuitionView({
             <div key={s.id} className="flex justify-between py-2 text-sm border-b border-slate-50">
               <div>
                 <span className="font-medium">{s.textbookTitle}</span>
-                <p className="text-[10px] text-slate-400">{s.saleDate}</p>
+                <p className="text-[10px] text-slate-400">
+                  {s.saleDate}
+                  {s.billingInvoiceId ? ' · 월회비 합산' : ''}
+                </p>
               </div>
-              <span className={s.unpaidAmount > 0 ? 'text-rose-600 font-bold' : 'text-emerald-600'}>
-                {s.unpaidAmount > 0
-                  ? `미납 ${formatCurrency(s.unpaidAmount)}`
-                  : formatCurrency(s.paidAmount)}
+              <span
+                className={
+                  s.billingInvoiceId
+                    ? 'text-slate-500'
+                    : s.unpaidAmount > 0
+                      ? 'text-rose-600 font-bold'
+                      : 'text-emerald-600'
+                }
+              >
+                {s.billingInvoiceId
+                  ? '월회비에 포함'
+                  : s.unpaidAmount > 0
+                    ? `미납 ${formatCurrency(s.unpaidAmount)}`
+                    : formatCurrency(s.paidAmount)}
               </span>
             </div>
           ))}
@@ -242,6 +431,19 @@ export function ParentTuitionView({
             </div>
           ))}
         </Section>
+      )}
+
+      {detailInvoice && (
+        <ParentInvoiceDetailModal
+          invoice={detailInvoice}
+          bankAccountText={bankAccountText}
+          onClose={() => setDetailInvoice(null)}
+          onRequestCashReceipt={() => {
+            void TuitionService.requestCashReceipt(detailInvoice.id).then((updated) => {
+              if (updated) setDetailInvoice(updated);
+            });
+          }}
+        />
       )}
     </div>
   );

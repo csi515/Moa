@@ -34,6 +34,7 @@ import {
   AchievementsManagementView,
   ReportsManagementView,
 } from './index';
+import { PassManagementView } from '@/modules/pilates/components/passes/PassManagementView';
 import { PianoScheduleView } from './components/schedule';
 import { PianoConsultationHubView } from './components/consultations';
 
@@ -42,7 +43,9 @@ const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
   { tab: 'check-in', label: 'PIN 출석' },
   { tab: 'assignments', label: '주간 과제' },
   { tab: 'practice', label: '연습 기록' },
+  { tab: 'practice-rooms', label: '연습실 예약' },
   { tab: 'textbooks', label: '교재 관리' },
+  { tab: 'passes', label: '회차권' },
   { tab: 'resources', label: '교재·곡 자료' },
   { tab: 'recitals', label: '연주회·콩쿠르' },
   { tab: 'curriculum', label: '커리큘럼·진도' },
@@ -68,12 +71,14 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   timetable: () => <PianoScheduleView />,
   calendar: () => <PianoScheduleView />,
   makeups: () => <PianoScheduleView />,
+  'practice-rooms': () => <PianoScheduleView />,
   ...financeViewEntries,
   classes: () => <ClassManagementView />,
   consultations: () => <PianoConsultationHubView />,
   practice: () => <PracticeRecordsView />,
   resources: () => <ResourceManagementView />,
   textbooks: () => <TextbookManagementView />,
+  passes: () => <PassManagementView variant="piano" />,
   recitals: () => <RecitalManagementView />,
   curriculum: () => <CurriculumManagementView />,
   assignments: () => <AssignmentsManagementView />,

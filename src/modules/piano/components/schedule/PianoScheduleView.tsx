@@ -1,28 +1,31 @@
 import { useMemo, type FC } from 'react';
-import { Calendar, Clock, Piano, Sparkles } from 'lucide-react';
+import { Calendar, Clock, DoorOpen, Piano, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { WeeklyTimetableView, AcademyCalendarView } from '@/core/academy';
 import { SegmentedControl } from '@/shared/components';
 import { LessonsHubView } from '../lessons/LessonsHubView';
 import { MakeupManagementView } from '../makeup/MakeupManagementView';
+import { PracticeRoomBookingView } from '../practiceRooms/PracticeRoomBookingView';
 
-type ScheduleSegment = 'classes' | 'events' | 'lessons' | 'makeups';
+type ScheduleSegment = 'classes' | 'events' | 'lessons' | 'makeups' | 'rooms';
 
 const SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
   { value: 'classes', label: '시간표' },
   { value: 'events', label: '캘린더' },
   { value: 'lessons', label: '레슨' },
   { value: 'makeups', label: '보강' },
+  { value: 'rooms', label: '연습실' },
 ];
 
 function tabToSegment(tab: string): ScheduleSegment {
   if (tab === 'calendar') return 'events';
   if (tab === 'lessons' || tab === 'attendance') return 'lessons';
   if (tab === 'makeups') return 'makeups';
+  if (tab === 'practice-rooms') return 'rooms';
   return 'classes';
 }
 
-/** 피아노 일정 허브 — 시간표·캘린더·레슨·보강 */
+/** 피아노 일정 허브 — 시간표·캘린더·레슨·보강·연습실 */
 export const PianoScheduleView: FC = () => {
   const { activeTab, setActiveTab } = useApp();
 
@@ -32,6 +35,7 @@ export const PianoScheduleView: FC = () => {
     if (next === 'events') setActiveTab('calendar');
     else if (next === 'lessons') setActiveTab('lessons');
     else if (next === 'makeups') setActiveTab('makeups');
+    else if (next === 'rooms') setActiveTab('practice-rooms');
     else setActiveTab('timetable');
   };
 
@@ -42,7 +46,9 @@ export const PianoScheduleView: FC = () => {
         ? '학원 캘린더'
         : segment === 'lessons'
           ? '오늘 레슨'
-          : '보강 수업';
+          : segment === 'makeups'
+            ? '보강 수업'
+            : '연습실 예약';
 
   const TitleIcon =
     segment === 'classes'
@@ -51,7 +57,9 @@ export const PianoScheduleView: FC = () => {
         ? Calendar
         : segment === 'lessons'
           ? Piano
-          : Sparkles;
+          : segment === 'makeups'
+            ? Sparkles
+            : DoorOpen;
 
   return (
     <div className="space-y-4 pb-4">
@@ -79,6 +87,7 @@ export const PianoScheduleView: FC = () => {
       {segment === 'events' && <AcademyCalendarView embedded />}
       {segment === 'lessons' && <LessonsHubView />}
       {segment === 'makeups' && <MakeupManagementView />}
+      {segment === 'rooms' && <PracticeRoomBookingView />}
     </div>
   );
 };

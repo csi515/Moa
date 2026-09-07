@@ -87,8 +87,9 @@ export function TermsContent() {
 
       <h2 className={legalHeadingClass}>1. 서비스 내용</h2>
       <p>
-        학원·체육관·어린이집 등 교육 기관의 원생·출결·수납·강사·학부모 포털 등 운영 기능을
-        제공하는 클라우드 SaaS입니다.
+        MOA(Manage, Organize, Assist)는 「사업과 고객을 하나로 모으다」는 슬로건 아래,
+        학원·체육관·어린이집 등 교육·서비스 기관의 운영과 고객(원생·회원·보호자) 경험을
+        한곳에서 모으는 클라우드 SaaS입니다.
       </p>
 
       <h2 className={legalHeadingClass}>2. 회원 가입 및 계정</h2>

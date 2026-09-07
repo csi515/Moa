@@ -62,7 +62,9 @@ export function studentToPianoCustomerRow(student: Student, organizationId: stri
     leave_date: student.leaveDate || null,
     special_notes: student.specialNotes || null,
     avatar_color: student.avatarColor || null,
-    metadata: {} as Json,
+    metadata: {
+      billingMode: student.billingMode || 'monthly',
+    } as Json,
   };
 }
 
@@ -87,6 +89,10 @@ export function mergeStudentWithPiano(
     joinDate: row.join_date || base.joinDate,
     leaveDate: row.leave_date || undefined,
     specialNotes: row.special_notes || base.specialNotes,
+    billingMode:
+      ((row.metadata as { billingMode?: string } | null)?.billingMode === 'session_pass'
+        ? 'session_pass'
+        : base.billingMode) || 'monthly',
     avatarColor: row.avatar_color || base.avatarColor,
     classIds,
     createdAt: row.created_at || base.createdAt,

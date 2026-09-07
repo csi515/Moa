@@ -6,6 +6,7 @@ import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { ParentShell } from './modules/parent/ParentShell';
+import { CustomerShell } from './core/customer/CustomerShell';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { StorageHydrator } from './StorageHydrator';
 
@@ -15,7 +16,9 @@ export const SupabaseAppGate: React.FC = () => {
     currentOrganization,
     loading: orgLoading,
     isParentOnly,
+    isCustomerOnly,
     parentPortalActive,
+    customerPortalActive,
     enterParentPortal,
   } = useOrganization();
   const location = useLocation();
@@ -38,6 +41,10 @@ export const SupabaseAppGate: React.FC = () => {
 
   if (isParentOnly || parentPortalActive) {
     return <ParentShell />;
+  }
+
+  if (isCustomerOnly || customerPortalActive) {
+    return <CustomerShell />;
   }
 
   if (!currentOrganization) {

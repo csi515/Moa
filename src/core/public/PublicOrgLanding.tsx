@@ -785,8 +785,12 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
         )}
 
         {/* Footer */}
-        <footer className="text-center text-xs text-slate-500 py-4">
+        <footer className="text-center text-xs text-slate-500 py-4 space-y-1">
           <p>Powered by {appBrand.fullName}</p>
+          <p className="text-slate-400">
+            {appBrand.acronym} — {appBrand.acronymMeaning}
+          </p>
+          <p className="text-slate-400">{appBrand.tagline}</p>
         </footer>
       </main>
     </div>

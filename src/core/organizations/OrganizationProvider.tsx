@@ -14,12 +14,15 @@ import { runLoginAccountSync } from '../accounts/loginBootstrapService';
 import { applyOAuthSignupIntentIfAny } from '../auth/services/oauthSignupService';
 import { ensureGlobalParentProfile, fetchParentPortalTree } from '../parent/services/parentPortalService';
 import {
+  isCustomerPortalModeActive,
   isParentPortalModeActive,
+  setCustomerPortalModeActive,
   setParentPortalModeActive,
 } from '../parent/services/appModeService';
 import * as orgService from './services/organizationService';
 
 const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'staff', 'instructor']);
+const CUSTOMER_ROLES = new Set(['customer', 'member']);
 
 interface OrganizationContextType {
   organizations: orgService.OrganizationMembership[];
@@ -31,8 +34,11 @@ interface OrganizationContextType {
   currentParentCustomerId: string | null;
   globalParentId: string | null;
   isParentOnly: boolean;
+  isCustomerOnly: boolean;
   canAccessParentPortal: boolean;
+  canAccessCustomerPortal: boolean;
   parentPortalActive: boolean;
+  customerPortalActive: boolean;
   portalChildCount: number;
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
@@ -48,6 +54,8 @@ interface OrganizationContextType {
   patchOrganization: (organizationId: string, patch: { name: string }) => void;
   enterParentPortal: () => void;
   exitParentPortal: () => void;
+  enterCustomerPortal: () => void;
+  exitCustomerPortal: () => void;
 }
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
@@ -62,9 +70,12 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [currentParentCustomerId, setCurrentParentCustomerId] = useState<string | null>(null);
   const [globalParentId, setGlobalParentId] = useState<string | null>(null);
   const [isParentOnly, setIsParentOnly] = useState(false);
+  const [isCustomerOnly, setIsCustomerOnly] = useState(false);
   const [canAccessParentPortal, setCanAccessParentPortal] = useState(false);
+  const [canAccessCustomerPortal, setCanAccessCustomerPortal] = useState(false);
   const [portalChildCount, setPortalChildCount] = useState(0);
   const [parentPortalActive, setParentPortalActiveState] = useState(isParentPortalModeActive);
+  const [customerPortalActive, setCustomerPortalActiveState] = useState(isCustomerPortalModeActive);
   const [loading, setLoading] = useState(true);
 
   const applyMembershipSelection = useCallback(
@@ -178,19 +189,37 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setOrganizations(memberships);
 
       const staffMemberships = memberships.filter((m) => STAFF_ROLES.has(m.role));
+      const customerMemberships = memberships.filter((m) => CUSTOMER_ROLES.has(m.role));
       const hasLegacyParentMembership = memberships.some((m) => m.role === 'parent' || m.role === 'guardian');
       const hasParentAccess = portalChildren > 0 || hasLegacyParentMembership;
 
       setCanAccessParentPortal(hasParentAccess && parentId !== null);
+      setCanAccessCustomerPortal(customerMemberships.length > 0);
 
-      const parentOnly = staffMemberships.length === 0 && hasParentAccess;
+      const parentOnly = staffMemberships.length === 0 && hasParentAccess && customerMemberships.length === 0;
+      const customerOnly =
+        staffMemberships.length === 0 && !hasParentAccess && customerMemberships.length > 0;
       setIsParentOnly(parentOnly);
+      setIsCustomerOnly(customerOnly);
 
       if (parentOnly) {
         setParentPortalActiveState(true);
         setParentPortalModeActive(true);
+        setCustomerPortalActiveState(false);
+        setCustomerPortalModeActive(false);
         orgService.clearStoredOrganizationId();
         applyMembershipSelection(memberships, null);
+        return;
+      }
+
+      if (customerOnly) {
+        setCustomerPortalActiveState(true);
+        setCustomerPortalModeActive(true);
+        setParentPortalActiveState(false);
+        setParentPortalModeActive(false);
+        const preferred =
+          customerMemberships.find((m) => m.isCurrentContext) || customerMemberships[0];
+        applyMembershipSelection(memberships, preferred.id);
         return;
       }
 
@@ -310,11 +339,25 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const enterParentPortal = useCallback(() => {
     setParentPortalActiveState(true);
     setParentPortalModeActive(true);
+    setCustomerPortalActiveState(false);
+    setCustomerPortalModeActive(false);
   }, []);
 
   const exitParentPortal = useCallback(() => {
     setParentPortalActiveState(false);
     setParentPortalModeActive(false);
+  }, []);
+
+  const enterCustomerPortal = useCallback(() => {
+    setCustomerPortalActiveState(true);
+    setCustomerPortalModeActive(true);
+    setParentPortalActiveState(false);
+    setParentPortalModeActive(false);
+  }, []);
+
+  const exitCustomerPortal = useCallback(() => {
+    setCustomerPortalActiveState(false);
+    setCustomerPortalModeActive(false);
   }, []);
 
   return (
@@ -329,8 +372,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         currentParentCustomerId,
         globalParentId,
         isParentOnly,
+        isCustomerOnly,
         canAccessParentPortal,
+        canAccessCustomerPortal,
         parentPortalActive,
+        customerPortalActive,
         portalChildCount,
         loading,
         selectOrganization,
@@ -341,6 +387,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         patchOrganization,
         enterParentPortal,
         exitParentPortal,
+        enterCustomerPortal,
+        exitCustomerPortal,
       }}
     >
       {children}

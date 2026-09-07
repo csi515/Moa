@@ -33,7 +33,7 @@ export interface IndustryPluginManifest {
   staffTabs: NavTab[];
 }
 
-const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses'];
+const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses', 'payroll'];
 
 /** 반·시간표·출결·고객 중심 코어 메뉴 (체육관·어린이집 등) — 수납·재무는 허브 딥링크 유지 */
 export const CLASS_BASED_CORE_ADMIN_TABS: NavTab[] = [

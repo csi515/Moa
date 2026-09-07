@@ -33,6 +33,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
     type: 'concert' as AcademyEvent['type'],
     description: '',
     color: '#4f46e5',
+    participationFee: 0,
   });
 
   const students = StorageService.getStudents();
@@ -94,6 +95,10 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
       type: newEvent.type,
       description: newEvent.description.trim() || undefined,
       color: newEvent.color,
+      participationFee:
+        newEvent.type === 'concert' || newEvent.type === 'competition'
+          ? Number(newEvent.participationFee) || undefined
+          : undefined,
     });
 
     showToast(`'${newEvent.title.trim()}' 일정이 등록되었습니다.`, 'success');
@@ -112,6 +117,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
       type: 'concert',
       description: '',
       color: '#4f46e5',
+      participationFee: 0,
     });
     setIsModalOpen(true);
   };
@@ -425,6 +431,31 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none resize-none"
                 />
               </div>
+
+              {(newEvent.type === 'concert' || newEvent.type === 'competition') && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    참가비 (₩) · 월 청구 합산용
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1000}
+                    value={newEvent.participationFee || ''}
+                    onChange={(e) =>
+                      setNewEvent({
+                        ...newEvent,
+                        participationFee: Number(e.target.value) || 0,
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-1">
+                    설정에서 「월 청구에 교재·연주회비 합산」을 켠 경우, 참가 원생 월회비에 포함됩니다.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">표시 색상</label>

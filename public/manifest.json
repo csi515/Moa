@@ -1,7 +1,7 @@
 {
-  "name": "모두의 아카데미 모아 — 학원·체육관·어린이집 통합 관리",
+  "name": "모두의 아카데미 모아 — 사업과 고객을 하나로 모으다",
   "short_name": "아카데미 모아",
-  "description": "원생·출결·수납·강사·학부모 포털을 한곳에서 관리하는 올인원 SaaS",
+  "description": "MOA — Manage, Organize, Assist. 사업과 고객을 하나로 모으다.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

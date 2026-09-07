@@ -8,8 +8,15 @@ import { IncomeManagementView } from './IncomeManagementView';
 import { ExpenseManagementView } from './ExpenseManagementView';
 import { TuitionManagementView } from '@/core/academy/components/tuition/TuitionManagementView';
 import { UnpaidManagementView } from '@/core/academy/components/unpaid/UnpaidManagementView';
+import { TeacherPayrollView } from './TeacherPayrollView';
 
-export type FinanceHubSegment = 'overview' | 'income' | 'expenses' | 'tuition' | 'unpaid';
+export type FinanceHubSegment =
+  | 'overview'
+  | 'income'
+  | 'expenses'
+  | 'tuition'
+  | 'unpaid'
+  | 'payroll';
 
 const SEGMENT_TO_TAB: Record<FinanceHubSegment, NavTab> = {
   overview: 'finance',
@@ -17,6 +24,7 @@ const SEGMENT_TO_TAB: Record<FinanceHubSegment, NavTab> = {
   expenses: 'expenses',
   tuition: 'tuition',
   unpaid: 'unpaid',
+  payroll: 'payroll',
 };
 
 function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSegment {
@@ -24,6 +32,7 @@ function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSeg
   if (tab === 'expenses') return 'expenses';
   if (tab === 'tuition') return 'tuition';
   if (tab === 'unpaid') return 'unpaid';
+  if (tab === 'payroll') return 'payroll';
   if (tab === 'finance' && preferTuitionDefault) return 'tuition';
   return 'overview';
 }
@@ -50,12 +59,14 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
         { value: 'overview' as const, label: '요약' },
         { value: 'income' as const, label: '수입' },
         { value: 'expenses' as const, label: '지출' },
+        { value: 'payroll' as const, label: '강사정산' },
       ];
     }
     const base: { value: FinanceHubSegment; label: string }[] = [
       { value: 'overview', label: '요약' },
       { value: 'income', label: '수입' },
       { value: 'expenses', label: '지출' },
+      { value: 'payroll', label: '강사정산' },
     ];
     if (billingEnabled) {
       base.push(
@@ -90,6 +101,7 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
       {segment === 'overview' && <FinanceOverviewView embedded />}
       {segment === 'income' && <IncomeManagementView embedded />}
       {segment === 'expenses' && <ExpenseManagementView embedded />}
+      {segment === 'payroll' && <TeacherPayrollView embedded />}
       {segment === 'tuition' && <TuitionManagementView embedded />}
       {segment === 'unpaid' && <UnpaidManagementView embedded />}
     </div>

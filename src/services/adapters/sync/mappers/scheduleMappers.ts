@@ -4,6 +4,7 @@ import type {
   ClassItem,
   Consultation,
   Parent,
+  PracticeRoomBooking,
   Student,
   TuitionInvoice,
 } from '../../../../types';
@@ -126,6 +127,13 @@ interface BookingMetadata {
   customerName: string;
   staffName?: string;
   serviceName?: string;
+  /** 연습실 예약 구분 — 일반 예약과 분리 */
+  kind?: 'practice_room';
+  room?: string;
+  date?: string;
+  startTime?: string;
+  endTime?: string;
+  createdBy?: string;
 }
 
 export function serviceOfferingToRow(offering: ServiceOffering, organizationId: string) {
@@ -223,6 +231,91 @@ export function scheduleRowToBooking(row: {
     endsAt: row.ends_at,
     status: row.status as Booking['status'],
     memo: row.memo || undefined,
+    createdAt: row.created_at,
+  };
+}
+
+export function isPracticeRoomScheduleRow(metadata: Json): boolean {
+  const meta = (metadata || {}) as Partial<BookingMetadata>;
+  return meta.kind === 'practice_room';
+}
+
+const PRACTICE_STATUS_TO_DB: Record<PracticeRoomBooking['status'], Booking['status']> = {
+  scheduled: 'scheduled',
+  cancelled: 'cancelled',
+  completed: 'completed',
+  pending: 'scheduled',
+  approved: 'confirmed',
+  rejected: 'cancelled',
+};
+
+const DB_STATUS_TO_PRACTICE: Record<string, PracticeRoomBooking['status']> = {
+  scheduled: 'scheduled',
+  confirmed: 'approved',
+  cancelled: 'cancelled',
+  completed: 'completed',
+  no_show: 'cancelled',
+};
+
+/** 연습실 예약 → core.schedules */
+export function practiceRoomBookingToScheduleRow(
+  booking: PracticeRoomBooking,
+  organizationId: string
+) {
+  const metadata: BookingMetadata = {
+    kind: 'practice_room',
+    customerName: booking.studentName,
+    staffName: booking.teacherName,
+    room: booking.room,
+    date: booking.date,
+    startTime: booking.startTime,
+    endTime: booking.endTime,
+    createdBy: booking.createdBy,
+  };
+
+  return {
+    id: booking.id,
+    organization_id: organizationId,
+    customer_id: booking.studentId || null,
+    staff_id: booking.teacherId || null,
+    service_id: null,
+    starts_at: `${booking.date}T${booking.startTime}:00`,
+    ends_at: `${booking.date}T${booking.endTime}:00`,
+    status: PRACTICE_STATUS_TO_DB[booking.status] || 'scheduled',
+    memo: booking.memo || null,
+    metadata: metadata as unknown as Json,
+  };
+}
+
+export function scheduleRowToPracticeRoomBooking(row: {
+  id: string;
+  customer_id: string | null;
+  staff_id: string | null;
+  starts_at: string;
+  ends_at: string;
+  status: string;
+  memo: string | null;
+  metadata: Json;
+  created_at: string;
+}): PracticeRoomBooking {
+  const meta = (row.metadata || {}) as unknown as BookingMetadata;
+  const date = meta.date || row.starts_at.slice(0, 10);
+  const startTime = meta.startTime || row.starts_at.slice(11, 16);
+  const endTime = meta.endTime || row.ends_at.slice(11, 16);
+
+  return {
+    id: row.id,
+    studentId: row.customer_id || '',
+    studentName: meta.customerName || '',
+    room: meta.room || '',
+    date,
+    startTime,
+    endTime,
+    teacherId: row.staff_id || undefined,
+    teacherName: meta.staffName,
+    memo: row.memo || undefined,
+    createdBy: meta.createdBy || '',
+    status: DB_STATUS_TO_PRACTICE[row.status] || 'scheduled',
     createdAt: row.created_at,
   };
 }

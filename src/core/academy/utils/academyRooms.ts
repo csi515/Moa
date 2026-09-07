@@ -48,6 +48,19 @@ export function getAcademyRoomNames(params: {
   return Array.from(new Set([...fromClasses, ...extras]));
 }
 
+export function getPracticeRoomNames(params: {
+  settings?: AcademySettings | null;
+  classes?: ClassItem[];
+  extraRooms?: string[];
+}): string[] {
+  const configured = getConfiguredRooms(params.settings).filter((r) => r.kind === 'practice');
+  if (configured.length > 0) {
+    return Array.from(new Set(configured.map((r) => r.name)));
+  }
+  return getAcademyRoomNames(params);
+}
+
 export function formatAcademyRoomLabel(room: AcademyRoom): string {
   return `${room.name} (${ACADEMY_ROOM_KIND_LABEL[room.kind]})`;
 }
+

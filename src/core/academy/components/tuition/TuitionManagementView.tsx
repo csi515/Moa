@@ -1,11 +1,18 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
+import { TuitionService } from '@/core/finance';
 import { TuitionInvoice, PaymentMethod, Student } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { useStorageRefresh } from '@/hooks';
 import { getRecentYearMonths } from '@/core/finance/categories';
-import { CreditCard, Plus, Clock } from 'lucide-react';
+import {
+  buildInvoiceNotes,
+  collectPendingRecitalFees,
+  collectPendingTextbookSales,
+  computeInvoiceTotal,
+} from '@/core/academy/utils/invoiceExtras';
+import { CreditCard, Plus, Clock, Send } from 'lucide-react';
 import { PageHeader } from '@/shared/components';
 import { CombinedPaymentModal } from './CombinedPaymentModal';
 import { TuitionSummaryCards } from './TuitionSummaryCards';
@@ -15,6 +22,7 @@ import { TuitionInvoiceListView } from './TuitionInvoiceListView';
 import { TuitionPaymentModal } from './TuitionPaymentModal';
 import { TuitionReceiptModal } from './TuitionReceiptModal';
 import { TuitionNewInvoiceModal } from './TuitionNewInvoiceModal';
+import { TuitionBulkSendModal } from './TuitionBulkSendModal';
 import { ViewMode } from './tuitionViewTypes';
 import {
   getCurrentYearMonth,
@@ -38,8 +46,12 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
   const [payModalInvoice, setPayModalInvoice] = useState<TuitionInvoice | null>(null);
   const [payAmount, setPayAmount] = useState(0);
-  const [payMethod, setPayMethod] = useState<PaymentMethod>('card');
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('onsite_card');
   const [payMemo, setPayMemo] = useState('');
+  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [cashReceiptIssued, setCashReceiptIssued] = useState(false);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [isBulkSendOpen, setIsBulkSendOpen] = useState(false);
 
   const [receiptInvoice, setReceiptInvoice] = useState<TuitionInvoice | null>(null);
 
@@ -49,10 +61,34 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const [newInvDiscount, setNewInvDiscount] = useState(0);
   const [newInvDueDate, setNewInvDueDate] = useState(defaultDueDateForMonth(initialMonth));
   const [newInvNotes, setNewInvNotes] = useState('');
+  const [newInvIncludeExtras, setNewInvIncludeExtras] = useState(false);
+  const [newInvExtraFee, setNewInvExtraFee] = useState(0);
 
-  const invoices = useMemo(() => StorageService.getInvoices(), [refreshKey]);
-  const students = useMemo(() => StorageService.getStudents(), [refreshKey]);
-  const settings = useMemo(() => StorageService.getSettings(), [refreshKey]);
+  const invoices = useMemo(() => TuitionService.getInvoices(), [refreshKey]);
+  const students = useMemo(() => StudentService.getStudents(), [refreshKey]);
+  const settings = useMemo(() => TuitionService.getSettings(), [refreshKey]);
+
+  const extrasPreview = useMemo(() => {
+    if (!newInvStudentId) {
+      return { textbookFee: 0, textbookCount: 0, recitalFee: 0, recitalLabel: '' };
+    }
+    const pending = collectPendingTextbookSales(
+      TuitionService.getTextbookSales(),
+      newInvStudentId
+    );
+    const recitalItems = collectPendingRecitalFees({
+      events: TuitionService.getEvents(),
+      studentId: newInvStudentId,
+      yearMonth: selectedMonth,
+      existingInvoices: invoices,
+    });
+    return {
+      textbookFee: pending.reduce((s, x) => s + x.unpaidAmount, 0),
+      textbookCount: pending.length,
+      recitalFee: recitalItems.reduce((s, x) => s + x.amount, 0),
+      recitalLabel: recitalItems.map((x) => x.label).join(', '),
+    };
+  }, [newInvStudentId, selectedMonth, invoices, refreshKey]);
 
   useEffect(() => {
     setNewInvDueDate(defaultDueDateForMonth(selectedMonth));
@@ -82,20 +118,25 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   }, [invoices, selectedMonth]);
 
   const handleBatchGenerate = () => {
-    const count = StorageService.generateMonthlyInvoicesForAllActive(selectedMonth);
+    const count = TuitionService.generateMonthlyInvoicesForAllActive(selectedMonth);
     triggerRefresh();
     if (count === 0) {
       showToast(`${formatYearMonthLabel(selectedMonth)} 청구서가 이미 모든 재원생에게 발행되어 있습니다.`, 'info');
     } else {
-      showToast(`${formatYearMonthLabel(selectedMonth)} 수강료 청구서 ${count}건이 일괄 발행되었습니다.`, 'success');
+      showToast(
+        `${formatYearMonthLabel(selectedMonth)} 청구서 ${count}건을 초안으로 생성했습니다. [발송]으로 학부모에게 전달하세요.`,
+        'success'
+      );
     }
   };
 
   const handleOpenPayModal = (inv: TuitionInvoice) => {
     setPayModalInvoice(inv);
     setPayAmount(inv.unpaidAmount);
-    setPayMethod('card');
+    setPayMethod('onsite_card');
     setPayMemo('');
+    setPayDate(new Date().toISOString().slice(0, 10));
+    setCashReceiptIssued(false);
   };
 
   const handleProcessPayment = (e: React.FormEvent) => {
@@ -111,7 +152,14 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
 
-    const updated = StorageService.recordPayment(payModalInvoice.id, payAmount, payMethod, payMemo);
+    const updated = TuitionService.recordPayment(
+      payModalInvoice.id,
+      payAmount,
+      payMethod,
+      payMemo,
+      payDate,
+      { cashReceiptIssued }
+    );
     if (!updated) {
       showToast('수납 처리에 실패했습니다.', 'error');
       return;
@@ -123,6 +171,46 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     setReceiptInvoice(updated);
   };
 
+  const handleSendInvoice = (inv: TuitionInvoice) => {
+    const sent = TuitionService.sendInvoice(inv.id);
+    if (!sent) {
+      showToast('청구서 발송에 실패했습니다.', 'error');
+      return;
+    }
+    triggerRefresh();
+    showToast(`${inv.studentName} 원생에게 청구서를 발송했습니다.`, 'success');
+  };
+
+  const handleSendSelected = () => {
+    if (selectedInvoiceIds.length === 0) {
+      showToast('발송할 청구서를 선택해주세요.', 'warning');
+      return;
+    }
+    const count = TuitionService.sendInvoices(selectedInvoiceIds);
+    setSelectedInvoiceIds([]);
+    triggerRefresh();
+    showToast(`청구서 ${count}건을 발송했습니다.`, 'success');
+  };
+
+  const handleBulkSend = (payload: {
+    studentIds: string[];
+    title: string;
+    amount: number;
+    dueDate: string;
+    notes?: string;
+  }) => {
+    const result = TuitionService.bulkCreateAndSendInvoices({
+      ...payload,
+      yearMonth: selectedMonth,
+    });
+    setIsBulkSendOpen(false);
+    triggerRefresh();
+    showToast(
+      `청구서 ${result.created}건 생성 · ${result.sent}건 발송 완료`,
+      result.created > 0 ? 'success' : 'warning'
+    );
+  };
+
   const handleCreateCustomInvoice = (e: React.FormEvent) => {
     e.preventDefault();
     const st = students.find((s) => s.id === newInvStudentId);
@@ -131,31 +219,91 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
 
-    const total = Math.max(0, Number(newInvAmount) - Number(newInvDiscount));
+    const pendingSales = newInvIncludeExtras
+      ? collectPendingTextbookSales(TuitionService.getTextbookSales(), st.id)
+      : [];
+    const recitalItems = newInvIncludeExtras
+      ? collectPendingRecitalFees({
+          events: TuitionService.getEvents(),
+          studentId: st.id,
+          yearMonth: selectedMonth,
+          existingInvoices: invoices,
+        })
+      : [];
+    const textbookFee = pendingSales.reduce((sum, s) => sum + s.unpaidAmount, 0);
+    const recitalFee = recitalItems.reduce((sum, i) => sum + i.amount, 0);
+    const manualExtra = Math.max(0, Number(newInvExtraFee) || 0);
+    const extraFee = recitalFee + manualExtra;
+    const baseFee = Number(newInvAmount) || 0;
+    const discount = Number(newInvDiscount) || 0;
+    const total = computeInvoiceTotal({
+      baseFee,
+      discount,
+      textbookFee,
+      extraFee,
+    });
+
     if (total <= 0) {
       showToast('청구 금액은 0원보다 커야 합니다.', 'warning');
       return;
     }
 
-    StorageService.saveInvoice({
+    const linkedExtraItems = [
+      ...recitalItems,
+      ...(manualExtra > 0
+        ? [
+            {
+              id: `manual-${Date.now()}`,
+              label: '기타',
+              amount: manualExtra,
+              sourceType: 'manual' as const,
+            },
+          ]
+        : []),
+    ];
+
+    const saved = TuitionService.saveInvoice({
       studentId: st.id,
       studentName: st.name,
       yearMonth: selectedMonth,
-      baseTuition: Number(newInvAmount),
-      baseFee: Number(newInvAmount),
-      discountAmount: Number(newInvDiscount),
-      discount: Number(newInvDiscount),
+      title: `${selectedMonth} 수강료`,
+      baseTuition: baseFee,
+      baseFee,
+      discountAmount: discount,
+      discount,
+      textbookFee,
+      extraFee,
+      extraFeeLabel: linkedExtraItems.map((i) => i.label).join(', ') || undefined,
       additionalAmount: 0,
       totalAmount: total,
       paidAmount: 0,
       unpaidAmount: total,
       dueDate: newInvDueDate,
       status: 'unpaid',
-      notes: newInvNotes,
+      notes:
+        newInvNotes.trim() ||
+        buildInvoiceNotes({
+          yearMonth: selectedMonth,
+          textbookCount: pendingSales.length,
+          extraItems: linkedExtraItems,
+        }),
+      includeExtras: newInvIncludeExtras,
+      linkedTextbookSaleIds:
+        pendingSales.length > 0 ? pendingSales.map((s) => s.id) : undefined,
+      linkedExtraItems: linkedExtraItems.length > 0 ? linkedExtraItems : undefined,
+      invoiceSent: false,
+      sentAt: null,
     });
 
+    if (pendingSales.length > 0) {
+      TuitionService.linkTextbookSalesToInvoice(
+        pendingSales.map((s) => s.id),
+        saved.id
+      );
+    }
+
     triggerRefresh();
-    showToast(`${st.name} 원생의 청구서가 등록되었습니다.`, 'success');
+    showToast(`${st.name} 원생의 청구서 초안이 등록되었습니다. [발송]으로 전달하세요.`, 'success');
     setIsNewInvoiceModalOpen(false);
   };
 
@@ -173,26 +321,49 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       defaultDueDateForMonth(selectedMonth, firstStudent?.paymentDay || settings.defaultPaymentDay || 10)
     );
     setNewInvNotes('');
+    setNewInvIncludeExtras(settings.includeExtrasInMonthlyInvoice === true);
+    setNewInvExtraFee(0);
     setIsNewInvoiceModalOpen(true);
   };
 
   const billingActions = (
     <div className="flex flex-wrap items-center gap-2">
       <button
+        type="button"
         onClick={handleBatchGenerate}
         disabled={students.filter((s) => s.status === 'active').length === 0}
         className="px-4 py-2.5 min-h-[44px] bg-indigo-50 hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed text-indigo-700 text-xs sm:text-sm font-bold rounded-xl border border-indigo-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
       >
         <Clock className="w-4 h-4" />
-        {formatYearMonthLabel(selectedMonth)} 청구서 일괄 생성
+        {formatYearMonthLabel(selectedMonth)} 초안 일괄 생성
       </button>
       <button
+        type="button"
+        onClick={() => setIsBulkSendOpen(true)}
+        disabled={students.filter((s) => s.status === 'active').length === 0}
+        className="px-4 py-2.5 min-h-[44px] bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+      >
+        <Send className="w-4 h-4" />
+        일괄 청구 발송
+      </button>
+      {selectedInvoiceIds.length > 0 && (
+        <button
+          type="button"
+          onClick={handleSendSelected}
+          className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+        >
+          <Send className="w-4 h-4" />
+          선택 {selectedInvoiceIds.length}건 발송
+        </button>
+      )}
+      <button
+        type="button"
         onClick={openNewInvoiceModal}
         disabled={students.length === 0}
-        className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
+        className="px-4 py-2.5 min-h-[44px] bg-slate-800 hover:bg-slate-900 disabled:opacity-50 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-1.5 cursor-pointer"
       >
         <Plus className="w-4 h-4" />
-        개별 청구서 발행
+        개별 청구서 초안
       </button>
     </div>
   );
@@ -238,9 +409,26 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
         <TuitionInvoiceListView
           filteredInvoices={filteredInvoices}
           students={students}
+          selectedIds={selectedInvoiceIds}
+          onToggleSelect={(id) =>
+            setSelectedInvoiceIds((prev) =>
+              prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+            )
+          }
+          onToggleSelectAll={() => {
+            if (
+              filteredInvoices.length > 0 &&
+              filteredInvoices.every((inv) => selectedInvoiceIds.includes(inv.id))
+            ) {
+              setSelectedInvoiceIds([]);
+            } else {
+              setSelectedInvoiceIds(filteredInvoices.map((inv) => inv.id));
+            }
+          }}
           onSelectStudent={handleSelectStudentFromInvoice}
           onOpenPayModal={handleOpenPayModal}
           onOpenReceipt={setReceiptInvoice}
+          onSendInvoice={handleSendInvoice}
         />
       )}
 
@@ -265,11 +453,25 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           onPayMethodChange={setPayMethod}
           payMemo={payMemo}
           onPayMemoChange={setPayMemo}
+          payDate={payDate}
+          onPayDateChange={setPayDate}
+          cashReceiptIssued={cashReceiptIssued}
+          onCashReceiptIssuedChange={setCashReceiptIssued}
           onSubmit={handleProcessPayment}
           onClose={() => setPayModalInvoice(null)}
         />
       )}
 
+      {isBulkSendOpen && (
+        <TuitionBulkSendModal
+          students={students}
+          yearMonth={selectedMonth}
+          defaultAmount={settings.defaultTuitionFee || 180000}
+          defaultDueDate={defaultDueDateForMonth(selectedMonth, settings.defaultPaymentDay || 10)}
+          onSubmit={handleBulkSend}
+          onClose={() => setIsBulkSendOpen(false)}
+        />
+      )}
       {receiptInvoice && (
         <TuitionReceiptModal
           invoice={receiptInvoice}
@@ -298,6 +500,14 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           onDueDateChange={setNewInvDueDate}
           notes={newInvNotes}
           onNotesChange={setNewInvNotes}
+          includeExtras={newInvIncludeExtras}
+          onIncludeExtrasChange={setNewInvIncludeExtras}
+          textbookFeePreview={extrasPreview.textbookFee}
+          textbookCountPreview={extrasPreview.textbookCount}
+          recitalFeePreview={extrasPreview.recitalFee}
+          recitalLabelPreview={extrasPreview.recitalLabel}
+          extraFee={newInvExtraFee}
+          onExtraFeeChange={setNewInvExtraFee}
           onSubmit={handleCreateCustomInvoice}
           onClose={() => setIsNewInvoiceModalOpen(false)}
         />

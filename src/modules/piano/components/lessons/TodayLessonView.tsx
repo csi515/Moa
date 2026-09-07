@@ -3,9 +3,13 @@ import { CheckCircle2, ChevronRight, Clock, MapPin, Piano, Users, XCircle } from
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
+import { LessonService } from '@/core/lessons';
 import { EmptyState, PageHeader } from '@/shared/components';
 import type { AttendanceRecord, AttendanceStatus, ClassItem, LessonRecord, Student } from '@/types';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
+import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
+import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
 import { LessonSessionModal, type LessonSessionForm } from './LessonSessionModal';
 
@@ -57,7 +61,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   const currentHm = nowHm();
 
   const students = useMemo(
-    () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
+    () => scopeStudents(StudentService.getStudents()).filter((s) => s.status === 'active'),
     [scopeStudents, refreshKey]
   );
   const classes = useMemo(
@@ -69,7 +73,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   );
   const attendance = useMemo(() => StorageService.getAttendance(), [refreshKey]);
   const lessons = useMemo(
-    () => scopeLessons(StorageService.getLessonRecords()),
+    () => scopeLessons(LessonService.getLessonRecords()),
     [scopeLessons, refreshKey]
   );
 
@@ -107,8 +111,18 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     classItem: ClassItem,
     status: AttendanceStatus,
     memo?: string
-  ) => {
+  ): boolean => {
     const existingAtt = findAttendance(student.id, classItem.id);
+    const passResult = applySessionPassForAttendance({
+      student,
+      nextStatus: status,
+      previous: existingAtt || null,
+    });
+    if (passResult.warning) {
+      showToast(passResult.warning, 'warning');
+      return false;
+    }
+
     StorageService.saveAttendanceRecord({
       ...(existingAtt ? { id: existingAtt.id } : {}),
       date: today,
@@ -119,6 +133,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       status,
       memo: memo?.trim() || undefined,
       createdBy: currentUser.name,
+      sessionPassId: passResult.sessionPassId,
     });
 
     if (status === 'absent') {
@@ -131,6 +146,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         reason: memo?.trim() || undefined,
       });
     }
+    return true;
   };
 
   const handleQuickStatus = (
@@ -140,21 +156,64 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     status: 'present' | 'absent'
   ) => {
     e.stopPropagation();
-    persistAttendance(student, classItem, status);
+    if (!persistAttendance(student, classItem, status)) return;
     showToast(
       status === 'absent'
         ? `${student.name} 원생 결석 처리되었습니다.`
         : `${student.name} 원생 출석 처리되었습니다.`,
       'success'
     );
-    if (status === 'absent') offerMakeup(student.name);
+    if (status === 'absent') {
+      offerMakeup(student.name);
+      return;
+    }
+    openConfirmDialog({
+      title: '레슨 노트',
+      message: `${student.name} 원생 출석이 저장되었습니다. 이어서 노트·과제를 작성할까요?`,
+      confirmText: '노트 작성',
+      cancelText: '나중에',
+      onConfirm: () => setTarget({ student, classItem }),
+    });
   };
+
+  const sessionHints = useMemo(() => {
+    if (!target) {
+      return { songSuggestions: [] as string[], homeworkHint: '', inProgressSong: '' };
+    }
+    const studentId = target.student.id;
+    const weekStart = StorageService.getCurrentWeekStart();
+    const weekAssignment = StorageService.getWeeklyAssignments(studentId).find(
+      (a) => a.weekStart === weekStart
+    );
+    const curriculumItems = StorageService.getCurriculumItems();
+    const progress = StorageService.getCurriculumProgress(studentId);
+    const inProgressIds = new Set(
+      progress.filter((p) => p.status === 'in_progress').map((p) => p.curriculumItemId)
+    );
+    const inProgressSong =
+      curriculumItems.find((it) => inProgressIds.has(it.id))?.title || '';
+    const recentSongs = lessons
+      .filter((l) => l.studentId === studentId)
+      .slice(0, 8)
+      .map((l) => l.songTitle)
+      .filter(Boolean);
+    const curriculumTitles = curriculumItems.map((it) => it.title).filter(Boolean);
+    const assignmentTitles = (weekAssignment?.items || []).map((it) => it.songTitle);
+    const songSuggestions = Array.from(
+      new Set([...recentSongs, ...assignmentTitles, ...curriculumTitles, inProgressSong].filter(Boolean))
+    ).slice(0, 12);
+    const homeworkHint =
+      weekAssignment?.items?.find((it) => !it.completed)?.instructions ||
+      weekAssignment?.items?.[0]?.instructions ||
+      '';
+    return { songSuggestions, homeworkHint, inProgressSong };
+  }, [target, lessons, refreshKey]);
 
   const handleSave = (form: LessonSessionForm) => {
     if (!target) return;
     const { student, classItem } = target;
 
-    persistAttendance(student, classItem, form.status, form.memo);
+    if (!persistAttendance(student, classItem, form.status, form.memo)) return;
 
     if (form.status !== 'absent') {
       if (!form.songTitle.trim()) {
@@ -162,7 +221,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         return;
       }
       const existingLesson = findLesson(student.id);
-      StorageService.saveLessonRecord({
+      LessonService.saveLessonRecord({
         ...(existingLesson ? { id: existingLesson.id } : {}),
         studentId: student.id,
         studentName: student.name,
@@ -177,6 +236,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         strengths: form.strengths.trim(),
         weaknesses: form.weaknesses.trim(),
         homework: form.homework.trim(),
+        nextPlan: form.nextPlan.trim(),
         memo: form.memo.trim(),
       });
 
@@ -185,6 +245,12 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         songTitle: form.songTitle,
         homework: form.homework,
         staffId,
+      });
+
+      syncLessonCurriculumProgress({
+        studentId: student.id,
+        songTitle: form.songTitle,
+        nextSongTitle: form.nextPlan,
       });
     }
 
@@ -216,7 +282,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     <PageHeader
       icon={<Piano className="w-6 h-6" />}
       title="오늘 레슨"
-      description="출석 · 레슨 노트 · 과제를 한 화면에서 저장합니다."
+      description="출석 · 레슨 노트 · 과제 · 다음곡을 한 화면에서 저장합니다."
     />
   );
 
@@ -420,6 +486,9 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
             ? findAttendance(target.student.id, target.classItem.id)?.status || null
             : null
         }
+        songSuggestions={sessionHints.songSuggestions}
+        homeworkHint={sessionHints.homeworkHint}
+        inProgressSong={sessionHints.inProgressSong}
         onClose={() => setTarget(null)}
         onSave={handleSave}
       />

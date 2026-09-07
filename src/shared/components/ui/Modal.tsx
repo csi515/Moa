@@ -7,6 +7,8 @@ interface ModalProps {
   title: string;
   children: ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '4xl';
+  /** 제목 옆 추가 액션 (인쇄 등) */
+  headerActions?: ReactNode;
 }
 
 const MAX_WIDTH_CLASS = {
@@ -24,6 +26,7 @@ export const Modal: React.FC<ModalProps> = ({
   title,
   children,
   maxWidth = 'md',
+  headerActions,
 }) => {
   if (!isOpen) return null;
 
@@ -40,18 +43,21 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-labelledby="modal-title"
       >
-        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between shrink-0">
-          <h3 id="modal-title" className="font-bold text-slate-900 text-base">
+        <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between shrink-0 gap-2">
+          <h3 id="modal-title" className="font-bold text-slate-900 text-base min-w-0 truncate">
             {title}
           </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-1 shrink-0">
+            {headerActions}
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors"
+              aria-label="닫기"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
         <div className="overflow-y-auto flex-1">{children}</div>
       </div>

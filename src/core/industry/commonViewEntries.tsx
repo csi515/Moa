@@ -10,6 +10,7 @@ export const financeViewEntries = {
   expenses: () => <FinanceHubView />,
   tuition: () => <FinanceHubView />,
   unpaid: () => <FinanceHubView />,
+  payroll: () => <FinanceHubView />,
 } as const satisfies Record<string, () => ReactNode>;
 
 /** 출결 관리 — 업종 공통 */

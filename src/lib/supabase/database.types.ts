@@ -23,11 +23,18 @@ export type MemberRole =
   | 'guardian';
 export type ScheduleStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded' | 'cancelled';
-export type PaymentMethod = 'cash' | 'card' | 'transfer' | 'online' | 'other';
+export type PaymentMethod =
+  | 'cash'
+  | 'card'
+  | 'transfer'
+  | 'online'
+  | 'other'
+  | 'local_currency'
+  | 'onsite_card';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type NotificationChannel = 'app' | 'email' | 'sms' | 'kakao';
 export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
-export type GuardianRelationship = 'father' | 'mother' | 'other';
+export type GuardianRelationship = 'father' | 'mother' | 'other' | 'self';
 export type CareJournalMood = 'good' | 'normal' | 'tired' | 'sick';
 export type MedicationStatus = 'requested' | 'administered' | 'cancelled';
 export type CurriculumProgressStatus = 'not_started' | 'in_progress' | 'completed';
@@ -559,6 +566,7 @@ export interface Database {
           receipt_number: string | null;
           memo: string | null;
           metadata: Json;
+          sent_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -576,6 +584,7 @@ export interface Database {
           receipt_number?: string | null;
           memo?: string | null;
           metadata?: Json;
+          sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -593,6 +602,7 @@ export interface Database {
           receipt_number?: string | null;
           memo?: string | null;
           metadata?: Json;
+          sent_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -608,6 +618,7 @@ export interface Database {
           paid_at: string;
           receipt_number: string | null;
           memo: string | null;
+          cash_receipt_issued: boolean;
           created_by: string | null;
           created_at: string;
         };
@@ -620,6 +631,7 @@ export interface Database {
           paid_at?: string;
           receipt_number?: string | null;
           memo?: string | null;
+          cash_receipt_issued?: boolean;
           created_by?: string | null;
           created_at?: string;
         };
@@ -632,6 +644,7 @@ export interface Database {
           paid_at?: string;
           receipt_number?: string | null;
           memo?: string | null;
+          cash_receipt_issued?: boolean;
           created_by?: string | null;
           created_at?: string;
         };

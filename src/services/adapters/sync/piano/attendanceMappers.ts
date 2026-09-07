@@ -60,6 +60,7 @@ export function attendanceToPianoRow(record: AttendanceRecord, organizationId: s
       makeUpRoom: record.makeUpRoom || null,
       makeUpTeacherId: record.makeUpTeacherId || null,
       makeUpTeacherName: record.makeUpTeacherName || null,
+      sessionPassId: record.sessionPassId || null,
     } as Json,
   };
 }
@@ -86,6 +87,7 @@ export function pianoRowToAttendance(row: {
     makeUpRoom?: string | null;
     makeUpTeacherId?: string | null;
     makeUpTeacherName?: string | null;
+    sessionPassId?: string | null;
   };
   return {
     id: row.id,
@@ -106,6 +108,7 @@ export function pianoRowToAttendance(row: {
     memo: row.memo || undefined,
     createdBy: row.created_by || '',
     createdAt: row.created_at,
+    sessionPassId: meta.sessionPassId || undefined,
   };
 }
 

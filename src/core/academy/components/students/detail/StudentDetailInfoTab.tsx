@@ -3,6 +3,7 @@ import { Student } from '@/types';
 import { CustomerPinPanel } from '@/core/attendance';
 import { formatGuardianRelationship } from '@/core/parent';
 import type { GuardianInfo } from '@/core/parent/types';
+import { ScheduleService } from '@/core/services/scheduleService';
 import {
   formatPickupAddressLine,
   formatShuttleDirection,
@@ -201,13 +202,32 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
           </span>
         </div>
         <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-          <span className="text-slate-500">월 정규 수강료</span>
-          <span className="font-bold text-indigo-700 text-sm">{formatCurrency(student.tuitionFee)}</span>
+          <span className="text-slate-500">수강 형태</span>
+          <span className="font-bold text-slate-800">
+            {student.billingMode === 'session_pass' ? '회차권' : '월회비'}
+          </span>
         </div>
-        <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-          <span className="text-slate-500">정기 수납일</span>
-          <span className="font-bold text-slate-800">매월 {student.paymentDay}일</span>
-        </div>
+        {student.billingMode === 'session_pass' ? (
+          <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+            <span className="text-slate-500">회차권 잔여</span>
+            <span className="font-bold text-indigo-700 text-sm">
+              {ScheduleService.getCustomerRemainingSessions(student.id)}회
+            </span>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+              <span className="text-slate-500">월 정규 수강료</span>
+              <span className="font-bold text-indigo-700 text-sm">
+                {formatCurrency(student.tuitionFee)}
+              </span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-slate-200/60">
+              <span className="text-slate-500">정기 수납일</span>
+              <span className="font-bold text-slate-800">매월 {student.paymentDay}일</span>
+            </div>
+          </>
+        )}
         <div className="flex justify-between py-1.5">
           <span className="text-slate-500">총 누적 연습시간</span>
           <span className="font-bold text-emerald-700">

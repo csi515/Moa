@@ -9,3 +9,4 @@ export type {
   StudentRegistrationResult,
   GuardianRegistrationInput,
 } from './services/studentRegistrationService';
+export { StudentService } from './services/studentService';

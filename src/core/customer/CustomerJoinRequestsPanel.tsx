@@ -13,6 +13,7 @@ import {
 import type { CustomerJoinRequest, JoinRequestType } from '@/types';
 import { customerJoinService } from './services/customerJoinService';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { Modal } from '@/shared/components/ui';
 
 function getStatusLabel(status: string): { label: string; color: string } {
   const labels: Record<string, { label: string; color: string }> = {
@@ -163,43 +164,50 @@ function RequestCard({ request, onApprove, onReject }: RequestCardProps) {
         </div>
       </div>
 
-      {/* Reject Modal */}
-      {showRejectModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
-            <h3 className="text-xl font-bold text-slate-900 mb-2">가입 신청 반려</h3>
-            <p className="text-sm text-slate-600 mb-4">
-              반려 사유를 입력해주세요. 신청자에게 전달됩니다.
-            </p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
-              placeholder="예: 현재 신규 회원 모집을 하지 않고 있습니다"
-            />
-            <div className="flex gap-3 mt-4">
-              <button
-                onClick={() => {
-                  setShowRejectModal(false);
-                  setRejectReason('');
-                }}
-                disabled={processing}
-                className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors disabled:opacity-50"
-              >
-                취소
-              </button>
-              <button
-                onClick={handleReject}
-                disabled={processing}
-                className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50"
-              >
-                {processing ? '처리 중...' : '반려'}
-              </button>
-            </div>
+      <Modal
+        isOpen={showRejectModal}
+        onClose={() => {
+          if (processing) return;
+          setShowRejectModal(false);
+          setRejectReason('');
+        }}
+        title="가입 신청 반려"
+        maxWidth="sm"
+      >
+        <div className="p-6">
+          <p className="text-sm text-slate-600 mb-4">
+            반려 사유를 입력해주세요. 신청자에게 전달됩니다.
+          </p>
+          <textarea
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+            rows={4}
+            className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 resize-none"
+            placeholder="예: 현재 신규 회원 모집을 하지 않고 있습니다"
+          />
+          <div className="flex gap-3 mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setShowRejectModal(false);
+                setRejectReason('');
+              }}
+              disabled={processing}
+              className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 min-h-[44px]"
+            >
+              취소
+            </button>
+            <button
+              type="button"
+              onClick={handleReject}
+              disabled={processing}
+              className="flex-1 py-3 bg-red-600 text-white rounded-xl font-medium hover:bg-red-700 transition-colors disabled:opacity-50 min-h-[44px]"
+            >
+              {processing ? '처리 중...' : '반려'}
+            </button>
           </div>
         </div>
-      )}
+      </Modal>
     </>
   );
 }

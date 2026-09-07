@@ -8,6 +8,7 @@ export interface SaleMetadata {
   textbookTitle?: string;
   studentName?: string;
   teacherName?: string;
+  billingInvoiceId?: string;
 }
 
 export const SALE_STATUS_TO_DB: Record<TextbookSale['status'], PianoTextbookPaymentStatus> = {

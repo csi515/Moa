@@ -1,16 +1,27 @@
 import type {
   Expense,
   Student,
+  TextbookSale,
   TuitionInvoice,
   TuitionPayment,
   UnpaidInvoiceItem,
   StudentUnpaidSummary,
   PaymentMethod,
+  AcademyEvent,
+  AcademySettings,
 } from '../../types';
 import type { IncomeEntry, FinanceSummary } from '../../core/finance/types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
-import { notifyParentTuitionUnpaid } from '../../core/academy/services/academyAlertService';
+import { notifyParentTuitionInvoiceSent } from '../../core/academy/services/academyAlertService';
+import { isMonthlyBillingStudent } from '../../core/academy/utils/billingMode';
+import {
+  buildInvoiceNotes,
+  collectPendingRecitalFees,
+  collectPendingTextbookSales,
+  computeInvoiceTotal,
+  resolveIncludeExtras,
+} from '../../core/academy/utils/invoiceExtras';
 import {
   backfillLinkedIncomeFromPayments,
   deleteLinkedIncome,
@@ -70,20 +81,31 @@ export function createFinanceStorage(api: StorageApi) {
 
     deleteInvoice(id: string): boolean {
       const list = (api.getInvoices as () => TuitionInvoice[])();
+      const target = list.find((i) => i.id === id);
+      if (!target) return false;
+
       const filtered = list.filter((i) => i.id !== id);
-      if (filtered.length !== list.length) {
-        const payments = readTuitionPayments().filter((p) => p.invoiceId === id);
-        for (const p of payments) {
-          deleteLinkedIncome('tuition', p.id);
-        }
-        setItem(
-          STORAGE_KEYS.TUITION_PAYMENTS,
-          readTuitionPayments().filter((p) => p.invoiceId !== id)
-        );
-        setItem(STORAGE_KEYS.INVOICES, filtered);
-        return true;
+      const payments = readTuitionPayments().filter((p) => p.invoiceId === id);
+      for (const p of payments) {
+        deleteLinkedIncome('tuition', p.id);
       }
-      return false;
+      setItem(
+        STORAGE_KEYS.TUITION_PAYMENTS,
+        readTuitionPayments().filter((p) => p.invoiceId !== id)
+      );
+      setItem(STORAGE_KEYS.INVOICES, filtered);
+
+      // 합산 교재 판매 링크 해제
+      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      let salesChanged = false;
+      const nextSales = sales.map((s) => {
+        if (s.billingInvoiceId !== id) return s;
+        salesChanged = true;
+        return { ...s, billingInvoiceId: undefined, updatedAt: new Date().toISOString() };
+      });
+      if (salesChanged) setItem(STORAGE_KEYS.TEXTBOOK_SALES, nextSales);
+
+      return true;
     },
 
     recordPayment(
@@ -91,7 +113,8 @@ export function createFinanceStorage(api: StorageApi) {
       amount: number,
       method: PaymentMethod,
       notes?: string,
-      paymentDate?: string
+      paymentDate?: string,
+      options?: { cashReceiptIssued?: boolean }
     ): TuitionInvoice | null {
       const list = (api.getInvoices as () => TuitionInvoice[])();
       const idx = list.findIndex((i) => i.id === invoiceId);
@@ -132,6 +155,7 @@ export function createFinanceStorage(api: StorageApi) {
         paymentMethod: method,
         memo: notes,
         receiptNumber: receiptNum,
+        cashReceiptIssued: options?.cashReceiptIssued === true,
       });
 
       upsertLinkedIncome({
@@ -145,7 +169,138 @@ export function createFinanceStorage(api: StorageApi) {
         memo: notes,
       });
 
+      // 월 청구 완납 시 합산 교재 미납분 정산
+      if (updated.status === 'paid' && (inv.linkedTextbookSaleIds || []).length > 0) {
+        for (const saleId of inv.linkedTextbookSaleIds || []) {
+          try {
+            const sale = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []).find(
+              (s) => s.id === saleId
+            );
+            if (!sale || sale.unpaidAmount <= 0) continue;
+            (
+              api.recordTextbookPayment as (
+                saleId: string,
+                amount: number,
+                method?: PaymentMethod,
+                date?: string,
+                memo?: string
+              ) => unknown
+            )(saleId, sale.unpaidAmount, method, pDate, `${inv.yearMonth} 월청구 합산 수납`);
+          } catch (err) {
+            console.error('Failed to settle linked textbook sale:', err);
+          }
+        }
+      }
+
       return updated;
+    },
+
+    /** 청구서 수동 발송 — sentAt 기록 + 학부모 알림 (자동 발송 금지) */
+    sendInvoice(invoiceId: string): TuitionInvoice | null {
+      const list = (api.getInvoices as () => TuitionInvoice[])();
+      const idx = list.findIndex((i) => i.id === invoiceId);
+      if (idx === -1) return null;
+
+      const inv = list[idx];
+      if (inv.status === 'cancelled' || inv.status === 'paid') return inv;
+      if (inv.invoiceSent === true && inv.sentAt) return inv;
+
+      const sentAt = new Date().toISOString();
+      const updated: TuitionInvoice = {
+        ...inv,
+        invoiceSent: true,
+        sentAt,
+      };
+      list[idx] = updated;
+      setItem(STORAGE_KEYS.INVOICES, list);
+
+      const students = (api.getStudents as () => Student[])();
+      const student = students.find((s) => s.id === inv.studentId);
+      if (updated.unpaidAmount > 0) {
+        notifyParentTuitionInvoiceSent({
+          studentId: inv.studentId,
+          studentName: inv.studentName,
+          parentPhone: student?.parentPhone,
+          yearMonth: inv.yearMonth,
+          amount: updated.unpaidAmount,
+          dueDate: inv.dueDate,
+          title: inv.title,
+        });
+      }
+      return updated;
+    },
+
+    sendInvoices(invoiceIds: string[]): number {
+      let count = 0;
+      for (const id of invoiceIds) {
+        const sent = (api.sendInvoice as (id: string) => TuitionInvoice | null)(id);
+        if (sent?.sentAt) count += 1;
+      }
+      return count;
+    },
+
+    /** 학부모 현금영수증 발행 요청 */
+    requestCashReceipt(invoiceId: string): TuitionInvoice | null {
+      const list = (api.getInvoices as () => TuitionInvoice[])();
+      const idx = list.findIndex((i) => i.id === invoiceId);
+      if (idx === -1) return null;
+      const updated: TuitionInvoice = {
+        ...list[idx],
+        cashReceiptRequested: true,
+      };
+      list[idx] = updated;
+      setItem(STORAGE_KEYS.INVOICES, list);
+      return updated;
+    },
+
+    /**
+     * 다중 수강생 일괄 청구 생성 후 즉시 발송.
+     * PG 자동결제 없음 — 발송만 수행.
+     */
+    bulkCreateAndSendInvoices(params: {
+      studentIds: string[];
+      yearMonth: string;
+      title: string;
+      amount: number;
+      dueDate: string;
+      notes?: string;
+    }): { created: number; sent: number } {
+      const amount = Math.max(0, Number(params.amount) || 0);
+      if (amount <= 0 || params.studentIds.length === 0) {
+        return { created: 0, sent: 0 };
+      }
+
+      const students = (api.getStudents as () => Student[])();
+      let created = 0;
+      const createdIds: string[] = [];
+
+      for (const studentId of params.studentIds) {
+        const st = students.find((s) => s.id === studentId);
+        if (!st || !isMonthlyBillingStudent(st)) continue;
+
+        const saved = (api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice)({
+          studentId: st.id,
+          studentName: st.name,
+          yearMonth: params.yearMonth,
+          title: params.title.trim() || `${params.yearMonth} 수강료`,
+          baseFee: amount,
+          baseTuition: amount,
+          discount: 0,
+          totalAmount: amount,
+          paidAmount: 0,
+          unpaidAmount: amount,
+          dueDate: params.dueDate,
+          status: 'unpaid',
+          notes: params.notes,
+          invoiceSent: false,
+          sentAt: null,
+        });
+        created += 1;
+        createdIds.push(saved.id);
+      }
+
+      const sent = (api.sendInvoices as (ids: string[]) => number)(createdIds);
+      return { created, sent };
     },
 
     /** 연동 납부 삭제 — charge 잔액·income 동시 복원 */
@@ -177,48 +332,123 @@ export function createFinanceStorage(api: StorageApi) {
       return true;
     },
 
-    createInvoiceForStudent(student: Student, yearMonth?: string): TuitionInvoice {
+    createInvoiceForStudent(
+      student: Student,
+      yearMonth?: string,
+      options?: { includeExtras?: boolean; extraFee?: number; extraFeeLabel?: string }
+    ): TuitionInvoice | null {
+      if (!isMonthlyBillingStudent(student)) {
+        return null;
+      }
       const ym = yearMonth || new Date().toISOString().slice(0, 7);
       const dueDay = String(student.paymentDay || 10).padStart(2, '0');
       const dueDate = `${ym}-${dueDay}`;
+      const settings = getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, {
+        name: '',
+        address: '',
+        phone: '',
+        defaultTuitionFee: 180000,
+      });
+      const includeExtras = resolveIncludeExtras(settings, options?.includeExtras);
+
+      let textbookFee = 0;
+      let linkedTextbookSaleIds: string[] = [];
+      let linkedExtraItems: TuitionInvoice['linkedExtraItems'] = [];
+      let extraFee = Math.max(0, Number(options?.extraFee) || 0);
+      let extraFeeLabel = options?.extraFeeLabel;
+
+      if (includeExtras) {
+        const pendingSales = collectPendingTextbookSales(
+          getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []),
+          student.id
+        );
+        textbookFee = pendingSales.reduce((sum, s) => sum + s.unpaidAmount, 0);
+        linkedTextbookSaleIds = pendingSales.map((s) => s.id);
+
+        const existingInvoices = (api.getInvoices as () => TuitionInvoice[])();
+        const events =
+          typeof api.getEvents === 'function'
+            ? (api.getEvents as () => AcademyEvent[])()
+            : getItem<AcademyEvent[]>(STORAGE_KEYS.EVENTS, []);
+        const recitalItems = collectPendingRecitalFees({
+          events,
+          studentId: student.id,
+          yearMonth: ym,
+          existingInvoices,
+        });
+        linkedExtraItems = recitalItems;
+        const recitalTotal = recitalItems.reduce((sum, i) => sum + i.amount, 0);
+        extraFee += recitalTotal;
+        if (!extraFeeLabel && recitalItems.length > 0) {
+          extraFeeLabel = recitalItems.map((i) => i.label).join(', ');
+        }
+      }
+
+      const baseFee = student.tuitionFee || 0;
+      const discount = 0;
+      const totalAmount = computeInvoiceTotal({
+        baseFee,
+        discount,
+        textbookFee,
+        extraFee,
+      });
 
       const newInv: TuitionInvoice = {
         id: generateEntityId('inv'),
         studentId: student.id,
         studentName: student.name,
         yearMonth: ym,
-        baseFee: student.tuitionFee,
-        discount: 0,
-        textbookFee: 0, // 교재는 일회성 TextbookSale — 월 청구에 포함하지 않음
-        extraFee: 0,
-        totalAmount: student.tuitionFee,
+        title: `${ym} 수강료`,
+        baseFee,
+        baseTuition: baseFee,
+        discount,
+        textbookFee,
+        extraFee,
+        extraFeeLabel,
+        totalAmount,
         paidAmount: 0,
-        unpaidAmount: student.tuitionFee,
+        unpaidAmount: totalAmount,
         dueDate,
-        status: 'unpaid',
-        notes: `${ym}월 정기 수강료`,
+        status: totalAmount <= 0 ? 'paid' : 'unpaid',
+        notes: buildInvoiceNotes({
+          yearMonth: ym,
+          textbookCount: linkedTextbookSaleIds.length,
+          extraItems: linkedExtraItems || [],
+        }),
+        includeExtras,
+        linkedTextbookSaleIds:
+          linkedTextbookSaleIds.length > 0 ? linkedTextbookSaleIds : undefined,
+        linkedExtraItems:
+          linkedExtraItems && linkedExtraItems.length > 0 ? linkedExtraItems : undefined,
+        invoiceSent: false,
+        sentAt: null,
       };
 
       const saved = (api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice)(
         newInv
       );
 
-      if (saved.unpaidAmount > 0) {
-        notifyParentTuitionUnpaid({
-          studentId: student.id,
-          studentName: student.name,
-          parentPhone: student.parentPhone,
-          yearMonth: saved.yearMonth,
-          amount: saved.unpaidAmount,
-          dueDate: saved.dueDate,
-        });
+      if (linkedTextbookSaleIds.length > 0) {
+        const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+        const linked = new Set(linkedTextbookSaleIds);
+        setItem(
+          STORAGE_KEYS.TEXTBOOK_SALES,
+          sales.map((s) =>
+            linked.has(s.id)
+              ? { ...s, billingInvoiceId: saved.id, updatedAt: new Date().toISOString() }
+              : s
+          )
+        );
       }
 
+      // 자동 발송 금지 — sendInvoice / 일괄 발송에서만 알림
       return saved;
     },
 
     generateMonthlyInvoicesForAllActive(yearMonth: string): number {
-      const students = (api.getStudents as () => Student[])().filter((s) => s.status === 'active');
+      const students = (api.getStudents as () => Student[])().filter(
+        (s) => s.status === 'active' && isMonthlyBillingStudent(s)
+      );
       const currentInvoices = (api.getInvoices as () => TuitionInvoice[])();
       let generatedCount = 0;
 
@@ -227,7 +457,7 @@ export function createFinanceStorage(api: StorageApi) {
           (i) => i.studentId === student.id && i.yearMonth === yearMonth
         );
         if (!alreadyHas) {
-          (api.createInvoiceForStudent as (s: Student, ym?: string) => TuitionInvoice)(
+          (api.createInvoiceForStudent as (s: Student, ym?: string) => TuitionInvoice | null)(
             student,
             yearMonth
           );

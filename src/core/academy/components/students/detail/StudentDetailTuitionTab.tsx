@@ -1,6 +1,7 @@
 import React from 'react';
-import { TuitionInvoice, StudentMonthlyBillingSummary, TextbookSale } from '@/types';
+import { TuitionInvoice, StudentMonthlyBillingSummary, TextbookSale, PaymentMethod } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
+import { ONSITE_PAYMENT_METHOD_OPTIONS } from '@/core/finance/paymentMethodLabels';
 import { BookOpen, Plus } from 'lucide-react';
 
 interface StudentDetailTuitionTabProps {
@@ -11,8 +12,8 @@ interface StudentDetailTuitionTabProps {
   setPayInvoiceId: (id: string | null) => void;
   payAmount: number;
   setPayAmount: (amount: number) => void;
-  payMethod: 'card' | 'transfer' | 'cash' | 'other';
-  setPayMethod: (method: 'card' | 'transfer' | 'cash' | 'other') => void;
+  payMethod: PaymentMethod;
+  setPayMethod: (method: PaymentMethod) => void;
   payMemo: string;
   setPayMemo: (memo: string) => void;
   onCreateInvoice: () => void;
@@ -44,7 +45,11 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
   onOpenTextbookPayment,
 }) => {
   const unpaidInvoices = allInvoices.filter((inv) => inv.status !== 'paid' && inv.unpaidAmount > 0);
-  const unpaidTextbookSales = studentSales.filter((s) => s.unpaidAmount > 0);
+  /** 월 청구에 합산된 교재는 별도 미납으로 표시하지 않음 */
+  const unpaidTextbookSales = studentSales.filter(
+    (s) => s.unpaidAmount > 0 && !s.billingInvoiceId
+  );
+  const hasLinkedTextbook = studentSales.some((s) => Boolean(s.billingInvoiceId));
 
   return (
     <div className="space-y-4">
@@ -52,7 +57,10 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
         <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-3.5 space-y-2">
           <p className="text-xs font-bold text-indigo-800">{billingSummary.yearMonth} 수납 요약</p>
           <p className="text-[11px] text-indigo-700/80">
-            월회비와 교재비(일회성)를 구분해 표시합니다. 교재비는 월회비에 자동 포함되지 않습니다.
+            월회비와 별도 교재비를 구분해 표시합니다.
+            {hasLinkedTextbook
+              ? ' 월 청구에 합산된 교재는 월회비에 포함되어 있습니다.'
+              : ' 설정에서 「월 청구에 교재·연주회비 합산」을 켜면 청구서에 함께 넣을 수 있습니다.'}
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
             <div className="bg-white rounded-xl p-2 border border-slate-100">
@@ -200,13 +208,14 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
               <label className="text-[11px] font-semibold text-slate-700 block mb-1">결제 방법</label>
               <select
                 value={payMethod}
-                onChange={(e) => setPayMethod(e.target.value as 'card' | 'transfer' | 'cash' | 'other')}
+                onChange={(e) => setPayMethod(e.target.value as PaymentMethod)}
                 className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-medium min-h-[44px]"
               >
-                <option value="card">카드 결제</option>
-                <option value="transfer">계좌 이체</option>
-                <option value="cash">현금</option>
-                <option value="other">기타</option>
+                {ONSITE_PAYMENT_METHOD_OPTIONS.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.label}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
@@ -271,6 +280,14 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
                       </span>
                     )}
                   </p>
+                  {((inv.textbookFee || 0) > 0 || (inv.extraFee || 0) > 0) && (
+                    <p className="text-[11px] text-indigo-700 mt-1">
+                      월회비 {formatCurrency(inv.baseTuition ?? inv.baseFee ?? 0)}
+                      {(inv.textbookFee || 0) > 0 && ` · 교재 ${formatCurrency(inv.textbookFee || 0)}`}
+                      {(inv.extraFee || 0) > 0 &&
+                        ` · ${inv.extraFeeLabel || '기타'} ${formatCurrency(inv.extraFee || 0)}`}
+                    </p>
+                  )}
                   {inv.notes && <p className="text-slate-600 text-[11px] mt-1 italic">{inv.notes}</p>}
                 </div>
 

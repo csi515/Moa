@@ -24,7 +24,7 @@ src/
 
 여러 업종에서 **동일한 의미와 동일한 책임**을 가지는 비즈니스 기능.
 
-예: Auth, Organization, Membership, Customer, Schedule, Availability, Reservation, Consultation, Notification, Finance 공통 기반, Attendance(옵션), Transport 등.
+예: Auth, Organization, Membership, Customer(성인 포털 포함), Schedule, Availability, Reservation, Practice rooms(canonical), Consultation, Notification, Finance(수강료 청구·수기 정산 포함), Attendance(옵션), Transport 등.
 
 ### Module
 
@@ -85,7 +85,8 @@ flowchart TB
 Component → Hook → Service → getCoreClient() → Supabase
 ```
 
-예: Availability / Reservation — `availabilityService` / `reservationService`.
+예: Availability / Reservation — `availabilityService` / `reservationService`.  
+성인 포털 — `studentPortalService` / `practiceRoomReservationService` / `customerJoinService`.
 
 ### 레거시 (현행 주류 CRUD)
 
@@ -93,12 +94,54 @@ Component → Hook → Service → getCoreClient() → Supabase
 Component → StorageService → sync adapters → Supabase
 ```
 
-예: Students, Tuition notes, Income/Expense, ConsultationRecords.
+예: Income/Expense 일부, ConsultationRecords, Settings.
 
-- 신규 실시간·조직 스코프 기능은 Service 경로.
-- 레거시는 기능 수정 시 점진 정렬. 일괄 제거 금지.
+### 이행 중 (도메인 파사드)
+
+```
+Component → StudentService | TuitionService | LessonService | ScheduleService
+         → StorageService → sync adapters → Supabase
+```
+
+- 신규 UI는 **파사드 Service**를 호출한다. `StorageService`를 컴포넌트에서 직접 쓰지 않는다.
+- 파사드 내부는 당분간 Storage 동기화 경로를 유지한다 (일괄 제거 금지).
+- 실시간·조직 스코프 신규 기능은 `getCoreClient()` / RPC Service 경로.
 - UI에서 supabase 직접 호출은 하지 않는다.
 
+---
+
+## 도메인 표준 (2026-09 추가)
+
+### 성인 수강생 (Adult / Customer portal)
+
+| 항목 | 규칙 |
+|---|---|
+| Identity | `core.students.user_id` = auth user (self-link). CRM은 `core.customers` + `student_enrollments.customer_id` |
+| 셸 | `CustomerShell` — 보호자 포털(`ParentShell`)과 분리. PIN 출석 대신 본인 출석·이용권·연습실 |
+| 가입 | `customer_join_requests` → `approve_customer_join_request` (성인 승인 시 students.user_id 연결) |
+| Service | `studentPortalService`, `customerJoinService` → `getCoreClient()` |
+
+### 연습실 대여 (Practice rooms)
+
+| 항목 | 규칙 |
+|---|---|
+| Canonical DB | `core.practice_rooms` + `core.room_reservations` (+ EXCLUDE 충돌) |
+| 고객 UI | `CustomerPracticeRoomView` → `practiceRoomReservationService` (신청 → pending → 원장 승인) |
+| 스태프 UI | `PracticeRoomBookingView` → `create_staff_room_reservation` / `listByDate` (canonical만) |
+| 금지 | 고객·스태프가 서로 다른 테이블에만 쓰고 충돌 검사를 건너뛰는 신규 플로우. 레거시 `schedules.metadata.kind=practice_room` **신규 쓰기 금지** (읽기 폴백만) |
+
+### 수강료 청구·수기 정산 (Manual billing, No PG)
+
+| 항목 | 규칙 |
+|---|---|
+| 청구서 | 앱 `TuitionInvoice` ↔ `core.payments` (`sent_at`, metadata.invoiceSent) |
+| 수기 결제 | 앱 `TuitionPayment` ↔ `core.payment_transactions` (`local_currency` / `onsite_card` / cash / transfer, `cash_receipt_issued`) |
+| 발송 | **수동만**. 초안 생성(`invoiceSent=false`) ≠ 발송. `TuitionService.sendInvoice` / 일괄 발송에서만 알림 |
+| PG | **비도입**. Toss/Stripe 자동 카드 결제는 로드맵에서 보류. 학원 현장·상품권·이체 수기 완납이 기본 |
+| 학부모 | 발송된 청구만 조회. 계좌 안내·현금영수증 요청(`request_payment_cash_receipt` + 로컬 캐시) |
+| UI | `TuitionService` 파사드. 신규 모달은 shared `Modal` 우선 |
+
+상세 로드맵·갭: [MOA_MULTI_ROLE_ARCHITECTURE.md](./MOA_MULTI_ROLE_ARCHITECTURE.md) Phase 3A.
 ---
 
 ## 멀티테넌트 데이터 규칙

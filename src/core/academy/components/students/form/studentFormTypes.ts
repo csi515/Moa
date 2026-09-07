@@ -1,6 +1,6 @@
 import type { GuardianRelationship } from '@/core/parent/types';
 import type { PickupAddress } from '@/core/transport/types';
-import type { StudentLevel, StudentStatus } from '@/types';
+import type { StudentBillingMode, StudentLevel, StudentStatus } from '@/types';
 
 export interface GuardianFormEntry {
   key: string;
@@ -28,6 +28,7 @@ export interface StudentFormData {
   teacherId: string;
   classIds: string[];
   level: StudentLevel;
+  billingMode: StudentBillingMode;
   tuitionFee: number;
   paymentDay: number;
   specialNotes: string;

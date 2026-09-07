@@ -33,6 +33,10 @@ export function saleToPianoRow(sale: TextbookSale, organizationId: string) {
     textbookTitle: sale.textbookTitle,
     studentName: sale.studentName,
     teacherName: sale.teacherName,
+    parentId: sale.parentId,
+    parentName: sale.parentName,
+    parentPhone: sale.parentPhone,
+    billingInvoiceId: sale.billingInvoiceId,
   };
 
   return {
@@ -104,6 +108,7 @@ export function pianoRowToSale(row: {
     memo: row.memo || undefined,
     teacherId: row.staff_id || undefined,
     teacherName: meta.teacherName,
+    billingInvoiceId: meta.billingInvoiceId,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

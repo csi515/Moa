@@ -382,6 +382,36 @@ export const AcademySettingsView: FC = () => {
             )}
 
             <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField label="기본 수강 형태">
+                <div className="grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { value: 'monthly' as const, label: '월회비' },
+                      { value: 'session_pass' as const, label: '회차권' },
+                    ] as const
+                  ).map((opt) => {
+                    const active =
+                      (settings.defaultBillingMode || 'monthly') === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() =>
+                          setSettings({ ...settings, defaultBillingMode: opt.value })
+                        }
+                        className={`min-h-[44px] rounded-xl border text-sm font-bold transition-colors ${
+                          active
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white text-slate-600 border-slate-200'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FormField>
+
               <FormField label="기본 월 수강료 기준 (₩)">
                 <CurrencyInput
                   value={settings.defaultTuitionFee}
@@ -406,6 +436,31 @@ export const AcademySettingsView: FC = () => {
                   <option value={25}>매월 25일</option>
                 </select>
               </FormField>
+
+              <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer min-h-[44px]">
+                  <input
+                    type="checkbox"
+                    className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    checked={settings.includeExtrasInMonthlyInvoice === true}
+                    onChange={(e) =>
+                      setSettings({
+                        ...settings,
+                        includeExtrasInMonthlyInvoice: e.target.checked,
+                      })
+                    }
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-slate-800">
+                      월 청구에 교재·연주회비 합산
+                    </span>
+                    <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                      켜면 월회비 청구서 생성 시 미납 교재비와 해당 월 연주회·콩쿠르 참가비를
+                      함께 청구합니다. 끄면 교재는 기존처럼 별도 판매·수납합니다.
+                    </span>
+                  </span>
+                </label>
+              </div>
             </div>
 
             <FormField label="수납용 계좌번호 안내 (영수증 및 청구서에 표기)">

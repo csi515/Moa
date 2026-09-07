@@ -1,18 +1,5 @@
-import type {
-  AppNotification,
-  AttendanceRecord,
-  ClassItem,
-  Consultation,
-  Parent,
-  Student,
-  TuitionInvoice,
-} from '../../../../types';
+import type { TuitionInvoice } from '../../../../types';
 import type { Json, PaymentMethod as DbPaymentMethod, PaymentStatus } from '../../../../lib/supabase/database.types';
-import type { StaffMetadata } from '../../types';
-import type { AcademySettings, Teacher } from '../../../../types';
-import type { Booking, ServiceOffering } from '../../../../core/types/schedule';
-import type { PickupAddress } from '../../../../core/transport/types';
-
 
 // ─── Payments (Invoices) ──────────────────────────────────────────
 
@@ -26,8 +13,14 @@ interface PaymentMetadata {
   textbookFee?: number;
   additionalAmount?: number;
   extraFee?: number;
+  extraFeeLabel?: string;
   unpaidAmount?: number;
   notes?: string;
+  includeExtras?: boolean;
+  linkedTextbookSaleIds?: string[];
+  linkedExtraItems?: TuitionInvoice['linkedExtraItems'];
+  invoiceSent?: boolean;
+  cashReceiptRequested?: boolean;
 }
 
 const INVOICE_STATUS_MAP: Record<TuitionInvoice['status'], PaymentStatus> = {
@@ -35,6 +28,7 @@ const INVOICE_STATUS_MAP: Record<TuitionInvoice['status'], PaymentStatus> = {
   partial: 'partial',
   unpaid: 'unpaid',
   overdue: 'unpaid',
+  cancelled: 'cancelled',
 };
 
 const APP_PAYMENT_METHOD_MAP: Record<string, DbPaymentMethod> = {
@@ -42,6 +36,8 @@ const APP_PAYMENT_METHOD_MAP: Record<string, DbPaymentMethod> = {
   transfer: 'transfer',
   cash: 'cash',
   other: 'other',
+  local_currency: 'local_currency',
+  onsite_card: 'onsite_card',
 };
 
 export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string) {
@@ -55,15 +51,21 @@ export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string)
     textbookFee: inv.textbookFee,
     additionalAmount: inv.additionalAmount,
     extraFee: inv.extraFee,
+    extraFeeLabel: inv.extraFeeLabel,
     unpaidAmount: inv.unpaidAmount,
     notes: inv.notes,
+    includeExtras: inv.includeExtras,
+    linkedTextbookSaleIds: inv.linkedTextbookSaleIds,
+    linkedExtraItems: inv.linkedExtraItems,
+    invoiceSent: inv.invoiceSent,
+    cashReceiptRequested: inv.cashReceiptRequested,
   };
 
   return {
     id: inv.id,
     organization_id: organizationId,
     customer_id: inv.studentId,
-    title: `${inv.yearMonth} 수강료`,
+    title: inv.title || `${inv.yearMonth} 수강료`,
     billed_amount: inv.totalAmount,
     paid_amount: inv.paidAmount,
     due_date: inv.dueDate || null,
@@ -74,6 +76,7 @@ export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string)
     paid_at: inv.paidAt || inv.paidDate || null,
     receipt_number: inv.receiptNumber || null,
     memo: inv.notes || null,
+    sent_at: inv.sentAt || null,
     metadata: metadata as unknown as Json,
   };
 }
@@ -91,6 +94,7 @@ export function paymentRowToInvoice(row: {
   receipt_number: string | null;
   memo: string | null;
   metadata: Json;
+  sent_at?: string | null;
 }): TuitionInvoice {
   const meta = (row.metadata || {}) as unknown as PaymentMetadata;
   const yearMonth = meta.yearMonth || row.title.replace(' 수강료', '');
@@ -99,6 +103,7 @@ export function paymentRowToInvoice(row: {
   let status: TuitionInvoice['status'] = 'unpaid';
   if (row.status === 'paid') status = 'paid';
   else if (row.status === 'partial') status = 'partial';
+  else if (row.status === 'cancelled') status = 'cancelled';
   else if (row.due_date && new Date(row.due_date) < new Date() && row.paid_amount < row.billed_amount) {
     status = 'overdue';
   }
@@ -109,6 +114,8 @@ export function paymentRowToInvoice(row: {
     cash: 'cash',
     other: 'other',
     online: 'other',
+    local_currency: 'local_currency',
+    onsite_card: 'onsite_card',
   };
 
   return {
@@ -116,6 +123,7 @@ export function paymentRowToInvoice(row: {
     studentId: row.customer_id,
     studentName: meta.studentName || '',
     yearMonth,
+    title: row.title || undefined,
     baseTuition: meta.baseTuition,
     baseFee: meta.baseFee,
     discount: meta.discount,
@@ -123,6 +131,7 @@ export function paymentRowToInvoice(row: {
     textbookFee: meta.textbookFee,
     additionalAmount: meta.additionalAmount,
     extraFee: meta.extraFee,
+    extraFeeLabel: meta.extraFeeLabel,
     totalAmount: row.billed_amount,
     paidAmount: row.paid_amount,
     unpaidAmount,
@@ -133,6 +142,11 @@ export function paymentRowToInvoice(row: {
     paidDate: row.paid_at?.slice(0, 10),
     notes: meta.notes || row.memo || undefined,
     receiptNumber: row.receipt_number || undefined,
+    includeExtras: meta.includeExtras,
+    linkedTextbookSaleIds: meta.linkedTextbookSaleIds,
+    linkedExtraItems: meta.linkedExtraItems,
+    invoiceSent: meta.invoiceSent,
+    sentAt: row.sent_at ?? undefined,
+    cashReceiptRequested: meta.cashReceiptRequested,
   };
 }
-

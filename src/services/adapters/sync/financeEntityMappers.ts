@@ -1,14 +1,23 @@
 import type { Json } from '@/lib/supabase/database.types';
 import type { FinanceExpense, IncomeEntry } from '@/core/finance/types';
-import type { Expense } from '@/types';
+import type { Expense, TuitionInvoice, TuitionPayment } from '@/types';
 
-type DbPaymentMethod = 'cash' | 'card' | 'transfer' | 'other' | 'online';
+type DbPaymentMethod =
+  | 'cash'
+  | 'card'
+  | 'transfer'
+  | 'other'
+  | 'online'
+  | 'local_currency'
+  | 'onsite_card';
 
 const APP_TO_DB_PAYMENT: Record<string, DbPaymentMethod> = {
   cash: 'cash',
   card: 'card',
   transfer: 'transfer',
   other: 'other',
+  local_currency: 'local_currency',
+  onsite_card: 'onsite_card',
 };
 
 const DB_TO_APP_PAYMENT: Record<string, Expense['paymentMethod']> = {
@@ -17,9 +26,22 @@ const DB_TO_APP_PAYMENT: Record<string, Expense['paymentMethod']> = {
   cash: 'cash',
   other: 'other',
   online: 'other',
+  local_currency: 'local_currency',
+  onsite_card: 'onsite_card',
 };
 
+interface ExpenseMetadata {
+  teacherId?: string;
+  settlementYearMonth?: string;
+  settlementKind?: 'teacher_payroll';
+}
+
 export function expenseToCoreRow(expense: FinanceExpense | Expense, organizationId: string) {
+  const metadata: ExpenseMetadata = {};
+  if (expense.teacherId) metadata.teacherId = expense.teacherId;
+  if (expense.settlementYearMonth) metadata.settlementYearMonth = expense.settlementYearMonth;
+  if (expense.settlementKind) metadata.settlementKind = expense.settlementKind;
+
   return {
     id: expense.id,
     organization_id: organizationId,
@@ -32,7 +54,7 @@ export function expenseToCoreRow(expense: FinanceExpense | Expense, organization
     vendor: expense.vendor || null,
     memo: expense.memo || null,
     receipt_memo: expense.receiptMemo || null,
-    metadata: {} as Json,
+    metadata: metadata as unknown as Json,
   };
 }
 
@@ -47,7 +69,9 @@ export function coreRowToExpense(row: {
   vendor: string | null;
   memo: string | null;
   receipt_memo: string | null;
+  metadata?: Json;
 }): FinanceExpense {
+  const meta = (row.metadata || {}) as ExpenseMetadata;
   return {
     id: row.id,
     date: row.expense_date,
@@ -59,6 +83,9 @@ export function coreRowToExpense(row: {
     vendor: row.vendor || undefined,
     memo: row.memo || undefined,
     receiptMemo: row.receipt_memo || undefined,
+    teacherId: meta.teacherId,
+    settlementYearMonth: meta.settlementYearMonth,
+    settlementKind: meta.settlementKind,
   };
 }
 
@@ -102,5 +129,53 @@ export function coreRowToIncome(row: {
     memo: row.memo || undefined,
     sourceType: (row.source_type as IncomeEntry['sourceType']) || 'manual',
     sourceId: row.source_id || undefined,
+  };
+}
+
+/** 수납 원장 → core.payment_transactions */
+export function tuitionPaymentToTransactionRow(payment: TuitionPayment, organizationId: string) {
+  return {
+    id: payment.id,
+    organization_id: organizationId,
+    payment_id: payment.invoiceId,
+    amount: payment.amount,
+    payment_method: APP_TO_DB_PAYMENT[payment.paymentMethod] || 'cash',
+    paid_at: `${payment.paymentDate}T12:00:00.000Z`,
+    receipt_number: payment.receiptNumber || null,
+    memo: payment.memo || null,
+    cash_receipt_issued: payment.cashReceiptIssued === true,
+  };
+}
+
+/** core.payment_transactions → 수납 원장 (청구서에서 학생·연월 보강) */
+export function transactionRowToTuitionPayment(
+  row: {
+    id: string;
+    payment_id: string;
+    amount: number;
+    payment_method: DbPaymentMethod;
+    paid_at: string;
+    receipt_number: string | null;
+    memo: string | null;
+    cash_receipt_issued?: boolean | null;
+    created_at: string;
+  },
+  invoiceLookup: Map<string, Pick<TuitionInvoice, 'studentId' | 'studentName' | 'yearMonth'>>
+): TuitionPayment {
+  const inv = invoiceLookup.get(row.payment_id);
+  return {
+    id: row.id,
+    invoiceId: row.payment_id,
+    studentId: inv?.studentId || '',
+    studentName: inv?.studentName || '',
+    yearMonth: inv?.yearMonth || '',
+    paymentDate: row.paid_at.slice(0, 10),
+    amount: Number(row.amount),
+    paymentMethod: (DB_TO_APP_PAYMENT[row.payment_method] ||
+      'cash') as TuitionPayment['paymentMethod'],
+    memo: row.memo || undefined,
+    receiptNumber: row.receipt_number || undefined,
+    cashReceiptIssued: row.cash_receipt_issued === true,
+    createdAt: row.created_at,
   };
 }

@@ -1,4 +1,7 @@
 import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
+import { LessonService } from '@/core/lessons';
+import { ScheduleService } from '@/core/services/scheduleService';
 import { formatCurrency } from '@/utils/formatters';
 import {
   formatSessionTime,
@@ -25,14 +28,14 @@ export function PianoParentHome({
   organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
-  const summary = StorageService.getStudentBillingSummary(student.id);
+  const summary = TuitionService.getStudentBillingSummary(student.id);
   const weekStart = StorageService.getCurrentWeekStart();
   const assignment =
     StorageService.getWeeklyAssignments(student.id).find((a) => a.weekStart === weekStart) ||
     StorageService.getWeeklyAssignments(student.id)[0];
-  const latestLesson = StorageService.getLessonRecords()
-    .filter((l) => l.studentId === student.id)
-    .sort((a, b) => b.date.localeCompare(a.date))[0];
+  const latestLesson = LessonService.getLessonRecordsByStudent(student.id).sort((a, b) =>
+    b.date.localeCompare(a.date)
+  )[0];
   const classes = StorageService.getClasses().filter((c) =>
     (student.classIds || []).includes(c.id)
   );
@@ -51,9 +54,37 @@ export function PianoParentHome({
     assignment?.items.filter((it) => !it.parentConfirmed).length ?? 0;
   const unpaid = summary.grandUnpaid ?? summary.totalUnpaid;
   const attendanceStatus = getSessionStatusLabel(todaySession);
+  const isPassStudent = student.billingMode === 'session_pass';
+  const passRemaining = isPassStudent
+    ? ScheduleService.getCustomerRemainingSessions(student.id)
+    : 0;
+  const arrivedInvoice = TuitionService.getInvoicesByStudent(student.id).find(
+    (inv) =>
+      inv.invoiceSent === true &&
+      inv.unpaidAmount > 0 &&
+      inv.status !== 'paid' &&
+      inv.status !== 'cancelled'
+  );
 
   const todoItems: { label: string; detail: string; tab: ParentPortalTab; warn?: boolean }[] = [];
-  if (unpaid > 0) {
+  if (arrivedInvoice) {
+    const monthPart = arrivedInvoice.yearMonth.split('-')[1] || '';
+    todoItems.push({
+      label: `${monthPart}월 수강료 청구서 도착`,
+      detail: formatCurrency(arrivedInvoice.unpaidAmount),
+      tab: 'tuition',
+      warn: true,
+    });
+  }
+  if (isPassStudent && passRemaining <= 2) {
+    todoItems.push({
+      label: '회차권 잔여',
+      detail: `${passRemaining}회`,
+      tab: 'tuition',
+      warn: passRemaining === 0,
+    });
+  }
+  if (unpaid > 0 && !arrivedInvoice) {
     todoItems.push({
       label: '미납 확인',
       detail: formatCurrency(unpaid),
@@ -134,6 +165,22 @@ export function PianoParentHome({
           <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
         </button>
       </section>
+
+      {isPassStudent && (
+        <section className="bg-white rounded-2xl border border-indigo-100 p-4 shadow-xs">
+          <button
+            type="button"
+            onClick={() => onNavigate('tuition')}
+            className="w-full flex items-center justify-between gap-2 text-left min-h-[48px]"
+          >
+            <div>
+              <p className="text-[11px] font-bold text-indigo-600">회차권 잔여</p>
+              <p className="text-2xl font-black text-slate-900 mt-0.5">{passRemaining}회</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+          </button>
+        </section>
+      )}
 
       {/* 해야 할 일 */}
       {todoItems.length > 0 && (

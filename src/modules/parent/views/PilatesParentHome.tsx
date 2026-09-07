@@ -1,4 +1,5 @@
 import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import { ScheduleService } from '@/core/services/scheduleService';
 import type { ParentPortalTab } from '@/types/education';
@@ -23,7 +24,7 @@ export function PilatesParentHome({
   organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
-  const summary = StorageService.getStudentBillingSummary(student.id);
+  const summary = TuitionService.getStudentBillingSummary(student.id);
   const now = new Date().toISOString();
   const upcoming = ScheduleService.getBookings()
     .filter((b) => b.customerId === student.id && b.startsAt >= now && b.status !== 'cancelled')

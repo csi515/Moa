@@ -7,6 +7,7 @@ import { studentUsesShuttleService } from '@/core/transport';
 import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
 import type { DayOfWeek, Student } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
@@ -52,7 +53,7 @@ export const StudentListView: React.FC = () => {
   const labels = useModuleLabels();
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
-  const allStudents = StorageService.getStudents();
+  const allStudents = StudentService.getStudents();
   const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents, refreshKey]);
   const teachers = StorageService.getTeachers();
   const classes = useMemo(

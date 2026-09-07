@@ -1,4 +1,4 @@
-import type { ClassItem, DayOfWeek, MakeupItem } from '@/types';
+import type { ClassItem, DayOfWeek, MakeupItem, PracticeRoomBooking } from '@/types';
 
 export type ScheduleConflictKind = 'teacher' | 'room';
 
@@ -84,6 +84,15 @@ export type MakeupSlotCandidate = {
   excludeAttendanceId?: string;
 };
 
+export type PracticeRoomSlotCandidate = {
+  date: string;
+  startTime: string;
+  endTime: string;
+  room: string;
+  teacherId?: string;
+  excludeId?: string;
+};
+
 const JS_DAY_TO_KO: Record<number, DayOfWeek> = {
   0: '일',
   1: '월',
@@ -165,6 +174,102 @@ export function findMakeupSlotConflicts(params: {
         date: m.makeUpDate,
         startTime: m.makeUpStartTime,
         endTime: m.makeUpEndTime,
+      });
+    }
+  }
+
+  return conflicts;
+}
+
+/** 연습실 예약 vs 정규 수업·보강·다른 연습실 예약 충돌 */
+export function findPracticeRoomSlotConflicts(params: {
+  classes: ClassItem[];
+  makeups: MakeupItem[];
+  bookings: PracticeRoomBooking[];
+  candidate: PracticeRoomSlotCandidate;
+}): ScheduleConflict[] {
+  const { classes, makeups, bookings, candidate } = params;
+  const conflicts: ScheduleConflict[] = [];
+  const day = weekdayFromIsoDate(candidate.date);
+
+  for (const cls of classes) {
+    if (!cls.daysOfWeek.includes(day)) continue;
+    if (!timesOverlap(candidate.startTime, candidate.endTime, cls.startTime, cls.endTime)) {
+      continue;
+    }
+    if (candidate.room && cls.room === candidate.room) {
+      conflicts.push({
+        kind: 'room',
+        withLabel: `${cls.name} · ${cls.room}`,
+        day,
+        date: candidate.date,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+      });
+    }
+    if (candidate.teacherId && cls.teacherId === candidate.teacherId) {
+      conflicts.push({
+        kind: 'teacher',
+        withLabel: `${cls.name} (${cls.teacherName})`,
+        day,
+        date: candidate.date,
+        startTime: cls.startTime,
+        endTime: cls.endTime,
+      });
+    }
+  }
+
+  for (const m of makeups) {
+    if (m.status !== 'scheduled' || !m.makeUpDate || !m.makeUpStartTime || !m.makeUpEndTime) {
+      continue;
+    }
+    if (m.makeUpDate !== candidate.date) continue;
+    if (
+      !timesOverlap(candidate.startTime, candidate.endTime, m.makeUpStartTime, m.makeUpEndTime)
+    ) {
+      continue;
+    }
+    if (candidate.room && m.makeUpRoom && candidate.room === m.makeUpRoom) {
+      conflicts.push({
+        kind: 'room',
+        withLabel: `보강 · ${m.studentName} (${m.makeUpRoom})`,
+        date: m.makeUpDate,
+        startTime: m.makeUpStartTime,
+        endTime: m.makeUpEndTime,
+      });
+    }
+    if (candidate.teacherId && m.makeUpTeacherId && candidate.teacherId === m.makeUpTeacherId) {
+      conflicts.push({
+        kind: 'teacher',
+        withLabel: `보강 · ${m.studentName}`,
+        date: m.makeUpDate,
+        startTime: m.makeUpStartTime,
+        endTime: m.makeUpEndTime,
+      });
+    }
+  }
+
+  for (const b of bookings) {
+    if (b.status === 'cancelled') continue;
+    if (candidate.excludeId && b.id === candidate.excludeId) continue;
+    if (b.date !== candidate.date) continue;
+    if (!timesOverlap(candidate.startTime, candidate.endTime, b.startTime, b.endTime)) continue;
+    if (candidate.room && b.room === candidate.room) {
+      conflicts.push({
+        kind: 'room',
+        withLabel: `연습실 · ${b.studentName} (${b.room})`,
+        date: b.date,
+        startTime: b.startTime,
+        endTime: b.endTime,
+      });
+    }
+    if (candidate.teacherId && b.teacherId && candidate.teacherId === b.teacherId) {
+      conflicts.push({
+        kind: 'teacher',
+        withLabel: `연습실 · ${b.studentName}`,
+        date: b.date,
+        startTime: b.startTime,
+        endTime: b.endTime,
       });
     }
   }

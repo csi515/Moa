@@ -1142,10 +1142,11 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
 
 ---
 
-### Phase 1: 1인 N역할 모델 + 컨텍스트 스위처 ⚠️ **핵심**
+### Phase 1: 1인 N역할 모델 + 컨텍스트 스위처 ✅ **스캐폴딩 완료**
 
 **목표:** 단일 사용자가 여러 조직에서 여러 역할로 활동 가능  
-**변경사항:**
+**상태 (2026-09):** 마이그레이션·`OrganizationProvider.switchMembership`·`RoleContextSwitcher`(학부모 포털 진입 포함)·`SupabaseRoleSync` 반영됨.  
+**잔여:** 다중 멤버십 RLS 전수 검증, 모바일 스위처 UX(Phase 6).
 
 1. **DB 마이그레이션:**
    - `20260904100000_multi_role_memberships.sql`
@@ -1198,9 +1199,15 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
 
 ---
 
-### Phase 3: 학부모-자녀 글로벌 모델 통합 + 사전 등록 플로우
+### Phase 3: 학부모-자녀 글로벌 모델 통합 + 사전 등록 플로우 🔶 **부분 완료**
 
 **목표:** 학부모가 자녀 먼저 등록 → 학원 연결 신청 (동의 필수)  
+**상태 (2026-09):**
+- ✅ `get_my_parent_portal_tree` / `parent_register_child` / ParentShell·Portal
+- ✅ 포털 내 자녀 전환 시 동일 학원 enrollment 유지 (`switchChildInPortal`)
+- ✅ org·자녀 전환 시 `StorageHydrator` 키 리마운트로 캐시 격리
+- 🔶 academy CRM은 아직 `parent_student_links` + Storage 동기화 (읽기 유지, 신규 로직은 guardians/enrollments 우선)
+- 🔶 학원 측 수강료·레슨 UI는 `TuitionService`/`LessonService`/`StudentService` 파사드로 이전 중
 **변경사항:**
 
 1. **DB 정리:**
@@ -1220,6 +1227,33 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
 **기간:** 2주  
 **의존성:** Phase 2 완료 (고객 가입 플로우 재사용)  
 **우선순위:** P1
+
+---
+
+### Phase 3A: 성인 수강생 · 연습실 · 수동 청구/수기 정산 ✅ **완료 (앱 마이그레이션 적용 대기)**
+
+**목표:** 보호자 없는 성인 수강생 포털, 연습실 예약(canonical DB), PG 없이 수동 청구·현장 결제 정산.  
+**제품 결정:** 지역사랑상품권·제로페이·현장 카드 비중이 높아 **PG 자동 카드 결제(Toss/Stripe)는 도입하지 않는다.** Phase 8 PG 연동은 보류.
+
+**상태 (2026-09):**
+- ✅ `20260907120000_adult_student_self_link.sql` — `students.user_id`, 성인 승인 시 Self-Link, `get_my_student_portal_context`
+- ✅ `CustomerShell` / `CustomerHomeView` / `CustomerPracticeRoomView`
+- ✅ `20260907130000_practice_room_reservations.sql` — `practice_rooms`, `room_reservations`, 충돌 EXCLUDE, 신청/승인 RPC
+- ✅ `20260907140000_manual_invoice_settlement.sql` — `payments.sent_at`, `local_currency`/`onsite_card`, `cash_receipt_issued`, `request_payment_cash_receipt`
+- ✅ `TuitionService.sendInvoice` / 일괄 발송 / 수기 완납 모달 / 학부모 청구서 상세
+- ✅ `20260907150000_staff_room_reservation_unify.sql` — 스태프 즉시 예약 RPC, 승인/취소 staff actor, 학부모 SELECT
+- ✅ 스태프 `PracticeRoomBookingView` / 학부모 일정 → `room_reservations` 단일화 (레거시 Storage 쓰기 중단)
+- ✅ `20260907160000_migrate_legacy_practice_room_schedules.sql` — schedules → `room_reservations` 일회성 이관 후 레거시 cancel
+- ✅ sync: practice_room schedules 재푸시 중단 + 삭제 보호(이관 전)
+- ✅ 수강료 UI `TuitionService` 파사드 이관 / 청구·수납 모달 shared `Modal` 정렬
+
+**규칙 요약:**
+1. 청구 **초안 생성 ≠ 발송**. 알림은 `sendInvoice` 계열만.
+2. 학부모/성인은 발송된 청구만 조회. 현금영수증은 RPC + 로컬 메타데이터.
+3. 신규 연습실 기능은 `practiceRoomReservationService`만 사용.
+
+**의존성:** Phase 2·3 기반 (customer join, enrollments)  
+**우선순위:** P0 (학원 운영 핵심)
 
 ---
 
@@ -1288,14 +1322,13 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
 
 ---
 
-### Phase 7+: 향후 확장 (OAuth, 결제 연동, AI 추천)
+### Phase 7+: 향후 확장 (OAuth, AI 추천) — PG는 보류
 
 - **Phase 7:** Naver/Kakao OAuth 로그인 (auth_providers 테이블 + register_auth_provider RPC 활용)
-- **Phase 8:** 결제 모듈 (Toss Payments, Stripe 연동 → core.payments 확장)
+- **Phase 8 (보류):** 온라인 PG(Toss/Stripe) — **학원 현장·상품권 결제 특성상 도입하지 않음.** 수강료는 Phase 3A 수동 청구·수기 정산이 표준. 향후 필요 시 `core.payments` 확장으로 재검토.
 - **Phase 9:** AI 추천 (Google Gemini API 활용 → 학원 추천, 강사 매칭)
 
-**우선순위:** P3 (MVP 이후)
-
+**우선순위:** P3 (MVP 이후). Phase 8은 제품 결정에 의해 비활성.
 ---
 
 ## 6. 리스크 및 회귀 방지
@@ -1517,4 +1550,8 @@ A: 각 Phase 완료 시마다 "완료 상태" 섹션 추가. Phase 1-6 완료 �
 
 **변경 이력:**
 
+- 2026-09-07: Phase 3A 문서화 — 성인 Self-Link·연습실 canonical·수동 청구/수기 정산(No PG). Phase 8 PG 보류
+- 2026-09-07: 성인 Self-Link(`students.user_id`)·연습실 `practice_rooms`/`room_reservations` 마이그레이션 추가, CustomerShell 도입
+- 2026-09-07: Phase 3A 잔여 — Tuition Modal/`TuitionService` 정렬, legacy practice schedules 이관 SQL, sync 재푸시 중단
+- 2026-09-07: Phase 1 스캐폴딩·Phase 3 포털 UX/도메인 파사드 진행 상태 반영
 - 2026-09-04: 초안 작성 (Phase 0)

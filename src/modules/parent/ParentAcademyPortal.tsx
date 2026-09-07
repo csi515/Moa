@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ChevronDown } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
-import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
 import { ToastContainer, ConfirmDialog } from '@/shared/components';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
@@ -45,7 +45,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   const {
     portalTree,
     selectedStudent,
-    selectStudent,
+    switchChildInPortal,
     selectEnrollment,
     goToChildren,
     goToAcademies,
@@ -92,7 +92,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   const handleSelectChild = (child: GlobalStudent) => {
     setChildMenuOpen(false);
     setOrgMenuOpen(false);
-    selectStudent(child);
+    switchChildInPortal(child);
   };
 
   const handleSelectEnrollment = (enrollment: StudentEnrollment) => {
@@ -277,10 +277,10 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
   );
 };
 
-/** StorageHydrator 이후 customer_id로 Student 조회 */
+/** StorageHydrator 이후 customer_id로 Student 조회 (StudentService 경로) */
 export function useStudentFromEnrollment(customerId: string): Student | null {
   const refreshKey = useStorageRefresh();
   return useMemo(() => {
-    return StorageService.getStudents().find((s) => s.id === customerId) ?? null;
+    return StudentService.getStudentById(customerId) ?? null;
   }, [customerId, refreshKey]);
 }

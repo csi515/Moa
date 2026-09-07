@@ -35,6 +35,7 @@ export function eventToPianoRow(event: AcademyEvent, organizationId: string) {
     color: event.color || null,
     metadata: {
       participantIds: event.participantIds || [],
+      participationFee: event.participationFee || 0,
     } as Json,
   };
 }
@@ -49,7 +50,10 @@ export function pianoRowToEvent(row: {
   color: string | null;
   metadata?: Json;
 }): AcademyEvent {
-  const meta = (row.metadata || {}) as { participantIds?: string[] };
+  const meta = (row.metadata || {}) as {
+    participantIds?: string[];
+    participationFee?: number;
+  };
   return {
     id: row.id,
     title: row.title,
@@ -59,6 +63,7 @@ export function pianoRowToEvent(row: {
     description: row.description || undefined,
     color: row.color || undefined,
     participantIds: meta.participantIds || [],
+    participationFee: meta.participationFee || undefined,
   };
 }
 

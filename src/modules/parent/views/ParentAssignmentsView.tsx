@@ -1,5 +1,6 @@
 import React from 'react';
 import { StorageService } from '@/services/storage';
+import { LessonService } from '@/core/lessons';
 import type { Student } from '@/types';
 import { CheckCircle2 } from 'lucide-react';
 import { Section } from './shared';
@@ -16,8 +17,7 @@ export function ParentAssignmentsView({
   onRefresh: () => void;
 }) {
   const assignments = StorageService.getWeeklyAssignments(student.id);
-  const lessonFeedback = StorageService.getLessonRecords()
-    .filter((l) => l.studentId === student.id)
+  const lessonFeedback = LessonService.getLessonRecordsByStudent(student.id)
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 5);
 

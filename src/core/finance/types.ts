@@ -32,6 +32,9 @@ export interface FinanceExpense {
   vendor?: string;
   memo?: string;
   receiptMemo?: string;
+  teacherId?: string;
+  settlementYearMonth?: string;
+  settlementKind?: 'teacher_payroll';
 }
 
 export interface IncomeEntry {

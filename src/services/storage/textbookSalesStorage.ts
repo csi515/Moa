@@ -41,6 +41,21 @@ export function createTextbookSalesStorage(api: StorageApi) {
       return (api.getTextbookSales as () => TextbookSale[])().find((s) => s.id === id);
     },
 
+    /** 월 청구 합산 시 교재 판매에 billingInvoiceId 연결 */
+    linkTextbookSalesToInvoice(saleIds: string[], invoiceId: string): void {
+      if (saleIds.length === 0) return;
+      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      const linkSet = new Set(saleIds);
+      setItem(
+        STORAGE_KEYS.TEXTBOOK_SALES,
+        sales.map((s) =>
+          linkSet.has(s.id)
+            ? { ...s, billingInvoiceId: invoiceId, updatedAt: new Date().toISOString() }
+            : s
+        )
+      );
+    },
+
     getSalesByStudentId(studentId: string): TextbookSale[] {
       return (api.getTextbookSales as () => TextbookSale[])().filter((s) => s.studentId === studentId);
     },
@@ -348,7 +363,11 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const studentName = student ? student.name : '미상 원생';
 
       const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
-        (inv) => inv.studentId === studentId && (!yearMonth || inv.yearMonth === ym)
+        (inv) =>
+          inv.studentId === studentId &&
+          (!yearMonth || inv.yearMonth === ym) &&
+          inv.invoiceSent !== false &&
+          inv.status !== 'cancelled'
       );
       const tuitionBilled = invoices.reduce((sum, inv) => sum + (inv.totalAmount || 0), 0);
       const tuitionPaid = invoices.reduce((sum, inv) => sum + (inv.paidAmount || 0), 0);
@@ -363,7 +382,10 @@ export function createTextbookSalesStorage(api: StorageApi) {
               : 'unpaid';
 
       const sales = (api.getTextbookSales as () => TextbookSale[])().filter(
-        (s) => s.studentId === studentId && (!yearMonth || s.saleDate.startsWith(ym))
+        (s) =>
+          s.studentId === studentId &&
+          (!yearMonth || s.saleDate.startsWith(ym)) &&
+          !s.billingInvoiceId
       );
       const textbookBilled = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);
       const textbookPaid = sales.reduce((sum, s) => sum + (s.paidAmount || 0), 0);
@@ -484,7 +506,10 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const today = new Date();
 
       return sales
-        .filter((s) => s.status === 'unpaid' || s.status === 'partial')
+        .filter(
+          (s) =>
+            !s.billingInvoiceId && (s.status === 'unpaid' || s.status === 'partial')
+        )
         .map((s) => {
           const saleD = new Date(s.saleDate);
           const diffTime = Math.max(0, today.getTime() - saleD.getTime());

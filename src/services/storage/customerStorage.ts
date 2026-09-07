@@ -1,6 +1,7 @@
 import type { Parent, Student } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { deleteById, generateEntityId, getItem, setItem, type StorageApi } from './helpers';
+import { isMonthlyBillingStudent } from '../../core/academy/utils/billingMode';
 
 /** 원생·학부모 CRUD */
 export function createCustomerStorage(api: StorageApi) {
@@ -61,7 +62,7 @@ export function createCustomerStorage(api: StorageApi) {
         list.unshift(saved);
       }
 
-      if (!student.id && saved.status === 'active') {
+      if (!student.id && saved.status === 'active' && isMonthlyBillingStudent(saved)) {
         (api.createInvoiceForStudent as (s: Student) => void)(saved);
       }
 

@@ -31,6 +31,12 @@ const COMMON_FINANCE: FeatureGuideSection = {
       title: '지출 관리',
       summary: '임대료·인건비·소모품 등 지출을 기록합니다.',
     },
+    {
+      id: 'payroll',
+      title: '강사 정산',
+      summary: '레슨 횟수×시급 또는 월급으로 강사료를 계산해 인건비 지출로 등록합니다.',
+      howTo: '강사 정보에 시급/월급을 넣은 뒤, 수납(재무) > 강사정산에서 월별로 지출 등록하세요.',
+    },
   ],
 };
 
@@ -138,7 +144,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         id: 'lessons',
         title: '오늘 레슨',
         summary: '출석·레슨 노트·과제를 한 화면에서 저장합니다.',
-        howTo: '오늘 수업 원생을 선택한 뒤 출석과 레슨 내용을 작성하면 학부모 과제에 자동 반영됩니다.',
+        howTo: '오늘 수업 원생을 선택한 뒤 출석·노트·과제·다음곡을 한 화면에서 저장합니다. 과제는 학부모 앱에, 다음곡은 커리큘럼 진도에 반영됩니다.',
       },
       {
         id: 'assignments',
@@ -151,6 +157,12 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         summary: '결석한 학생의 보강 일정을 시간·연습실·강사와 함께 잡습니다.',
         howTo:
           '일정 등록 시 강사·연습실 충돌이 있으면 확인 후 저장할 수 있습니다. 등록 즉시 학부모 포털 알림과 앱 푸시가 전달됩니다.',
+      },
+      {
+        id: 'practice-rooms',
+        title: '연습실 예약',
+        summary: '원생별 연습실 사용 시간을 잡고 수업·보강과 충돌을 확인합니다.',
+        howTo: '일정 > 연습실에서 예약합니다. 학부모 일정 탭과 앱 푸시로 안내됩니다.',
       },
     ],
   }),
@@ -168,10 +180,25 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
     ],
   }),
   buildBillingSection({
-    description: '수강료 청구와 미납을 관리합니다.',
+    description: '수강료 청구·회차권·미납을 관리합니다.',
     tuitionTitle: '수강료 및 수납',
-    tuitionSummary: '월 수강료 청구서를 만들고 입금을 기록합니다.',
+    tuitionSummary:
+      '월회비 원생의 청구서를 만들고 입금을 기록합니다. 설정에서 교재·연주회비를 월 청구에 합산할 수 있습니다. 회차권 원생은 월 청구에서 제외됩니다.',
     unpaidSummary: '미납 학생을 모아 보고 연락·수납을 이어갑니다.',
+  }),
+  buildGuideSection({
+    id: 'passes',
+    title: '회차권',
+    description: '횟수제 레슨권을 발급·차감합니다.',
+    items: [
+      {
+        id: 'passes',
+        title: '회차권 관리',
+        summary: '원생별 회차권을 등록하고 잔여 횟수를 확인합니다.',
+        howTo:
+          '원생 수강 형태를 회차권으로 두고 「회차권」메뉴에서 발급하세요. 오늘 레슨 출석 시 1회 자동 차감됩니다.',
+      },
+    ],
   }),
   buildGuideSection({
     id: 'extras',
@@ -187,7 +214,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'textbooks',
         title: '교재 판매',
-        summary: '교재 판매와 재고를 관리합니다.',
+        summary: '교재 판매·재고·수납을 관리합니다. 미납 교재는 월 청구 합산 옵션으로 월회비와 함께 청구할 수 있습니다.',
       },
       {
         id: 'resources',
@@ -213,7 +240,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'teachers',
         title: '선생님 관리',
-        summary: '강사 정보와 담당 반을 관리합니다.',
+        summary: '강사 정보·시급/월급·담당 반을 관리합니다.',
       },
       {
         id: 'enrollment-requests',

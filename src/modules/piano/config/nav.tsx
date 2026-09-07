@@ -16,6 +16,7 @@ import {
   Music2,
   Piano,
   Settings,
+  Ticket,
   Users,
 } from 'lucide-react';
 
@@ -46,6 +47,7 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         icon: icon(<MessageSquareText className="w-4 h-4" />),
       },
       { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-4 h-4" />) },
+      { tab: 'passes', label: '회차권', icon: icon(<Ticket className="w-4 h-4" />) },
     ]),
     buildNavSection('설정', [
       { tab: 'settings', label: '설정', icon: icon(<Settings className="w-4 h-4" />) },
@@ -72,6 +74,11 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       icon: icon(<MessageSquareText className="w-5 h-5" />),
     },
     { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-5 h-5" />) },
+    {
+      tab: 'passes',
+      label: '회차권',
+      icon: icon(<Ticket className="w-5 h-5" />),
+    },
     { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
     {
       tab: 'classes',
@@ -88,7 +95,16 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
       label: '과제',
       icon: icon(<BookOpenCheck className="w-5 h-5" />),
     },
-    { tab: 'practice', label: '연습', icon: icon(<BookOpenCheck className="w-5 h-5" />) },
+    {
+      tab: 'practice',
+      label: '연습',
+      icon: icon(<BookOpenCheck className="w-5 h-5" />),
+    },
+    {
+      tab: 'practice-rooms',
+      label: '연습실 예약',
+      icon: icon(<Music2 className="w-5 h-5" />),
+    },
     { tab: 'textbooks', label: '교재 관리', icon: icon(<BookOpen className="w-5 h-5" />) },
     { tab: 'resources', label: '자료', icon: icon(<Music2 className="w-5 h-5" />) },
     { tab: 'recitals', label: '연주회', icon: icon(<Award className="w-5 h-5" />) },

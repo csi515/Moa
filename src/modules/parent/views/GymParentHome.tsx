@@ -1,4 +1,5 @@
 import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import {
   formatSessionTime,
@@ -24,7 +25,7 @@ export function GymParentHome({
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const refreshKey = useStorageRefresh();
-  const summary = StorageService.getStudentBillingSummary(student.id);
+  const summary = TuitionService.getStudentBillingSummary(student.id);
   const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
   const classes = StorageService.getClasses().filter((c) =>
     (student.classIds || []).includes(c.id)

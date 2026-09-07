@@ -31,6 +31,8 @@ export interface StaffMetadata {
   hireDate?: string;
   specialty?: string;
   salary?: number;
+  hourlyRate?: number;
+  payType?: 'hourly' | 'monthly' | 'none';
   color?: string;
   memo?: string;
   classIds?: string[];

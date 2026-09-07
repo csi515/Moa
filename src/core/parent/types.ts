@@ -1,10 +1,11 @@
 /** 보호자-학생 관계 (부/모/기타) */
-export type GuardianRelationship = 'father' | 'mother' | 'other';
+export type GuardianRelationship = 'father' | 'mother' | 'other' | 'self';
 
 export const GUARDIAN_RELATIONSHIP_LABELS: Record<GuardianRelationship, string> = {
   father: '아버지',
   mother: '어머니',
   other: '기타',
+  self: '본인',
 };
 
 /** 학부모 ↔ 학생 연결 (Source of Truth) */

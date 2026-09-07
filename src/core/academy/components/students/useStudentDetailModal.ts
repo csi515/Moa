@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students';
+import { TuitionService } from '@/core/finance';
+import { LessonService } from '@/core/lessons';
 import { RecitalService } from '@/modules/piano/services/recitalService';
 import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
-import type { PerformanceVideo, Student, TextbookSale, TuitionInvoice } from '@/types';
+import type { PerformanceVideo, Student, TextbookSale, TuitionInvoice, PaymentMethod } from '@/types';
 import { isValidYouTubeUrl } from '@/utils/youtube';
 import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
 import { usePermissions } from '@/core/auth/usePermissions';
@@ -122,7 +125,7 @@ export function useStudentDetailModal({
 
   const [payInvoiceId, setPayInvoiceId] = useState<string | null>(null);
   const [payAmount, setPayAmount] = useState(0);
-  const [payMethod, setPayMethod] = useState<'card' | 'transfer' | 'cash' | 'other'>('card');
+  const [payMethod, setPayMethod] = useState<PaymentMethod>('onsite_card');
   const [payMemo, setPayMemo] = useState('');
 
   const [isStudentSaleModalOpen, setIsStudentSaleModalOpen] = useState(false);
@@ -134,10 +137,10 @@ export function useStudentDetailModal({
   const allClasses = StorageService.getClasses();
   const enrolledClasses = allClasses.filter((c) => student.classIds?.includes(c.id));
   const allAttendance = StorageService.getAttendance().filter((a) => a.studentId === student.id);
-  const allInvoices = StorageService.getInvoices().filter((i) => i.studentId === student.id);
+  const allInvoices = TuitionService.getInvoicesByStudent(student.id);
   const allConsultations = StorageService.getConsultations().filter((c) => c.studentId === student.id);
   const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
-  const allLessons = StorageService.getLessonRecords().filter((l) => l.studentId === student.id);
+  const allLessons = LessonService.getLessonRecordsByStudent(student.id);
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
   const recitalEvents = RecitalService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
@@ -162,7 +165,7 @@ export function useStudentDetailModal({
         message: `${student.name} 원생을 재원 상태로 되돌릴까요?`,
         confirmText: '재원 복귀',
         onConfirm: () => {
-          StorageService.saveStudent({
+          StudentService.saveStudent({
             ...student,
             status: 'active',
             leaveDate: undefined,
@@ -180,7 +183,7 @@ export function useStudentDetailModal({
       isDestructive: true,
       confirmText: '퇴원 처리',
       onConfirm: () => {
-        StorageService.saveStudent({
+        StudentService.saveStudent({
           ...student,
           status: 'withdrawn',
           leaveDate: new Date().toISOString().slice(0, 10),
@@ -334,21 +337,29 @@ export function useStudentDetailModal({
   const handleOpenPayModal = (inv: TuitionInvoice) => {
     setPayInvoiceId(inv.id);
     setPayAmount(inv.unpaidAmount);
-    setPayMethod('card');
+    setPayMethod('onsite_card');
     setPayMemo('');
   };
 
   const handleProcessPayment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!payInvoiceId) return;
-    StorageService.recordPayment(payInvoiceId, payAmount, payMethod, payMemo);
+    TuitionService.recordPayment(payInvoiceId, payAmount, payMethod, payMemo);
     showToast(`₩${payAmount.toLocaleString()}원 수납 처리가 완료되었습니다.`, 'success');
     setPayInvoiceId(null);
   };
 
   const handleCreateInvoice = () => {
-    StorageService.createInvoiceForStudent(student);
-    showToast('이번 달 신규 청구서가 발행되었습니다.', 'success');
+    if (student.billingMode === 'session_pass') {
+      showToast('회차권 원생은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.', 'warning');
+      return;
+    }
+    const created = TuitionService.createInvoiceForStudent(student);
+    if (!created) {
+      showToast('청구서를 발행할 수 없습니다.', 'warning');
+      return;
+    }
+    showToast('청구서 초안이 생성되었습니다. 수강료 화면에서 [발송]하세요.', 'success');
   };
 
   const statusBadge = getStudentStatusBadge(student.status);

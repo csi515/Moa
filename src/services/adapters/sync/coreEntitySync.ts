@@ -5,9 +5,11 @@ import type {
   ClassItem,
   Consultation,
   Parent,
+  PracticeRoomBooking,
   Student,
   Teacher,
   TuitionInvoice,
+  TuitionPayment,
 } from '../../../types';
 import type { Database } from '../../../lib/supabase/database.types';
 import { getCoreClient } from '../../../lib/supabase';
@@ -22,6 +24,7 @@ import {
   invoiceToPaymentRow,
   isParentCustomer,
   isPilatesServiceRow,
+  isPracticeRoomScheduleRow,
   isStudentCustomer,
   notificationRowToApp,
   notificationToRow,
@@ -45,6 +48,8 @@ import {
   coreRowToExpense,
   incomeToCoreRow,
   coreRowToIncome,
+  tuitionPaymentToTransactionRow,
+  transactionRowToTuitionPayment,
 } from './financeEntityMappers';
 import type { FinanceExpense, IncomeEntry } from '../../../core/finance/types';
 import {
@@ -82,6 +87,7 @@ export async function hydrateCoreEntities(
     servicesResult,
     schedulesResult,
     paymentsResult,
+    paymentTxResult,
     expensesResult,
     incomeResult,
     consultationsResult,
@@ -96,6 +102,7 @@ export async function hydrateCoreEntities(
     client.from('services').select('*').eq('organization_id', organizationId),
     client.from('schedules').select('*').eq('organization_id', organizationId),
     client.from('payments').select('*').eq('organization_id', organizationId),
+    client.from('payment_transactions').select('*').eq('organization_id', organizationId),
     client.from('expenses').select('*').eq('organization_id', organizationId),
     client.from('income_entries').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
@@ -112,6 +119,7 @@ export async function hydrateCoreEntities(
     services: servicesResult.error,
     schedules: schedulesResult.error,
     payments: paymentsResult.error,
+    paymentTx: paymentTxResult.error,
     expenses: expensesResult.error,
     income: incomeResult.error,
     consultations: consultationsResult.error,
@@ -157,8 +165,22 @@ export async function hydrateCoreEntities(
       ? serviceRows.map(serviceRowToOffering)
       : [];
 
-  const bookings = (schedulesResult.data || []).map(scheduleRowToBooking);
+  const scheduleRows = schedulesResult.data || [];
+  const bookings = scheduleRows
+    .filter((r) => !isPracticeRoomScheduleRow(r.metadata))
+    .map(scheduleRowToBooking);
+  // Phase 3A: 연습실은 room_reservations 단일 원장 — schedules practice_room 동기화 중단
+  const practiceRoomBookings: PracticeRoomBooking[] = [];
   const invoices = (paymentsResult.data || []).map(paymentRowToInvoice);
+  const invoiceLookup = new Map(
+    invoices.map((inv) => [
+      inv.id,
+      { studentId: inv.studentId, studentName: inv.studentName, yearMonth: inv.yearMonth },
+    ])
+  );
+  const tuitionPayments = (paymentTxResult.data || []).map((row) =>
+    transactionRowToTuitionPayment(row, invoiceLookup)
+  );
 
   const studentMap = new Map(students.map((s) => [s.id, s.name]));
   const teacherMap = new Map(teachers.map((t) => [t.id, t.name]));
@@ -188,7 +210,9 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.CLASSES, classes],
     [STORAGE_KEYS.SERVICE_OFFERINGS, serviceOfferings],
     [STORAGE_KEYS.SCHEDULES, bookings],
+    [STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS, practiceRoomBookings],
     [STORAGE_KEYS.INVOICES, invoices],
+    [STORAGE_KEYS.TUITION_PAYMENTS, tuitionPayments],
     [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(coreRowToExpense)],
     [STORAGE_KEYS.INCOME_ENTRIES, (incomeResult.data || []).map(coreRowToIncome)],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
@@ -225,9 +249,12 @@ export async function persistCoreEntity(
     case STORAGE_KEYS.SERVICE_OFFERINGS:
       return persistServices(client, organizationId, cache, 'pilates');
     case STORAGE_KEYS.SCHEDULES:
+    case STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS:
       return persistSchedules(client, organizationId, cache);
     case STORAGE_KEYS.INVOICES:
       return persistPayments(client, organizationId, cache);
+    case STORAGE_KEYS.TUITION_PAYMENTS:
+      return persistTuitionPayments(client, organizationId, cache);
     case STORAGE_KEYS.EXPENSES:
       return persistExpenses(client, organizationId, cache);
     case STORAGE_KEYS.INCOME_ENTRIES:
@@ -383,16 +410,42 @@ async function persistSchedules(
   orgId: string,
   cache: SyncCache
 ): Promise<void> {
-  const bookings = cache.get<Booking[]>(STORAGE_KEYS.SCHEDULES) || [];
+  const bookings =
+    cache.get<Booking[]>(STORAGE_KEYS.SCHEDULES) ||
+    readLocal<Booking[]>(STORAGE_KEYS.SCHEDULES, []);
 
-  await syncTable(client, 'schedules', orgId, bookings.map((b) => b.id), async () => {
-    for (const booking of bookings) {
-      const { error } = await client.from('schedules').upsert(bookingToScheduleRow(booking, orgId));
-      if (error) console.error('Failed to upsert schedule:', error);
+  // 연습실 레거시 schedules 쓰기 중단 (canonical: room_reservations)
+  const bookingRows = bookings.map((b) => bookingToScheduleRow(b, orgId));
+
+  // syncTable 삭제 보호: 마이그레이션 전 practice_room 행이 지워지지 않도록 유지
+  const { data: existingSchedules } = await client
+    .from('schedules')
+    .select('id, metadata')
+    .eq('organization_id', orgId);
+  const protectedPracticeIds = (existingSchedules || [])
+    .filter((row) => isPracticeRoomScheduleRow(row.metadata))
+    .map((row) => row.id);
+
+  await syncTable(
+    client,
+    'schedules',
+    orgId,
+    [...bookingRows.map((r) => r.id), ...protectedPracticeIds],
+    async () => {
+      for (const row of bookingRows) {
+        const { error } = await client.from('schedules').upsert(row);
+        if (error) console.error('Failed to upsert schedule:', error);
+      }
     }
-  });
+  );
 
   writeLocal(STORAGE_KEYS.SCHEDULES, bookings);
+  // 로컬 캐시는 유지하되 클라우드로 재푸시하지 않음
+  writeLocal(
+    STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS,
+    cache.get(STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS) ||
+      readLocal(STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS, [])
+  );
 }
 
 async function persistPayments(
@@ -410,6 +463,36 @@ async function persistPayments(
   });
 
   writeLocal(STORAGE_KEYS.INVOICES, invoices);
+}
+
+async function persistTuitionPayments(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache
+): Promise<void> {
+  // payment_transactions.payment_id → payments.id FK
+  await persistPayments(client, orgId, cache);
+
+  const payments =
+    cache.get<TuitionPayment[]>(STORAGE_KEYS.TUITION_PAYMENTS) ||
+    readLocal<TuitionPayment[]>(STORAGE_KEYS.TUITION_PAYMENTS, []);
+
+  await syncTable(
+    client,
+    'payment_transactions',
+    orgId,
+    payments.map((p) => p.id),
+    async () => {
+      for (const payment of payments) {
+        const { error } = await client
+          .from('payment_transactions')
+          .upsert(tuitionPaymentToTransactionRow(payment, orgId));
+        if (error) console.error('Failed to upsert payment_transaction:', error);
+      }
+    }
+  );
+
+  writeLocal(STORAGE_KEYS.TUITION_PAYMENTS, payments);
 }
 
 async function persistExpenses(
@@ -567,6 +650,7 @@ async function syncTable(
     | 'services'
     | 'schedules'
     | 'payments'
+    | 'payment_transactions'
     | 'expenses'
     | 'income_entries'
     | 'consultations'

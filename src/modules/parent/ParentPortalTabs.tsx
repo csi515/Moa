@@ -92,7 +92,7 @@ export function ParentPortalTabs({
         />
       );
     case 'schedule':
-      return <ParentScheduleView student={student} />;
+      return <ParentScheduleView student={student} organizationId={organizationId} />;
     case 'bookings':
       if (industry === 'pilates') {
         return <PilatesParentBookingsView student={student} />;

@@ -117,9 +117,28 @@ Component → Hook → Service → getCoreClient() → Supabase (RLS)
 Component → StorageService → sync adapters → Supabase
 ```
 
+이행 중 (도메인 파사드):
+
+```
+Component → StudentService | TuitionService | LessonService → StorageService → sync
+```
+
+- 신규/수정 UI는 파사드 Service를 호출한다.
 - 레거시는 기능 수정 시 점진 정렬한다.
 - 전체 StorageService를 한 번에 제거하지 않는다.
 - 조직 스코프가 필요한 조회/저장은 Service에서 `organization_id`를 명시한다.
+
+### 도메인별 Service (신규·수정 시)
+
+| 도메인 | UI가 호출할 Service | 비고 |
+|---|---|---|
+| 수강료·청구·수기완납 | `TuitionService` | `sendInvoice`, `recordPayment`, `requestCashReceipt` |
+| 성인 포털 컨텍스트 | `studentPortalService` | `getCoreClient` RPC |
+| 고객 가입 승인 | `customerJoinService` | `getCoreClient` RPC |
+| 연습실 예약(고객) | `practiceRoomReservationService` | canonical `room_reservations` |
+| 학부모 포털 | parent services + `TuitionService` | 미발송 청구 미노출 |
+
+수강료·성인·연습실 제품 규칙: [ARCHITECTURE.md](./ARCHITECTURE.md#도메인-표준-2026-09-추가).
 
 ---
 

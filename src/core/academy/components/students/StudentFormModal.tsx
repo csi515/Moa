@@ -69,6 +69,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     teacherId: '',
     classIds: [],
     level: defaultLevel,
+    billingMode: 'monthly',
     tuitionFee: 180000,
     paymentDay: 10,
     specialNotes: '',
@@ -81,6 +82,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   });
 
   const [guardians, setGuardians] = useState<GuardianFormEntry[]>([newGuardianEntry(true)]);
+  /** 성인 수강생 — 보호자 없이 본인만 등록 */
+  const [isAdultSelf, setIsAdultSelf] = useState(false);
   const [activeSearchIdx, setActiveSearchIdx] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(!isEdit);
@@ -106,6 +109,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         teacherId: student.teacherId || teachers[0]?.id || '',
         classIds: student.classIds || [],
         level: student.level || defaultLevel,
+        billingMode: student.billingMode === 'session_pass' ? 'session_pass' : 'monthly',
         tuitionFee: student.tuitionFee || 180000,
         paymentDay: student.paymentDay || 10,
         specialNotes: student.specialNotes || '',
@@ -150,6 +154,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         teacherId: teachers[0]?.id || '',
         classIds: classes.length > 0 ? [classes[0].id] : [],
         level: defaultLevel,
+        billingMode:
+          settings.defaultBillingMode === 'session_pass' ? 'session_pass' : 'monthly',
         tuitionFee: settings.defaultTuitionFee || 180000,
         paymentDay: settings.defaultPaymentDay || 10,
         specialNotes: '',
@@ -267,6 +273,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       teacherName: targetTeacher?.name || '미지정',
       classIds: formData.classIds,
       level: formData.level,
+      billingMode: formData.billingMode,
       tuitionFee: Number(formData.tuitionFee) || 0,
       paymentDay: Number(formData.paymentDay) || 10,
       specialNotes: formData.specialNotes.trim() || undefined,
@@ -282,6 +289,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     }
 
     for (const g of guardians) {
+      if (isAdultSelf) break;
       if (g.mode === 'existing' && !g.existingParentId) {
         showToast('검색 결과에서 기존 학부모를 선택하거나 새로 등록해 주세요', 'warning');
         return;
@@ -296,14 +304,16 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       }
     }
 
-    const parentKeys = guardians.map((g) =>
-      g.mode === 'existing' && g.existingParentId
-        ? `id:${g.existingParentId}`
-        : `phone:${g.phone.trim()}`
-    );
-    if (new Set(parentKeys).size !== parentKeys.length) {
-      showToast('중복 오류: 같은 보호자를 여러 번 등록할 수 없습니다', 'warning');
-      return;
+    if (!isAdultSelf) {
+      const parentKeys = guardians.map((g) =>
+        g.mode === 'existing' && g.existingParentId
+          ? `id:${g.existingParentId}`
+          : `phone:${g.phone.trim()}`
+      );
+      if (new Set(parentKeys).size !== parentKeys.length) {
+        showToast('중복 오류: 같은 보호자를 여러 번 등록할 수 없습니다', 'warning');
+        return;
+      }
     }
 
     if (showPickupFields && formData.usesShuttleService) {
@@ -317,7 +327,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     setIsSubmitting(true);
     try {
       const payload = buildStudentPayload();
-      const guardianInputs = buildGuardianInputs();
+      const guardianInputs = isAdultSelf ? [] : buildGuardianInputs();
 
       if (isEdit && student?.id) {
         const { student: saved } = await updateStudentWithParent(
@@ -455,19 +465,38 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
             <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
 
-            <GuardianSection
-              isEdit={isEdit}
-              canInviteParent={canInviteParent}
-              guardians={guardians}
-              activeSearchIdx={activeSearchIdx}
-              searchResults={searchResults}
-              onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
-              onUpdateGuardian={updateGuardian}
-              onSetPrimary={setPrimaryGuardian}
-              onRemoveGuardian={removeGuardian}
-              onSelectExistingParent={selectExistingParent}
-              onFocusSearch={setActiveSearchIdx}
-            />
+            <div className="space-y-3">
+              <label className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 cursor-pointer min-h-[52px]">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600"
+                  checked={isAdultSelf}
+                  onChange={(e) => setIsAdultSelf(e.target.checked)}
+                />
+                <span>
+                  <span className="block text-xs font-bold text-slate-800">성인 수강생 (보호자 없음)</span>
+                  <span className="block text-[11px] text-slate-500 mt-0.5">
+                    본인 계정으로 수강하는 경우 보호자 정보를 생략합니다.
+                  </span>
+                </span>
+              </label>
+
+              {!isAdultSelf && (
+                <GuardianSection
+                  isEdit={isEdit}
+                  canInviteParent={canInviteParent}
+                  guardians={guardians}
+                  activeSearchIdx={activeSearchIdx}
+                  searchResults={searchResults}
+                  onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
+                  onUpdateGuardian={updateGuardian}
+                  onSetPrimary={setPrimaryGuardian}
+                  onRemoveGuardian={removeGuardian}
+                  onSelectExistingParent={selectExistingParent}
+                  onFocusSearch={setActiveSearchIdx}
+                />
+              )}
+            </div>
           </div>
 
           {attendanceEnabled && !isEdit && (

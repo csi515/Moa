@@ -102,21 +102,67 @@ export const StudentAdvancedSection: React.FC<Props> = ({
               </option>
             ))}
           </select>
-          <CurrencyInput
-            value={formData.tuitionFee}
-            onChange={(val) => onChange({ tuitionFee: val })}
-          />
-          <select
-            value={formData.paymentDay}
-            onChange={(e) => onChange({ paymentDay: Number(e.target.value) })}
-            className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
-          >
-            {[1, 5, 10, 15, 20, 25, 28].map((d) => (
-              <option key={d} value={d}>
-                매월 {d}일 납부
-              </option>
-            ))}
-          </select>
+          <div className="sm:col-span-2">
+            <label className="block text-[11px] font-semibold text-slate-500 mb-1.5">
+              수강 형태
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { value: 'monthly' as const, label: '월회비', hint: '매월 청구' },
+                  { value: 'session_pass' as const, label: '회차권', hint: '레슨 시 차감' },
+                ] as const
+              ).map((opt) => {
+                const active = formData.billingMode === opt.value;
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => onChange({ billingMode: opt.value })}
+                    className={`min-h-[52px] rounded-xl border px-3 py-2 text-left transition-colors ${
+                      active
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
+                    }`}
+                  >
+                    <span className="block text-sm font-bold">{opt.label}</span>
+                    <span
+                      className={`block text-[10px] mt-0.5 ${
+                        active ? 'text-indigo-100' : 'text-slate-400'
+                      }`}
+                    >
+                      {opt.hint}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {formData.billingMode === 'monthly' ? (
+            <>
+              <CurrencyInput
+                value={formData.tuitionFee}
+                onChange={(val) => onChange({ tuitionFee: val })}
+              />
+              <select
+                value={formData.paymentDay}
+                onChange={(e) => onChange({ paymentDay: Number(e.target.value) })}
+                className="px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl"
+              >
+                {[1, 5, 10, 15, 20, 25, 28].map((d) => (
+                  <option key={d} value={d}>
+                    매월 {d}일 납부
+                  </option>
+                ))}
+              </select>
+            </>
+          ) : (
+            <p className="sm:col-span-2 text-xs text-slate-500 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+              회차권 원생은 월 청구서가 자동 생성되지 않습니다. 등록 후 「회차권」메뉴에서
+              이용권을 발급하세요. 출석(레슨) 시 1회 차감됩니다.
+            </p>
+          )}
 
           <div className="sm:col-span-2 space-y-2">
             <label className="block text-[11px] font-semibold text-slate-500">

@@ -289,8 +289,12 @@ function ParentPortalHydrated() {
   const handleBack =
     selectedStudent.enrollments.length > 1 ? goToAcademies : goToChildren;
 
+  // org·자녀 전환 시 hydrate 캐시를 깨끗이 다시 로드
+  const hydrateKey = `${selectedEnrollment.organizationId}:${selectedEnrollment.customerId}`;
+
   return (
     <StorageHydrator
+      key={hydrateKey}
       organizationId={selectedEnrollment.organizationId}
       industryType={selectedEnrollment.industryType}
     >
@@ -325,6 +329,18 @@ function ParentPortalWithStudent({
   onBack: () => void;
 }) {
   const student = useStudentFromEnrollment(customerId);
+  const [waited, setWaited] = useState(false);
+
+  useEffect(() => {
+    setWaited(false);
+    if (student) return;
+    const t = window.setTimeout(() => setWaited(true), 1200);
+    return () => window.clearTimeout(t);
+  }, [student, customerId]);
+
+  if (!student && !waited) {
+    return <LoadingScreen message="자녀 정보를 불러오는 중..." />;
+  }
 
   if (!student) {
     return (
@@ -334,7 +350,8 @@ function ParentPortalWithStudent({
         </div>
         <h3 className="font-bold text-slate-900 text-lg mb-2">학생 정보를 불러올 수 없습니다</h3>
         <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          일시적인 오류가 발생했습니다<br />
+          이 학원에 연결된 원생 데이터가 없거나 동기화가 지연되고 있습니다.
+          <br />
           잠시 후 다시 시도해 주세요
         </p>
         <button

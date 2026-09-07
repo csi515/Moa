@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase/client';
+import { getCoreClient, supabase } from '@/lib/supabase';
 import type { CustomerJoinRequest, JoinRequestType } from '@/types';
 import type { Json } from '@/lib/supabase/database.types';
 
@@ -12,12 +12,13 @@ export interface SubmitJoinRequestParams {
   customerMetadata?: Record<string, unknown>;
 }
 
+/**
+ * 고객 가입 신청·승인 Service.
+ * RPC/테이블 접근은 getCoreClient()를 사용한다 (ARCHITECTURE 표준).
+ */
 export const customerJoinService = {
-  /**
-   * Submit a customer join request
-   */
   async submitJoinRequest(params: SubmitJoinRequestParams): Promise<string> {
-    const { data, error } = await supabase.rpc('submit_customer_join_request', {
+    const { data, error } = await getCoreClient().rpc('submit_customer_join_request' as never, {
       p_org_id: params.orgId,
       p_applicant_name: params.applicantName,
       p_applicant_phone: params.applicantPhone || null,
@@ -25,7 +26,7 @@ export const customerJoinService = {
       p_request_type: params.requestType || 'membership',
       p_message: params.message || null,
       p_customer_metadata: (params.customerMetadata as Json) || null,
-    });
+    } as never);
 
     if (error) {
       console.error('Failed to submit join request:', error);
@@ -37,19 +38,16 @@ export const customerJoinService = {
       throw new Error('가입 신청에 실패했습니다');
     }
 
-    return data;
+    return data as string;
   },
 
-  /**
-   * Get user's join requests
-   */
   async getMyJoinRequests(): Promise<CustomerJoinRequest[]> {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
       throw new Error('Not authenticated');
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await getCoreClient()
       .from('customer_join_requests')
       .select('*')
       .eq('applicant_user_id', user.user.id)
@@ -60,18 +58,15 @@ export const customerJoinService = {
       throw new Error('가입 신청 목록을 가져오는데 실패했습니다');
     }
 
-    return data || [];
+    return (data || []) as CustomerJoinRequest[];
   },
 
-  /**
-   * Get pending join requests for an organization (owner/admin only)
-   */
   async getOrgJoinRequests(
     orgId: string,
     status?: string,
     requestType?: JoinRequestType
   ): Promise<CustomerJoinRequest[]> {
-    let query = supabase
+    let query = getCoreClient()
       .from('customer_join_requests')
       .select('*')
       .eq('organization_id', orgId)
@@ -91,17 +86,14 @@ export const customerJoinService = {
       throw new Error('가입 신청 목록을 가져오는데 실패했습니다');
     }
 
-    return data || [];
+    return (data || []) as CustomerJoinRequest[];
   },
 
-  /**
-   * Approve a join request (owner/admin only)
-   */
   async approveJoinRequest(requestId: string, role: 'customer' | 'member' = 'customer'): Promise<void> {
-    const { error } = await supabase.rpc('approve_customer_join_request', {
+    const { error } = await getCoreClient().rpc('approve_customer_join_request' as never, {
       p_request_id: requestId,
       p_role: role,
-    });
+    } as never);
 
     if (error) {
       console.error('Failed to approve join request:', error);
@@ -109,14 +101,11 @@ export const customerJoinService = {
     }
   },
 
-  /**
-   * Reject a join request (owner/admin only)
-   */
   async rejectJoinRequest(requestId: string, reason?: string): Promise<void> {
-    const { error } = await supabase.rpc('reject_customer_join_request', {
+    const { error } = await getCoreClient().rpc('reject_customer_join_request' as never, {
       p_request_id: requestId,
       p_reject_reason: reason || null,
-    });
+    } as never);
 
     if (error) {
       console.error('Failed to reject join request:', error);

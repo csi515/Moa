@@ -1,5 +1,6 @@
 import React from 'react';
 import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import {
   formatSessionTime,
@@ -24,7 +25,7 @@ export function DaycareParentHome({
   readOnly?: boolean;
   onNavigate: (t: ParentPortalTab) => void;
 }) {
-  const summary = StorageService.getStudentBillingSummary(student.id);
+  const summary = TuitionService.getStudentBillingSummary(student.id);
   const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
 
   const latestJournal = React.useMemo(

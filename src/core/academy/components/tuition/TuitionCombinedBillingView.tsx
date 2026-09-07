@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Student } from '@/types';
-import { StorageService } from '@/services/storage';
+import { TuitionService } from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
@@ -90,7 +90,7 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
                 </tr>
               ) : (
                 filteredStudents.map((student) => {
-                  const summary = StorageService.getStudentBillingSummary(student.id, selectedMonth);
+                  const summary = TuitionService.getStudentBillingSummary(student.id, selectedMonth);
                   const hasUnpaid = (summary.totalUnpaid || 0) > 0;
 
                   return (
@@ -170,7 +170,7 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs">{emptyMessage}</div>
         ) : (
           filteredStudents.map((student) => {
-            const summary = StorageService.getStudentBillingSummary(student.id, selectedMonth);
+            const summary = TuitionService.getStudentBillingSummary(student.id, selectedMonth);
             const hasUnpaid = (summary.totalUnpaid || 0) > 0;
 
             return (

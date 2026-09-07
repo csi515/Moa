@@ -91,6 +91,10 @@ export function getInvoiceStatusBadge(status: InvoiceStatus): { label: string; b
       return { label: '일부 납부', bg: 'bg-amber-50 text-amber-700 border border-amber-200', text: 'text-amber-700' };
     case 'unpaid':
       return { label: '미납', bg: 'bg-rose-50 text-rose-700 border border-rose-200', text: 'text-rose-700' };
+    case 'overdue':
+      return { label: '연체', bg: 'bg-rose-100 text-rose-800 border border-rose-300', text: 'text-rose-800' };
+    case 'cancelled':
+      return { label: '취소', bg: 'bg-slate-100 text-slate-600 border border-slate-200', text: 'text-slate-600' };
     default:
       return { label: '-', bg: 'bg-slate-100 text-slate-700 border border-slate-200', text: 'text-slate-700' };
   }
@@ -141,6 +145,10 @@ export function getExpenseCategoryLabel(category?: string): string {
     case 'snacks':
       return '간식/비품';
     case 'teacher_salary':
+      return '강사료';
+    case 'salary':
+      return '인건비/급여';
+    case 'instructor_fee':
       return '강사료';
     case 'other':
       return '기타 운영비';

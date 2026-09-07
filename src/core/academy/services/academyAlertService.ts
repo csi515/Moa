@@ -1,12 +1,15 @@
 import { createNotificationsStorage } from '@/services/storage/notificationsStorage';
 import { getOrganizationId } from '@/services/adapters/storageContext';
 import { dispatchAppPush } from '@/core/push';
-import type { MakeupItem, NotificationType } from '@/types';
+import type { MakeupItem, NotificationType, PracticeRoomBooking } from '@/types';
 
 const notifications = createNotificationsStorage();
 
 function publishParentAlert(params: {
-  type: Extract<NotificationType, 'absence' | 'makeup' | 'tuition_unpaid' | 'practice'>;
+  type: Extract<
+    NotificationType,
+    'absence' | 'makeup' | 'tuition_unpaid' | 'practice' | 'announcement'
+  >;
   title: string;
   message: string;
   student: {
@@ -113,6 +116,33 @@ export function notifyParentTuitionUnpaid(params: {
   });
 }
 
+/** 청구서 수동 발송 시 학부모 포털 알림 + 앱 푸시 */
+export function notifyParentTuitionInvoiceSent(params: {
+  studentId: string;
+  studentName: string;
+  parentPhone?: string;
+  yearMonth: string;
+  amount: number;
+  dueDate: string;
+  title?: string;
+}): void {
+  const monthLabel = params.yearMonth.includes('-')
+    ? `${params.yearMonth.split('-')[1]}월`
+    : params.yearMonth;
+  publishParentAlert({
+    type: 'tuition_unpaid',
+    title: '수강료 청구서 도착',
+    message: `${params.studentName} 원생 ${monthLabel} 수강료 청구서가 도착했습니다. 금액 ₩${params.amount.toLocaleString()} · 납기 ${params.dueDate}`,
+    student: {
+      id: params.studentId,
+      name: params.studentName,
+      parentPhone: params.parentPhone,
+    },
+    scheduledDate: params.dueDate,
+    portalTab: 'tuition',
+  });
+}
+
 /** 가정 연습 일지 스태프 확인 시 학부모 알림 + 앱 푸시 */
 export function notifyParentPracticeReviewed(params: {
   studentId: string;
@@ -132,5 +162,27 @@ export function notifyParentPracticeReviewed(params: {
     },
     scheduledDate: params.date,
     portalTab: 'progress',
+  });
+}
+
+/** 연습실 예약 시 학부모 포털 알림 + 앱 푸시 */
+export function notifyParentPracticeRoomBooked(
+  booking: Pick<
+    PracticeRoomBooking,
+    'studentId' | 'studentName' | 'room' | 'date' | 'startTime' | 'endTime'
+  >,
+  parentPhone?: string
+): void {
+  publishParentAlert({
+    type: 'announcement',
+    title: '연습실 예약 안내',
+    message: `${booking.studentName} 원생 연습실이 ${booking.date} ${booking.startTime}–${booking.endTime} · ${booking.room}에 예약되었습니다.`,
+    student: {
+      id: booking.studentId,
+      name: booking.studentName,
+      parentPhone,
+    },
+    scheduledDate: booking.date,
+    portalTab: 'schedule',
   });
 }

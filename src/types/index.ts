@@ -22,6 +22,21 @@ export interface User {
 }
 
 export type StudentStatus = 'active' | 'leave' | 'withdrawn'; // 재원, 휴원, 퇴원
+
+/** 수강 형태 — 월회비 청구 vs 회차권 차감 */
+export type StudentBillingMode = 'monthly' | 'session_pass';
+
+export const STUDENT_BILLING_MODE_LABEL: Record<StudentBillingMode, string> = {
+  monthly: '월회비',
+  session_pass: '회차권',
+};
+
+export function normalizeBillingMode(
+  mode?: StudentBillingMode | string | null
+): StudentBillingMode {
+  return mode === 'session_pass' ? 'session_pass' : 'monthly';
+}
+
 export type StudentLevel = 
   | '바이엘 상' 
   | '바이엘 하' 
@@ -78,7 +93,9 @@ export interface Student {
   teacherName: string;
   classIds: string[];
   level: StudentLevel;
-  tuitionFee: number; // 월 수강료 (₩)
+  /** 수강 형태. 미설정 시 월회비 */
+  billingMode?: StudentBillingMode;
+  tuitionFee: number; // 월 수강료 (₩) — billingMode=monthly 일 때
   paymentDay: number; // 매월 납부일 (1~31)
   specialNotes?: string; // 특이사항 (손가락 유연성, 성향, 알레르기 등)
   memo?: string;
@@ -99,6 +116,9 @@ export interface Parent {
   createdAt: string;
 }
 
+/** 강사 급여 정산 방식 */
+export type TeacherPayType = 'hourly' | 'monthly' | 'none';
+
 export interface Teacher {
   id: string;
   name: string;
@@ -108,7 +128,12 @@ export interface Teacher {
   hireDate: string;
   status: 'active' | 'inactive' | 'resigned';
   specialty?: string;
-  salary?: number; // 월급 (₩)
+  /** 월급 (₩) — payType=monthly */
+  salary?: number;
+  /** 시급/레슨당 (₩) — payType=hourly */
+  hourlyRate?: number;
+  /** 정산 방식. 미설정 시 hourlyRate/salary로 추론 */
+  payType?: TeacherPayType;
   color?: string;
   memo?: string;
   classIds?: string[];
@@ -156,23 +181,35 @@ export interface AttendanceRecord {
   memo?: string;
   createdBy: string;
   createdAt?: string;
+  /** 회차권 차감 시 연결된 이용권 id */
+  sessionPassId?: string;
 }
 
-export type PaymentMethod = 'card' | 'transfer' | 'cash' | 'other';
-export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue';
+export type PaymentMethod =
+  | 'card'
+  | 'transfer'
+  | 'cash'
+  | 'other'
+  | 'local_currency'
+  | 'onsite_card';
+export type InvoiceStatus = 'paid' | 'partial' | 'unpaid' | 'overdue' | 'cancelled';
 
 export interface TuitionInvoice {
   id: string;
   studentId: string;
   studentName: string;
   yearMonth: string; // YYYY-MM
+  /** 청구서 제목 (예: 2026년 3월 피아노 수강료) */
+  title?: string;
   baseTuition?: number;
   baseFee?: number;
   discount?: number;
   discountAmount?: number;
   textbookFee?: number;
   additionalAmount?: number;
+  /** 연주회·콩쿠르 등 기타 합산 금액 */
   extraFee?: number;
+  extraFeeLabel?: string;
   totalAmount: number;
   paidAmount: number;
   unpaidAmount: number;
@@ -183,6 +220,29 @@ export interface TuitionInvoice {
   paidDate?: string;
   notes?: string;
   receiptNumber?: string;
+  /** 월 청구에 교재·연주회비 합산 여부 (미설정 시 학원 설정) */
+  includeExtras?: boolean;
+  /** 합산된 교재 판매 id */
+  linkedTextbookSaleIds?: string[];
+  /** 합산된 연주회·기타 항목 */
+  linkedExtraItems?: InvoiceExtraItem[];
+  /**
+   * 수동 발송 여부. false = 초안(학부모 미노출), true = 발송됨.
+   * undefined = 레거시(발송된 것으로 간주).
+   */
+  invoiceSent?: boolean;
+  /** 원장이 청구서를 수동 발송한 시각 */
+  sentAt?: string | null;
+  /** 학부모 현금영수증 발행 요청 */
+  cashReceiptRequested?: boolean;
+}
+
+/** 월 청구에 합산된 교재 외 항목 (연주회비 등) */
+export interface InvoiceExtraItem {
+  id: string;
+  label: string;
+  amount: number;
+  sourceType: 'recital' | 'manual';
 }
 
 /** 월회비 납부 원장 — 청구항목(TuitionInvoice)에 대한 실제 입금 */
@@ -197,6 +257,33 @@ export interface TuitionPayment {
   paymentMethod: PaymentMethod;
   memo?: string;
   receiptNumber?: string;
+  /** 현금영수증 발행 여부 */
+  cashReceiptIssued?: boolean;
+  createdAt?: string;
+}
+
+/** 연습실 예약 */
+export type PracticeRoomBookingStatus =
+  | 'scheduled'
+  | 'cancelled'
+  | 'completed'
+  | 'pending'
+  | 'approved'
+  | 'rejected';
+
+export interface PracticeRoomBooking {
+  id: string;
+  studentId: string;
+  studentName: string;
+  room: string;
+  date: string; // YYYY-MM-DD
+  startTime: string;
+  endTime: string;
+  teacherId?: string;
+  teacherName?: string;
+  memo?: string;
+  createdBy: string;
+  status: PracticeRoomBookingStatus;
   createdAt?: string;
 }
 
@@ -322,6 +409,8 @@ export interface TextbookSale {
   teacherName?: string;
   createdAt?: string;
   updatedAt?: string;
+  /** 월 청구서에 합산된 경우 해당 청구서 id — 별도 미납/중복 집계 제외 */
+  billingInvoiceId?: string;
 }
 
 export interface TextbookPayment {
@@ -418,7 +507,8 @@ export type ExpenseCategory =
   | 'snacks' 
   | 'marketing' 
   | 'teacher_salary' 
-  | 'salary' 
+  | 'salary'
+  | 'instructor_fee'
   | 'piano_tuning' 
   | 'tuning' 
   | 'other';
@@ -434,6 +524,10 @@ export interface ExpenseItem {
   vendor?: string;
   memo?: string;
   receiptMemo?: string;
+  /** 강사 정산 연동 */
+  teacherId?: string;
+  settlementYearMonth?: string;
+  settlementKind?: 'teacher_payroll';
 }
 export type Expense = ExpenseItem;
 
@@ -517,6 +611,8 @@ export interface AcademyEvent {
   description?: string;
   color?: string;
   participantIds?: string[];
+  /** 참가비(원) — 월 청구 합산 옵션 시 청구서 extraFee에 포함 */
+  participationFee?: number;
 }
 
 /** 연주회·콩쿠르 참가 원생 + 영상 등록 현황 */
@@ -548,6 +644,13 @@ export interface AcademySettings {
   businessNumber?: string;
   defaultTuitionFee: number;
   defaultPaymentDay?: number;
+  /** 신규 원생 기본 수강 형태 */
+  defaultBillingMode?: StudentBillingMode;
+  /**
+   * 월회비 청구서 생성 시 미납 교재비·해당 월 연주회 참가비를 합산합니다.
+   * 기본값 false (기존 동작 유지)
+   */
+  includeExtrasInMonthlyInvoice?: boolean;
   defaultLessonMinutes?: number;
   /** 상담 예약 슬롯 기본 간격(분). 미설정 시 30 */
   consultationSlotMinutes?: number;

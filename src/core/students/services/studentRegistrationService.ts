@@ -2,6 +2,7 @@ import type { Student, Parent } from '@/types';
 import type { GuardianRelationship } from '@/core/parent/types';
 import { getPrimaryGuardian } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
+import { StudentService } from '@/core/students/services/studentService';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import {
@@ -61,7 +62,7 @@ export async function registerStudentWithParent(
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
 
   const { parentId: _p, parentName: _n, parentPhone: _ph, ...studentCore } = studentData;
-  const savedStudent = StorageService.saveStudent(studentCore as typeof studentData);
+  const savedStudent = StudentService.saveStudent(studentCore as typeof studentData);
 
   const parents: Parent[] = [];
   const inviteErrors: string[] = [];
@@ -181,7 +182,7 @@ export async function updateStudentWithParent(
   } = {}
 ): Promise<{ student: Student; parents: Parent[] }> {
   const { parentId: _p, parentName: _n, parentPhone: _ph, ...studentCore } = studentData;
-  const savedStudent = StorageService.saveStudent(studentCore as typeof studentData);
+  const savedStudent = StudentService.saveStudent(studentCore as typeof studentData);
 
   const parents: Parent[] = [];
   if (options.guardians?.length) {

@@ -1,1 +1,7 @@
-export { appBrand, appManifestName, appPageTitle } from './appBrand';
+export {
+  appBrand,
+  appManifestName,
+  appPageTitle,
+  appExternalSubtitle,
+  appAcronymLine,
+} from './appBrand';
