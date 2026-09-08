@@ -16,6 +16,8 @@ import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { Teacher } from '@/types';
+import { normalizeStaffGrants, type StaffGrants } from '@/core/staff/staffGrants';
+import { StaffGrantFields, emptyStaffGrants } from './StaffGrantFields';
 import { formatCurrency } from '@/utils/formatters';
 import {
   GraduationCap,
@@ -88,6 +90,7 @@ export const TeacherManagementView: React.FC = () => {
     payType: 'hourly' as 'hourly' | 'monthly' | 'none',
     hourlyRate: 30000,
     salary: 0,
+    grants: emptyStaffGrants(),
   });
 
   const handleOpenCreate = () => {
@@ -103,6 +106,7 @@ export const TeacherManagementView: React.FC = () => {
       payType: 'hourly',
       hourlyRate: 30000,
       salary: 0,
+      grants: emptyStaffGrants(),
     });
     setIsModalOpen(true);
   };
@@ -123,6 +127,7 @@ export const TeacherManagementView: React.FC = () => {
       payType: inferred,
       hourlyRate: t.hourlyRate || 0,
       salary: t.salary || 0,
+      grants: normalizeStaffGrants(t.grants),
     });
     setIsModalOpen(true);
   };
@@ -156,6 +161,7 @@ export const TeacherManagementView: React.FC = () => {
       payType: formData.payType,
       hourlyRate: formData.payType === 'hourly' ? Number(formData.hourlyRate) || 0 : undefined,
       salary: formData.payType === 'monthly' ? Number(formData.salary) || 0 : undefined,
+      grants: formData.grants,
     } as Teacher);
 
     showToast(
@@ -492,6 +498,11 @@ export const TeacherManagementView: React.FC = () => {
                   수납 메뉴의 「강사정산」에서 월별 레슨 횟수를 반영해 지출(강사료)로 등록합니다.
                 </p>
               </div>
+
+              <StaffGrantFields
+                value={formData.grants}
+                onChange={(grants: StaffGrants) => setFormData({ ...formData, grants })}
+              />
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">대표 색상</label>

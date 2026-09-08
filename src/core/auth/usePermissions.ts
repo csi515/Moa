@@ -5,8 +5,8 @@ import { StorageService } from '@/services/storage';
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
+import { applyStaffGrantTabs, normalizeStaffGrants } from '@/core/staff/staffGrants';
 import {
-  canAccessTab,
   getAllowedTabs,
   getDefaultTab,
   getUserRoleBadge,
@@ -27,11 +27,22 @@ export function usePermissions() {
   const industry = (org?.currentOrganization?.industry_type ?? 'piano') as IndustryType;
   const settings = StorageService.getSettings();
 
+  const staffGrants = useMemo(() => {
+    if (!isStaffRole(role) || !staffId) return null;
+    const teacher = StorageService.getTeachers().find((item) => item.id === staffId);
+    return normalizeStaffGrants(teacher?.grants);
+  }, [role, staffId, refreshKey]);
+
   const allowedTabs = useMemo(
-    () => getAllowedTabs(role, industry, settings),
+    () =>
+      applyStaffGrantTabs(
+        getAllowedTabs(role, industry, settings),
+        staffGrants,
+        isStaffRole(role)
+      ),
     // refreshKey: 설정 저장 후 출입(PIN) on/off 즉시 반영
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [role, industry, settings.features?.attendance?.enabled, refreshKey]
+    [role, industry, settings.features?.attendance?.enabled, refreshKey, staffGrants]
   );
 
   const attendanceEnabled = useMemo(
@@ -52,7 +63,7 @@ export function usePermissions() {
     isStaff: isStaffRole(role),
     isParent: isParentRole(role),
     allowedTabs,
-    canAccess: (tab: NavTab) => canAccessTab(role, industry, tab, settings),
+    canAccess: (tab: NavTab) => allowedTabs.includes(tab),
     defaultTab: getDefaultTab(role, industry),
     roleLabel: getUserRoleLabel(role),
     roleBadge: getUserRoleBadge(role),

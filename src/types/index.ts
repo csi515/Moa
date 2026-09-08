@@ -137,6 +137,8 @@ export interface Teacher {
   color?: string;
   memo?: string;
   classIds?: string[];
+  /** 원장이 이 강사에게 켠 허용. 없으면 모두 꺼짐 */
+  grants?: import('@/core/staff/staffGrants').StaffGrants;
 }
 
 export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일';

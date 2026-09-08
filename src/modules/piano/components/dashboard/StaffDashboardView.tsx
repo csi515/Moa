@@ -4,12 +4,13 @@ import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { Users, Piano, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { requestOpenPendingPractice } from '@/core/customer/studentJoinInbox';
 import { TodayLessonView } from '../lessons/TodayLessonView';
 
 /** 강사 홈 — 오늘 레슨 작업면 + 담당 원생·교육 숏컷 */
 export const StaffDashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
-  const { scopeStudents, scopeClasses, scopeMakeupItems, scopeLessons } = useStaffScope();
+  const { scopeStudents, scopeClasses, scopeMakeupItems, scopeByStudentIds } = useStaffScope();
 
   const allStudents = StorageService.getStudents();
   const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
@@ -18,12 +19,12 @@ export const StaffDashboardView: React.FC = () => {
     () => scopeMakeupItems(StorageService.getMakeupItems(), allStudents),
     [allStudents, scopeMakeupItems]
   );
-  const recentLessons = useMemo(
+  const pendingPracticeCount = useMemo(
     () =>
-      scopeLessons(StorageService.getLessonRecords())
-        .sort((a, b) => b.date.localeCompare(a.date))
-        .slice(0, 5),
-    [scopeLessons]
+      scopeByStudentIds(StorageService.getPracticeRecords(), allStudents).filter(
+        (record) => record.source === 'parent' && !record.staffReviewed
+      ).length,
+    [allStudents, scopeByStudentIds]
   );
 
   const activeStudents = students.filter((s) => s.status === 'active');
@@ -51,13 +52,16 @@ export const StaffDashboardView: React.FC = () => {
             { label: '원생', value: activeStudents.length, tab: 'students' as const },
             { label: '오늘', value: todayClasses.length, tab: 'lessons' as const },
             { label: '미보강', value: pendingMakeups, tab: 'makeups' as const },
-            { label: '연습', value: recentLessons.length, tab: 'practice' as const },
+            { label: '연습', value: pendingPracticeCount, tab: 'practice' as const },
           ].map(({ label, value, tab }) => (
             <button
               key={label}
               type="button"
-              onClick={() => setActiveTab(tab)}
-              className="shrink-0 inline-flex items-center gap-1.5 min-h-[36px] px-2.5 rounded-lg bg-white/10 border border-white/15 text-xs font-bold"
+              onClick={() => {
+                if (tab === 'practice') requestOpenPendingPractice();
+                setActiveTab(tab);
+              }}
+              className="shrink-0 inline-flex items-center gap-1.5 min-h-[44px] px-2.5 rounded-lg bg-white/10 border border-white/15 text-xs font-bold"
             >
               <span className="text-indigo-200">{label}</span>
               <span className="tabular-nums text-sm">{value}</span>
@@ -89,7 +93,10 @@ export const StaffDashboardView: React.FC = () => {
             </button>
           </div>
           {activeStudents.length === 0 ? (
-            <p className="text-sm text-slate-400 py-3 text-center">담당 원생이 없습니다</p>
+            <div className="py-3 text-center">
+              <p className="text-sm text-slate-400">담당 원생이 없습니다</p>
+              <p className="text-xs text-slate-400 mt-1">원장이 학생의 담당 선생님을 지정하면 여기에 표시됩니다.</p>
+            </div>
           ) : (
             <div className="space-y-1.5">
               {activeStudents.slice(0, 6).map((s) => (

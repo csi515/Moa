@@ -84,8 +84,28 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
     setShowConsent(true);
   };
 
+  const parentPhone = portalTree?.parent?.phone?.trim() ?? '';
+
+  const focusPhone = () => {
+    showToast('학원에서 부를 연락처를 아래 계정에 먼저 저장해 주세요.', 'error');
+    document.getElementById('parent-phone')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  const startEnrollmentRequest = () => {
+    if (!parentPhone) {
+      focusPhone();
+      return;
+    }
+    setShowOrgSearch(true);
+  };
+
   const handleConfirmRequest = async (consentFields: string[], notes?: string) => {
     if (!selectedOrg || !selectedChild) return;
+    if (!parentPhone) {
+      setShowConsent(false);
+      focusPhone();
+      return;
+    }
 
     try {
       const result = await requestEnrollment({
@@ -181,7 +201,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
           </button>
           <button
             type="button"
-            onClick={() => setShowOrgSearch(true)}
+            onClick={startEnrollmentRequest}
             className="w-full py-2.5 mb-4 border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px]"
           >
             ?숈썝 ?곌껐 ?붿껌
@@ -201,7 +221,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">???먮?</p>
           <button
             type="button"
-            onClick={() => setShowOrgSearch(true)}
+            onClick={startEnrollmentRequest}
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors min-h-[44px]"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -223,7 +243,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
                   handleChildSelect(child);
                   return;
                 }
-                setShowOrgSearch(true);
+                startEnrollmentRequest();
               }}
               onEdit={() => {
                 setEditingChild(child);

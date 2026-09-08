@@ -17,8 +17,14 @@ import {
   X,
 } from 'lucide-react';
 
-export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
+export const ReservationInboxView: React.FC<{
+  embedded?: boolean;
+  includeReservation?: (row: ReservationDetail) => boolean;
+  emptyHint?: string;
+}> = ({
   embedded = false,
+  includeReservation,
+  emptyHint,
 }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { currentOrganization } = useOrganization();
@@ -36,7 +42,7 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
     if (currentOrganization) {
       loadReservations();
     }
-  }, [currentOrganization, statusFilter]);
+  }, [currentOrganization, statusFilter, includeReservation]);
 
   const loadReservations = async () => {
     if (!currentOrganization) return;
@@ -48,9 +54,10 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
         currentOrganization.id,
         status
       );
-      setReservations(data);
+      setReservations(includeReservation ? data.filter(includeReservation) : data);
     } catch (err) {
-      showToast('예약 목록을 불러오는데 실패했습니다.', 'error');
+      setReservations([]);
+      if (!includeReservation) showToast('예약 목록을 불러오는데 실패했습니다.', 'error');
       console.error(err);
     } finally {
       setLoading(false);
@@ -267,10 +274,14 @@ export const ReservationInboxView: React.FC<{ embedded?: boolean }> = ({
         <div className="bg-white rounded-2xl border-2 border-dashed border-slate-200 p-12 text-center">
           <Inbox className="w-12 h-12 text-slate-300 mx-auto mb-4" />
           <p className="text-slate-500 font-medium">
-            {statusFilter === 'all' && '예약 신청이 없습니다'}
-            {statusFilter === 'requested' && '신청 대기 중인 예약이 없습니다'}
-            {statusFilter === 'confirmed' && '확정된 예약이 없습니다'}
-            {statusFilter === 'cancelled' && '취소된 예약이 없습니다'}
+            {emptyHint
+              ? emptyHint
+              : statusFilter === 'all'
+                ? '예약 신청이 없습니다'
+                : null}
+            {!emptyHint && statusFilter === 'requested' && '신청 대기 중인 예약이 없습니다'}
+            {!emptyHint && statusFilter === 'confirmed' && '확정된 예약이 없습니다'}
+            {!emptyHint && statusFilter === 'cancelled' && '취소된 예약이 없습니다'}
           </p>
         </div>
       ) : (

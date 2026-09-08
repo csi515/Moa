@@ -17,6 +17,7 @@ import { StudentDetailMemoTab } from './detail/StudentDetailMemoTab';
 import { useStudentDetailModal } from './useStudentDetailModal';
 import type { DetailTab } from './detail/types';
 import { useApp } from '@/context/AppContext';
+import { useStaffGrants } from '@/hooks';
 
 export type { DetailTab } from './detail/types';
 
@@ -53,11 +54,19 @@ const StudentDetailModalContent: React.FC<
     onEdit,
   });
   const { setActiveTab } = useApp();
+  const { allow } = useStaffGrants();
+  const canCall = allow('guardianPhone');
+  const canEdit = allow('editStudent');
+  const canWithdraw = allow('withdrawStudent');
+  const canTuition = allow('tuition');
   const [showMoreTabs, setShowMoreTabs] = useState(false);
 
   const primaryTabs = useMemo(
-    () => modal.tabConfig.filter((tab) => tab.group === 'primary'),
-    [modal.tabConfig],
+    () =>
+      modal.tabConfig.filter(
+        (tab) => tab.group === 'primary' && (tab.id !== 'tuition' || canTuition)
+      ),
+    [modal.tabConfig, canTuition],
   );
   const moreTabs = useMemo(
     () => modal.tabConfig.filter((tab) => tab.group === 'more'),
@@ -69,7 +78,7 @@ const StudentDetailModalContent: React.FC<
   const summaryItems = [
     { label: '다음 수업', value: modal.summary.nextClass },
     { label: '최근 출결', value: modal.summary.recentAttendance },
-    { label: '이번 달 수납', value: modal.summary.tuition },
+    ...(canTuition ? [{ label: '이번 달 수납', value: modal.summary.tuition }] : []),
     { label: '보호자', value: modal.summary.guardian },
   ];
 
@@ -111,7 +120,7 @@ const StudentDetailModalContent: React.FC<
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-center">
-            {modal.primaryGuardian?.parentPhone && (
+            {canCall && modal.primaryGuardian?.parentPhone && (
               <a
                 href={`tel:${modal.primaryGuardian.parentPhone}`}
                 className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
@@ -121,6 +130,7 @@ const StudentDetailModalContent: React.FC<
               </a>
             )}
             <>
+              {canEdit && (
               <button
                 onClick={() => onEdit(student)}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
@@ -128,6 +138,8 @@ const StudentDetailModalContent: React.FC<
               >
                 <Edit className="w-4 h-4" />
               </button>
+              )}
+              {canWithdraw && (
               <button
                 onClick={modal.handleWithdraw}
                 className={`min-h-[44px] min-w-[44px] flex items-center justify-center bg-white border border-slate-200 rounded-xl transition-colors ${
@@ -143,6 +155,7 @@ const StudentDetailModalContent: React.FC<
                   <UserMinus className="w-4 h-4" />
                 )}
               </button>
+              )}
             </>
             <button
               onClick={onClose}
@@ -182,6 +195,7 @@ const StudentDetailModalContent: React.FC<
             <ClipboardCheck className="w-3.5 h-3.5" />
             출결 기록
           </button>
+          {canEdit && (
           <button
             type="button"
             onClick={() => onEdit(student)}
@@ -190,6 +204,8 @@ const StudentDetailModalContent: React.FC<
             <Edit className="w-3.5 h-3.5" />
             레슨·정보 변경
           </button>
+          )}
+          {canTuition && (
           <button
             type="button"
             onClick={modal.openQuickTuition}
@@ -198,6 +214,7 @@ const StudentDetailModalContent: React.FC<
             <CreditCard className="w-3.5 h-3.5" />
             수납
           </button>
+          )}
           <button
             type="button"
             onClick={modal.openQuickConsultation}
@@ -328,6 +345,9 @@ const StudentDetailModalContent: React.FC<
                   levelLabel={modal.industryPlugin.levelLabel}
                   showPickupFields={modal.industryPlugin.showPickupFields}
                   onEdit={onEdit}
+                  showGuardianContact={canCall}
+                  showTuition={canTuition}
+                  canEditStudent={canEdit}
                   onOpenGuardianLink={() => modal.setGuardianLinkOpen(true)}
                 />
               )}
@@ -354,7 +374,7 @@ const StudentDetailModalContent: React.FC<
                 />
               )}
 
-              {modal.currentTab === 'tuition' && (
+              {modal.currentTab === 'tuition' && canTuition && (
                 <StudentDetailTuitionTab
                   allInvoices={modal.allInvoices}
                   billingSummary={modal.billingSummary}

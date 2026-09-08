@@ -1,9 +1,10 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh } from '@/hooks';
+import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar, Modal } from '@/shared/components';
 import { AcademyEvent } from '@/types';
+import { visibleStaffCalendarEvents } from './visibleStaffCalendarEvents';
 import {
   CalendarDays,
   ChevronLeft,
@@ -18,13 +19,22 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   embedded = false,
 }) => {
   const { showToast } = useApp();
+  const { isScoped, scopeStudents, scopeRecitalEvents } = useStaffScope();
   const now = new Date();
 
   const [currentYear, setCurrentYear] = useState(now.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
   useStorageRefresh();
-  const events = StorageService.getEvents();
+  const allStudents = StorageService.getStudents();
+  const students = useMemo(
+    () => (isScoped ? scopeStudents(allStudents) : allStudents),
+    [allStudents, isScoped, scopeStudents]
+  );
+  const events = useMemo(
+    () => visibleStaffCalendarEvents(StorageService.getEvents(), allStudents, isScoped, scopeRecitalEvents),
+    [isScoped, scopeRecitalEvents, allStudents]
+  );
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
@@ -35,8 +45,6 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
     color: '#4f46e5',
     participationFee: 0,
   });
-
-  const students = StorageService.getStudents();
 
   const handlePrevMonth = () => {
     if (currentMonth === 1) {
@@ -125,7 +133,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   const renderDayDetailList = (
     dayEvents: typeof events,
     dayBdays: typeof birthdayStudents,
-    emptyMessage = '등록된 일정이 없습니다.'
+    emptyMessage = isScoped ? '볼 일정이 없습니다.' : '등록된 일정이 없습니다.'
   ) => {
     if (dayEvents.length === 0 && dayBdays.length === 0) {
       return <p className="text-xs text-slate-400 py-4 text-center">{emptyMessage}</p>;
@@ -143,6 +151,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
               <p className="font-bold text-sm text-slate-900">{ev.title}</p>
               {ev.description && <p className="text-xs text-slate-500 mt-0.5">{ev.description}</p>}
             </div>
+            {!isScoped && (
             <button
               type="button"
               onClick={() => handleDeleteEvent(ev.id)}
@@ -151,6 +160,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
             >
               <Trash2 className="w-4 h-4" />
             </button>
+            )}
           </div>
         ))}
         {dayBdays.map((s) => (
@@ -174,6 +184,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
           icon={<CalendarDays className="w-6 h-6" />}
           title="학원 일정 및 캘린더"
           actions={
+            !isScoped ? (
             <button
               type="button"
               onClick={openCreateModal}
@@ -182,9 +193,10 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
               <Plus className="w-4 h-4" />
               학원 일정 등록
             </button>
+            ) : undefined
           }
         />
-      ) : (
+      ) : !isScoped ? (
         <div className="flex justify-end no-print">
           <button
             type="button"
@@ -195,7 +207,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
             학원 일정 등록
           </button>
         </div>
-      )}
+      ) : null}
 
       <FilterBar className="justify-between">
         <button
@@ -348,7 +360,9 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
               이달 전체 · {monthEvents.length}건
             </p>
             {monthEvents.length === 0 ? (
-              <p className="text-xs text-slate-400 text-center py-2">일정 없음</p>
+              <p className="text-xs text-slate-400 text-center py-2">
+                {isScoped ? '볼 일정이 없습니다' : '일정 없음'}
+              </p>
             ) : (
               monthEvents.map((ev) => (
                 <button

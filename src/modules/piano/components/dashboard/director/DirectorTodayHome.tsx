@@ -16,8 +16,10 @@ import type { useDirectorTodayDashboard } from './useDirectorTodayDashboard';
 import { TodayLessonView } from '../../lessons/TodayLessonView';
 import {
   requestOpenConsultationInquiries,
+  requestOpenConsultationReservations,
   requestOpenGuardianEnrollments,
   requestOpenMembershipJoins,
+  requestOpenUncheckedLessons,
 } from '@/core/customer/studentJoinInbox';
 
 type TodayData = ReturnType<typeof useDirectorTodayDashboard>;
@@ -74,7 +76,9 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
   const consultTotal = pendingReservationCount + pendingInquiryCount;
 
   const openConsultations = () => {
-    if (pendingInquiryCount > 0 && pendingReservationCount === 0) {
+    if (pendingReservationCount > 0) {
+      requestOpenConsultationReservations();
+    } else if (pendingInquiryCount > 0) {
       requestOpenConsultationInquiries();
     }
     setActiveTab('consultations');
@@ -97,7 +101,10 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
       label: '출석',
       value: `${stats.todayPresent}`,
       tone: 'bg-emerald-50 text-emerald-800 border-emerald-100',
-      onClick: () => setActiveTab('lessons'),
+      onClick: () => {
+        requestOpenUncheckedLessons();
+        setActiveTab('lessons');
+      },
     },
     {
       label: '미출',
@@ -119,14 +126,16 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
     },
     {
       label: '가입',
-      value: pendingJoinCount > 0 ? `${pendingJoinCount}` : '없음',
+      value: `${pendingJoinCount}`,
       tone: 'bg-white text-indigo-900 border-white',
+      hidden: pendingJoinCount === 0,
       onClick: openMembershipJoins,
     },
     {
       label: '등록',
-      value: pendingEnrollmentCount > 0 ? `${pendingEnrollmentCount}` : '없음',
+      value: `${pendingEnrollmentCount}`,
       tone: 'bg-white text-indigo-900 border-white',
+      hidden: pendingEnrollmentCount === 0,
       onClick: openGuardianEnrollments,
     },
   ];
@@ -167,8 +176,13 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
               <span className="opacity-70">{chip.label}</span>
               <span className="tabular-nums text-sm">{chip.value}</span>
             </button>
-          ))}
+            ))}
         </div>
+        {stats.todayAbsent > 0 && makeupPendingCount === 0 && (
+          <p className="mt-2 text-[11px] text-indigo-100">
+            보강 대상이 아닌 결석은 오늘 레슨에서 확인합니다.
+          </p>
+        )}
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-5 gap-3">

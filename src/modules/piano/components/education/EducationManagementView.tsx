@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar } from '@/shared/components';
@@ -35,6 +36,7 @@ export const ReportsManagementView: React.FC = () => (
 
 function EducationSectionView({ section }: { section: EduSection }) {
   const { showToast, triggerRefresh, currentUser } = useApp();
+  const { isAdmin } = usePermissions();
   const { scopeStudents } = useStaffScope();
   const students = scopeStudents(StorageService.getStudents().filter((s) => s.status === 'active'));
 
@@ -66,6 +68,12 @@ function EducationSectionView({ section }: { section: EduSection }) {
         description="학부모 포털에 연동되는 교육 품질 데이터를 관리합니다."
       />
 
+      {students.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
+          <p className="text-sm font-bold text-slate-700">담당 원생이 없습니다</p>
+          <p className="text-xs text-slate-500 mt-1">원장이 학생의 담당 선생님을 지정하면 여기에 표시됩니다.</p>
+        </div>
+      ) : (
       <FilterBar>
       <select
         value={selectedStudentId}
@@ -79,6 +87,7 @@ function EducationSectionView({ section }: { section: EduSection }) {
         ))}
       </select>
       </FilterBar>
+      )}
 
       {selectedStudentId && section === 'curriculum' && (
         <CurriculumPanel studentId={selectedStudentId} showToast={showToast} onRefresh={triggerRefresh} />
@@ -90,7 +99,13 @@ function EducationSectionView({ section }: { section: EduSection }) {
         <AchievementsPanel studentId={selectedStudentId} showToast={showToast} onRefresh={triggerRefresh} />
       )}
       {selectedStudentId && section === 'reports' && (
-        <ReportsPanel studentId={selectedStudentId} staffId={currentUser.staffId || undefined} showToast={showToast} onRefresh={triggerRefresh} />
+        <ReportsPanel
+          studentId={selectedStudentId}
+          staffId={currentUser.staffId || undefined}
+          canPublish={isAdmin}
+          showToast={showToast}
+          onRefresh={triggerRefresh}
+        />
       )}
     </div>
   );
@@ -310,11 +325,13 @@ function AchievementsPanel({
 function ReportsPanel({
   studentId,
   staffId,
+  canPublish,
   showToast,
   onRefresh,
 }: {
   studentId: string;
   staffId?: string;
+  canPublish: boolean;
   showToast: (m: string, t?: 'success') => void;
   onRefresh: () => void;
 }) {
@@ -361,9 +378,13 @@ function ReportsPanel({
               <p className="text-xs text-slate-500">출석 {r.attendanceRate}% · 연습 {r.practiceMinutes}분</p>
             </div>
             {r.status === 'draft' ? (
-              <button onClick={() => handlePublish(r.id)} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg flex items-center gap-1">
+              canPublish ? (
+              <button onClick={() => handlePublish(r.id)} className="px-3 py-1.5 bg-emerald-600 text-white text-xs font-bold rounded-lg flex items-center gap-1 min-h-[44px]">
                 <Send className="w-3 h-3" /> 학부모 공개
               </button>
+              ) : (
+              <span className="text-xs text-slate-500 font-bold">초안 · 원장이 공개합니다</span>
+              )
             ) : (
               <span className="text-xs text-emerald-600 font-bold">공개됨</span>
             )}

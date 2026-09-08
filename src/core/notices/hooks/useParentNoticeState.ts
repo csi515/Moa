@@ -1,7 +1,7 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
-import { useStaffScope, useStorageRefresh } from '@/hooks';
+import { useStaffGrants, useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { useModuleLabels } from '@/core/labels';
 import { getIndustryAccent, usesClassBasedSchedule } from '@/core/industry/industryUi';
@@ -21,7 +21,9 @@ export function useParentNoticeState() {
   const accent = getIndustryAccent(industry);
   const tone = noticeAccentClasses(accent.icon);
   const classBased = usesClassBasedSchedule(industry);
-  const { scopeStudents } = useStaffScope();
+  const { isStaff, scopeStudents, scopeClasses, getMyStudentIds } = useStaffScope();
+  const { allow } = useStaffGrants();
+  const canWriteNotices = allow('notices');
   const refreshKey = useStorageRefresh();
   const { placeWord, feeWord } = getNoticePlaceWords(industry);
   const templates = useMemo(
@@ -33,11 +35,17 @@ export function useParentNoticeState() {
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
     [scopeStudents, refreshKey]
   );
-  const classes = useMemo(() => StorageService.getClasses(), [refreshKey]);
-  const notices = useMemo(
-    () => filterParentNotices(StorageService.getNotifications()),
-    [refreshKey]
+  const classes = useMemo(
+    () => (isStaff ? scopeClasses(StorageService.getClasses()) : StorageService.getClasses()),
+    [isStaff, scopeClasses, refreshKey]
   );
+  const notices = useMemo(() => {
+    const all = filterParentNotices(StorageService.getNotifications());
+    if (!isStaff) return all;
+    const studentIds = getMyStudentIds(StorageService.getStudents());
+    const classIds = new Set(classes.map((item) => item.id));
+    return all.filter((item) => noticeTargetsStaff(item, studentIds, classIds));
+  }, [isStaff, getMyStudentIds, classes, refreshKey]);
 
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,7 +55,7 @@ export function useParentNoticeState() {
     kind: 'announcement' as ParentNoticeKind,
     title: '',
     message: '',
-    targetMode: 'all' as NoticeTargetMode,
+    targetMode: (isStaff ? 'student' : 'all') as NoticeTargetMode,
     classId: '',
     studentId: '',
   });
@@ -69,21 +77,21 @@ export function useParentNoticeState() {
   }, [students, form.targetMode, form.classId, form.studentId]);
 
   const targetModeOptions = useMemo(() => {
-    const opts: { value: NoticeTargetMode; label: string }[] = [
-      { value: 'all', label: '전체' },
-    ];
+    const opts: { value: NoticeTargetMode; label: string }[] = [];
+    if (!isStaff) opts.push({ value: 'all', label: '전체' });
     if (classBased) opts.push({ value: 'class', label: labels.service.singular });
     opts.push({ value: 'student', label: '개별' });
     return opts;
-  }, [classBased, labels.service.singular]);
+  }, [classBased, labels.service.singular, isStaff]);
 
   const openCreate = () => {
+    if (!canWriteNotices) return;
     setEditing(null);
     setForm({
       kind: 'announcement',
       title: '',
       message: '',
-      targetMode: 'all',
+      targetMode: isStaff ? 'student' : 'all',
       classId: classes[0]?.id || '',
       studentId: students[0]?.id || '',
     });
@@ -91,6 +99,7 @@ export function useParentNoticeState() {
   };
 
   const openEdit = (item: AppNotification) => {
+    if (!canWriteNotices) return;
     const parsed = parseNoticeTarget(item.targetGroup);
     const mode = parsed.mode === 'class' && !classBased ? 'all' : parsed.mode;
     setEditing(item);
@@ -163,6 +172,7 @@ export function useParentNoticeState() {
 
   const handleSaveDraft = (e: FormEvent) => {
     e.preventDefault();
+    if (!canWriteNotices) return;
     const payload = buildPayload('pending');
     if (!payload) return;
     StorageService.saveNotification(payload);
@@ -175,6 +185,7 @@ export function useParentNoticeState() {
 
   const handlePublish = (e?: FormEvent) => {
     e?.preventDefault();
+    if (!canWriteNotices) return;
     const payload = buildPayload('sent');
     if (!payload) return;
     StorageService.saveNotification(payload);
@@ -186,6 +197,7 @@ export function useParentNoticeState() {
   };
 
   const publishExisting = (item: AppNotification) => {
+    if (!canWriteNotices) return;
     StorageService.saveNotification({
       ...item,
       status: 'sent',
@@ -195,6 +207,7 @@ export function useParentNoticeState() {
   };
 
   const handleDelete = (item: AppNotification) => {
+    if (isStaff || !canWriteNotices) return;
     openConfirmDialog({
       title: '안내 삭제',
       message: `"${item.title}"을(를) 삭제할까요?`,
@@ -250,5 +263,18 @@ export function useParentNoticeState() {
     publishExisting,
     handleDelete,
     targetLabel,
+    canWriteNotices,
+    isStaff,
   };
+}
+
+function noticeTargetsStaff(
+  item: AppNotification,
+  studentIds: Set<string>,
+  classIds: Set<string>
+): boolean {
+  const { mode, id } = parseNoticeTarget(item.targetGroup);
+  if (mode === 'student') return studentIds.has(id || item.targetStudentId || '');
+  if (mode === 'class' && id) return classIds.has(id);
+  return false;
 }

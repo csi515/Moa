@@ -36,6 +36,7 @@ export interface StaffMetadata {
   color?: string;
   memo?: string;
   classIds?: string[];
+  grants?: import('@/core/staff/staffGrants').StaffGrants;
 }
 
 /** organizations.settings JSONB에 저장되는 학원 설정 */

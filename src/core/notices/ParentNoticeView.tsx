@@ -19,6 +19,7 @@ export const ParentNoticeView: FC = () => {
         title={NOTICE_COPY.pageTitle}
         description={NOTICE_COPY.pageDescription(state.labels.contact.singular)}
         actions={
+          state.canWriteNotices ? (
           <button
             type="button"
             onClick={state.openCreate}
@@ -27,6 +28,7 @@ export const ParentNoticeView: FC = () => {
             <Plus className="w-4 h-4" />
             작성
           </button>
+          ) : undefined
         }
       />
 
@@ -61,6 +63,8 @@ export const ParentNoticeView: FC = () => {
           onEdit={state.openEdit}
           onPublish={state.publishExisting}
           onDelete={state.handleDelete}
+          canWrite={state.canWriteNotices}
+          canDelete={!state.isStaff}
         />
       </div>
 

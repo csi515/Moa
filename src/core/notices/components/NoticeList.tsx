@@ -16,6 +16,8 @@ interface NoticeListProps {
   onEdit: (item: AppNotification) => void;
   onPublish: (item: AppNotification) => void;
   onDelete: (item: AppNotification) => void;
+  canWrite?: boolean;
+  canDelete?: boolean;
 }
 
 export const NoticeList: FC<NoticeListProps> = ({
@@ -29,6 +31,8 @@ export const NoticeList: FC<NoticeListProps> = ({
   onEdit,
   onPublish,
   onDelete,
+  canWrite = true,
+  canDelete = true,
 }) => {
   if (items.length === 0) {
     return (
@@ -37,6 +41,7 @@ export const NoticeList: FC<NoticeListProps> = ({
         title={NOTICE_COPY.emptyTitle}
         description={NOTICE_COPY.emptyDescription}
         action={
+          canWrite ? (
           <button
             type="button"
             onClick={onCreate}
@@ -44,6 +49,7 @@ export const NoticeList: FC<NoticeListProps> = ({
           >
             작성
           </button>
+          ) : undefined
         }
         className="border-0 shadow-none rounded-none"
       />
@@ -85,8 +91,9 @@ export const NoticeList: FC<NoticeListProps> = ({
                   : `작성 ${(item.createdAt || '').slice(0, 16).replace('T', ' ')}`}
               </p>
             </div>
+            {(canWrite || canDelete) && (
             <div className="flex flex-wrap gap-2">
-              {!published && (
+              {canWrite && !published && (
                 <button
                   type="button"
                   onClick={() => onPublish(item)}
@@ -96,6 +103,7 @@ export const NoticeList: FC<NoticeListProps> = ({
                   게시
                 </button>
               )}
+              {canWrite && (
               <button
                 type="button"
                 onClick={() => onEdit(item)}
@@ -103,6 +111,8 @@ export const NoticeList: FC<NoticeListProps> = ({
               >
                 수정
               </button>
+              )}
+              {canDelete && (
               <button
                 type="button"
                 onClick={() => onDelete(item)}
@@ -111,7 +121,9 @@ export const NoticeList: FC<NoticeListProps> = ({
               >
                 <Trash2 className="w-4 h-4" />
               </button>
+              )}
             </div>
+            )}
           </div>
         );
       })}

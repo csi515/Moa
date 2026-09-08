@@ -1,9 +1,10 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useEffect, useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/components';
 import { PracticeRecord } from '@/types';
+import { consumeOpenPendingPractice } from '@/core/customer/studentJoinInbox';
 import { notifyParentPracticeReviewed } from '@/core/academy/services/academyAlertService';
 import {
   BookOpenCheck,
@@ -26,6 +27,10 @@ export const PracticeRecordsView: React.FC = () => {
   const [studentFilter, setStudentFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [sourceFilter, setSourceFilter] = useState<'ALL' | 'pending_parent'>('ALL');
+
+  useEffect(() => {
+    if (consumeOpenPendingPractice()) setSourceFilter('pending_parent');
+  }, []);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({

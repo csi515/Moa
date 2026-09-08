@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC, type MouseEvent } from 'react';
+import { useEffect, useMemo, useState, type FC, type MouseEvent } from 'react';
 import { CheckCircle2, ChevronRight, Clock, MapPin, Piano, Users, XCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
@@ -11,6 +11,7 @@ import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomew
 import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
 import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
+import { consumeOpenUncheckedLessons } from '@/core/customer/studentJoinInbox';
 import { LessonSessionModal, type LessonSessionForm } from './LessonSessionModal';
 
 const DAY_MAP: Record<number, string> = {
@@ -55,6 +56,11 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   const { staffId, scopeStudents, scopeClasses, scopeLessons } = useStaffScope();
 
   const [target, setTarget] = useState<SessionTarget | null>(null);
+  const [uncheckedOnly, setUncheckedOnly] = useState(false);
+
+  useEffect(() => {
+    if (consumeOpenUncheckedLessons()) setUncheckedOnly(true);
+  }, []);
 
   const today = todayIso();
   const todayKorean = DAY_MAP[new Date().getDay()] || '월';
@@ -332,6 +338,11 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         />
       ) : (
         <div className="space-y-3">
+          {uncheckedOnly && (
+            <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+              아직 출결이 없는 원생만 표시합니다.
+            </p>
+          )}
           {classes.map((cls) => {
             const enrolled = students.filter((s) => s.classIds?.includes(cls.id));
             const classDone = enrolled.filter((s) => !!findAttendance(s.id, cls.id)).length;
@@ -399,7 +410,9 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
                   <p className="text-sm text-slate-400 text-center py-6">배정된 원생이 없습니다</p>
                 ) : (
                   <ul className="divide-y divide-slate-100">
-                    {enrolled.map((student) => {
+                    {enrolled
+                      .filter((student) => !uncheckedOnly || !findAttendance(student.id, cls.id))
+                      .map((student) => {
                       const att = findAttendance(student.id, cls.id);
                       const lesson = findLesson(student.id);
                       const done = !!att;

@@ -22,6 +22,9 @@ interface StudentDetailInfoTabProps {
   isSupabaseConfigured: boolean;
   levelLabel?: string;
   showPickupFields?: boolean;
+  showGuardianContact?: boolean;
+  showTuition?: boolean;
+  canEditStudent?: boolean;
   onEdit: (student: Student) => void;
   onOpenGuardianLink: () => void;
 }
@@ -35,6 +38,9 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
   isSupabaseConfigured,
   levelLabel = '레벨',
   showPickupFields = false,
+  showGuardianContact = true,
+  showTuition = true,
+  canEditStudent = true,
   onEdit,
   onOpenGuardianLink,
 }) => (
@@ -62,6 +68,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
                   연결 코드
                 </button>
               )}
+              {canEditStudent && (
               <button
                 type="button"
                 onClick={() => onEdit(student)}
@@ -69,6 +76,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
               >
                 보호자 추가/수정
               </button>
+              )}
             </div>
           </div>
           {guardians.length === 0 ? (
@@ -96,7 +104,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
                       <span className="text-[11px] text-slate-500">{g.parentEmail}</span>
                     )}
                   </div>
-                  {g.parentPhone && (
+                  {showGuardianContact && g.parentPhone && (
                     <a
                       href={`tel:${g.parentPhone}`}
                       className="font-mono text-xs font-bold text-indigo-600 hover:underline shrink-0"
@@ -109,7 +117,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
             </div>
           )}
         </div>
-        {student.emergencyContact && (
+        {showGuardianContact && student.emergencyContact && (
           <div className="flex justify-between items-center py-1.5 border-b border-slate-200/60">
             <span className="text-slate-500">비상 연락처</span>
             <a href={`tel:${student.emergencyContact}`} className="font-mono text-slate-700">
@@ -201,20 +209,22 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
             {student.level}
           </span>
         </div>
+        {showTuition && (
         <div className="flex justify-between py-1.5 border-b border-slate-200/60">
           <span className="text-slate-500">수강 형태</span>
           <span className="font-bold text-slate-800">
             {student.billingMode === 'session_pass' ? '회차권' : '월회비'}
           </span>
         </div>
-        {student.billingMode === 'session_pass' ? (
+        )}
+        {showTuition && student.billingMode === 'session_pass' ? (
           <div className="flex justify-between py-1.5 border-b border-slate-200/60">
             <span className="text-slate-500">회차권 잔여</span>
             <span className="font-bold text-indigo-700 text-sm">
               {ScheduleService.getCustomerRemainingSessions(student.id)}회
             </span>
           </div>
-        ) : (
+        ) : showTuition ? (
           <>
             <div className="flex justify-between py-1.5 border-b border-slate-200/60">
               <span className="text-slate-500">월 정규 수강료</span>
@@ -227,7 +237,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
               <span className="font-bold text-slate-800">매월 {student.paymentDay}일</span>
             </div>
           </>
-        )}
+        ) : null}
         <div className="flex justify-between py-1.5">
           <span className="text-slate-500">총 누적 연습시간</span>
           <span className="font-bold text-emerald-700">

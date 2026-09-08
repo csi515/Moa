@@ -228,6 +228,8 @@ export function CustomerJoinRequestsPanel({
   title = '고객 가입 신청',
   description,
   hideWhenEmpty = false,
+  includeRequest,
+  emptyHint,
 }: {
   embedded?: boolean;
   requestType?: JoinRequestType;
@@ -235,6 +237,8 @@ export function CustomerJoinRequestsPanel({
   description?: string;
   /** 대기 건이 없을 때 학생 목록 등에서 숨김 */
   hideWhenEmpty?: boolean;
+  includeRequest?: (row: CustomerJoinRequest) => boolean;
+  emptyHint?: string;
 } = {}) {
   const { currentOrganization } = useOrganization();
   const [requests, setRequests] = useState<CustomerJoinRequest[]>([]);
@@ -245,7 +249,7 @@ export function CustomerJoinRequestsPanel({
     if (currentOrganization) {
       loadRequests();
     }
-  }, [currentOrganization, filter, requestType]);
+  }, [currentOrganization, filter, requestType, includeRequest]);
 
   const loadRequests = async () => {
     if (!currentOrganization) return;
@@ -257,7 +261,7 @@ export function CustomerJoinRequestsPanel({
         filter === 'pending' ? 'pending' : undefined,
         requestType
       );
-      setRequests(data);
+      setRequests(includeRequest ? data.filter(includeRequest) : data);
     } catch (err) {
       console.error('Failed to load requests:', err);
     } finally {
@@ -358,10 +362,14 @@ export function CustomerJoinRequestsPanel({
       ) : requests.length === 0 ? (
         <div className="bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300 p-8 text-center">
           <Clock className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-slate-900 mb-1">신청 내역이 없습니다</h3>
+          <h3 className="text-base font-semibold text-slate-900 mb-1">
+            {emptyHint || '신청 내역이 없습니다'}
+          </h3>
+          {!emptyHint && (
           <p className="text-sm text-slate-600">
             {filter === 'pending' ? '대기 중인 신청이 없습니다' : '아직 신청이 없습니다'}
           </p>
+          )}
         </div>
       ) : (
         <div className="space-y-4">

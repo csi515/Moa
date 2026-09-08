@@ -1,7 +1,6 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
-import { usePermissions } from '@/core/auth/usePermissions';
+import { useStorageRefresh, useStudentNavigation, useStaffScope, useStaffGrants } from '@/hooks';
 import { RecitalService } from '@/modules/piano/services/recitalService';
 import { ACADEMY_EVENT_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
@@ -45,7 +44,8 @@ export const RecitalManagementView: React.FC = () => {
   const { showToast, openConfirmDialog } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
-  const { isAdmin } = usePermissions();
+  const { allow } = useStaffGrants();
+  const canManageRecitals = allow('recitals');
   const { scopeRecitalEvents, scopeStudents, getMyStudentIds, isScoped } = useStaffScope();
 
   const [filter, setFilter] = useState<EventFilter>('upcoming');
@@ -176,7 +176,7 @@ export const RecitalManagementView: React.FC = () => {
         title="연주회·콩쿠르 관리"
         description="행사 일정, 참가 원생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다"
         actions={
-          isAdmin ? (
+          canManageRecitals ? (
           <button
             onClick={() => setIsCreateOpen(true)}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 w-full sm:w-auto"
@@ -314,6 +314,7 @@ export const RecitalManagementView: React.FC = () => {
                       <p className="text-xs text-slate-600 mt-2">{selectedEvent.description}</p>
                     )}
                   </div>
+                  {canManageRecitals && (
                   <button
                     onClick={() => handleDeleteEvent(selectedEvent)}
                     className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl"
@@ -321,6 +322,7 @@ export const RecitalManagementView: React.FC = () => {
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>
+                  )}
                 </div>
 
                 <div className="mt-4 p-3 bg-white rounded-xl border border-slate-200">

@@ -1,6 +1,7 @@
-import { useMemo, type FC } from 'react';
+import { useEffect, useMemo, type FC } from 'react';
 import { Calendar, Clock, DoorOpen, Piano, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useStaffGrants, useStaffScope } from '@/hooks';
 import { WeeklyTimetableView, AcademyCalendarView } from '@/core/academy';
 import { SegmentedControl } from '@/shared/components';
 import { LessonsHubView } from '../lessons/LessonsHubView';
@@ -28,8 +29,24 @@ function tabToSegment(tab: string): ScheduleSegment {
 /** 피아노 일정 허브 — 시간표·캘린더·레슨·보강·연습실 */
 export const PianoScheduleView: FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const { isScoped } = useStaffScope();
+  const { allow } = useStaffGrants();
+  const canRooms = !isScoped || allow('practiceRooms');
 
-  const segment = useMemo(() => tabToSegment(activeTab), [activeTab]);
+  const segmentOptions = useMemo(
+    () => (canRooms ? SEGMENT_OPTIONS : SEGMENT_OPTIONS.filter((option) => option.value !== 'rooms')),
+    [canRooms]
+  );
+
+  useEffect(() => {
+    if (!canRooms && activeTab === 'practice-rooms') setActiveTab('timetable');
+  }, [canRooms, activeTab, setActiveTab]);
+
+  const segment = useMemo(() => {
+    const next = tabToSegment(activeTab);
+    if (!canRooms && next === 'rooms') return 'classes';
+    return next;
+  }, [activeTab, canRooms]);
 
   const handleSegmentChange = (next: ScheduleSegment) => {
     if (next === 'events') setActiveTab('calendar');
@@ -75,7 +92,7 @@ export const PianoScheduleView: FC = () => {
         </div>
         <SegmentedControl
           value={segment}
-          options={SEGMENT_OPTIONS}
+          options={segmentOptions}
           onChange={handleSegmentChange}
           aria-label="일정 보기 전환"
           fullWidth
@@ -87,7 +104,7 @@ export const PianoScheduleView: FC = () => {
       {segment === 'events' && <AcademyCalendarView embedded />}
       {segment === 'lessons' && <LessonsHubView />}
       {segment === 'makeups' && <MakeupManagementView />}
-      {segment === 'rooms' && <PracticeRoomBookingView />}
+      {segment === 'rooms' && canRooms && <PracticeRoomBookingView />}
     </div>
   );
 };

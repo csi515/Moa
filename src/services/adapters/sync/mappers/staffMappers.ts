@@ -26,6 +26,7 @@ export function teacherToStaffRow(teacher: Teacher, organizationId: string) {
     color: teacher.color,
     memo: teacher.memo,
     classIds: teacher.classIds,
+    grants: teacher.grants,
   };
 
   return {
@@ -64,6 +65,7 @@ export function staffRowToTeacher(row: {
     color: meta.color,
     memo: meta.memo,
     classIds: meta.classIds,
+    grants: meta.grants,
   };
 }
 
