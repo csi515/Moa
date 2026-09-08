@@ -8,6 +8,7 @@ interface ParentChildSelectorModalProps {
   onClose: () => void;
   children: GlobalStudent[];
   onSelect: (child: GlobalStudent) => void;
+  onRegisterChild?: () => void;
   title?: string;
 }
 
@@ -16,6 +17,7 @@ export const ParentChildSelectorModal: React.FC<ParentChildSelectorModalProps> =
   onClose,
   children,
   onSelect,
+  onRegisterChild,
   title = '자녀 선택',
 }) => {
   if (!isOpen) return null;
@@ -33,7 +35,7 @@ export const ParentChildSelectorModal: React.FC<ParentChildSelectorModalProps> =
         {children.length === 0 ? (
           <div className="py-8 text-center">
             <User className="w-12 h-12 mx-auto text-slate-300 mb-3" />
-            <p className="text-sm text-slate-500">등록된 자녀가 없습니다</p>
+            <p className="text-sm text-slate-500 mb-4">등록된 자녀가 없습니다. 먼저 자녀를 등록해 주세요.</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -41,10 +43,7 @@ export const ParentChildSelectorModal: React.FC<ParentChildSelectorModalProps> =
               <button
                 key={child.studentId}
                 type="button"
-                onClick={() => {
-                  onSelect(child);
-                  onClose();
-                }}
+                onClick={() => onSelect(child)}
                 className="w-full flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/40 transition-colors text-left min-h-[44px]"
               >
                 <div className="min-w-0">
@@ -69,6 +68,15 @@ export const ParentChildSelectorModal: React.FC<ParentChildSelectorModalProps> =
               </button>
             ))}
           </div>
+        )}
+        {onRegisterChild && (
+          <button
+            type="button"
+            onClick={onRegisterChild}
+            className="w-full mt-3 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
+          >
+            {children.length === 0 ? '내 자녀 등록' : '자녀 추가'}
+          </button>
         )}
       </div>
     </div>

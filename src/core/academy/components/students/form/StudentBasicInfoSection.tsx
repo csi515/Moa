@@ -26,6 +26,18 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
         />
       </div>
       <div>
+        <label className="block text-xs font-semibold text-slate-700 mb-1">성별 (선택)</label>
+        <select
+          value={formData.gender}
+          onChange={(e) => onChange({ gender: e.target.value as StudentFormData['gender'] })}
+          className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px]"
+        >
+          <option value="">선택 안 함</option>
+          <option value="M">남</option>
+          <option value="F">여</option>
+        </select>
+      </div>
+      <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">생년월일</label>
         <input
           type="date"

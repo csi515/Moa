@@ -7,6 +7,7 @@ import { ParentPortalProvider, useParentPortal } from '@/core/parent/context/Par
 import {
   clearPendingGuardianLink,
   peekPendingGuardianLink,
+  previewGuardianLinkToken,
   redeemGuardianLinkToken,
 } from '@/core/parent/services/guardianLinkService';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
@@ -15,7 +16,6 @@ import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { ParentChildrenHome } from './ParentChildrenHome';
 import { ParentAcademyPicker } from './ParentAcademyPicker';
 import { ParentAcademyPortal, useStudentFromEnrollment } from './ParentAcademyPortal';
-import { ParentAddChildModal } from './ParentAddChildModal';
 import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 import { ParentAccountSection } from './ParentAccountSection';
@@ -47,8 +47,9 @@ function ParentShellContent() {
   const [redeeming, setRedeeming] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [showLinkForm, setShowLinkForm] = useState(false);
-  const [showAddChild, setShowAddChild] = useState(false);
+  const [addChildRequest, setAddChildRequest] = useState(0);
   const [pendingToken, setPendingToken] = useState<string | null>(null);
+  const [linkPreview, setLinkPreview] = useState<{ organizationName: string; studentName: string } | null>(null);
   const [showConsent, setShowConsent] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
 
@@ -65,6 +66,7 @@ function ParentShellContent() {
     try {
       const result = await redeemGuardianLinkToken(token);
       clearPendingGuardianLink();
+      setLinkPreview(null);
       const mergeNote =
         result.mergedDuplicates && result.mergedDuplicates > 0
           ? ' (기존 자녀 정보와 통합됨)'
@@ -85,8 +87,27 @@ function ParentShellContent() {
   const requestRedeem = (token: string) => {
     const code = token.trim().toUpperCase();
     if (!code) return;
-    setPendingToken(code);
-    setShowConsent(true);
+    void (async () => {
+      try {
+        const preview = await previewGuardianLinkToken(code);
+        setPendingToken(code);
+        setLinkPreview(preview);
+        setShowConsent(true);
+      } catch (err) {
+        clearPendingGuardianLink();
+        setPendingToken(null);
+        setLinkPreview(null);
+        setShowConsent(false);
+        showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
+      }
+    })();
+  };
+
+  const cancelLinkConsent = () => {
+    clearPendingGuardianLink();
+    setPendingToken(null);
+    setLinkPreview(null);
+    setShowConsent(false);
   };
 
   useEffect(() => {
@@ -103,8 +124,6 @@ function ParentShellContent() {
   if ((loading && !portalTree) || redeeming) {
     return <LoadingScreen message={redeeming ? '자녀 연결 중...' : '학부모 포털을 불러오는 중...'} />;
   }
-
-  const childCount = portalTree?.children.length ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50">
@@ -148,7 +167,7 @@ function ParentShellContent() {
           <div className="mb-4 space-y-3">
             <button
               type="button"
-              onClick={() => setShowAddChild(true)}
+              onClick={() => setAddChildRequest((n) => n + 1)}
               className="w-full py-2.5 bg-white border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px]"
             >
               <UserPlus className="w-4 h-4" />
@@ -158,7 +177,7 @@ function ParentShellContent() {
             <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-sm">
               <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-3">
                 <Link2 className="w-4 h-4" />
-                학원 연결 코드
+                학원이 준 8자리 자녀 연결 코드
               </div>
               {!showLinkForm ? (
                 <div className="space-y-2">
@@ -180,11 +199,9 @@ function ParentShellContent() {
                       QR
                     </button>
                   </div>
-                  {childCount === 0 && (
-                    <p className="text-xs text-slate-500 leading-relaxed">
-                      자녀를 먼저 등록하거나, 학원에서 받은 8자리 코드로 바로 연결할 수 있습니다
-                    </p>
-                  )}
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    학원에서 발급한 8자리 코드만 입력하세요. 공개코드는 여기에 넣지 않습니다.
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -207,13 +224,16 @@ function ParentShellContent() {
                       {redeeming ? '연결 중...' : '연결'}
                     </button>
                   </div>
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    공개코드는 넣지 마세요. 학원 이름·공개코드는 아래 학원 연결 요청에서 검색합니다.
+                  </p>
                   <button
                     type="button"
                     onClick={() => {
                       setShowLinkForm(false);
                       setLinkInput('');
                     }}
-                    className="text-xs text-slate-500 hover:text-slate-700 underline"
+                    className="text-xs text-slate-500 hover:text-slate-700 underline min-h-[44px]"
                   >
                     취소
                   </button>
@@ -223,7 +243,7 @@ function ParentShellContent() {
           </div>
         )}
 
-        {step === 'children' && <ParentChildrenHome />}
+        {step === 'children' && <ParentChildrenHome addRequest={addChildRequest} />}
         {step === 'academies' && <ParentAcademyPicker />}
         {step === 'portal' && <ParentPortalHydrated />}
 
@@ -250,24 +270,14 @@ function ParentShellContent() {
         </div>
       )}
 
-      <ParentAddChildModal
-        isOpen={showAddChild}
-        onClose={() => setShowAddChild(false)}
-        onSuccess={(message) => {
-          showToast(message, 'success');
-          void refreshPortalTree();
-        }}
-      />
-
       <ParentLinkConsentModal
         isOpen={showConsent}
+        organizationName={linkPreview?.organizationName}
+        studentName={linkPreview?.studentName}
         onConfirm={() => {
           if (pendingToken) void runRedeem(pendingToken);
         }}
-        onCancel={() => {
-          setPendingToken(null);
-          setShowConsent(false);
-        }}
+        onCancel={cancelLinkConsent}
       />
 
       <GuardianLinkQrScanner

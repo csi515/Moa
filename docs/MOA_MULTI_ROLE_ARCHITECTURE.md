@@ -1554,4 +1554,5 @@ A: 각 Phase 완료 시마다 "완료 상태" 섹션 추가. Phase 1-6 완료 �
 - 2026-09-07: 성인 Self-Link(`students.user_id`)·연습실 `practice_rooms`/`room_reservations` 마이그레이션 추가, CustomerShell 도입
 - 2026-09-07: Phase 3A 잔여 — Tuition Modal/`TuitionService` 정렬, legacy practice schedules 이관 SQL, sync 재푸시 중단
 - 2026-09-07: Phase 1 스캐폴딩·Phase 3 포털 UX/도메인 파사드 진행 상태 반영
+- 2026-09-07: 피아노 납품 체크리스트 `docs/PIANO_DELIVERY_CHECKLIST.md` 추가 (시나리오·Go/No-Go)
 - 2026-09-04: 초안 작성 (Phase 0)

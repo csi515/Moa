@@ -24,7 +24,7 @@ import { appBrand } from '@/core/brand';
 import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
-import { PENDING_PORTAL_TAB_KEY } from '@/core/push';
+import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
 
 interface PublicOrgLandingProps {
   code: string;
@@ -60,6 +60,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
   const [selectedSchedule, setSelectedSchedule] = useState<BookableSchedule | null>(null);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingSubmitted, setBookingSubmitted] = useState(false);
+  const [showMyReservations, setShowMyReservations] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [bookingForm, setBookingForm] = useState<Omit<ReservationRequest, 'schedule_id'>>({
     applicant_name: '',
@@ -184,6 +185,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
     });
     setShowBookingForm(true);
     setBookingSubmitted(false);
+    setShowMyReservations(false);
   };
 
   const handleBookingSubmit = async (e: FormEvent) => {
@@ -673,39 +675,55 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
               {bookingSubmitted ? (
-                <div className="p-6 sm:p-8 text-center">
-                  <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <CheckCircle2 className="w-8 h-8 text-white" />
-                  </div>
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">예약 신청이 완료되었습니다</h3>
-                  <p className="text-slate-700 mb-2">
-                    담당자가 확인 후 승인하면 확정됩니다
-                  </p>
-                  <p className="text-sm text-slate-500 mb-6">
-                    예약 현황은 내 예약 페이지에서 확인할 수 있습니다
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowBookingForm(false)}
-                      className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors"
-                    >
-                      닫기
-                    </button>
-                    <button
-                      onClick={() => {
-                        try {
-                          sessionStorage.setItem(PENDING_PORTAL_TAB_KEY, 'bookings');
-                        } catch {
-                          /* ignore */
-                        }
-                        setParentPortalModeActive(true);
-                        navigate('/', { state: { openParentPortal: true } });
-                      }}
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors min-h-[44px]"
-                    >
-                      내 예약 보기
-                    </button>
-                  </div>
+                <div className="p-6 sm:p-8">
+                  {showMyReservations ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="text-lg font-bold text-slate-900">내 예약</h3>
+                        <button
+                          type="button"
+                          onClick={() => setShowMyReservations(false)}
+                          className="text-sm font-bold text-indigo-600 min-h-[44px]"
+                        >
+                          완료 화면
+                        </button>
+                      </div>
+                      <MyReservationsView />
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle2 className="w-8 h-8 text-white" />
+                      </div>
+                      <h3 className="text-xl font-bold text-slate-900 mb-2">예약 신청이 완료되었습니다</h3>
+                      <p className="text-slate-700 mb-2">
+                        담당자가 확인 후 승인하면 확정됩니다
+                      </p>
+                      <p className="text-sm text-slate-500 mb-6">
+                        {isAuthenticated
+                          ? '이 화면에서 신청한 예약을 확인할 수 있습니다'
+                          : '로그인 후 내 예약에서 확인할 수 있습니다'}
+                      </p>
+                      <div className="flex gap-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowBookingForm(false)}
+                          className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors min-h-[44px]"
+                        >
+                          닫기
+                        </button>
+                        {isAuthenticated && (
+                          <button
+                            type="button"
+                            onClick={() => setShowMyReservations(true)}
+                            className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors min-h-[44px]"
+                          >
+                            내 예약 보기
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <form onSubmit={handleBookingSubmit} className="p-6 space-y-6">

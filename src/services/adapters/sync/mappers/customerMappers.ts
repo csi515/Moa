@@ -46,11 +46,16 @@ interface CustomerMetadata {
   pickupAddresses?: PickupAddress[];
 }
 
+export function selectedStudentGender(value: string | null | undefined): 'M' | 'F' | null {
+  return value === 'M' || value === 'F' ? value : null;
+}
+
 export function studentToCustomerRow(student: Student, organizationId: string) {
+  const gender = selectedStudentGender(student.gender);
   const metadata: CustomerMetadata = {
     entityType: 'student',
     studentNumber: student.studentNumber,
-    gender: student.gender,
+    ...(gender ? { gender } : {}),
     birthDate: student.birthDate,
     school: student.school,
     grade: student.grade,
@@ -102,7 +107,7 @@ export function customerRowToStudent(
     id: row.id,
     studentNumber: meta.studentNumber || '',
     name: row.name,
-    gender: meta.gender || 'M',
+    gender: selectedStudentGender(meta.gender) ?? ('' as Student['gender']),
     birthDate: meta.birthDate || '',
     school: meta.school || '',
     grade: meta.grade || '',

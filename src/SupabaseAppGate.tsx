@@ -20,16 +20,34 @@ export const SupabaseAppGate: React.FC = () => {
     parentPortalActive,
     customerPortalActive,
     enterParentPortal,
+    enterCustomerPortal,
   } = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const st = location.state as { openParentPortal?: boolean } | null;
-    if (!session || !st?.openParentPortal) return;
-    enterParentPortal();
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [session, location.state, location.pathname, enterParentPortal, navigate]);
+    const st = location.state as {
+      openParentPortal?: boolean;
+      openCustomerPortal?: boolean;
+    } | null;
+    if (!session || !st) return;
+    if (st.openParentPortal) {
+      enterParentPortal();
+      navigate(location.pathname, { replace: true, state: {} });
+      return;
+    }
+    if (st.openCustomerPortal) {
+      enterCustomerPortal();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [
+    session,
+    location.state,
+    location.pathname,
+    enterParentPortal,
+    enterCustomerPortal,
+    navigate,
+  ]);
 
   if (authLoading || (session && orgLoading)) {
     return <LoadingScreen />;

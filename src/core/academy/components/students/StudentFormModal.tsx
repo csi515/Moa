@@ -58,11 +58,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   const [formData, setFormData] = useState<StudentFormData>({
     name: '',
-    gender: 'F',
-    birthDate: '2015-01-01',
+    gender: '',
+    birthDate: '',
     phone: '',
     school: '',
-    grade: '초3',
+    grade: '',
     joinDate: new Date().toISOString().slice(0, 10),
     leaveDate: '',
     status: 'active',
@@ -98,11 +98,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       const linked = getGuardiansForStudent(student.id);
       setFormData({
         name: student.name || '',
-        gender: student.gender || 'F',
-        birthDate: student.birthDate || '2015-01-01',
+        gender: student.gender || '',
+        birthDate: student.birthDate || '',
         phone: student.phone || '',
         school: student.school || '',
-        grade: student.grade || '초3',
+        grade: student.grade || '',
         joinDate: student.joinDate || new Date().toISOString().slice(0, 10),
         leaveDate: student.leaveDate || '',
         status: student.status || 'active',
@@ -143,11 +143,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     } else {
       setFormData({
         name: '',
-        gender: 'F',
-        birthDate: '2015-01-01',
+        gender: '',
+        birthDate: '',
         phone: '',
         school: '',
-        grade: '초3',
+        grade: '',
         joinDate: new Date().toISOString().slice(0, 10),
         leaveDate: '',
         status: 'active',
@@ -255,8 +255,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     return {
       ...(student?.id ? { id: student.id, studentNumber: student.studentNumber } : { studentNumber: '' }),
       name: formData.name.trim(),
-      gender: formData.gender,
-      birthDate: formData.birthDate,
+      gender: formData.gender === 'M' || formData.gender === 'F' ? formData.gender : ('' as Student['gender']),
+      birthDate: formData.birthDate || '',
       phone: formData.phone.trim() || undefined,
       school: formData.school.trim(),
       grade: formData.grade.trim(),

@@ -1,4 +1,4 @@
-import { useMemo, type FC } from 'react';
+import { useEffect, useMemo, type FC } from 'react';
 import { Users } from 'lucide-react';
 import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
@@ -7,6 +7,11 @@ import { PageHeader, SegmentedControl } from '@/shared/components';
 import { StudentListView } from '../students/StudentListView';
 import { ParentManagementView } from '../parents/ParentManagementView';
 import { GuardianEnrollmentRequestsView } from '../enrollments/GuardianEnrollmentRequestsView';
+import { CustomerJoinRequestsPanel } from '@/core/customer/CustomerJoinRequestsPanel';
+import {
+  consumeOpenGuardianEnrollments,
+  consumeOpenMembershipJoins,
+} from '@/core/customer/studentJoinInbox';
 
 type CustomerSegment = 'list' | 'parents' | 'enrollment';
 
@@ -40,7 +45,7 @@ export const CustomerHubView: FC<{
       ? '등록된 고객을 관리합니다.'
       : segment === 'parents'
         ? '보호자(학부모) 계정을 관리합니다.'
-        : '가입·등록 요청을 검토합니다.';
+        : '수강 가입과 학부모 자녀 등록 요청을 검토합니다.';
 
   return (
     <div className="space-y-4 pb-4">
@@ -67,7 +72,35 @@ export const CustomerHubView: FC<{
 
       {segment === 'list' && <ListView />}
       {segment === 'parents' && <ParentManagementView />}
-      {segment === 'enrollment' && <GuardianEnrollmentRequestsView />}
+      {segment === 'enrollment' && <EnrollmentInbox />}
+    </div>
+  );
+};
+
+function EnrollmentInbox() {
+  useEffect(() => {
+    const openGuardian = consumeOpenGuardianEnrollments();
+    const openMembership = consumeOpenMembershipJoins();
+    const targetId = openGuardian
+      ? 'guardian-enrollment-inbox'
+      : openMembership
+        ? 'membership-join-inbox'
+        : null;
+    if (!targetId) return;
+    document.getElementById(targetId)?.scrollIntoView({ block: 'start' });
+  }, []);
+
+  return (
+    <div className="space-y-8">
+      <div id="membership-join-inbox">
+        <CustomerJoinRequestsPanel
+          embedded
+          requestType="membership"
+          title="수강 가입"
+          description="성인 수강생이 보낸 가입 신청입니다. 승인하면 그 계정으로 이 학원을 이용할 수 있습니다."
+        />
+      </div>
+      <GuardianEnrollmentRequestsView />
     </div>
   );
 };

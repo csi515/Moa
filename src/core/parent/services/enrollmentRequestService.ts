@@ -1,5 +1,18 @@
 import { getCoreClient } from '@/lib/supabase';
 
+function parseConsentFields(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map((item) => String(item));
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value) as unknown;
+      if (Array.isArray(parsed)) return parsed.map((item) => String(item));
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
 export interface EnrollmentRequestStatus {
   status: 'pending' | 'approved' | 'rejected' | 'cancelled';
 }
@@ -35,6 +48,10 @@ export interface GuardianEnrollmentRequest {
   studentId: string;
   studentName: string;
   birthDate: string | null;
+  gender: string | null;
+  school: string | null;
+  grade: string | null;
+  consentFields: string[];
   relationship: string;
   status: EnrollmentRequestStatus['status'];
   requestedAt: string;
@@ -206,6 +223,10 @@ export async function getOrgEnrollmentRequests(
     studentId: String(row.student_id ?? ''),
     studentName: String(row.student_name ?? ''),
     birthDate: row.birth_date ? String(row.birth_date) : null,
+    gender: row.gender ? String(row.gender) : null,
+    school: row.school ? String(row.school) : null,
+    grade: row.grade ? String(row.grade) : null,
+    consentFields: parseConsentFields(row.consent_fields),
     relationship: String(row.relationship ?? 'other'),
     status: (row.status ?? 'pending') as EnrollmentRequestStatus['status'],
     requestedAt: String(row.requested_at ?? ''),

@@ -15,10 +15,20 @@ import { customerJoinService } from './services/customerJoinService';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { Modal } from '@/shared/components/ui';
 
-function getStatusLabel(status: string): { label: string; color: string } {
+function getStatusLabel(
+  status: string,
+  requestType?: string
+): { label: string; color: string } {
+  const isJoin = requestType === 'membership' || requestType === 'trial';
   const labels: Record<string, { label: string; color: string }> = {
-    pending: { label: '문의 대기', color: 'bg-yellow-100 text-yellow-700' },
-    approved: { label: '처리 완료', color: 'bg-green-100 text-green-700' },
+    pending: {
+      label: isJoin ? '승인 대기' : '문의 대기',
+      color: 'bg-yellow-100 text-yellow-700',
+    },
+    approved: {
+      label: isJoin ? '승인됨' : '처리 완료',
+      color: 'bg-green-100 text-green-700',
+    },
     rejected: { label: '반려됨', color: 'bg-red-100 text-red-700' },
     cancelled: { label: '취소됨', color: 'bg-slate-100 text-slate-700' },
   };
@@ -37,7 +47,7 @@ function RequestCard({ request, onApprove, onReject }: RequestCardProps) {
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
-  const statusInfo = getStatusLabel(request.status);
+  const statusInfo = getStatusLabel(request.status, request.request_type);
 
   const handleApprove = async () => {
     if (!confirm(`${request.applicant_name}님의 가입을 승인하시겠습니까?`)) return;
@@ -217,11 +227,14 @@ export function CustomerJoinRequestsPanel({
   requestType,
   title = '고객 가입 신청',
   description,
+  hideWhenEmpty = false,
 }: {
   embedded?: boolean;
   requestType?: JoinRequestType;
   title?: string;
   description?: string;
+  /** 대기 건이 없을 때 학생 목록 등에서 숨김 */
+  hideWhenEmpty?: boolean;
 } = {}) {
   const { currentOrganization } = useOrganization();
   const [requests, setRequests] = useState<CustomerJoinRequest[]>([]);
@@ -269,6 +282,10 @@ export function CustomerJoinRequestsPanel({
       alert(err instanceof Error ? err.message : '반려에 실패했습니다');
     }
   };
+
+  if (hideWhenEmpty && (loading || requests.length === 0)) {
+    return null;
+  }
 
   if (!currentOrganization) {
     return (

@@ -33,6 +33,9 @@ function parseChild(raw: Record<string, unknown>): GlobalStudent {
     studentId: String(raw.student_id),
     displayName: String(raw.display_name ?? ''),
     birthDate: raw.birth_date ? String(raw.birth_date) : null,
+    gender: raw.gender ? String(raw.gender) : null,
+    school: raw.school ? String(raw.school) : null,
+    grade: raw.grade ? String(raw.grade) : null,
     relationship: (raw.relationship as GuardianRelationship) ?? 'other',
     isPrimary: Boolean(raw.is_primary),
     enrollments,
@@ -82,6 +85,16 @@ export async function ensureGlobalParentProfile(): Promise<string | null> {
   const { data, error } = await getCoreClient().rpc('ensure_global_parent_profile');
   if (error) throw error;
   return data ? String(data) : null;
+}
+
+export async function updateMyParentPhone(phone: string): Promise<string | null> {
+  const { data, error } = await getCoreClient().rpc('update_my_parent_phone' as never, {
+    p_phone: phone.trim() || null,
+  } as never);
+  if (error) throw error;
+
+  const row = (data ?? {}) as { phone?: string | null };
+  return row.phone ? String(row.phone) : null;
 }
 
 export async function fetchParentPortalTree(): Promise<ParentPortalTree> {

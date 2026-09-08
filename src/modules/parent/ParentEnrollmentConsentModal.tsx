@@ -2,7 +2,11 @@ import React, { useState } from 'react';
 import { X, Loader2, Shield, CheckCircle2 } from 'lucide-react';
 import type { OrganizationSearchResult } from '@/core/parent/services/enrollmentRequestService';
 import type { GlobalStudent } from '@/core/parent/types/globalParent';
-import { ACADEMY_SHARED_FIELD_LABELS, DEFAULT_ACADEMY_SHARED_FIELDS } from '@/core/parent/services/parentChildService';
+import {
+  ACADEMY_SHARED_FIELD_LABELS,
+  DEFAULT_ACADEMY_SHARED_FIELDS,
+  sharedFieldPreview,
+} from '@/core/parent/services/parentChildService';
 
 interface ParentEnrollmentConsentModalProps {
   isOpen: boolean;
@@ -99,11 +103,7 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
                   <p className="text-sm font-bold text-slate-900">
                     {ACADEMY_SHARED_FIELD_LABELS[field]}
                   </p>
-                  <p className="text-xs text-slate-500">
-                    {field === 'display_name' && `자녀 이름: ${student.displayName}`}
-                    {field === 'birth_date' && student.birthDate && `생년월일: ${student.birthDate}`}
-                    {field === 'birth_date' && !student.birthDate && '생년월일 미등록'}
-                  </p>
+                  <p className="text-xs text-slate-500">{sharedFieldPreview(field, student)}</p>
                 </div>
                 {consentFields.includes(field) && (
                   <CheckCircle2 className="w-5 h-5 text-indigo-600 shrink-0" />

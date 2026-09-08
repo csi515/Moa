@@ -14,6 +14,11 @@ import {
 } from 'lucide-react';
 import type { useDirectorTodayDashboard } from './useDirectorTodayDashboard';
 import { TodayLessonView } from '../../lessons/TodayLessonView';
+import {
+  requestOpenConsultationInquiries,
+  requestOpenGuardianEnrollments,
+  requestOpenMembershipJoins,
+} from '@/core/customer/studentJoinInbox';
 
 type TodayData = ReturnType<typeof useDirectorTodayDashboard>;
 
@@ -48,41 +53,81 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
     unpaidTotal,
     pendingReservations,
     pendingReservationCount,
+    pendingInquiryCount,
+    pendingJoinCount,
+    pendingEnrollmentCount,
     makeupPendingCount,
   } = data;
 
   const isEmpty = stats.activeStudents === 0 && stats.todayClassesCount === 0;
 
-  const kpiChips: { label: string; value: string; tab: NavTab; tone: string }[] = [
+  const openMembershipJoins = () => {
+    requestOpenMembershipJoins();
+    setActiveTab('enrollment-requests');
+  };
+
+  const openGuardianEnrollments = () => {
+    requestOpenGuardianEnrollments();
+    setActiveTab('enrollment-requests');
+  };
+
+  const consultTotal = pendingReservationCount + pendingInquiryCount;
+
+  const openConsultations = () => {
+    if (pendingInquiryCount > 0 && pendingReservationCount === 0) {
+      requestOpenConsultationInquiries();
+    }
+    setActiveTab('consultations');
+  };
+
+  const kpiChips: {
+    label: string;
+    value: string;
+    tone: string;
+    hidden?: boolean;
+    onClick: () => void;
+  }[] = [
     {
       label: '레슨',
       value: `${stats.todayClassesCount}`,
-      tab: 'lessons',
       tone: 'bg-indigo-50 text-indigo-800 border-indigo-100',
+      onClick: () => setActiveTab('lessons'),
     },
     {
       label: '출석',
       value: `${stats.todayPresent}`,
-      tab: 'lessons',
       tone: 'bg-emerald-50 text-emerald-800 border-emerald-100',
+      onClick: () => setActiveTab('lessons'),
     },
     {
       label: '미출',
       value: `${stats.todayAbsent}`,
-      tab: makeupPendingCount > 0 ? 'makeups' : 'lessons',
       tone: 'bg-amber-50 text-amber-800 border-amber-100',
+      onClick: () => setActiveTab(makeupPendingCount > 0 ? 'makeups' : 'lessons'),
     },
     {
       label: '상담',
-      value: `${pendingReservationCount}`,
-      tab: 'consultations',
+      value: consultTotal > 0 ? `${consultTotal}` : '없음',
       tone: 'bg-violet-50 text-violet-800 border-violet-100',
+      onClick: openConsultations,
     },
     {
       label: '미납',
       value: `${unpaidStudentCount}`,
-      tab: 'unpaid',
       tone: 'bg-rose-50 text-rose-800 border-rose-100',
+      onClick: () => setActiveTab('unpaid'),
+    },
+    {
+      label: '가입',
+      value: pendingJoinCount > 0 ? `${pendingJoinCount}` : '없음',
+      tone: 'bg-white text-indigo-900 border-white',
+      onClick: openMembershipJoins,
+    },
+    {
+      label: '등록',
+      value: pendingEnrollmentCount > 0 ? `${pendingEnrollmentCount}` : '없음',
+      tone: 'bg-white text-indigo-900 border-white',
+      onClick: openGuardianEnrollments,
     },
   ];
 
@@ -110,12 +155,14 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
           )}
         </div>
         <div className="mt-2.5 flex gap-1.5 overflow-x-auto pb-0.5 -mx-0.5 px-0.5">
-          {kpiChips.map((chip) => (
+          {kpiChips
+            .filter((chip) => !chip.hidden)
+            .map((chip) => (
             <button
               key={chip.label}
               type="button"
-              onClick={() => setActiveTab(chip.tab)}
-              className={`shrink-0 inline-flex items-center gap-1.5 min-h-[36px] px-2.5 rounded-lg border text-xs font-bold ${chip.tone}`}
+              onClick={chip.onClick}
+              className={`shrink-0 inline-flex items-center gap-1.5 min-h-[44px] px-2.5 rounded-lg border text-xs font-bold ${chip.tone}`}
             >
               <span className="opacity-70">{chip.label}</span>
               <span className="tabular-nums text-sm">{chip.value}</span>
@@ -244,8 +291,8 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
         <p className="text-[11px] text-slate-500 flex items-center gap-1.5 font-medium">
           <Users className="w-3.5 h-3.5" />
           재원 {stats.activeStudents}명
-          {pendingReservationCount > 0 && (
-            <span className="text-violet-600"> · 상담대기 {pendingReservationCount}</span>
+          {consultTotal > 0 && (
+            <span className="text-violet-600"> · 상담대기 {consultTotal}</span>
           )}
           {makeupPendingCount > 0 && (
             <span className="text-amber-600"> · 미보강 {makeupPendingCount}</span>
@@ -253,7 +300,7 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
         </p>
         <button
           type="button"
-          onClick={() => setActiveTab('consultations')}
+          onClick={openConsultations}
           className="text-[11px] font-bold text-indigo-600 hover:underline min-h-[44px] inline-flex items-center gap-1"
         >
           <MessageSquareText className="w-3.5 h-3.5" />

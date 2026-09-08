@@ -14,6 +14,7 @@ import type { PublicOrgInfo, CustomerJoinRequest } from '@/types';
 import { publicOrgService } from '@/core/public/services/publicOrgService';
 import { customerJoinService } from './services/customerJoinService';
 import { useAuth } from '@/core/auth/AuthProvider';
+import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { getIndustryLabel } from '@/core/industry/types';
 
 type Step = 'search' | 'form' | 'pending';
@@ -39,16 +40,20 @@ export function CustomerSignUpFlow() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const { enterCustomerPortal, refreshOrganizations } = useOrganization();
+  const [openingPortal, setOpeningPortal] = useState(false);
   const [step, setStep] = useState<Step>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<PublicOrgInfo[]>([]);
   const [searching, setSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
   const [selectedOrg, setSelectedOrg] = useState<PublicOrgInfo | null>(null);
   const [myRequests, setMyRequests] = useState<CustomerJoinRequest[]>([]);
   const [preloadError, setPreloadError] = useState<string | null>(null);
   const [preloading, setPreloading] = useState(false);
   const [form, setForm] = useState({
-    applicantName: user?.email?.split('@')[0] || '',
+    applicantName: '',
     applicantPhone: '',
     applicantEmail: user?.email || '',
     message: '',
@@ -59,6 +64,7 @@ export function CustomerSignUpFlow() {
   useEffect(() => {
     const state = (location.state || {}) as LocationState;
     if (state.openPending) {
+      setJustSubmitted(false);
       setStep('pending');
       return;
     }
@@ -130,6 +136,7 @@ export function CustomerSignUpFlow() {
       setSearching(true);
       const results = await publicOrgService.searchOrganizations(searchQuery);
       setSearchResults(results);
+      setHasSearched(true);
     } catch (err) {
       alert(err instanceof Error ? err.message : '검색에 실패했습니다');
     } finally {
@@ -140,6 +147,18 @@ export function CustomerSignUpFlow() {
   const handleSelectOrg = (org: PublicOrgInfo) => {
     setSelectedOrg(org);
     setStep('form');
+  };
+
+  const openStudentPortal = async () => {
+    setOpeningPortal(true);
+    try {
+      await refreshOrganizations();
+      enterCustomerPortal();
+      navigate('/', { replace: true, state: { openCustomerPortal: true } });
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '수강생 포털을 열지 못했습니다');
+      setOpeningPortal(false);
+    }
   };
 
   const handleSubmitRequest = async (e: FormEvent) => {
@@ -155,6 +174,7 @@ export function CustomerSignUpFlow() {
         applicantEmail: form.applicantEmail,
         message: form.message,
       });
+      setJustSubmitted(true);
       setStep('pending');
       await loadMyRequests();
     } catch (err) {
@@ -231,7 +251,11 @@ export function CustomerSignUpFlow() {
                   <input
                     type="text"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setHasSearched(false);
+                      setSearchResults([]);
+                    }}
                     placeholder="학원 이름, 코드, 주소로 검색"
                     className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-lg"
                   />
@@ -248,12 +272,22 @@ export function CustomerSignUpFlow() {
 
               <button
                 type="button"
-                onClick={() => setStep('pending')}
+                onClick={() => {
+                  setJustSubmitted(false);
+                  setStep('pending');
+                }}
                 className="w-full mt-4 py-3 text-sm font-bold text-indigo-600 min-h-[44px]"
               >
                 내 신청 현황 보기
               </button>
             </div>
+
+            {hasSearched && searchResults.length === 0 && (
+              <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center">
+                <p className="text-sm font-bold text-slate-700">검색 결과가 없습니다</p>
+                <p className="text-xs text-slate-500 mt-1">학원 이름이나 공개코드를 다시 확인해 주세요.</p>
+              </div>
+            )}
 
             {searchResults.length > 0 && (
               <div className="space-y-3">
@@ -382,12 +416,26 @@ export function CustomerSignUpFlow() {
 
         {step === 'pending' && (
           <div className="space-y-6">
-            <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 sm:p-8 text-center">
-              <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">가입 신청 현황</h2>
-              <p className="text-slate-700">학원 담당자가 승인하면 수강생 포털을 이용할 수 있습니다</p>
+            <div
+              className={`rounded-2xl p-6 sm:p-8 text-center border-2 ${
+                justSubmitted
+                  ? 'bg-green-50 border-green-200'
+                  : 'bg-white border-slate-200'
+              }`}
+            >
+              {justSubmitted && (
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle2 className="w-8 h-8 text-white" />
+                </div>
+              )}
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                {justSubmitted ? '가입 신청이 접수되었습니다' : '가입 신청 현황'}
+              </h2>
+              <p className="text-slate-700">
+                {justSubmitted
+                  ? '학원 담당자가 승인하면 수강생 포털을 이용할 수 있습니다'
+                  : '대기·승인·거절된 신청을 확인할 수 있습니다'}
+              </p>
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
@@ -448,10 +496,11 @@ export function CustomerSignUpFlow() {
                         {request.status === 'approved' && (
                           <button
                             type="button"
-                            onClick={() => navigate('/')}
-                            className="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold min-h-[44px]"
+                            onClick={() => void openStudentPortal()}
+                            disabled={openingPortal}
+                            className="mt-3 w-full py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold min-h-[44px] disabled:opacity-60"
                           >
-                            포털 열기
+                            {openingPortal ? '포털 여는 중...' : '수강생 포털 열기'}
                           </button>
                         )}
 

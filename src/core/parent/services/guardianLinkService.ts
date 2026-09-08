@@ -94,6 +94,30 @@ export async function revokeGuardianLinkToken(
   if (error) throw error;
 }
 
+export interface GuardianLinkPreview {
+  organizationName: string;
+  studentName: string;
+}
+
+/** 토큰을 소비하지 않고 학원·자녀 이름만 확인 */
+export async function previewGuardianLinkToken(token: string): Promise<GuardianLinkPreview> {
+  const { data, error } = await getCoreClient().rpc('preview_guardian_link_token' as never, {
+    p_token: token.trim(),
+  } as never);
+  if (error) {
+    if (error.message.includes('Invalid or expired')) {
+      throw new Error('연결 코드가 유효하지 않습니다.');
+    }
+    throw error;
+  }
+
+  const raw = (data ?? {}) as Record<string, unknown>;
+  return {
+    organizationName: String(raw.organization_name ?? ''),
+    studentName: String(raw.student_name ?? ''),
+  };
+}
+
 export async function redeemGuardianLinkToken(
   token: string,
   sharedFields: AcademySharedField[] = [...DEFAULT_ACADEMY_SHARED_FIELDS]

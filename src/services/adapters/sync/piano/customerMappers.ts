@@ -19,6 +19,7 @@ import type {
   PianoInventoryTransactionType,
   PianoTextbookPaymentStatus,
 } from '../../../../lib/supabase/database.types';
+import { selectedStudentGender } from '../mappers/customerMappers';
 
 
 type PianoCustomerRow = {
@@ -46,11 +47,12 @@ type PianoCustomerRow = {
 // ─── Piano Customers (Student extension) ──────────────────────────
 
 export function studentToPianoCustomerRow(student: Student, organizationId: string) {
+  const gender = selectedStudentGender(student.gender);
   return {
     customer_id: student.id,
     organization_id: organizationId,
     student_number: student.studentNumber,
-    gender: student.gender,
+    ...(gender ? { gender } : {}),
     birth_date: student.birthDate || null,
     school: student.school || null,
     grade: student.grade || null,
@@ -77,7 +79,7 @@ export function mergeStudentWithPiano(
   return {
     ...base,
     studentNumber: row.student_number || base.studentNumber,
-    gender: (row.gender as Student['gender']) || base.gender,
+    gender: selectedStudentGender(base.gender) ?? ('' as Student['gender']),
     birthDate: row.birth_date || base.birthDate,
     school: row.school || base.school,
     grade: row.grade || base.grade,

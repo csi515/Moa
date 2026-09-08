@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2,
   ChevronDown,
@@ -8,6 +9,7 @@ import {
   Briefcase,
   GraduationCap,
   UserRound,
+  UserPlus,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useOptionalAuth } from '../auth/AuthProvider';
@@ -31,6 +33,7 @@ interface MembershipGroup {
 export const RoleContextSwitcher: React.FC = () => {
   const auth = useOptionalAuth();
   const org = useOptionalOrganization();
+  const navigate = useNavigate();
   const { currentUser, setActiveTab, refreshKey } = useApp();
   const [open, setOpen] = useState(false);
 
@@ -254,13 +257,25 @@ export const RoleContextSwitcher: React.FC = () => {
                 type="button"
                 role="menuitem"
                 onClick={() => {
+                  setOpen(false);
+                  navigate('/signup/customer');
+                }}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
+              >
+                <UserPlus className="w-4 h-4 shrink-0" />
+                다른 학원에 수강 신청
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => {
                   clearOrganization();
                   setOpen(false);
                 }}
                 className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
               >
-                <Building2 className="w-4 h-4" />
-                조직 추가/선택
+                <Building2 className="w-4 h-4 shrink-0" />
+                사업장 추가/선택
               </button>
               <button
                 type="button"

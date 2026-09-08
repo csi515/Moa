@@ -12,7 +12,7 @@ import type { DayOfWeek, Student } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
 import { getStudentStatusBadge } from '@/utils/formatters';
-import { PageHeader, FilterBar, SearchField, EmptyState } from '@/shared/components';
+import { FilterBar, SearchField, EmptyState } from '@/shared/components';
 import { DENSITY } from '@/shared/styles/density';
 import {
   Users,
@@ -217,27 +217,21 @@ export const StudentListView: React.FC = () => {
 
   return (
     <div className={DENSITY.pageStack}>
-      <PageHeader
-        density="compact"
-        icon={<Users className="w-5 h-5" />}
-        title={labels.customer.management}
-        description={`${labels.customer.singular} 상태·레슨·출결·수납을 한눈에`}
-        actions={
-          !isScoped ? (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingStudent(null);
-                setIsFormModalOpen(true);
-              }}
-              className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <UserPlus className="w-4 h-4" />
-              {labels.customer.add}
-            </button>
-          ) : undefined
-        }
-      />
+      {!isScoped && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => {
+              setEditingStudent(null);
+              setIsFormModalOpen(true);
+            }}
+            className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            {labels.customer.add}
+          </button>
+        </div>
+      )}
 
       <FilterBar className="flex-col items-stretch gap-3">
         <SearchField

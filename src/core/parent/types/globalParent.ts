@@ -53,6 +53,9 @@ export interface GlobalStudent {
   studentId: string;
   displayName: string;
   birthDate: string | null;
+  gender: string | null;
+  school: string | null;
+  grade: string | null;
   relationship: GuardianRelationship;
   isPrimary: boolean;
   enrollments: StudentEnrollment[];

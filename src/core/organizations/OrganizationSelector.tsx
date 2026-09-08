@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Building2,
   Plus,
@@ -6,6 +7,7 @@ import {
   Loader2,
   GraduationCap,
   ArrowLeft,
+  UserPlus,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
@@ -17,6 +19,7 @@ import { useAuth } from '../auth/AuthProvider';
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, loading } = useOrganization();
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [showTeacherFlow, setShowTeacherFlow] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -76,7 +79,7 @@ export const OrganizationSelector: React.FC = () => {
           </div>
           <h1 className="text-2xl font-bold text-slate-900">학원 선택</h1>
           <p className="text-sm text-slate-500 mt-2">
-            관리할 학원을 선택하거나 새로 등록하세요
+            운영·근무할 학원을 선택하거나 새로 등록하세요. 수강 가입은 아래 별도 메뉴입니다.
           </p>
         </div>
 
@@ -131,6 +134,15 @@ export const OrganizationSelector: React.FC = () => {
           >
             <Plus className="w-5 h-5" />
             새 학원 등록하기
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/signup/customer')}
+            className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-200 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors min-h-[44px]"
+          >
+            <UserPlus className="w-5 h-5" />
+            다른 학원에 수강생으로 가입
           </button>
 
           {organizations.length === 0 && (

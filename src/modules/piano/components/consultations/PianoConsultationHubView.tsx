@@ -18,13 +18,22 @@ import { ConsultationQrModal } from '@/core/schedules/components/ConsultationQrM
 import { CreateConsultationScheduleModal } from '@/core/schedules/components/CreateConsultationScheduleModal';
 import { reservationService } from '@/core/schedules';
 import { CustomerJoinRequestsPanel } from '@/core/customer/CustomerJoinRequestsPanel';
+import { customerJoinService } from '@/core/customer/services/customerJoinService';
+import { consumeOpenConsultationInquiries } from '@/core/customer/studentJoinInbox';
 import type { ReservationDetail } from '@/types';
 
-type ConsultationSegment = 'home' | 'reservations' | 'inquiries' | 'records' | 'availability';
+type ConsultationSegment =
+  | 'home'
+  | 'reservations'
+  | 'joins'
+  | 'inquiries'
+  | 'records'
+  | 'availability';
 
 const OPTIONS: { value: ConsultationSegment; label: string }[] = [
   { value: 'home', label: '오늘' },
   { value: 'reservations', label: '예약' },
+  { value: 'joins', label: '가입' },
   { value: 'inquiries', label: '문의' },
   { value: 'records', label: '기록' },
   { value: 'availability', label: '가능시간' },
@@ -75,6 +84,11 @@ export const PianoConsultationHubView: FC = () => {
   const [showCreateSchedule, setShowCreateSchedule] = useState(false);
   const [todayRows, setTodayRows] = useState<ReservationDetail[]>([]);
   const [loadingToday, setLoadingToday] = useState(false);
+  const [pendingInquiryCount, setPendingInquiryCount] = useState(0);
+
+  useEffect(() => {
+    if (consumeOpenConsultationInquiries()) setSegment('inquiries');
+  }, []);
 
   const loadToday = useCallback(async () => {
     if (!currentOrganization) return;
@@ -98,6 +112,22 @@ export const PianoConsultationHubView: FC = () => {
   useEffect(() => {
     if (segment === 'home') void loadToday();
   }, [segment, loadToday]);
+
+  useEffect(() => {
+    if (!currentOrganization?.id) return;
+    let cancelled = false;
+    customerJoinService
+      .getOrgJoinRequests(currentOrganization.id, 'pending', 'consultation')
+      .then((rows) => {
+        if (!cancelled) setPendingInquiryCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingInquiryCount(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentOrganization?.id, segment]);
 
   const orgName = currentOrganization?.name || '학원';
   const publicCode = currentOrganization?.public_code;
@@ -214,6 +244,16 @@ export const PianoConsultationHubView: FC = () => {
             </ul>
           )}
 
+          {pendingInquiryCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setSegment('inquiries')}
+              className="w-full min-h-[44px] rounded-xl border border-violet-200 bg-violet-50 text-sm font-bold text-violet-800"
+            >
+              상담 문의 {pendingInquiryCount}건
+            </button>
+          )}
+
           <div className="pt-2">
             <button
               type="button"
@@ -227,6 +267,14 @@ export const PianoConsultationHubView: FC = () => {
       )}
 
       {segment === 'reservations' && <ReservationInboxView embedded />}
+      {segment === 'joins' && (
+        <CustomerJoinRequestsPanel
+          embedded
+          requestType="membership"
+          title="수강 가입 신청"
+          description="성인 수강생이 보낸 가입 신청입니다. 승인하면 그 계정으로 이 학원 포털을 쓸 수 있습니다."
+        />
+      )}
       {segment === 'inquiries' && (
         <CustomerJoinRequestsPanel
           embedded

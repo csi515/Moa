@@ -141,7 +141,8 @@ Component → StudentService | TuitionService | LessonService | ScheduleService
 | 학부모 | 발송된 청구만 조회. 계좌 안내·현금영수증 요청(`request_payment_cash_receipt` + 로컬 캐시) |
 | UI | `TuitionService` 파사드. 신규 모달은 shared `Modal` 우선 |
 
-상세 로드맵·갭: [MOA_MULTI_ROLE_ARCHITECTURE.md](./MOA_MULTI_ROLE_ARCHITECTURE.md) Phase 3A.
+상세 로드맵·갭: [MOA_MULTI_ROLE_ARCHITECTURE.md](./MOA_MULTI_ROLE_ARCHITECTURE.md) Phase 3A.  
+피아노 납품·파일럿 검수: [PIANO_DELIVERY_CHECKLIST.md](./PIANO_DELIVERY_CHECKLIST.md).
 ---
 
 ## 멀티테넌트 데이터 규칙

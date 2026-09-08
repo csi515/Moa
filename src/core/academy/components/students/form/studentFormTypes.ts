@@ -17,7 +17,7 @@ export interface GuardianFormEntry {
 
 export interface StudentFormData {
   name: string;
-  gender: 'M' | 'F';
+  gender: '' | 'M' | 'F';
   birthDate: string;
   phone: string;
   school: string;

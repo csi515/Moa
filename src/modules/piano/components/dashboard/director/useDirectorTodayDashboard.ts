@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { StorageService } from '@/services/storage';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { reservationService } from '@/core/schedules';
+import { customerJoinService } from '@/core/customer/services/customerJoinService';
+import { getOrgEnrollmentRequests } from '@/core/parent/services/enrollmentRequestService';
 import type { ReservationDetail } from '@/types';
 import type { ClassItem, Student, TuitionInvoice } from '@/types';
 
@@ -14,6 +16,9 @@ export interface DirectorTodayData {
   unpaidTotal: number;
   pendingReservations: ReservationDetail[];
   pendingReservationCount: number;
+  pendingJoinCount: number;
+  pendingInquiryCount: number;
+  pendingEnrollmentCount: number;
   makeupPendingCount: number;
   currentMonthLabel: string;
 }
@@ -22,6 +27,9 @@ export interface DirectorTodayData {
 export function useDirectorTodayDashboard(): DirectorTodayData & { loadingReservations: boolean } {
   const { currentOrganization } = useOrganization();
   const [pendingReservations, setPendingReservations] = useState<ReservationDetail[]>([]);
+  const [pendingJoinCount, setPendingJoinCount] = useState(0);
+  const [pendingInquiryCount, setPendingInquiryCount] = useState(0);
+  const [pendingEnrollmentCount, setPendingEnrollmentCount] = useState(0);
   const [loadingReservations, setLoadingReservations] = useState(false);
 
   const stats = StorageService.getDashboardStats();
@@ -43,6 +51,9 @@ export function useDirectorTodayDashboard(): DirectorTodayData & { loadingReserv
   useEffect(() => {
     if (!currentOrganization?.id) {
       setPendingReservations([]);
+      setPendingJoinCount(0);
+      setPendingInquiryCount(0);
+      setPendingEnrollmentCount(0);
       return;
     }
 
@@ -60,6 +71,32 @@ export function useDirectorTodayDashboard(): DirectorTodayData & { loadingReserv
         if (!cancelled) setLoadingReservations(false);
       });
 
+    customerJoinService
+      .getOrgJoinRequests(currentOrganization.id, 'pending', 'membership')
+      .then((rows) => {
+        if (!cancelled) setPendingJoinCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingJoinCount(0);
+      });
+
+    customerJoinService
+      .getOrgJoinRequests(currentOrganization.id, 'pending', 'consultation')
+      .then((rows) => {
+        if (!cancelled) setPendingInquiryCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingInquiryCount(0);
+      });
+
+    getOrgEnrollmentRequests(currentOrganization.id, 'pending')
+      .then((rows) => {
+        if (!cancelled) setPendingEnrollmentCount(rows.length);
+      })
+      .catch(() => {
+        if (!cancelled) setPendingEnrollmentCount(0);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -74,6 +111,9 @@ export function useDirectorTodayDashboard(): DirectorTodayData & { loadingReserv
     unpaidTotal: unpaidStats.grandTotal ?? stats.totalUnpaidThisMonth,
     pendingReservations,
     pendingReservationCount: pendingReservations.length,
+    pendingJoinCount,
+    pendingInquiryCount,
+    pendingEnrollmentCount,
     makeupPendingCount,
     currentMonthLabel: `${parseInt(stats.currentYearMonth.slice(5, 7), 10)}월`,
     loadingReservations,
