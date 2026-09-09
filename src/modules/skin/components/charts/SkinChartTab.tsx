@@ -4,14 +4,7 @@ import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { EmptyState } from '@/shared/components';
 import type { Booking } from '@/core/types/schedule';
-
-const STATUS_LABEL: Record<Booking['status'], string> = {
-  scheduled: '예약됨',
-  confirmed: '확정',
-  completed: '완료',
-  cancelled: '취소',
-  no_show: '노쇼',
-};
+import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 
 /** 피부관리 고객 상세 — 시술 기록 */
 export function SkinChartTab({ customerId }: { customerId: string }) {
@@ -70,7 +63,7 @@ export function SkinChartTab({ customerId }: { customerId: string }) {
                 </p>
               </div>
               <span className="text-xs font-bold px-2 py-1 rounded-lg bg-slate-100 text-slate-700">
-                {STATUS_LABEL[booking.status]}
+                {BOOKING_STATUS_LABEL[booking.status]}
               </span>
             </div>
 

@@ -3,6 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { ScheduleService } from '@/core/services/scheduleService';
+import { buildSlotKey, getSlotCapacityInfo, groupBookingsIntoSlots } from '@/core/schedules/bookingCapacity';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
@@ -12,7 +13,7 @@ import { Activity, Calendar, Users, Dumbbell, Plus } from 'lucide-react';
 const PilatesStaffDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
   const refreshKey = useStorageRefresh();
-  const { scopeBookings, scopeMembersForPilates } = useStaffScope();
+  const { scopeBookings, scopeMembersForPilates, staffId } = useStaffScope();
 
   const today = new Date().toISOString().slice(0, 10);
   const allBookingsRaw = ScheduleService.getBookings();
@@ -73,7 +74,14 @@ const PilatesStaffDashboard: React.FC = () => {
               전체
             </button>
           </div>
-          {todayBookings.length === 0 ? (
+          {todayBookings.length === 0 &&
+          !ScheduleService.getSlotRecruitments().some(
+            (item) =>
+              item.maxCapacity &&
+              item.staffId &&
+              (!staffId || item.staffId === staffId) &&
+              item.startsAt.startsWith(today)
+          ) ? (
             <EmptyState
               icon={<Calendar className="w-8 h-8" />}
               title="오늘 예약이 없습니다"
@@ -92,14 +100,60 @@ const PilatesStaffDashboard: React.FC = () => {
             />
           ) : (
             <div className="space-y-1.5">
-              {todayBookings.map((b) => (
-                <div key={b.id} className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm">
-                  <p className="font-bold text-slate-900">{b.customerName}</p>
+              {groupBookingsIntoSlots(todayBookings)
+                .concat(
+                  ScheduleService.getSlotRecruitments()
+                    .filter((item) => {
+                      if (!item.serviceId || !item.staffId || !item.maxCapacity) return false;
+                      if (staffId && item.staffId !== staffId) return false;
+                      if (!item.startsAt.startsWith(today)) return false;
+                      return !todayBookings.some(
+                        (booking) =>
+                          booking.serviceId &&
+                          booking.staffId &&
+                          buildSlotKey(booking.serviceId, booking.staffId, booking.startsAt) ===
+                            buildSlotKey(item.serviceId, item.staffId, item.startsAt)
+                      );
+                    })
+                    .map((item) => ({
+                      key: buildSlotKey(item.serviceId, item.staffId, item.startsAt),
+                      serviceId: item.serviceId,
+                      staffId: item.staffId,
+                      startsAt: item.startsAt,
+                      serviceName:
+                        ScheduleService.getServiceOfferings().find((service) => service.id === item.serviceId)?.name ||
+                        '수업',
+                      staffName: '',
+                      endsAt: '',
+                      bookings: [],
+                    }))
+                )
+                .map((group) => {
+                const service = ScheduleService.getServiceOfferings().find((s) => s.id === group.serviceId);
+                const capacity =
+                  service && group.staffId
+                    ? getSlotCapacityInfo({
+                        service,
+                        staffId: group.staffId,
+                        startsAt: group.startsAt,
+                        bookings: allBookingsRaw,
+                        recruitments: ScheduleService.getSlotRecruitments(),
+                      })
+                    : null;
+                return (
+                <div key={group.key} className="px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 text-sm">
+                  <p className="font-bold text-slate-900">
+                    {group.startsAt.slice(11, 16)} · {group.serviceName || '수업'}
+                  </p>
                   <p className="text-[11px] text-slate-500">
-                    {b.startsAt.slice(11, 16)} · {b.serviceName || '수업'}
+                    {group.bookings.length > 0
+                      ? group.bookings.map((b) => b.customerName).join(', ')
+                      : '아직 등록된 회원이 없습니다'}
+                    {capacity ? ` · 잔여 ${capacity.remaining}자리` : ''}
                   </p>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

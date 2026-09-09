@@ -34,22 +34,28 @@ export const ScheduleService = {
   /**
    * 예약 상태 변경.
    * completed 전환 시 이용권 1회 차감, completed→다른 상태 시 복구.
+   * 필라테스는 no_show도 같은 차감·복구를 쓴다.
    */
-  updateBookingStatus(id: string, status: BookingStatus): Booking | null {
+  updateBookingStatus(
+    id: string,
+    status: BookingStatus,
+    options?: { consumeOnNoShow?: boolean }
+  ): Booking | null {
     const existing = StorageService.getBookings().find((b) => b.id === id);
     if (!existing) return null;
 
     let sessionPassId = existing.sessionPassId;
+    const deducting =
+      status === 'completed' || (options?.consumeOnNoShow === true && status === 'no_show');
+    const wasDeducting =
+      existing.status === 'completed' ||
+      (existing.status === 'no_show' && Boolean(existing.sessionPassId));
 
-    if (status === 'completed' && existing.status !== 'completed' && !sessionPassId) {
+    if (deducting && !wasDeducting && !sessionPassId) {
       sessionPassId = StorageService.consumeSessionPass(existing.customerId) ?? undefined;
     }
 
-    if (
-      existing.status === 'completed' &&
-      status !== 'completed' &&
-      existing.sessionPassId
-    ) {
+    if (wasDeducting && !deducting && existing.sessionPassId) {
       StorageService.refundSessionPass(existing.sessionPassId);
       sessionPassId = undefined;
     }
@@ -113,6 +119,15 @@ export const ScheduleService = {
     closedManually: boolean
   ) {
     return StorageService.setSlotRecruitmentClosed(serviceId, staffId, startsAt, closedManually);
+  },
+
+  setSlotRecruitmentCapacity(
+    serviceId: string,
+    staffId: string | null | undefined,
+    startsAt: string,
+    maxCapacity: number
+  ) {
+    return StorageService.setSlotRecruitmentCapacity(serviceId, staffId, startsAt, maxCapacity);
   },
 
   getSlotCapacity(serviceId: string, staffId: string | null | undefined, startsAt: string) {

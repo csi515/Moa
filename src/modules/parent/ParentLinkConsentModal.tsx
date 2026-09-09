@@ -33,7 +33,7 @@ export const ParentLinkConsentModal: React.FC<ParentLinkConsentModalProps> = ({
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold flex items-center gap-2">
             <Shield className="w-4 h-4 text-indigo-600" />
-            학원 연결 동의
+            연결 동의
           </h3>
           <button type="button" onClick={onCancel} aria-label="닫기">
             <X className="w-5 h-5 text-slate-400" />
@@ -41,8 +41,8 @@ export const ParentLinkConsentModal: React.FC<ParentLinkConsentModalProps> = ({
         </div>
 
         <p className="text-sm text-slate-600 leading-relaxed">
-          <strong>{organizationName || '학원'}</strong>
-          {studentName ? ` · ${studentName}` : ''} 연결 시 아래 정보가 학원에 제공됩니다.
+          <strong>{organizationName || '연결 대상'}</strong>
+          {studentName ? ` · ${studentName}` : ''} 연결 시 아래 정보가 제공됩니다.
         </p>
 
         <ul className="mt-3 p-3 rounded-xl bg-slate-50 border border-slate-100 text-sm text-slate-700 space-y-1">

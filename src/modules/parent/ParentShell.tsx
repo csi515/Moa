@@ -22,6 +22,7 @@ import { ParentAccountSection } from './ParentAccountSection';
 import { ParentChildPinSection } from './components/ParentChildPinSection';
 import { registerAppPush } from '@/core/push';
 import { isNativeApp } from '@/core/platform';
+import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
 /**
@@ -177,7 +178,7 @@ function ParentShellContent() {
             <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-sm">
               <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-3">
                 <Link2 className="w-4 h-4" />
-                학원이 준 8자리 자녀 연결 코드
+                받은 8자리 자녀 연결 코드
               </div>
               {!showLinkForm ? (
                 <div className="space-y-2">
@@ -200,7 +201,7 @@ function ParentShellContent() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    학원에서 발급한 8자리 코드만 입력하세요. 공개코드는 여기에 넣지 않습니다.
+                    발급한 8자리 코드만 입력하세요. 공개코드는 여기에 넣지 않습니다.
                   </p>
                 </div>
               ) : (
@@ -225,7 +226,7 @@ function ParentShellContent() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    공개코드는 넣지 마세요. 학원 이름·공개코드는 아래 학원 연결 요청에서 검색합니다.
+                    공개코드는 넣지 마세요. 이름·공개코드는 아래 연결 요청에서 검색합니다.
                   </p>
                   <button
                     type="button"
@@ -360,7 +361,7 @@ function ParentPortalWithStudent({
         </div>
         <h3 className="font-bold text-slate-900 text-lg mb-2">학생 정보를 불러올 수 없습니다</h3>
         <p className="text-sm text-slate-500 leading-relaxed mb-6">
-          이 학원에 연결된 원생 데이터가 없거나 동기화가 지연되고 있습니다.
+          이 {getPlaceLabel(industryType)}에 연결된 {getCustomerLabel(industryType)} 데이터가 없거나 동기화가 지연되고 있습니다.
           <br />
           잠시 후 다시 시도해 주세요
         </p>

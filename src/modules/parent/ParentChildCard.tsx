@@ -1,6 +1,7 @@
 import React from 'react';
 import { Building2, ChevronRight, Pencil } from 'lucide-react';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import {
   ACTIVE_ENROLLMENT_STATUSES,
   INACTIVE_ENROLLMENT_STATUSES,
@@ -20,6 +21,8 @@ export const ParentChildCard: React.FC<{
     INACTIVE_ENROLLMENT_STATUSES.includes(e.status)
   ).length;
   const unlinked = academyCount === 0;
+  const placeLabels = [...new Set(child.enrollments.map((item) => getPlaceLabel(item.industryType)))];
+  const placeLabel = placeLabels.length === 1 ? placeLabels[0] : '연결';
 
   return (
     <button
@@ -36,8 +39,8 @@ export const ParentChildCard: React.FC<{
         <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
           <Building2 className="w-3 h-3" />
           {unlinked
-            ? '학원 미연결 · 눌러서 연결 요청'
-            : `학원 ${activeCount}/${academyCount}${inactiveCount > 0 ? ` · 기록 ${inactiveCount}` : ''}`}
+            ? '미연결 · 눌러서 연결 요청'
+            : `${placeLabel} ${activeCount}/${academyCount}${inactiveCount > 0 ? ` · 기록 ${inactiveCount}` : ''}`}
         </p>
       </div>
       <span className="flex items-center gap-1 shrink-0">

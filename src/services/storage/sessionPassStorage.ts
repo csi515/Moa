@@ -97,6 +97,30 @@ export function createSessionPassStorage() {
         startsAt,
         closedManually,
       };
+      if (idx >= 0) list[idx] = { ...list[idx], ...saved, maxCapacity: list[idx].maxCapacity };
+      else list.unshift(saved);
+      setItem(STORAGE_KEYS.SLOT_RECRUITMENTS, list);
+      return saved;
+    },
+
+    setSlotRecruitmentCapacity(
+      serviceId: string,
+      staffId: string | null | undefined,
+      startsAt: string,
+      maxCapacity: number
+    ): SlotRecruitment {
+      const normalizedStaffId = normalizeStaffId(staffId);
+      const id = buildSlotKey(serviceId, normalizedStaffId, startsAt);
+      const list = this.getSlotRecruitments();
+      const idx = list.findIndex((r) => r.id === id);
+      const saved: SlotRecruitment = {
+        id,
+        serviceId,
+        staffId: normalizedStaffId === UNASSIGNED_STAFF_TOKEN ? '' : normalizedStaffId,
+        startsAt,
+        closedManually: idx >= 0 ? list[idx].closedManually : false,
+        maxCapacity: Math.max(1, maxCapacity),
+      };
       if (idx >= 0) list[idx] = saved;
       else list.unshift(saved);
       setItem(STORAGE_KEYS.SLOT_RECRUITMENTS, list);

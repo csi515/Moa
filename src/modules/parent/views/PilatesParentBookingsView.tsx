@@ -5,6 +5,7 @@ import { useStorageRefresh } from '@/hooks';
 import { useApp } from '@/context/AppContext';
 import type { Student } from '@/types';
 import type { Booking } from '@/core/types/schedule';
+import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 import { EmptyState } from '@/shared/components';
 import { getPassRemaining, isPassUsable } from '@/core/schedules/sessionPassUtils';
 import { SkinBookingRequestForm } from './SkinBookingRequestForm';
@@ -169,7 +170,7 @@ export const PilatesParentBookingsView: React.FC<{
             <div key={b.id} className="bg-slate-50 border border-slate-100 rounded-xl p-3">
               <p className="text-sm font-medium text-slate-700">{b.serviceName || serviceFallback}</p>
               <p className="text-[11px] text-slate-400 font-mono">
-                {formatWhen(b.startsAt)} · {b.status}
+                {formatWhen(b.startsAt)} · {BOOKING_STATUS_LABEL[b.status]}
               </p>
             </div>
           ))}

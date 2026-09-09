@@ -21,6 +21,64 @@ export function isActiveBookingStatus(status: BookingStatus): boolean {
   return ACTIVE_STATUSES.includes(status);
 }
 
+export interface SlotBookingGroup {
+  key: string;
+  serviceId: string;
+  staffId: string;
+  startsAt: string;
+  serviceName: string;
+  staffName: string;
+  endsAt: string;
+  bookings: Booking[];
+}
+
+/** 같은 수업·강사·시작시각 예약을 한 수업으로 묶는다. 강사·수업이 없으면 예약 단위로 둔다. */
+export function groupBookingsIntoSlots(bookings: Booking[]): SlotBookingGroup[] {
+  const groups = new Map<string, SlotBookingGroup>();
+  for (const booking of bookings) {
+    const key =
+      booking.serviceId && booking.staffId
+        ? buildSlotKey(booking.serviceId, booking.staffId, booking.startsAt)
+        : `booking|${booking.id}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.bookings.push(booking);
+      continue;
+    }
+    groups.set(key, {
+      key,
+      serviceId: booking.serviceId || '',
+      staffId: booking.staffId || '',
+      startsAt: booking.startsAt,
+      serviceName: booking.serviceName || '',
+      staffName: booking.staffName || '',
+      endsAt: booking.endsAt,
+      bookings: [booking],
+    });
+  }
+  return [...groups.values()];
+}
+
+/** 취소된 예약은 자리를 비운 것으로 보고, 같은 회원의 활성 예약만 찾는다. */
+export function findActiveMemberInSlot(
+  bookings: Booking[],
+  customerId: string,
+  serviceId: string,
+  staffId: string | null | undefined,
+  startsAt: string
+): Booking | undefined {
+  const staffToken = normalizeStaffId(staffId);
+  return bookings.find(
+    (booking) =>
+      booking.customerId === customerId &&
+      booking.serviceId === serviceId &&
+      booking.startsAt === startsAt &&
+      normalizeStaffId(booking.staffId) === staffToken &&
+      booking.status !== 'cancelled' &&
+      !booking.waitlist
+  );
+}
+
 export function countSlotOccupancy(
   bookings: Booking[],
   serviceId: string,
@@ -60,14 +118,15 @@ export function getSlotCapacityInfo(params: {
   const normalizedStaffId = normalizeStaffId(staffId);
   const slotKey = buildSlotKey(service.id, normalizedStaffId, startsAt);
   const occupied = countSlotOccupancy(bookings, service.id, normalizedStaffId, startsAt);
-  const maxCapacity = Math.max(1, service.maxCapacity || 1);
-  const closedManually = recruitments.some((r) => {
+  const recruitment = recruitments.find((r) => {
     const key =
       r.id.includes('|') && r.id.split('|').length >= 3
         ? r.id
         : buildSlotKey(r.serviceId, r.staffId ?? UNASSIGNED_STAFF_TOKEN, r.startsAt);
-    return key === slotKey && r.closedManually;
+    return key === slotKey;
   });
+  const maxCapacity = Math.max(1, recruitment?.maxCapacity || service.maxCapacity || 1);
+  const closedManually = recruitment?.closedManually === true;
   const remaining = Math.max(0, maxCapacity - occupied);
   const isClosed = closedManually || remaining <= 0;
 

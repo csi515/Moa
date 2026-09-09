@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Search, X, Loader2, Building2, MapPin, Phone, ChevronRight } from 'lucide-react';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import {
   searchOrganizations,
   findOrganizationByCode,
@@ -74,7 +75,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">학원 연결</h3>
+          <h3 className="font-bold text-lg">연결 요청</h3>
           <button type="button" onClick={onClose} aria-label="닫기">
             <X className="w-5 h-5 text-slate-400" />
           </button>
@@ -115,7 +116,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') void handleSearch();
                 }}
-                placeholder="학원 이름 또는 지역 검색"
+                placeholder="이름 또는 지역 검색"
                 className="flex-1 px-3 py-2.5 text-sm border border-slate-200 rounded-xl min-h-[44px]"
               />
               <button
@@ -147,7 +148,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
                         <p className="font-bold text-slate-900 truncate">{org.name}</p>
                         <div className="flex items-center gap-2 mt-1 text-xs text-slate-600">
                           <Building2 className="w-3 h-3" />
-                          <span>{org.industryType}</span>
+                          <span>{getPlaceLabel(org.industryType)}</span>
                           {org.city && (
                             <>
                               <MapPin className="w-3 h-3 ml-1" />
@@ -172,7 +173,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
         ) : (
           <>
             <p className="text-sm text-slate-600 mb-3">
-              학원에서 받은 공개 코드를 입력하세요
+              받은 공개 코드를 입력하세요
             </p>
 
             {error && (
@@ -205,7 +206,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
             <div className="mt-4 p-3 bg-indigo-50 border border-indigo-100 rounded-xl">
               <p className="text-xs font-bold text-indigo-900 mb-1">💡 공개 코드란?</p>
               <p className="text-xs text-indigo-700 leading-relaxed">
-                학원에서 발급한 고유 코드입니다. 학원에 문의하여 코드를 받으세요.
+                발급한 고유 코드입니다. 해당 곳에 문의하여 코드를 받으세요.
               </p>
             </div>
           </>

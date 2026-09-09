@@ -132,7 +132,7 @@ export const GuardianLinkQrScanner: React.FC<GuardianLinkQrScannerProps> = ({
         )}
 
         <p className="mt-3 text-xs text-slate-500 text-center">
-          학원에서 받은 QR 코드를 화면 중앙에 맞춰 주세요.
+          받은 QR 코드를 화면 중앙에 맞춰 주세요.
         </p>
       </div>
     </div>

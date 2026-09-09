@@ -67,7 +67,7 @@ export function CustomerNoticesView({
       ) : list.length === 0 ? (
         <div className="text-center py-6 space-y-1">
           <p className="text-sm font-bold text-slate-700">아직 알림이 없습니다</p>
-          <p className="text-xs text-slate-500">학원에서 보낸 안내·청구·출결 알림이 여기에 표시됩니다</p>
+          <p className="text-xs text-slate-500">보낸 안내·청구·출결 알림이 여기에 표시됩니다</p>
         </div>
       ) : (
         <div className="space-y-3">

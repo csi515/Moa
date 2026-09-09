@@ -38,8 +38,8 @@ export const AttendanceManagementView: React.FC = () => {
   const { attendanceEnabled, industry } = usePermissions();
   const labels = useModuleLabels();
   const skin = isSkinClinicIndustry(industry);
-  const memberLabel = skin ? labels.customer.singular : '원생';
-  const activeMemberLabel = skin ? labels.customer.singular : '재원생';
+  const memberLabel = labels.customer.singular;
+  const activeMemberLabel = labels.customer.singular;
   const { isScoped, scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
 

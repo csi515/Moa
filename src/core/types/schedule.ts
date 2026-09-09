@@ -69,4 +69,6 @@ export interface SlotRecruitment {
   staffId: string;
   startsAt: string;
   closedManually: boolean;
+  /** 없으면 수업 종류 정원 */
+  maxCapacity?: number;
 }

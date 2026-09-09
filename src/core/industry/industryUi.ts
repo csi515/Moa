@@ -32,6 +32,25 @@ export function isDaycareIndustry(industry: IndustryType | string | null | undef
   return resolveIndustry(industry) === 'daycare';
 }
 
+/** 회원이 보는 장소 명칭. 피아노 전용 메뉴는 호출하지 않는다. */
+export function getPlaceLabel(industry: IndustryType | string | null | undefined): string {
+  const type = resolveIndustry(industry);
+  if (type === 'skin_clinic') return '샵';
+  if (type === 'pilates') return '스튜디오';
+  if (type === 'gym') return '체육관';
+  if (type === 'daycare') return '원';
+  return '학원';
+}
+
+/** 보호자 화면용 고객 명칭. 앱 안에서는 useModuleLabels를 우선한다. */
+export function getCustomerLabel(industry: IndustryType | string | null | undefined): string {
+  const type = resolveIndustry(industry);
+  if (type === 'skin_clinic') return '고객';
+  if (type === 'pilates' || type === 'gym') return '회원';
+  if (type === 'daycare') return '원아';
+  return '원생';
+}
+
 /** 클래스(반) 기반 수업 — 플러그인 매니페스트 기준 */
 export function usesClassBasedSchedule(industry: IndustryType | string | null | undefined): boolean {
   return getIndustryPlugin(industry).usesClassBasedSchedule;

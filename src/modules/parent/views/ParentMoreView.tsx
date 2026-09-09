@@ -15,6 +15,7 @@ import {
 import { StorageService } from '@/services/storage';
 import type { ParentPortalTab } from '@/types/education';
 import type { IndustryType } from '@/core/industry/types';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { normalizeIndustryType } from '@/core/industry/types';
 import { ParentAccountSection } from '../ParentAccountSection';
 import { getParentPortalSecondaryTabs } from '../parentPortalNav';
@@ -46,7 +47,7 @@ function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
     {
       id: 'notices',
       label: '안내',
-      description: industry === 'skin_clinic' ? '샵 공지·알림' : '학원 공지·알림',
+      description: `${getPlaceLabel(industry)} 공지·알림`,
       icon: <Megaphone className="w-5 h-5" />,
     },
   ];
@@ -54,7 +55,7 @@ function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
     items.push({
       id: 'events',
       label: '행사',
-      description: industry === 'skin_clinic' ? '샵 행사' : '학원 행사',
+      description: `${getPlaceLabel(industry)} 행사`,
       icon: <Calendar className="w-5 h-5" />,
     });
   }
@@ -72,7 +73,7 @@ export function ParentMoreView({
   industryType?: IndustryType | string;
 }) {
   const industry = normalizeIndustryType(industryType);
-  const place = industry === 'skin_clinic' ? '샵' : '학원';
+  const place = getPlaceLabel(industry);
   const items = industry === 'piano' ? getPianoMoreItems() : getDefaultMoreItems(industry);
   const settings = StorageService.getSettings();
   const phone = settings.phone?.trim();
@@ -145,10 +146,10 @@ export function ParentMoreView({
             <Users className="w-5 h-5 text-indigo-600 shrink-0" />
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-slate-900">
-                {industry === 'skin_clinic' ? '고객·샵 전환' : '자녀·학원 전환'}
+                {industry === 'skin_clinic' ? '고객·샵 전환' : `자녀·${place} 전환`}
               </span>
               <span className="block text-[11px] text-slate-500">
-                {industry === 'skin_clinic' ? '다른 샵 선택' : '다른 자녀 또는 학원 선택'}
+                {industry === 'skin_clinic' ? '다른 샵 선택' : `다른 자녀 또는 ${place} 선택`}
               </span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />

@@ -3,19 +3,23 @@ import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useModuleLabels } from '@/core/labels';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { isPilatesIndustry, isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
 import type { Booking, BookingStatus } from '@/core/types/schedule';
-import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
+import { bookingChangeNotice } from '@/core/schedules/bookingChangeNotice';
+import { findActiveMemberInSlot, getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { PilatesSlotList } from './PilatesSlotList';
 import { getConfiguredRooms } from '@/core/academy/utils/academyRooms';
 import {
+  findInstructorClassOverlap,
   findStaffTimeConflict,
   findTreatmentRoomConflict,
   isUnassignedCustomerRequest,
 } from '@/modules/skin/bookingRooms';
 import { isOutsideStaffHours } from '@/modules/skin/staffHours';
-import { notifySkinBookingChange } from '@/core/academy/services/academyAlertService';
+import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
 import { EmptyState, FilterTabs, Modal, PageHeader, type FilterTabItem } from '@/shared/components';
 
 type BookingFilter = 'today' | 'upcoming' | 'all';
@@ -25,14 +29,6 @@ const FILTERS: FilterTabItem<BookingFilter>[] = [
   { id: 'upcoming', label: '예정' },
   { id: 'all', label: '전체' },
 ];
-
-const STATUS_LABEL: Record<BookingStatus, string> = {
-  scheduled: '예약됨',
-  confirmed: '확정',
-  completed: '완료',
-  cancelled: '취소',
-  no_show: '노쇼',
-};
 
 export const BookingCalendarView: React.FC = () => {
   const { showToast } = useApp();
@@ -60,6 +56,7 @@ export const BookingCalendarView: React.FC = () => {
   const [skinCondition, setSkinCondition] = useState('');
   const [chartNote, setChartNote] = useState('');
   const [chartTarget, setChartTarget] = useState<Booking | null>(null);
+  const [slotCapacity, setSlotCapacity] = useState('1');
 
   useEffect(() => {
     if (isScoped && staffId) {
@@ -133,6 +130,44 @@ export const BookingCalendarView: React.FC = () => {
     ? ScheduleService.getCustomerRemainingSessions(memberId)
     : null;
 
+  useEffect(() => {
+    if (skin || !selectedService) return;
+    setSlotCapacity(String(draftCapacity ? draftCapacity.maxCapacity : selectedService.maxCapacity || 1));
+  }, [skin, selectedService?.id, selectedService?.maxCapacity, draftCapacity?.maxCapacity, resolvedFormStaffId, draftStartsAt]);
+
+  const presetRecruitments = useMemo(() => {
+    if (skin) return [];
+    const now = new Date().toISOString();
+    return recruitments.filter((item) => {
+      if (!item.serviceId || !item.staffId || !item.maxCapacity) return false;
+      if (isScoped && staffId && item.staffId !== staffId) return false;
+      if (instructorFilter !== 'all' && item.staffId !== instructorFilter) return false;
+      if (filter === 'today') return item.startsAt.startsWith(today);
+      if (filter === 'upcoming') return item.startsAt >= now;
+      return true;
+    });
+  }, [skin, recruitments, isScoped, staffId, instructorFilter, filter, today, refreshKey]);
+
+  const saveSlotCapacity = (serviceIdValue: string, staffIdValue: string, startsAt: string, nextValue: number) => {
+    const service =
+      services.find((item) => item.id === serviceIdValue) ??
+      ScheduleService.getServiceOfferings().find((item) => item.id === serviceIdValue);
+    if (!service) return false;
+    const occupied = getSlotCapacityInfo({
+      service,
+      staffId: staffIdValue,
+      startsAt,
+      bookings: ScheduleService.getBookings(),
+      recruitments: ScheduleService.getSlotRecruitments(),
+    }).occupied;
+    if (nextValue < occupied) {
+      showToast('현재 모인 인원보다 작게 줄일 수 없습니다.', 'warning');
+      return false;
+    }
+    ScheduleService.setSlotRecruitmentCapacity(serviceIdValue, staffIdValue, startsAt, nextValue);
+    return true;
+  };
+
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
     const member = members.find((m) => m.id === memberId);
@@ -146,8 +181,23 @@ export const BookingCalendarView: React.FC = () => {
       showToast(`${staffLabel}를 선택해 주세요. ${staffLabel}별로 예약·정원이 관리됩니다.`, 'warning');
       return;
     }
+    if (!skin && ScheduleService.getCustomerRemainingSessions(member.id) <= 0) {
+      showToast('이용권 잔여가 없습니다. 이용권을 먼저 등록해 주세요.', 'warning');
+      return;
+    }
 
     const startsAt = `${date}T${time}:00`;
+    if (!skin && findActiveMemberInSlot(ScheduleService.getBookings(), member.id, service.id, instructor.id, startsAt)) {
+      showToast(`${member.name}은 이 수업에 이미 등록되어 있습니다.`, 'warning');
+      return;
+    }
+    if (!skin) {
+      const nextCapacity = Number(slotCapacity);
+      const currentMax = draftCapacity?.maxCapacity || service.maxCapacity || 1;
+      if (nextCapacity && nextCapacity !== currentMax && !saveSlotCapacity(service.id, instructor.id, startsAt, nextCapacity)) {
+        return;
+      }
+    }
     const capacity = getSlotCapacityInfo({
       service,
       staffId: instructor.id,
@@ -168,6 +218,19 @@ export const BookingCalendarView: React.FC = () => {
     const start = new Date(startsAt);
     const end = new Date(start.getTime() + service.durationMinutes * 60 * 1000);
     const endsAt = end.toISOString();
+    if (!skin) {
+      const overlap = findInstructorClassOverlap({
+        staffId: instructor.id,
+        serviceId: service.id,
+        startsAt,
+        endsAt,
+        bookings: ScheduleService.getBookings(),
+      });
+      if (overlap) {
+        showToast(`${instructor.name} ${staffLabel}는 이 시간에 다른 수업이 있습니다.`, 'warning');
+        return;
+      }
+    }
     const selectedRoom = treatmentRooms.find((room) => room.id === roomId);
     if (skin && isOutsideStaffHours({
       staffId: instructor.id,
@@ -304,9 +367,9 @@ export const BookingCalendarView: React.FC = () => {
   };
 
   const notifyCustomer = (booking: Booking, title: string, message: string) => {
-    if (!skin) return;
+    if (!skin && !isPilatesIndustry(industry)) return;
     const student = StorageService.getStudents().find((item) => item.id === booking.customerId);
-    notifySkinBookingChange({
+    notifyBookingChange({
       studentId: booking.customerId,
       studentName: booking.customerName,
       parentPhone: student?.phone,
@@ -408,29 +471,95 @@ export const BookingCalendarView: React.FC = () => {
         return;
       }
     }
-    const result = ScheduleService.updateBookingStatus(booking.id, status);
+    const result = ScheduleService.updateBookingStatus(
+      booking.id,
+      status,
+      skin ? undefined : { consumeOnNoShow: true }
+    );
     if (!result) {
       showToast('상태 변경에 실패했습니다.', 'error');
       return;
     }
-    if (skin && status === 'confirmed') {
-      notifyCustomer(
-        booking,
-        '예약 확정',
-        `${booking.serviceName || '시술'} 예약이 ${booking.startsAt.slice(0, 16).replace('T', ' ')}에 확정되었습니다.`
-      );
-    }
-    if (skin && status === 'cancelled') {
-      notifyCustomer(booking, '예약 취소', `${booking.serviceName || '시술'} 예약이 취소되었습니다.`);
-    }
+    const notice = bookingChangeNotice(booking, status, skin ? '시술' : '수업');
+    const shouldNotify =
+      status === 'confirmed' ||
+      status === 'cancelled' ||
+      (!skin && (status === 'completed' || status === 'no_show'));
+    if (notice && shouldNotify) notifyCustomer(booking, notice.title, notice.message);
     if (status === 'completed' && skin && !booking.skinCondition && !booking.chartNote) {
       showToast('시술 기록이 없습니다. 고객 상세의 시술 기록에서 작성할 수 있습니다.', 'info');
-    } else if (status === 'completed' && !booking.sessionPassId && !result.sessionPassId) {
-      showToast(`예약 상태가 '${STATUS_LABEL[status]}'(으)로 변경되었습니다. (이용권 잔여 없음)`, 'info');
+    } else if (
+      (status === 'completed' || (!skin && status === 'no_show')) &&
+      !booking.sessionPassId &&
+      !result.sessionPassId
+    ) {
+      showToast(`예약 상태가 '${BOOKING_STATUS_LABEL[status]}'(으)로 변경되었습니다. (이용권 잔여 없음)`, 'info');
       return;
     } else {
-      showToast(`예약 상태가 '${STATUS_LABEL[status]}'(으)로 변경되었습니다.`, 'info');
+      showToast(`예약 상태가 '${BOOKING_STATUS_LABEL[status]}'(으)로 변경되었습니다.`, 'info');
     }
+  };
+
+  const completeClass = (group: { bookings: Booking[] }) => {
+    const targets = group.bookings.filter(
+      (booking) => booking.status === 'scheduled' || booking.status === 'confirmed'
+    );
+    if (targets.length === 0) return;
+    let missingPass = 0;
+    for (const booking of targets) {
+      const result = ScheduleService.updateBookingStatus(booking.id, 'completed', { consumeOnNoShow: true });
+      if (result && !booking.sessionPassId && !result.sessionPassId) missingPass += 1;
+      const notice = bookingChangeNotice(booking, 'completed', '수업');
+      if (notice) notifyCustomer(booking, notice.title, notice.message);
+    }
+    showToast(
+      missingPass > 0
+        ? `참석 완료로 닫았습니다. 이용권 잔여 없음 ${missingPass}명`
+        : '참석 완료로 닫았습니다.',
+      missingPass > 0 ? 'info' : 'success'
+    );
+  };
+
+  const setGroupCapacity = (group: { serviceId: string; staffId: string; startsAt: string; staffName: string }, next: number) => {
+    const service =
+      services.find((item) => item.id === group.serviceId) ??
+      ScheduleService.getServiceOfferings().find((item) => item.id === group.serviceId);
+    if (!service || !saveSlotCapacity(service.id, group.staffId, group.startsAt, next)) return;
+    showToast('이 시간대 정원을 저장했습니다.', 'success');
+  };
+
+  const toggleGroupClosed = (group: { serviceId: string; staffId: string; startsAt: string; staffName: string }) => {
+    const service =
+      services.find((item) => item.id === group.serviceId) ??
+      ScheduleService.getServiceOfferings().find((item) => item.id === group.serviceId);
+    if (!service || !group.staffId) return;
+    const info = getSlotCapacityInfo({
+      service,
+      staffId: group.staffId,
+      startsAt: group.startsAt,
+      bookings: allBookingsRaw,
+      recruitments,
+    });
+    ScheduleService.setSlotRecruitmentClosed(group.serviceId, group.staffId, group.startsAt, !info.closedManually);
+    showToast(
+      !info.closedManually ? `${group.staffName || staffLabel} 시간대 모집을 마감했습니다.` : '모집을 다시 열었습니다.',
+      'success'
+    );
+  };
+
+  const saveCapacityOnly = () => {
+    const service = services.find((item) => item.id === serviceId);
+    if (!service || !resolvedFormStaffId) {
+      showToast(`${staffLabel}와 ${serviceLabel}을 선택해 주세요.`, 'warning');
+      return;
+    }
+    const nextCapacity = Number(slotCapacity);
+    if (!nextCapacity) {
+      showToast('정원을 입력해 주세요.', 'warning');
+      return;
+    }
+    if (!saveSlotCapacity(service.id, resolvedFormStaffId, draftStartsAt, nextCapacity)) return;
+    showToast('이 시간대 정원을 저장했습니다. 회원이 없어도 유지됩니다.', 'success');
   };
 
   const toggleRecruitment = (booking: Booking) => {
@@ -497,8 +626,22 @@ export const BookingCalendarView: React.FC = () => {
 
       <FilterTabs tabs={FILTERS} active={filter} onChange={setFilter} activeClassName={accentTab} />
 
-      {filtered.length === 0 ? (
+      {filtered.length === 0 && (skin || presetRecruitments.length === 0) ? (
         <EmptyState icon={<span className="text-3xl">📭</span>} title="예약 내역이 없습니다" />
+      ) : !skin ? (
+        <PilatesSlotList
+          bookings={filtered}
+          allBookings={allBookingsRaw}
+          services={ScheduleService.getServiceOfferings()}
+          recruitments={recruitments}
+          presetRecruitments={presetRecruitments}
+          staffNameById={Object.fromEntries(instructors.map((item) => [item.id, item.name]))}
+          canEditSlot={(id) => !isScoped || id === staffId}
+          onSetCapacity={setGroupCapacity}
+          onToggleClosed={toggleGroupClosed}
+          onUpdateStatus={updateStatus}
+          onCompleteClass={completeClass}
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map((b) => {
@@ -553,7 +696,7 @@ export const BookingCalendarView: React.FC = () => {
                         ? '대기'
                         : b.requestedBy === 'customer' && b.status === 'scheduled'
                           ? '신청'
-                          : STATUS_LABEL[b.status]}
+                          : BOOKING_STATUS_LABEL[b.status]}
                     </span>
                     {skin && b.status === 'no_show' && b.depositStatus === 'confirmed' && (
                       <span className="text-xs font-bold px-2 py-1 rounded-lg bg-amber-50 text-amber-800">
@@ -593,6 +736,35 @@ export const BookingCalendarView: React.FC = () => {
                         }}
                         className="px-2 py-1 text-xs border border-slate-200 rounded-lg min-h-[44px]"
                       />
+                    )}
+                    {!skin && b.serviceId && b.staffId && capacity && (!isScoped || b.staffId === staffId) && (
+                      <label className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600">
+                        정원
+                        <input
+                          key={`${b.id}-${capacity.maxCapacity}`}
+                          type="number"
+                          min={Math.max(1, capacity.occupied)}
+                          defaultValue={capacity.maxCapacity}
+                          aria-label="이 시간대 정원"
+                          onBlur={(e) => {
+                            const next = Number(e.target.value);
+                            if (!next || next === capacity.maxCapacity) return;
+                            if (next < capacity.occupied) {
+                              showToast('현재 모인 인원보다 작게 줄일 수 없습니다.', 'warning');
+                              e.target.value = String(capacity.maxCapacity);
+                              return;
+                            }
+                            ScheduleService.setSlotRecruitmentCapacity(
+                              b.serviceId!,
+                              b.staffId,
+                              b.startsAt,
+                              next
+                            );
+                            showToast('이 시간대 정원을 저장했습니다.', 'success');
+                          }}
+                          className="w-16 px-2 py-1 text-xs border border-slate-200 rounded-lg min-h-[44px]"
+                        />
+                      </label>
                     )}
                     {b.serviceId && b.staffId && capacity && (
                       <button
@@ -769,6 +941,29 @@ export const BookingCalendarView: React.FC = () => {
               />
             </div>
           </div>
+          {!skin && selectedService && resolvedFormStaffId && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">이 시간대 정원</label>
+              <input
+                type="number"
+                min={1}
+                value={slotCapacity}
+                onChange={(e) => setSlotCapacity(e.target.value)}
+                aria-label="이 시간대 정원"
+                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+              />
+              <p className="text-[11px] text-slate-500 mt-1">
+                수업 종류 기본 정원은 {selectedService.maxCapacity}명입니다. 회원을 넣기 전에도 저장할 수 있습니다.
+              </p>
+              <button
+                type="button"
+                onClick={saveCapacityOnly}
+                className="mt-2 px-3 py-2 text-xs font-bold bg-slate-100 text-slate-700 rounded-xl min-h-[44px]"
+              >
+                정원만 저장
+              </button>
+            </div>
+          )}
           {draftCapacity && (
             <p
               className={`text-xs font-bold ${

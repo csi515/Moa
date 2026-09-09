@@ -6,7 +6,8 @@ import {
 } from '@/core/notices';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
-import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import { getPlaceLabel } from '@/core/industry/industryUi';
+import type { IndustryType } from '@/core/industry/types';
 import { Section } from './shared';
 
 export function ParentNoticesView({
@@ -18,7 +19,7 @@ export function ParentNoticesView({
   organizationId: string;
   industryType?: IndustryType | string;
 }) {
-  const place = normalizeIndustryType(industryType) === 'skin_clinic' ? '샵' : '학원';
+  const place = getPlaceLabel(industryType);
   const { notifications, loading, error } = useParentPortalNotifications(organizationId, student);
 
   return (

@@ -133,8 +133,8 @@ export const ParentAddChildModal: React.FC<ParentAddChildModalProps> = ({
 
         <p className="text-sm text-slate-600 mb-4">
           {isEdit
-            ? '이름·생년월일·학교·학년을 고칠 수 있습니다. 학원 연결은 아래 학원 연결 요청이나 연결 코드로 진행합니다.'
-            : '이름만 필수입니다. 등록 후 학원 연결 요청이나 학원 연결 코드로 학원과 연결할 수 있습니다.'}
+            ? '이름·생년월일·학교·학년을 고칠 수 있습니다. 연결은 아래 연결 요청이나 연결 코드로 진행합니다.'
+            : '이름만 필수입니다. 등록 후 연결 요청이나 연결 코드로 연결할 수 있습니다.'}
         </p>
 
         {error && (

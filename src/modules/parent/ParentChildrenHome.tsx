@@ -87,7 +87,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
   const parentPhone = portalTree?.parent?.phone?.trim() ?? '';
 
   const focusPhone = () => {
-    showToast('학원에서 부를 연락처를 아래 계정에 먼저 저장해 주세요.', 'error');
+    showToast('연결에 쓸 연락처를 아래 계정에 먼저 저장해 주세요.', 'error');
     document.getElementById('parent-phone')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
   };
 

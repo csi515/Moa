@@ -187,8 +187,8 @@ export function notifyParentPracticeRoomBooked(
   });
 }
 
-/** 피부관리 예약 확정·변경·취소 안내 */
-export function notifySkinBookingChange(params: {
+/** 예약 확정·변경·취소·완료·노쇼 안내 */
+export function notifyBookingChange(params: {
   studentId: string;
   studentName: string;
   parentPhone?: string;
@@ -209,3 +209,6 @@ export function notifySkinBookingChange(params: {
     portalTab: 'bookings',
   });
 }
+
+/** @deprecated notifyBookingChange 를 사용한다 */
+export const notifySkinBookingChange = notifyBookingChange;

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Loader2, Shield, CheckCircle2 } from 'lucide-react';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import type { OrganizationSearchResult } from '@/core/parent/services/enrollmentRequestService';
 import type { GlobalStudent } from '@/core/parent/types/globalParent';
 import {
@@ -29,6 +30,8 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
   const [error, setError] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const place = getPlaceLabel(organization.industryType);
 
   const handleSubmit = async () => {
     if (consentFields.length === 0) {
@@ -71,13 +74,13 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
           <p className="text-sm font-bold text-indigo-900 mb-2">등록 정보</p>
           <div className="space-y-1 text-sm text-indigo-800">
             <p>• 자녀: <span className="font-bold">{student.displayName}</span></p>
-            <p>• 학원: <span className="font-bold">{organization.name}</span></p>
+            <p>• {place}: <span className="font-bold">{organization.name}</span></p>
           </div>
         </div>
 
         <p className="text-sm text-slate-600 mb-4 leading-relaxed">
-          학원에 자녀 등록을 요청합니다. 아래 정보가 학원에 공유됩니다.
-          학원 승인 후 정식 등록이 완료됩니다.
+          {place}에 자녀 등록을 요청합니다. 아래 정보가 {place}에 공유됩니다.
+          {place} 승인 후 정식 등록이 완료됩니다.
         </p>
 
         {error && (
@@ -115,7 +118,7 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
 
         <div className="mb-4">
           <label className="block">
-            <span className="text-xs font-bold text-slate-500">학원에 전달할 메시지 (선택)</span>
+            <span className="text-xs font-bold text-slate-500">{place}에 전달할 메시지 (선택)</span>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -132,9 +135,9 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
         <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl mb-4">
           <p className="text-xs font-bold text-amber-900 mb-1">⚠️ 유의사항</p>
           <ul className="text-xs text-amber-800 space-y-0.5">
-            <li>• 학원 승인 후 정식 등록이 완료됩니다</li>
+            <li>• {place} 승인 후 정식 등록이 완료됩니다</li>
             <li>• 승인/거절 여부는 알림으로 안내됩니다</li>
-            <li>• 승인 후 학원 포털에서 자녀 정보를 확인할 수 있습니다</li>
+            <li>• 승인 후 {place} 포털에서 자녀 정보를 확인할 수 있습니다</li>
           </ul>
         </div>
 
