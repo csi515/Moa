@@ -8,6 +8,10 @@ import React, {
 } from 'react';
 import type { IndustryType } from '../industry/types';
 import { useAuth } from '../auth/AuthProvider';
+import {
+  assertOwnerOrganizationsActive,
+  rememberOwnerBusinessBlock,
+} from '../auth/services/ownerBusinessGate';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
 import { runLoginAccountSync } from '../accounts/loginBootstrapService';
@@ -61,7 +65,7 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const [organizations, setOrganizations] = useState<orgService.OrganizationMembership[]>([]);
   const [selectedMembership, setSelectedMembership] = useState<orgService.OrganizationMembership | null>(null);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
@@ -186,6 +190,21 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setPortalChildCount(portalChildren);
 
       const memberships = await orgService.fetchUserMembershipsWithContext();
+      const ownerOrgIds = memberships.filter((m) => m.role === 'owner').map((m) => m.organizationId);
+      if (ownerOrgIds.length > 0) {
+        try {
+          await assertOwnerOrganizationsActive(ownerOrgIds);
+        } catch (gateError) {
+          const message =
+            gateError instanceof Error
+              ? gateError.message
+              : '계속사업자가 아니면 로그인할 수 없습니다.';
+          rememberOwnerBusinessBlock(message);
+          await signOut();
+          return;
+        }
+      }
+
       setOrganizations(memberships);
 
       const staffMemberships = memberships.filter((m) => STAFF_ROLES.has(m.role));
@@ -247,7 +266,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user, applySelection, applyMembershipSelection]);
+  }, [user, signOut, applySelection, applyMembershipSelection]);
 
   useEffect(() => {
     refreshOrganizations();

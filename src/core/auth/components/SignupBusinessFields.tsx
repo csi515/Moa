@@ -115,14 +115,15 @@ export function SignupBusinessFields({
 
       <div>
         <label className="block text-xs font-bold text-slate-600 mb-1.5">
-          사업자등록번호 <span className="font-normal text-slate-400">(선택)</span>
+          사업자등록번호
         </label>
         <input
           type="text"
           inputMode="numeric"
           value={businessNumber}
           onChange={(event) => onBusinessNumberChange(event.target.value.replace(/[^0-9-]/g, ''))}
-          placeholder="123-45-67890"
+          placeholder="1234567890"
+          required
           className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
         />
       </div>

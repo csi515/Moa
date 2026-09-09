@@ -10,6 +10,7 @@ import { MEDICATION_STATUS_LABEL } from './types';
 import { MEDICATION_DEFAULTS } from './careDefaults';
 import { CareDateSearchBar } from './components/CareDateSearchBar';
 import { useModuleLabels } from '@/core/labels';
+import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
 
 type StatusFilter = 'ALL' | MedicationStatus;
 
@@ -40,9 +41,11 @@ export const MedicationRequestView: FC = () => {
     note: '',
   });
 
+  const studentIds = useMemo(() => new Set(students.map((student) => student.id)), [students]);
+
   const filtered = useMemo(() => {
     return requests
-      .filter((r) => r.requestDate === selectedDate)
+      .filter((r) => r.requestDate === selectedDate && studentIds.has(r.studentId))
       .filter((r) => (statusFilter === 'ALL' ? true : r.status === statusFilter))
       .filter((r) => {
         if (!searchQuery.trim()) return true;
@@ -54,7 +57,7 @@ export const MedicationRequestView: FC = () => {
         );
       })
       .sort((a, b) => a.studentName.localeCompare(b.studentName, 'ko'));
-  }, [requests, selectedDate, statusFilter, searchQuery]);
+  }, [requests, selectedDate, statusFilter, searchQuery, studentIds]);
 
   const openCreate = () => {
     setEditing(null);
@@ -116,11 +119,21 @@ export const MedicationRequestView: FC = () => {
   };
 
   const markAdministered = (item: MedicationRequest) => {
+    const student = students.find((entry) => entry.id === item.studentId);
     StorageService.saveMedicationRequest({
       ...item,
       status: 'administered',
       administeredAt: new Date().toISOString(),
       administeredBy: currentUser.name,
+    });
+    notifyBookingChange({
+      studentId: item.studentId,
+      studentName: item.studentName,
+      parentPhone: student?.parentPhone || student?.phone,
+      title: '투약 완료',
+      message: `${item.requestDate} ${item.studentName} ${item.medicineName} 투약이 완료되었습니다.`,
+      date: item.requestDate,
+      portalTab: 'medications',
     });
     showToast(`${item.studentName} 투약 완료로 표시했습니다.`, 'success');
   };

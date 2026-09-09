@@ -25,7 +25,7 @@ import {
   attendanceViewEntry,
   financeViewEntries,
 } from '@/core/industry/commonViewEntries';
-import { CareJournalView, MedicationRequestView } from './care';
+import { CareJournalView, CareRecordsView, MedicationRequestView } from './care';
 import { DaycareCareHubView } from './components/DaycareCareHubView';
 
 const daycareSettingsHub = () => (
@@ -41,7 +41,11 @@ const customerHub = () => (
 );
 
 const careHub = () => (
-  <DaycareCareHubView journalsView={CareJournalView} medicationsView={MedicationRequestView} />
+  <DaycareCareHubView
+    journalsView={CareJournalView}
+    medicationsView={MedicationRequestView}
+    recordsView={CareRecordsView}
+  />
 );
 
 const DAYCARE_VIEW_MAP: Record<string, () => ReactNode> = {

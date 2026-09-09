@@ -132,6 +132,9 @@ supabase secrets set JUSO_CONFM_KEY="..."
 
 # 공공데이터포털 특일정보/공휴일 (get-public-holidays) — 디코딩된 일반 인증키
 supabase secrets set DATA_GO_KR_SERVICE_KEY="..."
+
+# 국세청 사업자 상태조회 (verify-business-status) — 디코딩된 일반 인증키
+supabase secrets set NTS_BUSINESS_SERVICE_KEY="..."
 ```
 
 자세한 내용은 [Supabase Secrets 문서](https://supabase.com/docs/guides/functions/secrets)를 참고하세요.

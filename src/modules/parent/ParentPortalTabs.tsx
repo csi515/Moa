@@ -12,6 +12,7 @@ import { ParentEventsView } from './views/ParentEventsView';
 import { ParentNoticesView } from './views/ParentNoticesView';
 import { ParentCareJournalView } from './views/ParentCareJournalView';
 import { ParentMedicationView } from './views/ParentMedicationView';
+import { ParentIncidentView } from './views/ParentIncidentView';
 import { ParentScheduleView } from './views/ParentScheduleView';
 import { ParentBookingsView } from './views/ParentBookingsView';
 import { PilatesParentBookingsView } from './views/PilatesParentBookingsView';
@@ -98,6 +99,8 @@ export function ParentPortalTabs({
           onRefresh={onRefresh}
         />
       );
+    case 'incidents':
+      return <ParentIncidentView student={student} />;
     case 'schedule':
       return <ParentScheduleView student={student} organizationId={organizationId} />;
     case 'bookings':

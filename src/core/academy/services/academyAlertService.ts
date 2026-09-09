@@ -195,6 +195,7 @@ export function notifyBookingChange(params: {
   title: string;
   message: string;
   date?: string;
+  portalTab?: string;
 }): void {
   publishParentAlert({
     type: 'announcement',
@@ -206,7 +207,7 @@ export function notifyBookingChange(params: {
       parentPhone: params.parentPhone,
     },
     scheduledDate: params.date,
-    portalTab: 'bookings',
+    portalTab: params.portalTab || 'bookings',
   });
 }
 

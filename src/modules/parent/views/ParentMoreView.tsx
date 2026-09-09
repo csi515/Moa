@@ -59,6 +59,14 @@ function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
       icon: <Calendar className="w-5 h-5" />,
     });
   }
+  if (secondary.includes('incidents')) {
+    items.push({
+      id: 'incidents',
+      label: '사고 안내',
+      description: '원에서 전한 사고 기록',
+      icon: <FileText className="w-5 h-5" />,
+    });
+  }
   return items;
 }
 

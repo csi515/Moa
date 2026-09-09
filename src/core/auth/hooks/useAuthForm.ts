@@ -4,13 +4,17 @@ import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
 import { validateSignUpBusiness } from '../utils/validateSignup';
+import {
+  assertContinuingBusiness,
+  consumeOwnerBusinessBlockMessage,
+} from '../services/ownerBusinessGate';
 import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
 import type { AccountType } from '../types/signup';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function useAuthForm() {
-  const { signIn, signUp, signInWithKakao } = useAuth();
+  const { signIn, signUp, signInWithKakao, signOut } = useAuth();
   const { createOrganization } = useOrganization();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
@@ -25,7 +29,7 @@ export function useAuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => consumeOwnerBusinessBlockMessage());
   const [info, setInfo] = useState<string | null>(null);
 
   const switchMode = (next: AuthMode) => {
@@ -116,6 +120,12 @@ export function useAuthForm() {
         validateSignUpBusiness(business);
 
         await signUp(email.trim(), password, fullName.trim(), accountType, business);
+        try {
+          await assertContinuingBusiness(business.businessNumber || '');
+        } catch (gateError) {
+          await signOut();
+          throw gateError;
+        }
         await createOrganization(business.businessName, business.industryType, {
           name: business.businessName,
           directorName: fullName.trim(),

@@ -423,7 +423,7 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
   {
     id: 'care',
     title: '보육 기록',
-    description: '알림장·투약·상담으로 보호자와 하루 생활을 공유합니다.',
+    description: '알림장·투약·아동 기록·사고로 보호자와 하루 생활을 공유합니다.',
     items: [
       {
         id: 'journals',
@@ -437,6 +437,20 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
         summary: '보호자 투약 의뢰를 접수하고 투약 완료를 기록합니다.',
         howTo:
           '원에서 직접 등록하거나, 보호자가 포털에서 의뢰한 건을 확인한 뒤 투약하면 「투약 완료」로 표시합니다.',
+      },
+      {
+        id: 'child-records',
+        title: '아동 기록·사고',
+        summary: '예방접종 확인, 올해 건강검진, 알레르기, 귀가 동의와 사고 내용을 남깁니다.',
+        howTo:
+          '보육의 「기록」에서 빠진 원아를 눌러 확인하고, 사고는 저장하면 보호자에게 알립니다. 사진은 받지 않습니다.',
+      },
+      {
+        id: 'compliance-logs',
+        title: '보건증·안전·보존식·열람',
+        summary: '보건증 만료, 안전점검, 보존식 시각, CCTV 열람 신청을 보육 기록에 모읍니다.',
+        howTo:
+          '보육의 「기록」-「운영」에서 확인합니다. 만료 30일 전부터 경고가 뜨고, 점검 화면은 인쇄합니다.',
       },
       {
         id: 'consultations',

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StorageService } from '@/services/storage';
+import { useStorageRefresh } from '@/hooks';
 import { TuitionService } from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import {
@@ -27,6 +28,14 @@ export function DaycareParentHome({
 }) {
   const summary = TuitionService.getStudentBillingSummary(student.id);
   const { todaySession } = useParentAttendanceSessions(organizationId, student.id, 7);
+  const refreshKey = useStorageRefresh();
+  const latestIncident = useMemo(
+    () =>
+      StorageService.getCareIncidents()
+        .filter((item) => item.studentId === student.id)
+        .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))[0],
+    [student.id, refreshKey]
+  );
 
   const latestJournal = React.useMemo(
     () =>
@@ -134,6 +143,14 @@ export function DaycareParentHome({
           </ul>
         )}
       </Section>
+
+      {latestIncident && (
+        <Section title="최근 사고 안내">
+          <button type="button" onClick={() => onNavigate('incidents')} className="w-full text-left">
+            <p className="text-xs text-slate-700 line-clamp-2">{latestIncident.content}</p>
+          </button>
+        </Section>
+      )}
 
       <ParentNoticePreview
         student={student}

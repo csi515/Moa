@@ -15,6 +15,7 @@ import { CARE_JOURNAL_MOOD_LABEL } from './types';
 import { CARE_JOURNAL_DEFAULTS } from './careDefaults';
 import { CareDateSearchBar } from './components/CareDateSearchBar';
 import { useModuleLabels } from '@/core/labels';
+import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
 
 const MOOD_OPTIONS: CareJournalMood[] = ['good', 'normal', 'tired', 'sick'];
 
@@ -45,9 +46,11 @@ export const CareJournalView: FC = () => {
     teacherNote: '',
   });
 
+  const studentIds = useMemo(() => new Set(students.map((student) => student.id)), [students]);
+
   const dayJournals = useMemo(() => {
     return journals
-      .filter((j) => j.journalDate === selectedDate)
+      .filter((j) => j.journalDate === selectedDate && studentIds.has(j.studentId))
       .filter((j) => {
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
@@ -58,12 +61,31 @@ export const CareJournalView: FC = () => {
         );
       })
       .sort((a, b) => a.studentName.localeCompare(b.studentName, 'ko'));
-  }, [journals, selectedDate, searchQuery]);
+  }, [journals, selectedDate, searchQuery, studentIds]);
 
-  const openCreate = () => {
+  const missingStudents = useMemo(() => {
+    const written = new Set(
+      journals
+        .filter((journal) => journal.journalDate === selectedDate && studentIds.has(journal.studentId))
+        .map((journal) => journal.studentId)
+    );
+    const q = searchQuery.trim().toLowerCase();
+    return students
+      .filter((student) => !written.has(student.id))
+      .filter((student) => !q || student.name.toLowerCase().includes(q));
+  }, [students, journals, selectedDate, studentIds, searchQuery]);
+
+  const openCreate = (studentId?: string) => {
+    const existing = studentId
+      ? journals.find((journal) => journal.studentId === studentId && journal.journalDate === selectedDate)
+      : undefined;
+    if (existing) {
+      openEdit(existing);
+      return;
+    }
     setEditing(null);
     setForm({
-      studentId: students[0]?.id || '',
+      studentId: studentId || students[0]?.id || '',
       mood: 'good',
       meals: CARE_JOURNAL_DEFAULTS.meals,
       nap: CARE_JOURNAL_DEFAULTS.nap,
@@ -117,6 +139,15 @@ export const CareJournalView: FC = () => {
       teacherId: currentUser.staffId || undefined,
       teacherName: currentUser.name,
     });
+    notifyBookingChange({
+      studentId: student.id,
+      studentName: student.name,
+      parentPhone: student.parentPhone || student.phone,
+      title: '알림장',
+      message: `${selectedDate} ${student.name} 알림장이 ${editing ? '수정' : '등록'}되었습니다.`,
+      date: selectedDate,
+      portalTab: 'journals',
+    });
     showToast(editing ? '알림장이 수정되었습니다.' : '알림장이 등록되었습니다.', 'success');
     setIsModalOpen(false);
   };
@@ -162,6 +193,26 @@ export const CareJournalView: FC = () => {
           onSearchChange={setSearchQuery}
           searchPlaceholder={`${labels.customer.singular}·내용 검색`}
         />
+
+        {missingStudents.length > 0 && (
+          <div className="px-4 py-3 border-b border-slate-100 bg-amber-50/60">
+            <p className="text-xs font-bold text-amber-800 mb-2">
+              알림장 없는 {labels.customer.singular} {missingStudents.length}명
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {missingStudents.map((student) => (
+                <button
+                  key={student.id}
+                  type="button"
+                  onClick={() => openCreate(student.id)}
+                  className="px-3 py-2 min-h-[44px] rounded-xl bg-white border border-amber-200 text-xs font-bold text-slate-800"
+                >
+                  {student.name} 작성
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {dayJournals.length === 0 ? (
           <EmptyState

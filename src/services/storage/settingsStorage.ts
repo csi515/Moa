@@ -94,6 +94,12 @@ export function createSettingsStorage(api: StorageApi) {
         settings: (api.getSettings as () => unknown)(),
         careJournals: getItem(STORAGE_KEYS.CARE_JOURNALS, []),
         medicationRequests: getItem(STORAGE_KEYS.MEDICATION_REQUESTS, []),
+        childLegalRecords: getItem(STORAGE_KEYS.CARE_CHILD_RECORDS, []),
+        careIncidents: getItem(STORAGE_KEYS.CARE_INCIDENTS, []),
+        staffHealthCerts: getItem(STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS, []),
+        safetyInspectionLogs: getItem(STORAGE_KEYS.CARE_SAFETY_LOGS, []),
+        mealSampleLogs: getItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, []),
+        cctvViewRequests: getItem(STORAGE_KEYS.CARE_CCTV_REQUESTS, []),
         exportedAt: new Date().toISOString(),
       };
       return JSON.stringify(fullDump, null, 2);
@@ -124,6 +130,12 @@ export function createSettingsStorage(api: StorageApi) {
         if (data.settings) setItem(STORAGE_KEYS.SETTINGS, data.settings);
         if (data.careJournals) setItem(STORAGE_KEYS.CARE_JOURNALS, data.careJournals);
         if (data.medicationRequests) setItem(STORAGE_KEYS.MEDICATION_REQUESTS, data.medicationRequests);
+        if (data.childLegalRecords) setItem(STORAGE_KEYS.CARE_CHILD_RECORDS, data.childLegalRecords);
+        if (data.careIncidents) setItem(STORAGE_KEYS.CARE_INCIDENTS, data.careIncidents);
+        if (data.staffHealthCerts) setItem(STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS, data.staffHealthCerts);
+        if (data.safetyInspectionLogs) setItem(STORAGE_KEYS.CARE_SAFETY_LOGS, data.safetyInspectionLogs);
+        if (data.mealSampleLogs) setItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, data.mealSampleLogs);
+        if (data.cctvViewRequests) setItem(STORAGE_KEYS.CARE_CCTV_REQUESTS, data.cctvViewRequests);
         return true;
       } catch (error) {
         console.error('Import failed:', error);

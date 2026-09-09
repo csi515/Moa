@@ -42,6 +42,18 @@ export const STORAGE_KEYS = {
   CARE_JOURNALS: 'daycare_care_journals',
   /** 어린이집 플러그인 — 투약 의뢰 */
   MEDICATION_REQUESTS: 'daycare_medication_requests',
+  /** 어린이집 — 원아 건강·귀가 기록 (local only, 테이블 없음) */
+  CARE_CHILD_RECORDS: 'daycare_care_child_records',
+  /** 어린이집 — 사고 기록 (local only, 테이블 없음) */
+  CARE_INCIDENTS: 'daycare_care_incidents',
+  /** 어린이집 — 보건증 만료 (local only) */
+  CARE_STAFF_HEALTH_CERTS: 'daycare_care_staff_health_certs',
+  /** 어린이집 — 안전점검·대피훈련 (local only) */
+  CARE_SAFETY_LOGS: 'daycare_care_safety_logs',
+  /** 어린이집 — 보존식 (local only) */
+  CARE_MEAL_SAMPLES: 'daycare_care_meal_samples',
+  /** 어린이집 — CCTV 열람 신청 (local only) */
+  CARE_CCTV_REQUESTS: 'daycare_care_cctv_requests',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
   /** 온보딩 진행 상태 (org 스코프) — completed/skipped는 INITIALIZED와 함께 기록 */
@@ -106,6 +118,12 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SESSION_PASSES,
   STORAGE_KEYS.SLOT_RECRUITMENTS,
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
+  STORAGE_KEYS.CARE_CHILD_RECORDS,
+  STORAGE_KEYS.CARE_INCIDENTS,
+  STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS,
+  STORAGE_KEYS.CARE_SAFETY_LOGS,
+  STORAGE_KEYS.CARE_MEAL_SAMPLES,
+  STORAGE_KEYS.CARE_CCTV_REQUESTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

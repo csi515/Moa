@@ -1,6 +1,15 @@
 import { STORAGE_KEYS } from '@/services/adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
-import type { CareJournal, MedicationRequest } from './types';
+import type {
+  CareIncident,
+  CareJournal,
+  CctvViewRequest,
+  ChildLegalRecord,
+  MealSampleLog,
+  MedicationRequest,
+  SafetyInspectionLog,
+  StaffHealthCert,
+} from './types';
 
 function upsertById<T extends { id: string; createdAt?: string; updatedAt?: string }>(
   list: T[],
@@ -84,6 +93,123 @@ export function createDaycareCareStorage(_api: StorageApi) {
       if (!next) return false;
       setItem(STORAGE_KEYS.MEDICATION_REQUESTS, next);
       return true;
+    },
+
+    getChildLegalRecords(): ChildLegalRecord[] {
+      return getItem<ChildLegalRecord[]>(STORAGE_KEYS.CARE_CHILD_RECORDS, []);
+    },
+
+    saveChildLegalRecord(
+      input: Omit<ChildLegalRecord, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): ChildLegalRecord {
+      const current = getItem<ChildLegalRecord[]>(STORAGE_KEYS.CARE_CHILD_RECORDS, []);
+      const existingId =
+        input.id || current.find((record) => record.studentId === input.studentId)?.id;
+      const pickups = (input.authorizedPickups || [])
+        .map((person) => ({
+          name: person.name.trim(),
+          relation: person.relation.trim(),
+          phone: person.phone.trim(),
+        }))
+        .filter((person) => person.name);
+      const { list, saved } = upsertById(
+        current,
+        { ...input, id: existingId, authorizedPickups: pickups },
+        'clr'
+      );
+      setItem(STORAGE_KEYS.CARE_CHILD_RECORDS, list);
+      return saved;
+    },
+
+    getCareIncidents(): CareIncident[] {
+      return getItem<CareIncident[]>(STORAGE_KEYS.CARE_INCIDENTS, []);
+    },
+
+    saveCareIncident(
+      input: Omit<CareIncident, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): CareIncident {
+      const current = getItem<CareIncident[]>(STORAGE_KEYS.CARE_INCIDENTS, []);
+      const { list, saved } = upsertById(current, input, 'inc');
+      setItem(STORAGE_KEYS.CARE_INCIDENTS, list);
+      return saved;
+    },
+
+    deleteCareIncident(id: string): boolean {
+      const current = getItem<CareIncident[]>(STORAGE_KEYS.CARE_INCIDENTS, []);
+      const next = deleteById(current, id);
+      if (!next) return false;
+      setItem(STORAGE_KEYS.CARE_INCIDENTS, next);
+      return true;
+    },
+
+    getStaffHealthCerts(): StaffHealthCert[] {
+      return getItem<StaffHealthCert[]>(STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS, []);
+    },
+
+    saveStaffHealthCert(
+      input: Omit<StaffHealthCert, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): StaffHealthCert {
+      const current = getItem<StaffHealthCert[]>(STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS, []);
+      const existingId =
+        input.id || current.find((item) => item.teacherId === input.teacherId)?.id;
+      const { list, saved } = upsertById(current, { ...input, id: existingId }, 'shc');
+      setItem(STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS, list);
+      return saved;
+    },
+
+    getSafetyInspectionLogs(): SafetyInspectionLog[] {
+      return getItem<SafetyInspectionLog[]>(STORAGE_KEYS.CARE_SAFETY_LOGS, []);
+    },
+
+    saveSafetyInspectionLog(
+      input: Omit<SafetyInspectionLog, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): SafetyInspectionLog {
+      const current = getItem<SafetyInspectionLog[]>(STORAGE_KEYS.CARE_SAFETY_LOGS, []);
+      const { list, saved } = upsertById(current, input, 'saf');
+      setItem(STORAGE_KEYS.CARE_SAFETY_LOGS, list);
+      return saved;
+    },
+
+    deleteSafetyInspectionLog(id: string): boolean {
+      const current = getItem<SafetyInspectionLog[]>(STORAGE_KEYS.CARE_SAFETY_LOGS, []);
+      const next = deleteById(current, id);
+      if (!next) return false;
+      setItem(STORAGE_KEYS.CARE_SAFETY_LOGS, next);
+      return true;
+    },
+
+    getMealSampleLogs(): MealSampleLog[] {
+      return getItem<MealSampleLog[]>(STORAGE_KEYS.CARE_MEAL_SAMPLES, []);
+    },
+
+    saveMealSampleLog(
+      input: Omit<MealSampleLog, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): MealSampleLog {
+      const current = getItem<MealSampleLog[]>(STORAGE_KEYS.CARE_MEAL_SAMPLES, []);
+      const { list, saved } = upsertById(current, input, 'mls');
+      setItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, list);
+      return saved;
+    },
+
+    deleteMealSampleLog(id: string): boolean {
+      const current = getItem<MealSampleLog[]>(STORAGE_KEYS.CARE_MEAL_SAMPLES, []);
+      const next = deleteById(current, id);
+      if (!next) return false;
+      setItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, next);
+      return true;
+    },
+
+    getCctvViewRequests(): CctvViewRequest[] {
+      return getItem<CctvViewRequest[]>(STORAGE_KEYS.CARE_CCTV_REQUESTS, []);
+    },
+
+    saveCctvViewRequest(
+      input: Omit<CctvViewRequest, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): CctvViewRequest {
+      const current = getItem<CctvViewRequest[]>(STORAGE_KEYS.CARE_CCTV_REQUESTS, []);
+      const { list, saved } = upsertById(current, input, 'cct');
+      setItem(STORAGE_KEYS.CARE_CCTV_REQUESTS, list);
+      return saved;
     },
   };
 }

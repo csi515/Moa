@@ -8,6 +8,7 @@ import { filterParentNotices } from '@/core/notices';
 import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks';
 import { Baby, BookOpen, Megaphone, Pill } from 'lucide-react';
+import { findHealthCert, healthCertWarningLabel, isHealthCertWarning } from '@/modules/daycare/care/complianceUtils';
 
 export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
@@ -25,6 +26,13 @@ export const DaycareDashboardView: FC = () => {
       ).length,
     [refreshKey, today]
   );
+  const healthWarnings = useMemo(() => {
+    const certs = StorageService.getStaffHealthCerts();
+    return teachers
+      .filter((teacher) => teacher.status === 'active')
+      .map((teacher) => ({ teacher, cert: findHealthCert(certs, teacher.id) }))
+      .filter((item) => isHealthCertWarning(item.cert?.expiresAt));
+  }, [refreshKey, teachers]);
   const draftNotices = useMemo(
     () =>
       filterParentNotices(StorageService.getNotifications()).filter(
@@ -90,6 +98,22 @@ export const DaycareDashboardView: FC = () => {
       attendanceCheckedInLabel="오늘 등하원·보육"
       attendanceCheckInShortLabel="등원"
       attendanceActiveLabel="재원 원아"
+      extraPanels={
+        healthWarnings.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => setActiveTab('journals')}
+            className="w-full text-left px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200"
+          >
+            <p className="text-xs font-bold text-amber-800">보건증 확인 {healthWarnings.length}명</p>
+            <p className="text-[11px] text-amber-800 mt-1">
+              {healthWarnings
+                .map((item) => `${item.teacher.name} ${healthCertWarningLabel(item.cert?.expiresAt)}`)
+                .join(' · ')}
+            </p>
+          </button>
+        ) : undefined
+      }
       attendanceActions={
         <div className="mt-4 grid grid-cols-2 gap-2">
           <button
