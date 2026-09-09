@@ -12,11 +12,13 @@ interface SignupBusinessFieldsProps {
   phone: string;
   address: string;
   businessNumber: string;
+  openingDate: string;
   onIndustryTypeChange: (value: IndustryType) => void;
   onBusinessNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
   onAddressChange: (value: string) => void;
   onBusinessNumberChange: (value: string) => void;
+  onOpeningDateChange: (value: string) => void;
 }
 
 export function SignupBusinessFields({
@@ -25,11 +27,13 @@ export function SignupBusinessFields({
   phone,
   address,
   businessNumber,
+  openingDate,
   onIndustryTypeChange,
   onBusinessNameChange,
   onPhoneChange,
   onAddressChange,
   onBusinessNumberChange,
+  onOpeningDateChange,
 }: SignupBusinessFieldsProps) {
   const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false);
 
@@ -123,6 +127,17 @@ export function SignupBusinessFields({
           value={businessNumber}
           onChange={(event) => onBusinessNumberChange(event.target.value.replace(/[^0-9-]/g, ''))}
           placeholder="1234567890"
+          required
+          className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
+        />
+      </div>
+
+      <div>
+        <label className="block text-xs font-bold text-slate-600 mb-1.5">개업일자</label>
+        <input
+          type="date"
+          value={openingDate}
+          onChange={(event) => onOpeningDateChange(event.target.value)}
           required
           className="w-full px-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
         />

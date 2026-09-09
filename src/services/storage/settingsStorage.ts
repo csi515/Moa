@@ -100,6 +100,7 @@ export function createSettingsStorage(api: StorageApi) {
         safetyInspectionLogs: getItem(STORAGE_KEYS.CARE_SAFETY_LOGS, []),
         mealSampleLogs: getItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, []),
         cctvViewRequests: getItem(STORAGE_KEYS.CARE_CCTV_REQUESTS, []),
+        pickupLogs: getItem(STORAGE_KEYS.CARE_PICKUP_LOGS, []),
         exportedAt: new Date().toISOString(),
       };
       return JSON.stringify(fullDump, null, 2);
@@ -136,6 +137,7 @@ export function createSettingsStorage(api: StorageApi) {
         if (data.safetyInspectionLogs) setItem(STORAGE_KEYS.CARE_SAFETY_LOGS, data.safetyInspectionLogs);
         if (data.mealSampleLogs) setItem(STORAGE_KEYS.CARE_MEAL_SAMPLES, data.mealSampleLogs);
         if (data.cctvViewRequests) setItem(STORAGE_KEYS.CARE_CCTV_REQUESTS, data.cctvViewRequests);
+        if (data.pickupLogs) setItem(STORAGE_KEYS.CARE_PICKUP_LOGS, data.pickupLogs);
         return true;
       } catch (error) {
         console.error('Import failed:', error);

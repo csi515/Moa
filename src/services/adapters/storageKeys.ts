@@ -54,6 +54,8 @@ export const STORAGE_KEYS = {
   CARE_MEAL_SAMPLES: 'daycare_care_meal_samples',
   /** 어린이집 — CCTV 열람 신청 (local only) */
   CARE_CCTV_REQUESTS: 'daycare_care_cctv_requests',
+  /** 어린이집 — 하원 인수 (local only) */
+  CARE_PICKUP_LOGS: 'daycare_care_pickup_logs',
   ACTIVE_USER: 'piano_app_active_user',
   INITIALIZED: 'piano_app_initialized_v3',
   /** 온보딩 진행 상태 (org 스코프) — completed/skipped는 INITIALIZED와 함께 기록 */
@@ -124,6 +126,7 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.CARE_SAFETY_LOGS,
   STORAGE_KEYS.CARE_MEAL_SAMPLES,
   STORAGE_KEYS.CARE_CCTV_REQUESTS,
+  STORAGE_KEYS.CARE_PICKUP_LOGS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

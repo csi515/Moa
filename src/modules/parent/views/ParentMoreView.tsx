@@ -59,6 +59,14 @@ function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
       icon: <Calendar className="w-5 h-5" />,
     });
   }
+  if (secondary.includes('pickups')) {
+    items.push({
+      id: 'pickups',
+      label: '귀가 명단',
+      description: '데려갈 수 있는 사람과 알레르기',
+      icon: <Users className="w-5 h-5" />,
+    });
+  }
   if (secondary.includes('incidents')) {
     items.push({
       id: 'incidents',

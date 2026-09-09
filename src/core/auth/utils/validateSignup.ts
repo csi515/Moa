@@ -31,4 +31,8 @@ export function validateSignUpBusiness(details: SignUpBusinessDetails): void {
   if (digits.length !== 10) {
     throw new Error('사업자등록번호는 10자리 숫자로 입력해 주세요.');
   }
+  const opening = (details.openingDate ?? '').replace(/[^0-9]/g, '');
+  if (!/^\d{8}$/.test(opening)) {
+    throw new Error('개업일자를 입력해 주세요.');
+  }
 }

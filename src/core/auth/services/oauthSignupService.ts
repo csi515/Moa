@@ -1,4 +1,6 @@
 import { getCoreClient } from '@/lib/supabase';
+import { assertBusinessMatches, rememberOwnerBusinessBlock } from './ownerBusinessGate';
+import { signOut } from './authService';
 import {
   consumeOAuthSignupIntent,
   type OAuthSignupIntent,
@@ -46,6 +48,22 @@ export async function applyOAuthSignupIntentIfAny(): Promise<OAuthSignupIntent |
 
   if (error) {
     console.warn('[oauth] failed to apply signup intent', error.message);
+  }
+
+  if (accountType === 'owner' && intent.businessNumber && intent.openingDate && fullName) {
+    try {
+      await assertBusinessMatches({
+        businessNumber: intent.businessNumber,
+        representativeName: fullName,
+        openingDate: intent.openingDate,
+        businessName: intent.businessName || '',
+      });
+    } catch (gateError) {
+      rememberOwnerBusinessBlock(
+        gateError instanceof Error ? gateError.message : '사업자 정보가 일치하지 않습니다.'
+      );
+      await signOut();
+    }
   }
 
   return intent;

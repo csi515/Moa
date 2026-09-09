@@ -13,6 +13,7 @@ const corsHeaders = {
 };
 
 const STATUS_URL = "https://api.odcloud.kr/api/nts-businessman/v1/status";
+const VALIDATE_URL = "https://api.odcloud.kr/api/nts-businessman/v1/validate";
 
 interface StatusItem {
   b_no?: string;
@@ -31,6 +32,22 @@ function json(body: unknown, status = 200): Response {
 
 function digitsOnly(value: string): string {
   return value.replace(/\D/g, "");
+}
+
+async function loadServiceKey(): Promise<string | null> {
+  const fromEnv = Deno.env.get("NTS_BUSINESS_SERVICE_KEY");
+  if (fromEnv) return fromEnv;
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!supabaseUrl || !serviceRoleKey) return null;
+
+  const admin = createClient(supabaseUrl, serviceRoleKey, {
+    db: { schema: "core" },
+  });
+  const { data, error } = await admin.rpc("get_nts_business_service_key");
+  if (error || typeof data !== "string" || !data.trim()) return null;
+  return data;
 }
 
 Deno.serve(async (req: Request) => {
@@ -54,20 +71,69 @@ Deno.serve(async (req: Request) => {
       return json({ error: "인증 확인 실패" }, 401);
     }
 
-    const serviceKey = Deno.env.get("NTS_BUSINESS_SERVICE_KEY");
+    const serviceKey = await loadServiceKey();
     if (!serviceKey) {
       return json({ error: "사업자 상태 조회가 설정되지 않았습니다." }, 503);
     }
 
-    const payload = (await req.json()) as { businessNumber?: string };
+    const payload = (await req.json()) as {
+      check?: string;
+      businessNumber?: string;
+      representativeName?: string;
+      startDate?: string;
+      businessName?: string;
+    };
     const businessNumber = digitsOnly(String(payload.businessNumber ?? ""));
     if (businessNumber.length !== 10 || /^0+$/.test(businessNumber)) {
-      return json({ error: "사업자등록번호는 10자리 숫자여야 합니다.", active: false }, 400);
+      return json({ error: "사업자등록번호는 10자리 숫자여야 합니다.", active: false, matched: false }, 400);
     }
 
     const params = new URLSearchParams();
     params.set("serviceKey", serviceKey);
     params.set("returnType", "JSON");
+
+    if (payload.check === "validate") {
+      const startDate = digitsOnly(String(payload.startDate ?? ""));
+      const representativeName = String(payload.representativeName ?? "").trim();
+      const businessName = String(payload.businessName ?? "").trim();
+      if (!/^\d{8}$/.test(startDate) || !representativeName) {
+        return json({ error: "대표자 이름과 개업일자를 입력해 주세요.", matched: false }, 400);
+      }
+
+      const apiRes = await fetch(`${VALIDATE_URL}?${params.toString()}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          businesses: [{
+            b_no: businessNumber,
+            start_dt: startDate,
+            p_nm: representativeName,
+            b_nm: businessName,
+          }],
+        }),
+      });
+      const raw = await apiRes.json().catch(() => null);
+      if (!apiRes.ok || !raw) {
+        return json({ error: "사업자 정보 일치 확인에 실패했습니다.", matched: false }, 502);
+      }
+
+      const item = Array.isArray(raw.data) ? raw.data[0] : null;
+      const matched = String(item?.valid ?? "") === "01";
+      const statusCode = String(item?.status?.b_stt_cd ?? "");
+      const active = !statusCode || statusCode === "01";
+      return json({
+        matched,
+        active: matched && active,
+        businessNumber,
+        statusCode,
+        statusName: String(item?.status?.b_stt ?? ""),
+        message: matched && active
+          ? "사업자 정보가 일치합니다."
+          : matched
+            ? "계속사업자가 아닙니다."
+            : "사업자등록번호, 대표자 이름, 개업일자, 상호가 일치하지 않습니다.",
+      });
+    }
 
     const apiRes = await fetch(`${STATUS_URL}?${params.toString()}`, {
       method: "POST",

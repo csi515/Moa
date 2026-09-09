@@ -9,6 +9,10 @@ import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks';
 import { Baby, BookOpen, Megaphone, Pill } from 'lucide-react';
 import { findHealthCert, healthCertWarningLabel, isHealthCertWarning } from '@/modules/daycare/care/complianceUtils';
+import { buildTodayCareClose } from '@/modules/daycare/care/dailyClose';
+import { requestCareFocus } from '@/modules/daycare/care/careFocus';
+import { DailyCloseList } from '@/modules/daycare/care/components/DailyCloseList';
+import { PickupHandoffPanel } from '@/modules/daycare/care/components/PickupHandoffPanel';
 
 export const DaycareDashboardView: FC = () => {
   const { setActiveTab, setSelectedStudentId } = useApp();
@@ -33,6 +37,10 @@ export const DaycareDashboardView: FC = () => {
       .map((teacher) => ({ teacher, cert: findHealthCert(certs, teacher.id) }))
       .filter((item) => isHealthCertWarning(item.cert?.expiresAt));
   }, [refreshKey, teachers]);
+  const close = useMemo(
+    () => buildTodayCareClose(students, today),
+    [students, today, refreshKey]
+  );
   const draftNotices = useMemo(
     () =>
       filterParentNotices(StorageService.getNotifications()).filter(
@@ -99,20 +107,38 @@ export const DaycareDashboardView: FC = () => {
       attendanceCheckInShortLabel="등원"
       attendanceActiveLabel="재원 원아"
       extraPanels={
-        healthWarnings.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => setActiveTab('journals')}
-            className="w-full text-left px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200"
-          >
-            <p className="text-xs font-bold text-amber-800">보건증 확인 {healthWarnings.length}명</p>
-            <p className="text-[11px] text-amber-800 mt-1">
-              {healthWarnings
-                .map((item) => `${item.teacher.name} ${healthCertWarningLabel(item.cert?.expiresAt)}`)
-                .join(' · ')}
-            </p>
-          </button>
-        ) : undefined
+        <div className="space-y-3">
+          <DailyCloseList
+            close={close}
+            onWriteJournal={(studentId) => {
+              requestCareFocus({ kind: 'journal', studentId });
+              setActiveTab('journals');
+            }}
+            onOpenMedications={() => setActiveTab('medications')}
+            onOpenMeals={() => {
+              requestCareFocus({ kind: 'records', ops: 'meals' });
+              setActiveTab('journals');
+            }}
+          />
+          <PickupHandoffPanel close={close} />
+          {healthWarnings.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                requestCareFocus({ kind: 'records', ops: 'health' });
+                setActiveTab('journals');
+              }}
+              className="w-full text-left px-4 py-3 rounded-2xl bg-amber-50 border border-amber-200"
+            >
+              <p className="text-xs font-bold text-amber-800">보건증 확인 {healthWarnings.length}명</p>
+              <p className="text-[11px] text-amber-800 mt-1">
+                {healthWarnings
+                  .map((item) => `${item.teacher.name} ${healthCertWarningLabel(item.cert?.expiresAt)}`)
+                  .join(' · ')}
+              </p>
+            </button>
+          ) : null}
+        </div>
       }
       attendanceActions={
         <div className="mt-4 grid grid-cols-2 gap-2">

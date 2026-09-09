@@ -3,6 +3,7 @@ import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/
 import type {
   CareIncident,
   CareJournal,
+  CarePickupLog,
   CctvViewRequest,
   ChildLegalRecord,
   MealSampleLog,
@@ -201,6 +202,24 @@ export function createDaycareCareStorage(_api: StorageApi) {
 
     getCctvViewRequests(): CctvViewRequest[] {
       return getItem<CctvViewRequest[]>(STORAGE_KEYS.CARE_CCTV_REQUESTS, []);
+    },
+
+    getCarePickupLogs(): CarePickupLog[] {
+      return getItem<CarePickupLog[]>(STORAGE_KEYS.CARE_PICKUP_LOGS, []);
+    },
+
+    saveCarePickupLog(
+      input: Omit<CarePickupLog, 'id' | 'createdAt' | 'updatedAt'> & { id?: string }
+    ): CarePickupLog {
+      const current = getItem<CarePickupLog[]>(STORAGE_KEYS.CARE_PICKUP_LOGS, []);
+      const existingId =
+        input.id ||
+        current.find(
+          (item) => item.studentId === input.studentId && item.pickupDate === input.pickupDate
+        )?.id;
+      const { list, saved } = upsertById(current, { ...input, id: existingId }, 'pkp');
+      setItem(STORAGE_KEYS.CARE_PICKUP_LOGS, list);
+      return saved;
     },
 
     saveCctvViewRequest(

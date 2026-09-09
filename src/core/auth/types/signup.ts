@@ -8,6 +8,7 @@ export interface SignUpBusinessDetails {
   phone: string;
   address: string;
   businessNumber?: string;
+  openingDate?: string;
 }
 
 export interface SignUpPayload {

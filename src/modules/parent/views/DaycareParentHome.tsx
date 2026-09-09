@@ -9,7 +9,7 @@ import {
 } from '@/core/attendance/services/attendanceService';
 import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import { ParentNoticePreview } from './parentHomeShared';
-import { CARE_JOURNAL_MOOD_LABEL, MEDICATION_STATUS_LABEL } from '@/modules/daycare/care';
+import { CARE_JOURNAL_MOOD_LABEL, MEDICATION_STATUS_LABEL, PICKUP_OUTSIDE_LABEL } from '@/modules/daycare/care';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
 import { SummaryMetricCard } from '@/shared/components';
@@ -44,6 +44,13 @@ export function DaycareParentHome({
         .sort((a, b) => b.journalDate.localeCompare(a.journalDate))[0],
     [student.id]
   );
+
+  const todayPickup = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    return StorageService.getCarePickupLogs()
+      .filter((log) => log.studentId === student.id && log.pickupDate === today)
+      .sort((a, b) => b.pickedUpAt.localeCompare(a.pickedUpAt))[0];
+  }, [student.id, refreshKey]);
 
   const pendingMeds = React.useMemo(
     () =>
@@ -83,6 +90,25 @@ export function DaycareParentHome({
           onClick={() => onNavigate('tuition')}
         />
       </div>
+
+      <Section title="오늘 하원">
+        {todayPickup ? (
+          <p className="text-sm text-slate-700">
+            {formatSessionTime(todayPickup.pickedUpAt)} · {todayPickup.pickerName}
+            {todayPickup.relation ? ` · ${todayPickup.relation}` : ''}
+            {todayPickup.outsideConsent ? ` · ${PICKUP_OUTSIDE_LABEL}` : ''}
+          </p>
+        ) : (
+          <p className="text-sm text-slate-400">아직 하원 기록이 없습니다.</p>
+        )}
+        <button
+          type="button"
+          onClick={() => onNavigate('pickups')}
+          className="mt-3 w-full min-h-[44px] rounded-xl border border-slate-200 text-sm font-bold text-slate-700"
+        >
+          귀가 명단 확인
+        </button>
+      </Section>
 
       {todaySession?.checkInAt && (
         <Section title="오늘 등원">

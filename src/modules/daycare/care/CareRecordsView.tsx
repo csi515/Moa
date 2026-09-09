@@ -1,4 +1,4 @@
-import { useMemo, useState, type FC } from 'react';
+import { useEffect, useMemo, useState, type FC } from 'react';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { FilterTabs } from '@/shared/components/ui';
@@ -6,6 +6,7 @@ import { ChildLegalRecordsView } from './ChildLegalRecordsView';
 import { CareIncidentView } from './CareIncidentView';
 import { CareComplianceView } from './CareComplianceView';
 import { findHealthCert, healthCertWarningLabel, isHealthCertWarning } from './complianceUtils';
+import { peekCareFocus, subscribeCareFocus, takeCareFocus } from './careFocus';
 
 type RecordSegment = 'children' | 'incidents' | 'ops';
 
@@ -13,7 +14,21 @@ type RecordSegment = 'children' | 'incidents' | 'ops';
 export const CareRecordsView: FC = () => {
   const refreshKey = useStorageRefresh();
   const [segment, setSegment] = useState<RecordSegment>('children');
+  const [opsSegment, setOpsSegment] = useState<'health' | 'meals'>('health');
   const [opsKey, setOpsKey] = useState(0);
+  useEffect(() => {
+    const apply = () => {
+      const pending = peekCareFocus();
+      if (pending?.kind !== 'records') return;
+      takeCareFocus('records');
+      setSegment('ops');
+      setOpsSegment(pending.ops);
+      setOpsKey((key) => key + 1);
+    };
+    apply();
+    return subscribeCareFocus(apply);
+  }, []);
+
   const warnings = useMemo(() => {
     const teachers = StorageService.getTeachers().filter((teacher) => teacher.status === 'active');
     const certs = StorageService.getStaffHealthCerts();
@@ -50,7 +65,7 @@ export const CareRecordsView: FC = () => {
       />
       {segment === 'children' && <ChildLegalRecordsView />}
       {segment === 'incidents' && <CareIncidentView />}
-      {segment === 'ops' && <CareComplianceView key={opsKey} />}
+      {segment === 'ops' && <CareComplianceView key={opsKey} initialSegment={opsSegment} />}
     </div>
   );
 };

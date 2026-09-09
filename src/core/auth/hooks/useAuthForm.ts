@@ -5,7 +5,7 @@ import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
 import { validateSignUpBusiness } from '../utils/validateSignup';
 import {
-  assertContinuingBusiness,
+  assertBusinessMatches,
   consumeOwnerBusinessBlockMessage,
 } from '../services/ownerBusinessGate';
 import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
@@ -26,6 +26,7 @@ export function useAuthForm() {
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [businessNumber, setBusinessNumber] = useState('');
+  const [openingDate, setOpeningDate] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,17 @@ export function useAuthForm() {
           throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
         }
         if (accountType === 'owner') {
+          validateSignUpBusiness({
+            industryType,
+            businessName: businessName.trim(),
+            phone: phone.trim(),
+            address: address.trim(),
+            businessNumber: businessNumber.trim() || undefined,
+            openingDate: openingDate.trim() || undefined,
+          });
+          if (!fullName.trim()) {
+            throw new Error('대표자 이름을 입력해 주세요.');
+          }
           saveOAuthSignupIntent({
             mode: 'signup',
             accountType,
@@ -57,6 +69,7 @@ export function useAuthForm() {
             phone: phone.trim() || undefined,
             address: address.trim() || undefined,
             businessNumber: businessNumber.trim() || undefined,
+            openingDate: openingDate.trim() || undefined,
           });
         } else {
           saveOAuthSignupIntent({
@@ -116,12 +129,18 @@ export function useAuthForm() {
           phone: phone.trim(),
           address: address.trim(),
           businessNumber: businessNumber.trim() || undefined,
+          openingDate: openingDate.trim() || undefined,
         };
         validateSignUpBusiness(business);
 
         await signUp(email.trim(), password, fullName.trim(), accountType, business);
         try {
-          await assertContinuingBusiness(business.businessNumber || '');
+          await assertBusinessMatches({
+            businessNumber: business.businessNumber || '',
+            representativeName: fullName.trim(),
+            openingDate: business.openingDate || '',
+            businessName: business.businessName,
+          });
         } catch (gateError) {
           await signOut();
           throw gateError;
@@ -166,6 +185,8 @@ export function useAuthForm() {
     setAddress,
     businessNumber,
     setBusinessNumber,
+    openingDate,
+    setOpeningDate,
     showPassword,
     setShowPassword,
     agreedToTerms,

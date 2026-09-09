@@ -88,7 +88,7 @@ export function getParentPortalSecondaryTabs(industry: IndustryType | string): P
     return ['notices', 'assignments', 'progress', 'reports', 'events', 'more'];
   }
   if (type === 'gym') return ['notices', 'events', 'more'];
-  if (type === 'daycare') return ['notices', 'incidents', 'more'];
+  if (type === 'daycare') return ['notices', 'incidents', 'pickups', 'more'];
   if (type === 'pilates' || type === 'skin_clinic') return ['notices', 'more'];
   return ['notices', 'more'];
 }

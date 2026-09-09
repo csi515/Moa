@@ -1,4 +1,4 @@
-﻿import { useMemo, useState, type FC, type FormEvent } from 'react';
+﻿import { useEffect, useMemo, useState, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -16,11 +16,14 @@ import { CARE_JOURNAL_DEFAULTS } from './careDefaults';
 import { CareDateSearchBar } from './components/CareDateSearchBar';
 import { useModuleLabels } from '@/core/labels';
 import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
+import { buildTodayCareClose } from './dailyClose';
+import { peekCareFocus, requestCareFocus, subscribeCareFocus, takeCareFocus } from './careFocus';
+import { DailyCloseList } from './components/DailyCloseList';
 
 const MOOD_OPTIONS: CareJournalMood[] = ['good', 'normal', 'tired', 'sick'];
 
 export const CareJournalView: FC = () => {
-  const { showToast, openConfirmDialog, currentUser } = useApp();
+  const { showToast, openConfirmDialog, currentUser, setActiveTab } = useApp();
   const { scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
   const labels = useModuleLabels();
@@ -30,6 +33,8 @@ export const CareJournalView: FC = () => {
     [scopeStudents, refreshKey]
   );
   const journals = useMemo(() => StorageService.getCareJournals(), [refreshKey]);
+  const today = new Date().toISOString().slice(0, 10);
+  const close = useMemo(() => buildTodayCareClose(students, today), [students, today, refreshKey]);
 
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [searchQuery, setSearchQuery] = useState('');
@@ -152,6 +157,26 @@ export const CareJournalView: FC = () => {
     setIsModalOpen(false);
   };
 
+  const [focusStudentId, setFocusStudentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const apply = () => {
+      const pending = peekCareFocus();
+      if (pending?.kind !== 'journal') return;
+      takeCareFocus('journal');
+      setSelectedDate(today);
+      setFocusStudentId(pending.studentId);
+    };
+    apply();
+    return subscribeCareFocus(apply);
+  }, [today]);
+
+  useEffect(() => {
+    if (!focusStudentId || selectedDate !== today) return;
+    openCreate(focusStudentId);
+    setFocusStudentId(null);
+  }, [focusStudentId, selectedDate, today]);
+
   const handleDelete = (journal: CareJournal) => {
     openConfirmDialog({
       title: '알림장 삭제',
@@ -183,6 +208,16 @@ export const CareJournalView: FC = () => {
             알림장 작성
           </button>
         }
+      />
+
+      <DailyCloseList
+        close={close}
+        onWriteJournal={(studentId) => {
+          setSelectedDate(today);
+          openCreate(studentId);
+        }}
+        onOpenMedications={() => setActiveTab('medications')}
+        onOpenMeals={() => requestCareFocus({ kind: 'records', ops: 'meals' })}
       />
 
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">

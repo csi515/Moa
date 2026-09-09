@@ -19,6 +19,7 @@ export type OAuthSignupIntent = {
   phone?: string;
   address?: string;
   businessNumber?: string;
+  openingDate?: string;
   /** OAuth 리다이렉트 중 유실 방지용 가디언 연결 코드 */
   pendingGuardianLink?: string;
   /** 공개 사업장 코드 → 학원 연결 요청 */

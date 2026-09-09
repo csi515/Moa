@@ -17,7 +17,7 @@ import { TeacherJoinFlow } from './components/TeacherJoinFlow';
 import { useAuth } from '../auth/AuthProvider';
 
 export const OrganizationSelector: React.FC = () => {
-  const { organizations, selectOrganization, loading } = useOrganization();
+  const { organizations, selectOrganization, loading, blockedOwnerOrgIds } = useOrganization();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
@@ -108,6 +108,10 @@ export const OrganizationSelector: React.FC = () => {
                         <p className="text-xs text-slate-500">
                           {getIndustryLabel(membership.organization.industry_type as IndustryType)} ·{' '}
                           {getRoleLabel(membership.role)}
+                          {membership.role === 'owner' &&
+                          blockedOwnerOrgIds.includes(membership.organizationId)
+                            ? ' · 운영 중지'
+                            : ''}
                         </p>
                       </div>
                     </div>

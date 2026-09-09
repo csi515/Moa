@@ -8,8 +8,10 @@ import { InspectionBinderView } from './InspectionBinderView';
 
 type ComplianceSegment = 'health' | 'safety' | 'meals' | 'cctv' | 'binder';
 
-export const CareComplianceView: FC = () => {
-  const [segment, setSegment] = useState<ComplianceSegment>('health');
+export const CareComplianceView: FC<{ initialSegment?: ComplianceSegment }> = ({
+  initialSegment = 'health',
+}) => {
+  const [segment, setSegment] = useState<ComplianceSegment>(initialSegment);
 
   return (
     <div className="space-y-4">

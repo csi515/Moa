@@ -12,6 +12,7 @@ export {
   CARE_JOURNAL_MOOD_LABEL,
   CHILD_RECORD_GAP_LABEL,
   MEDICATION_STATUS_LABEL,
+  PICKUP_OUTSIDE_LABEL,
 } from './types';
 export { createDaycareCareStorage } from './careStorage';
 export { CareJournalView } from './CareJournalView';

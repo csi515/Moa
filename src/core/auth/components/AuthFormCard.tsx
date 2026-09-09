@@ -19,6 +19,7 @@ interface AuthFormCardProps {
   phone: string;
   address: string;
   businessNumber: string;
+  openingDate: string;
   showPassword: boolean;
   agreedToTerms: boolean;
   loading: boolean;
@@ -33,6 +34,7 @@ interface AuthFormCardProps {
   onPhoneChange: (value: string) => void;
   onAddressChange: (value: string) => void;
   onBusinessNumberChange: (value: string) => void;
+  onOpeningDateChange: (value: string) => void;
   onShowPasswordToggle: () => void;
   onAgreedToTermsChange: (value: boolean) => void;
   onSwitchMode: (mode: AuthMode) => void;
@@ -51,6 +53,7 @@ export function AuthFormCard({
   phone,
   address,
   businessNumber,
+  openingDate,
   showPassword,
   agreedToTerms,
   loading,
@@ -65,6 +68,7 @@ export function AuthFormCard({
   onPhoneChange,
   onAddressChange,
   onBusinessNumberChange,
+  onOpeningDateChange,
   onShowPasswordToggle,
   onAgreedToTermsChange,
   onSwitchMode,
@@ -214,11 +218,13 @@ export function AuthFormCard({
             phone={phone}
             address={address}
             businessNumber={businessNumber}
+            openingDate={openingDate}
             onIndustryTypeChange={onIndustryTypeChange}
             onBusinessNameChange={onBusinessNameChange}
             onPhoneChange={onPhoneChange}
             onAddressChange={onAddressChange}
             onBusinessNumberChange={onBusinessNumberChange}
+            onOpeningDateChange={onOpeningDateChange}
           />
         )}
 

@@ -68,6 +68,8 @@ export interface Database {
           road_address: string | null;
           address_detail: string | null;
           business_registration_number: string | null;
+          biz_status: string | null;
+          biz_checked_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -87,6 +89,8 @@ export interface Database {
           road_address?: string | null;
           address_detail?: string | null;
           business_registration_number?: string | null;
+          biz_status?: string | null;
+          biz_checked_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -106,6 +110,8 @@ export interface Database {
           road_address?: string | null;
           address_detail?: string | null;
           business_registration_number?: string | null;
+          biz_status?: string | null;
+          biz_checked_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };

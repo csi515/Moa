@@ -9,8 +9,8 @@ import React, {
 import type { IndustryType } from '../industry/types';
 import { useAuth } from '../auth/AuthProvider';
 import {
-  assertOwnerOrganizationsActive,
-  rememberOwnerBusinessBlock,
+  listBlockedOwnerOrganizations,
+  saveOrganizationBusinessStatus,
 } from '../auth/services/ownerBusinessGate';
 import type { Organization, MemberRole } from '../../lib/supabase';
 import { StorageService } from '../../services/storage';
@@ -44,6 +44,7 @@ interface OrganizationContextType {
   parentPortalActive: boolean;
   customerPortalActive: boolean;
   portalChildCount: number;
+  blockedOwnerOrgIds: string[];
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
   switchMembership: (membershipId: string) => Promise<void>;
@@ -65,7 +66,7 @@ interface OrganizationContextType {
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
 export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, signOut } = useAuth();
+  const { user } = useAuth();
   const [organizations, setOrganizations] = useState<orgService.OrganizationMembership[]>([]);
   const [selectedMembership, setSelectedMembership] = useState<orgService.OrganizationMembership | null>(null);
   const [currentOrganization, setCurrentOrganization] = useState<Organization | null>(null);
@@ -78,6 +79,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [canAccessParentPortal, setCanAccessParentPortal] = useState(false);
   const [canAccessCustomerPortal, setCanAccessCustomerPortal] = useState(false);
   const [portalChildCount, setPortalChildCount] = useState(0);
+  const [blockedOwnerOrgIds, setBlockedOwnerOrgIds] = useState<string[]>([]);
   const [parentPortalActive, setParentPortalActiveState] = useState(isParentPortalModeActive);
   const [customerPortalActive, setCustomerPortalActiveState] = useState(isCustomerPortalModeActive);
   const [loading, setLoading] = useState(true);
@@ -159,6 +161,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setIsParentOnly(false);
       setCanAccessParentPortal(false);
       setPortalChildCount(0);
+      setBlockedOwnerOrgIds([]);
       setLoading(false);
       return;
     }
@@ -191,23 +194,24 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       const memberships = await orgService.fetchUserMembershipsWithContext();
       const ownerOrgIds = memberships.filter((m) => m.role === 'owner').map((m) => m.organizationId);
+      let blockedIds: string[] = [];
       if (ownerOrgIds.length > 0) {
         try {
-          await assertOwnerOrganizationsActive(ownerOrgIds);
-        } catch (gateError) {
-          const message =
-            gateError instanceof Error
-              ? gateError.message
-              : '계속사업자가 아니면 로그인할 수 없습니다.';
-          rememberOwnerBusinessBlock(message);
-          await signOut();
-          return;
+          blockedIds = await listBlockedOwnerOrganizations(ownerOrgIds);
+        } catch {
+          blockedIds = [];
         }
       }
+      setBlockedOwnerOrgIds(blockedIds);
+      const blocked = new Set(blockedIds);
+      const isBlockedOwner = (membership: orgService.OrganizationMembership) =>
+        membership.role === 'owner' && blocked.has(membership.organizationId);
 
       setOrganizations(memberships);
 
-      const staffMemberships = memberships.filter((m) => STAFF_ROLES.has(m.role));
+      const staffMemberships = memberships.filter(
+        (m) => STAFF_ROLES.has(m.role) && !isBlockedOwner(m)
+      );
       const customerMemberships = memberships.filter((m) => CUSTOMER_ROLES.has(m.role));
       const hasLegacyParentMembership = memberships.some((m) => m.role === 'parent' || m.role === 'guardian');
       const hasParentAccess = portalChildren > 0 || hasLegacyParentMembership;
@@ -221,17 +225,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setIsParentOnly(parentOnly);
       setIsCustomerOnly(customerOnly);
 
-      if (parentOnly) {
-        setParentPortalActiveState(true);
-        setParentPortalModeActive(true);
-        setCustomerPortalActiveState(false);
-        setCustomerPortalModeActive(false);
-        orgService.clearStoredOrganizationId();
-        applyMembershipSelection(memberships, null);
-        return;
-      }
-
-      if (customerOnly) {
+      const enterCustomer = () => {
         setCustomerPortalActiveState(true);
         setCustomerPortalModeActive(true);
         setParentPortalActiveState(false);
@@ -239,26 +233,62 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         const preferred =
           customerMemberships.find((m) => m.isCurrentContext) || customerMemberships[0];
         applyMembershipSelection(memberships, preferred.id);
+      };
+
+      const enterParent = () => {
+        setParentPortalActiveState(true);
+        setParentPortalModeActive(true);
+        setCustomerPortalActiveState(false);
+        setCustomerPortalModeActive(false);
+        orgService.clearStoredOrganizationId();
+        applyMembershipSelection(memberships, null);
+      };
+
+      if (staffMemberships.length === 0 && customerMemberships.length > 0) {
+        enterCustomer();
+        return;
+      }
+
+      if (parentOnly) {
+        enterParent();
+        return;
+      }
+
+      if (customerOnly) {
+        enterCustomer();
         return;
       }
 
       const currentContextMembership = memberships.find((m) => m.isCurrentContext);
-      if (currentContextMembership) {
+      if (currentContextMembership && !isBlockedOwner(currentContextMembership)) {
         applyMembershipSelection(memberships, currentContextMembership.id);
         return;
       }
 
-      const storedId = orgService.getStoredOrganizationId();
-      const autoId =
-        storedId && memberships.some((m) => m.organizationId === storedId)
-          ? storedId
-          : staffMemberships.length === 1
-            ? staffMemberships[0].organizationId
-            : memberships.length === 1
-              ? memberships[0].organizationId
-              : null;
+      if (staffMemberships.length === 0) {
+        const blockedOwner = memberships.find((m) => isBlockedOwner(m));
+        if (blockedOwner) {
+          setParentPortalActiveState(false);
+          setParentPortalModeActive(false);
+          setCustomerPortalActiveState(false);
+          setCustomerPortalModeActive(false);
+          applySelection(memberships, blockedOwner.organizationId);
+          return;
+        }
+      }
 
-      applySelection(memberships, autoId);
+      const storedId = orgService.getStoredOrganizationId();
+      const storedMembership = storedId
+        ? memberships.find((m) => m.organizationId === storedId)
+        : undefined;
+      const storedUsable = storedMembership && !isBlockedOwner(storedMembership);
+      const autoId = storedUsable
+        ? storedId
+        : staffMemberships.length === 1
+          ? staffMemberships[0].organizationId
+          : null;
+
+      applySelection(memberships, autoId ?? null);
     } catch (err) {
       console.error('[org] refreshOrganizations failed', err);
       setOrganizations([]);
@@ -266,7 +296,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     } finally {
       setLoading(false);
     }
-  }, [user, signOut, applySelection, applyMembershipSelection]);
+  }, [user, applySelection, applyMembershipSelection]);
 
   useEffect(() => {
     refreshOrganizations();
@@ -295,6 +325,12 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       try {
         await orgService.setActiveMembership(membershipId);
+        if (STAFF_ROLES.has(membership.role)) {
+          setParentPortalActiveState(false);
+          setParentPortalModeActive(false);
+          setCustomerPortalActiveState(false);
+          setCustomerPortalModeActive(false);
+        }
         applyMembershipSelection(organizations, membershipId);
       } catch (error) {
         console.error('Failed to switch membership:', error);
@@ -328,6 +364,9 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       const orgId = await orgService.createOrganization(
         orgService.toCreateOrganizationOptions(name, industryType, settings)
       );
+      if (settings?.businessNumber) {
+        await saveOrganizationBusinessStatus(orgId, '01');
+      }
       await refreshOrganizations();
       selectOrganization(orgId);
     },
@@ -397,6 +436,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         parentPortalActive,
         customerPortalActive,
         portalChildCount,
+        blockedOwnerOrgIds,
         loading,
         selectOrganization,
         switchMembership,

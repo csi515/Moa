@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type FC } from 'react';
 import { BookOpen, ClipboardList, Pill } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { PageHeader, SegmentedControl } from '@/shared/components';
+import { peekCareFocus, subscribeCareFocus } from '../care/careFocus';
 
 type CareSegment = 'journals' | 'medications' | 'records';
 
@@ -21,7 +22,16 @@ export const DaycareCareHubView: FC<{
   const [recordsOpen, setRecordsOpen] = useState(false);
 
   useEffect(() => {
-    setRecordsOpen(false);
+    const apply = () => {
+      const pending = peekCareFocus();
+      if (pending?.kind === 'records') {
+        setRecordsOpen(true);
+        return;
+      }
+      setRecordsOpen(false);
+    };
+    apply();
+    return subscribeCareFocus(apply);
   }, [activeTab]);
   const segment: CareSegment = useMemo(() => {
     if (recordsOpen) return 'records';

@@ -165,5 +165,23 @@ export const CCTV_VIEW_STATUS_LABEL: Record<CctvViewStatus, string> = {
   rejected: '반려',
 };
 
+/** 어린이집 하원 인수 — 출결 퇴실과 별도 */
+export interface CarePickupLog {
+  id: string;
+  studentId: string;
+  studentName: string;
+  pickupDate: string;
+  pickedUpAt: string;
+  pickerName: string;
+  relation: string;
+  outsideConsent: boolean;
+  teacherId?: string;
+  teacherName?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PICKUP_OUTSIDE_LABEL = '동의 외';
+
 export const HEALTH_CERT_WARN_DAYS = 30;
 export const MEAL_SAMPLE_HOLD_HOURS = 144;

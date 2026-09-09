@@ -4,6 +4,7 @@ import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
+import { OwnerOperationStoppedView } from './core/organizations/OwnerOperationStoppedView';
 import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { ParentShell } from './modules/parent/ParentShell';
 import { CustomerShell } from './core/customer/CustomerShell';
@@ -14,6 +15,8 @@ export const SupabaseAppGate: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
   const {
     currentOrganization,
+    currentRole,
+    blockedOwnerOrgIds,
     loading: orgLoading,
     isParentOnly,
     isCustomerOnly,
@@ -63,6 +66,14 @@ export const SupabaseAppGate: React.FC = () => {
 
   if (isCustomerOnly || customerPortalActive) {
     return <CustomerShell />;
+  }
+
+  if (
+    currentOrganization &&
+    currentRole === 'owner' &&
+    blockedOwnerOrgIds.includes(currentOrganization.id)
+  ) {
+    return <OwnerOperationStoppedView />;
   }
 
   if (!currentOrganization) {
