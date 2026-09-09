@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Student } from '@/types';
+import { SkinChartTab } from '@/modules/skin/components/charts/SkinChartTab';
 import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal';
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
@@ -18,6 +19,7 @@ import { useStudentDetailModal } from './useStudentDetailModal';
 import type { DetailTab } from './detail/types';
 import { useApp } from '@/context/AppContext';
 import { useStaffGrants } from '@/hooks';
+import { useModuleLabels } from '@/core/labels';
 
 export type { DetailTab } from './detail/types';
 
@@ -55,6 +57,10 @@ const StudentDetailModalContent: React.FC<
   });
   const { setActiveTab } = useApp();
   const { allow } = useStaffGrants();
+  const labels = useModuleLabels();
+  const skin = modal.industryPlugin.id === 'skin_clinic';
+  const customerLabel = skin ? labels.customer.singular : '학생';
+  const contactLabel = skin ? labels.contact.singular : '학부모';
   const canCall = allow('guardianPhone');
   const canEdit = allow('editStudent');
   const canWithdraw = allow('withdrawStudent');
@@ -126,7 +132,7 @@ const StudentDetailModalContent: React.FC<
                 className="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5"
               >
                 <Phone className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">학부모</span> 전화
+                <span className="hidden sm:inline">{contactLabel}</span> 전화
               </a>
             )}
             <>
@@ -134,7 +140,7 @@ const StudentDetailModalContent: React.FC<
               <button
                 onClick={() => onEdit(student)}
                 className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:text-indigo-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors"
-                title="학생 정보 수정"
+                title={`${customerLabel} 정보 수정`}
               >
                 <Edit className="w-4 h-4" />
               </button>
@@ -147,7 +153,13 @@ const StudentDetailModalContent: React.FC<
                     ? 'text-emerald-600 hover:bg-emerald-50'
                     : 'text-slate-400 hover:text-amber-700 hover:bg-amber-50'
                 }`}
-                title={student.status === 'withdrawn' ? '재원 복귀' : '퇴원 처리'}
+                title={
+                  student.status === 'withdrawn'
+                    ? '재원 복귀'
+                    : modal.industryPlugin.id === 'skin_clinic'
+                      ? '종료 처리'
+                      : '퇴원 처리'
+                }
               >
                 {student.status === 'withdrawn' ? (
                   <UserCheck className="w-4 h-4" />
@@ -170,7 +182,7 @@ const StudentDetailModalContent: React.FC<
         {/* 핵심 요약: 다음 수업 / 출결 / 수납 / 보호자 */}
         <div
           className="grid grid-cols-2 lg:grid-cols-4 gap-2 px-4 sm:px-6 py-3 border-b border-slate-100 bg-white shrink-0"
-          aria-label="학생 핵심 요약"
+          aria-label={`${customerLabel} 핵심 요약`}
         >
           {summaryItems.map((item) => (
             <div
@@ -481,6 +493,7 @@ const StudentDetailModalContent: React.FC<
               )}
 
               {modal.currentTab === 'memo' && <StudentDetailMemoTab student={student} />}
+              {modal.currentTab === 'charts' && <SkinChartTab customerId={student.id} />}
             </div>
           </div>
         </div>

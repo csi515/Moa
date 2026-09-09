@@ -1,4 +1,5 @@
 import type { IndustryType } from '@/core/industry/types';
+import { isAppointmentIndustry, isSkinClinicIndustry } from '@/core/industry/industryUi';
 
 export interface CategoryOption {
   value: string;
@@ -24,6 +25,13 @@ export const PIANO_EXPENSE_CATEGORIES: CategoryOption[] = [
   { value: 'textbook', label: '교재/악보 구입' },
   { value: 'snacks', label: '간식/다과' },
   { value: 'teacher_salary', label: '강사료' },
+];
+
+/** 피부관리샵 추가 지출 카테고리 */
+export const SKIN_EXPENSE_CATEGORIES: CategoryOption[] = [
+  { value: 'products', label: '관리 용품' },
+  { value: 'cleaning', label: '청소/위생' },
+  { value: 'instructor_fee', label: '관리사 수당' },
 ];
 
 /** 필라테스 스튜디오 추가 지출 카테고리 */
@@ -61,7 +69,10 @@ export const DAYCARE_EXPENSE_CATEGORIES: CategoryOption[] = [
 
 export function getExpenseCategories(industry: IndustryType | string): CategoryOption[] {
   const base = [...COMMON_EXPENSE_CATEGORIES];
-  if (industry === 'pilates') {
+  if (isSkinClinicIndustry(industry)) {
+    return [...base, ...SKIN_EXPENSE_CATEGORIES];
+  }
+  if (isAppointmentIndustry(industry)) {
     return [...base, ...PILATES_EXPENSE_CATEGORIES];
   }
   if (industry === 'gym' || industry === 'taekwondo') {

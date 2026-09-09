@@ -26,11 +26,13 @@ function statusLabel(status: 'paid' | 'partial' | 'unpaid'): string {
 function ParentInvoiceDetailModal({
   invoice,
   bankAccountText,
+  placeLabel = '학원',
   onClose,
   onRequestCashReceipt,
 }: {
   invoice: TuitionInvoice;
   bankAccountText: string;
+  placeLabel?: string;
   onClose: () => void;
   onRequestCashReceipt: () => void;
 }) {
@@ -86,7 +88,7 @@ function ParentInvoiceDetailModal({
 
           {bankAccountText ? (
             <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
-              <p className="text-xs font-bold text-indigo-800">학원 계좌번호</p>
+              <p className="text-xs font-bold text-indigo-800">{placeLabel} 계좌번호</p>
               <p className="text-sm font-semibold text-slate-900 break-all">{bankAccountText}</p>
               <button
                 type="button"
@@ -100,7 +102,7 @@ function ParentInvoiceDetailModal({
           ) : null}
 
           <p className="text-[12px] leading-relaxed text-slate-600 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
-            지역사랑상품권 및 현장 카드는 학원 방문 시 결제 가능합니다.
+            지역사랑상품권 및 현장 카드는 {placeLabel} 방문 시 결제 가능합니다.
           </p>
 
           {invoice.unpaidAmount > 0 && (
@@ -162,6 +164,8 @@ export function ParentTuitionView({
       ? '보육료'
       : industry === 'pilates'
         ? '수강료'
+        : industry === 'skin_clinic'
+        ? '이용료'
         : '월회비';
 
   const grandUnpaid = allSummary.grandUnpaid ?? allSummary.totalUnpaid;
@@ -437,6 +441,7 @@ export function ParentTuitionView({
         <ParentInvoiceDetailModal
           invoice={detailInvoice}
           bankAccountText={bankAccountText}
+          placeLabel={industry === 'skin_clinic' ? '샵' : '학원'}
           onClose={() => setDetailInvoice(null)}
           onRequestCashReceipt={() => {
             void TuitionService.requestCashReceipt(detailInvoice.id).then((updated) => {

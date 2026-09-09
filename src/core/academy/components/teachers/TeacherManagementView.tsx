@@ -134,7 +134,7 @@ export const TeacherManagementView: React.FC = () => {
 
   const handleDelete = (t: Teacher) => {
     openConfirmDialog({
-      title: '강사 정보 삭제',
+      title: `${labels.staff.singular} 정보 삭제`,
       message: `'${t.name}' 선생님 정보를 삭제하시겠습니까?`,
       isDestructive: true,
       confirmText: '삭제하기',
@@ -165,7 +165,7 @@ export const TeacherManagementView: React.FC = () => {
     } as Teacher);
 
     showToast(
-      editingTeacher ? '강사 정보가 수정되었습니다.' : '신규 강사가 등록되었습니다.',
+      editingTeacher ? `${labels.staff.singular} 정보가 수정되었습니다.` : `신규 ${labels.staff.singular}가 등록되었습니다.`,
       'success'
     );
     setIsModalOpen(false);
@@ -186,10 +186,10 @@ export const TeacherManagementView: React.FC = () => {
     try {
       const result = await inviteStaffMember(currentOrganization.id, teacher.id, email);
       if (result.status === 'connected') {
-        showToast(`${teacher.name} 강사 계정이 연결되었습니다.`, 'success');
+        showToast(`${teacher.name} ${labels.staff.singular} 계정이 연결되었습니다.`, 'success');
       } else {
         showToast(
-          `${teacher.name} 강사에게 초대가 등록되었습니다. (${email}로 가입 시 자동 연결)`,
+          `${teacher.name} ${labels.staff.singular}에게 초대가 등록되었습니다. (${email}로 가입 시 자동 연결)`,
           'success'
         );
       }
@@ -207,7 +207,7 @@ export const TeacherManagementView: React.FC = () => {
 
     openConfirmDialog({
       title: '초대 취소',
-      message: `${teacher.name} 강사의 계정 초대를 취소하시겠습니까?`,
+      message: `${teacher.name} ${labels.staff.singular}의 계정 초대를 취소하시겠습니까?`,
       isDestructive: true,
       confirmText: '초대 취소',
       onConfirm: async () => {
@@ -227,14 +227,14 @@ export const TeacherManagementView: React.FC = () => {
       <PageHeader
         icon={<GraduationCap className="w-6 h-6" />}
         title={labels.staff.management}
-        description="학원 전임 및 파트타임 강사 명단, 담당 클래스 배정"
+        description={`${labels.staff.singular} 명단과 담당 배정`}
         actions={
           <button
             onClick={handleOpenCreate}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            신규 강사 등록
+            신규 {labels.staff.singular} 등록
           </button>
         }
       />
@@ -383,7 +383,7 @@ export const TeacherManagementView: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-base">
-                {editingTeacher ? '강사 정보 수정' : '신규 강사 등록'}
+                {editingTeacher ? `${labels.staff.singular} 정보 수정` : `신규 ${labels.staff.singular} 등록`}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -495,7 +495,7 @@ export const TeacherManagementView: React.FC = () => {
                   </div>
                 )}
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  수납 메뉴의 「강사정산」에서 월별 레슨 횟수를 반영해 지출(강사료)로 등록합니다.
+                  재무의 급여 정산에서 월별 근무를 반영해 지출로 등록합니다.
                 </p>
               </div>
 

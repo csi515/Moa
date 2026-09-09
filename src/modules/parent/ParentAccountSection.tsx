@@ -4,12 +4,16 @@ import { LegalLinks } from '@/core/legal';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { updateMyParentPhone } from '@/core/parent/services/parentPortalService';
 import { useApp } from '@/context/AppContext';
-
-const PARENT_ACCOUNT_DESCRIPTION =
-  '학부모 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 학원에 등록된 원생 정보는 학원 데이터로 남을 수 있습니다.';
+import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 
 /** 학부모 포털 공통 계정·법적 고지 영역 */
-export const ParentAccountSection: FC = () => {
+export const ParentAccountSection: FC<{ industryType?: IndustryType | string }> = ({
+  industryType,
+}) => {
+  const skin = normalizeIndustryType(industryType) === 'skin_clinic';
+  const accountDescription = skin
+    ? '고객 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 샵에 등록된 고객 정보는 샵 데이터로 남을 수 있습니다.'
+    : '학부모 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 학원에 등록된 원생 정보는 학원 데이터로 남을 수 있습니다.';
   const { portalTree, refreshPortalTree } = useParentPortal();
   const { showToast } = useApp();
   const [phone, setPhone] = useState(portalTree?.parent?.phone ?? '');
@@ -38,7 +42,9 @@ export const ParentAccountSection: FC = () => {
       <form onSubmit={(e) => void handleSave(e)} className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
         <div>
           <p className="text-sm font-bold text-slate-900">보호자 연락처</p>
-          <p className="text-xs text-slate-500 mt-1">학원 등록 요청 시 원장이 이 번호로 연락합니다.</p>
+          <p className="text-xs text-slate-500 mt-1">
+            {skin ? '샵 등록 요청 시 대표가 이 번호로 연락합니다.' : '학원 등록 요청 시 원장이 이 번호로 연락합니다.'}
+          </p>
         </div>
         <label className="block text-xs font-semibold text-slate-700" htmlFor="parent-phone">
           연락처
@@ -60,7 +66,7 @@ export const ParentAccountSection: FC = () => {
           {saving ? '저장 중...' : '연락처 저장'}
         </button>
       </form>
-      <AccountDeletionCard description={PARENT_ACCOUNT_DESCRIPTION} />
+      <AccountDeletionCard description={accountDescription} />
       <LegalLinks />
     </div>
   );

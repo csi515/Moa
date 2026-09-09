@@ -43,13 +43,18 @@ function getPianoMoreItems(): MoreItem[] {
 function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
   const secondary = getParentPortalSecondaryTabs(industry);
   const items: MoreItem[] = [
-    { id: 'notices', label: '안내', description: '학원 공지·알림', icon: <Megaphone className="w-5 h-5" /> },
+    {
+      id: 'notices',
+      label: '안내',
+      description: industry === 'skin_clinic' ? '샵 공지·알림' : '학원 공지·알림',
+      icon: <Megaphone className="w-5 h-5" />,
+    },
   ];
   if (secondary.includes('events')) {
     items.push({
       id: 'events',
       label: '행사',
-      description: '학원 행사',
+      description: industry === 'skin_clinic' ? '샵 행사' : '학원 행사',
       icon: <Calendar className="w-5 h-5" />,
     });
   }
@@ -67,6 +72,7 @@ export function ParentMoreView({
   industryType?: IndustryType | string;
 }) {
   const industry = normalizeIndustryType(industryType);
+  const place = industry === 'skin_clinic' ? '샵' : '학원';
   const items = industry === 'piano' ? getPianoMoreItems() : getDefaultMoreItems(industry);
   const settings = StorageService.getSettings();
   const phone = settings.phone?.trim();
@@ -81,8 +87,8 @@ export function ParentMoreView({
   const handleUnlink = () => {
     if (!selectedEnrollment) return;
     openConfirmDialog({
-      title: '학원 연결 해제',
-      message: `${selectedEnrollment.organizationName} 연결을 해제할까요? 출결·수납 기록은 삭제되지 않으며, 이후에는 조회만 가능합니다. 다시 연결하려면 학원 연결 코드가 필요합니다.`,
+      title: `${place} 연결 해제`,
+      message: `${selectedEnrollment.organizationName} 연결을 해제할까요? 출결·수납 기록은 삭제되지 않으며, 이후에는 조회만 가능합니다. 다시 연결하려면 ${place} 연결 코드가 필요합니다.`,
       isDestructive: true,
       confirmText: '연결 해제',
       onConfirm: () => {
@@ -90,7 +96,7 @@ export function ParentMoreView({
           setUnlinking(true);
           try {
             await unlinkParentEnrollment(selectedEnrollment.enrollmentId);
-            showToast('학원 연결을 해제했습니다', 'success');
+            showToast(`${place} 연결을 해제했습니다`, 'success');
             await refreshPortalTree();
             goToChildren();
           } catch (err) {
@@ -138,8 +144,12 @@ export function ParentMoreView({
           >
             <Users className="w-5 h-5 text-indigo-600 shrink-0" />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-slate-900">자녀·학원 전환</span>
-              <span className="block text-[11px] text-slate-500">다른 자녀 또는 학원 선택</span>
+              <span className="block text-sm font-bold text-slate-900">
+                {industry === 'skin_clinic' ? '고객·샵 전환' : '자녀·학원 전환'}
+              </span>
+              <span className="block text-[11px] text-slate-500">
+                {industry === 'skin_clinic' ? '다른 샵 선택' : '다른 자녀 또는 학원 선택'}
+              </span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
           </button>
@@ -151,7 +161,7 @@ export function ParentMoreView({
           >
             <Phone className="w-5 h-5 text-indigo-600 shrink-0" />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-slate-900">학원에 문의</span>
+              <span className="block text-sm font-bold text-slate-900">{place}에 문의</span>
               <span className="block text-[11px] text-slate-500 font-mono">{phone}</span>
             </span>
             <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
@@ -160,9 +170,9 @@ export function ParentMoreView({
           <div className="flex items-center gap-3 px-4 py-3.5 min-h-[56px]">
             <Phone className="w-5 h-5 text-slate-400 shrink-0" />
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-slate-900">학원에 문의</span>
+              <span className="block text-sm font-bold text-slate-900">{place}에 문의</span>
               <span className="block text-[11px] text-slate-500">
-                등록된 연락처가 없습니다. 학원에 직접 문의해 주세요.
+                등록된 연락처가 없습니다. {place}에 직접 문의해 주세요.
               </span>
             </span>
           </div>
@@ -180,7 +190,7 @@ export function ParentMoreView({
               <Unlink className="w-5 h-5 text-rose-600 shrink-0" />
             )}
             <span className="min-w-0 flex-1">
-              <span className="block text-sm font-bold text-rose-700">학원 연결 해제</span>
+              <span className="block text-sm font-bold text-rose-700">{place} 연결 해제</span>
               <span className="block text-[11px] text-rose-500/90">
                 {selectedEnrollment?.organizationName} · 기록은 보존됩니다
               </span>
@@ -195,7 +205,7 @@ export function ParentMoreView({
           <Settings className="w-3.5 h-3.5" />
           계정
         </p>
-        <ParentAccountSection />
+        <ParentAccountSection industryType={industry} />
       </div>
     </div>
   );

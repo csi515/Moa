@@ -15,6 +15,9 @@ import {
 } from '@/core/parent/guardianHelpers';
 import type { GuardianFormEntry } from './studentFormTypes';
 import { RELATIONSHIP_OPTIONS } from './studentFormTypes';
+import { useModuleLabels } from '@/core/labels';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { usePermissions } from '@/core/auth/usePermissions';
 
 interface Props {
   isEdit: boolean;
@@ -42,12 +45,17 @@ export const GuardianSection: React.FC<Props> = ({
   onRemoveGuardian,
   onSelectExistingParent,
   onFocusSearch,
-}) => (
+}) => {
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const contactLabel = isSkinClinicIndustry(industry) ? labels.contact.singular : '학부모';
+
+  return (
   <section>
     <div className="flex items-center justify-between mb-3">
       <div>
         <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
-          <Phone className="w-3.5 h-3.5" /> 학부모 연결
+          <Phone className="w-3.5 h-3.5" /> {contactLabel} 연결
         </h4>
         {isEdit && (
           <p className="text-[11px] text-slate-500 mt-1">
@@ -111,7 +119,7 @@ export const GuardianSection: React.FC<Props> = ({
               }`}
             >
               <Link2 className="w-3 h-3 inline mr-1" />
-              기존 학부모
+              기존 {contactLabel}
             </button>
             <button
               type="button"
@@ -123,7 +131,7 @@ export const GuardianSection: React.FC<Props> = ({
               }`}
             >
               <UserPlus className="w-3 h-3 inline mr-1" />
-              새 학부모
+              새 {contactLabel}
             </button>
           </div>
 
@@ -166,7 +174,7 @@ export const GuardianSection: React.FC<Props> = ({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input
                 type="text"
-                placeholder="학부모 이름 *"
+                placeholder={`${contactLabel} 이름 *`}
                 value={g.name}
                 onChange={(e) => onUpdateGuardian(idx, { name: e.target.value })}
                 className="px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white"
@@ -219,11 +227,12 @@ export const GuardianSection: React.FC<Props> = ({
                 onChange={(e) => onUpdateGuardian(idx, { invite: e.target.checked })}
                 disabled={!g.email.trim()}
               />
-              등록과 동시에 학부모 포털 초대
+              등록과 동시에 {contactLabel} 포털 초대
             </label>
           )}
         </div>
       ))}
     </div>
   </section>
-);
+  );
+};

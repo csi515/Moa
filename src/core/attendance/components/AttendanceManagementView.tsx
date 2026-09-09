@@ -12,7 +12,7 @@ import type { AttendanceSession } from '../types';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
 import { PageHeader, SummaryMetricCard, FilterBar, SearchField, EmptyState } from '@/shared/components';
 import { SegmentedControl } from '@/shared/components/ui/SegmentedControl';
-import { getCustomerListTab, getIndustryAccent } from '@/core/industry/industryUi';
+import { getCustomerListTab, getIndustryAccent, isAppointmentIndustry, isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import type { Student } from '@/types';
 import {
@@ -37,6 +37,9 @@ export const AttendanceManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab, showToast, triggerRefresh } = useApp();
   const { attendanceEnabled, industry } = usePermissions();
   const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const memberLabel = skin ? labels.customer.singular : '원생';
+  const activeMemberLabel = skin ? labels.customer.singular : '재원생';
   const { isScoped, scopeStudents } = useStaffScope();
   const refreshKey = useStorageRefresh();
 
@@ -44,7 +47,9 @@ export const AttendanceManagementView: React.FC = () => {
   const accentActive = `${accent.btn} text-white`;
   const linkHover = accent.icon.replace('text-', 'hover:text-');
   const metricVariant =
-    industry === 'pilates'
+    isSkinClinicIndustry(industry)
+      ? 'rose'
+      : industry === 'pilates'
       ? 'teal'
       : industry === 'gym'
         ? 'amber'
@@ -141,7 +146,11 @@ export const AttendanceManagementView: React.FC = () => {
       <EmptyState
         icon={<CheckSquare className="w-10 h-10" />}
         title="PIN 출결이 꺼져 있습니다"
-        description="설정에서 학생 PIN 출결을 활성화하면 PIN 출석 키오스크를 사용할 수 있습니다."
+        description={
+          skin
+            ? `설정에서 ${labels.customer.singular} PIN 출결을 활성화하면 PIN 출석 키오스크를 사용할 수 있습니다.`
+            : '설정에서 학생 PIN 출결을 활성화하면 PIN 출석 키오스크를 사용할 수 있습니다.'
+        }
         action={
           <button
             type="button"
@@ -195,7 +204,7 @@ export const AttendanceManagementView: React.FC = () => {
           className="space-y-4"
         >
           <div className="grid grid-cols-3 gap-3">
-            <SummaryMetricCard label="재원생" value={`${stats.total}명`} variant={metricVariant} />
+            <SummaryMetricCard label={activeMemberLabel} value={`${stats.total}명`} variant={metricVariant} />
             <SummaryMetricCard
               label={isDaycare ? '등원' : '출석'}
               value={`${stats.checkedIn}명`}
@@ -241,11 +250,11 @@ export const AttendanceManagementView: React.FC = () => {
             {activeStudents.length === 0 ? (
               <EmptyState
                 icon={<Users className="w-10 h-10" />}
-                title={isScoped ? '담당 원생이 없습니다' : '등록된 재원생이 없습니다'}
+                title={isScoped ? `담당 ${memberLabel}이 없습니다` : `등록된 ${activeMemberLabel}이 없습니다`}
                 description={
                   searchQuery.trim()
-                    ? '검색 조건에 맞는 재원생이 없습니다.'
-                    : '원생을 등록하면 출입 현황을 확인할 수 있습니다.'
+                    ? `검색 조건에 맞는 ${activeMemberLabel}이 없습니다.`
+                    : `${memberLabel}을 등록하면 출입 현황을 확인할 수 있습니다.`
                 }
                 action={
                   !searchQuery.trim() && !isScoped ? (

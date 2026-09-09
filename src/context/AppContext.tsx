@@ -36,6 +36,7 @@ export type NavTab =
   | 'members'
   | 'instructors'
   | 'passes'
+  | 'retail'
   | 'shuttle'
   | 'journals'
   | 'medications'

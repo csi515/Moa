@@ -12,6 +12,8 @@ export interface ServiceOffering {
   category: 'private' | 'group' | 'reformer' | 'other';
   isActive: boolean;
   isSchedulable: boolean;
+  /** 피부관리 권장 재방문 간격(일) */
+  careIntervalDays?: number;
 }
 
 export interface Booking {
@@ -29,6 +31,18 @@ export interface Booking {
   createdAt?: string;
   /** 수업 완료 시 차감한 이용권 id */
   sessionPassId?: string;
+  /** 피부관리 관리실 */
+  roomId?: string;
+  roomName?: string;
+  /** 피부관리 시술 기록 */
+  skinCondition?: string;
+  chartNote?: string;
+  /** 고객 신청 vs 직원 등록 */
+  requestedBy?: 'customer' | 'staff';
+  /** 예약금 입금 표시. 결제 원장은 만들지 않는다 */
+  depositStatus?: 'pending' | 'claimed' | 'confirmed';
+  /** 대기. 정원·겹침에서 제외 */
+  waitlist?: boolean;
 }
 
 /** 필라테스 등 횟수제 이용권 */

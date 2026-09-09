@@ -12,6 +12,8 @@ import {
 } from '@/core/students';
 import { getStudentLevelOptions } from '@/core/students/levelOptions';
 import { getIndustryPlugin } from '@/core/industry/registry';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { createPickupAddress, normalizePickupAddresses, sanitizePickupAddressesForSave } from '@/core/transport';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
@@ -44,6 +46,11 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const customerLabel = skin ? labels.customer.singular : '학생';
+  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const placeLabel = skin ? '샵' : '학원';
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
 
@@ -212,7 +219,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
     if (isEdit && target.existingParentId) {
       openConfirmDialog({
         title: '보호자 연결 해제',
-        message: `${target.name || '선택한 보호자'}와의 연결을 해제할까요?\n저장 시 이 학생과의 link만 제거됩니다.`,
+        message: `${target.name || '선택한 보호자'}와의 연결을 해제할까요?\n저장 시 이 ${customerLabel}과의 link만 제거됩니다.`,
         confirmText: '연결 해제',
         isDestructive: true,
         onConfirm: doRemove,
@@ -284,22 +291,22 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim()) {
-      showToast('필수 항목: 학생 이름을 입력해 주세요', 'warning');
+      showToast(`필수 항목: ${customerLabel} 이름을 입력해 주세요`, 'warning');
       return;
     }
 
     for (const g of guardians) {
       if (isAdultSelf) break;
       if (g.mode === 'existing' && !g.existingParentId) {
-        showToast('검색 결과에서 기존 학부모를 선택하거나 새로 등록해 주세요', 'warning');
+        showToast(`검색 결과에서 기존 ${contactLabel}를 선택하거나 새로 등록해 주세요`, 'warning');
         return;
       }
       if (g.mode === 'new' && (!g.name.trim() || !g.phone.trim())) {
-        showToast('필수 항목: 학부모 이름과 전화번호를 모두 입력해 주세요', 'warning');
+        showToast(`필수 항목: ${contactLabel} 이름과 전화번호를 모두 입력해 주세요`, 'warning');
         return;
       }
       if (g.invite && !g.email.trim()) {
-        showToast('초대 기능 사용 시 학부모 이메일을 입력해 주세요', 'warning');
+        showToast(`초대 기능 사용 시 ${contactLabel} 이메일을 입력해 주세요`, 'warning');
         return;
       }
     }
@@ -334,7 +341,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           { ...payload, id: student.id },
           { guardians: guardianInputs, organizationId }
         );
-        showToast(`${saved.name} 학생 정보가 수정되었습니다.`, 'success');
+        showToast(`${saved.name} ${customerLabel} 정보가 수정되었습니다.`, 'success');
         onSaved(saved);
         onClose();
         return;
@@ -349,9 +356,9 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
       if (result.generatedPin) setRevealedPin(result.generatedPin);
 
-      let message = `${result.student.name} 학생이 등록되었습니다.`;
+      let message = `${result.student.name} ${customerLabel}이 등록되었습니다.`;
       if (result.generatedPin) message += ` 출입 PIN: ${result.generatedPin}`;
-      if (result.invitesSent > 0) message += ` (학부모 초대 ${result.invitesSent}건)`;
+      if (result.invitesSent > 0) message += ` (${contactLabel} 초대 ${result.invitesSent}건)`;
       showToast(message, 'success');
       result.inviteErrors.forEach((err) => showToast(err, 'warning'));
       setPostSaveStudent(result.student);
@@ -380,7 +387,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">
-                {isEdit ? `${student!.name} 정보 수정` : '신규 학생 등록'}
+                {isEdit ? `${student!.name} 정보 수정` : `신규 ${customerLabel} 등록`}
               </h3>
               <p className="text-xs text-slate-500">
                 {isEdit
@@ -563,7 +570,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 rounded-xl flex items-center gap-2 disabled:opacity-50 min-h-[44px]"
             >
               {isSubmitting ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              {isEdit ? '수정 저장' : '학생 등록'}
+              {isEdit ? '수정 저장' : `${customerLabel} 등록`}
             </button>
           </div>
         </form>
@@ -574,9 +581,10 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           parentName={inviteModal.parentName}
           email={inviteModal.email}
           organizationName={
-            inviteModal.result.organizationName || org?.currentOrganization?.name || '학원'
+            inviteModal.result.organizationName || org?.currentOrganization?.name || placeLabel
           }
           linkCodes={inviteModal.result.linkCodes}
+          contactLabel={contactLabel}
           emailSent={inviteModal.emailSent}
           emailMessage={inviteModal.emailMessage}
           onClose={() => {

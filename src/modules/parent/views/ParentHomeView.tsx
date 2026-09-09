@@ -40,8 +40,15 @@ export function ParentHomeView({
       />
     );
   }
-  if (industry === 'pilates') {
-    return <PilatesParentHome student={student} organizationId={organizationId} onNavigate={onNavigate} />;
+  if (industry === 'pilates' || industry === 'skin_clinic') {
+    return (
+      <PilatesParentHome
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+        variant={industry === 'skin_clinic' ? 'skin' : 'pilates'}
+      />
+    );
   }
   return (
     <PianoParentHome

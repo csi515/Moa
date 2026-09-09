@@ -13,6 +13,7 @@ import type {
 } from '../../../types';
 import type { Database } from '../../../lib/supabase/database.types';
 import { getCoreClient } from '../../../lib/supabase';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { readLocal, writeLocal } from '../localStorageEngine';
 import { STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import {
@@ -156,14 +157,11 @@ export async function hydrateCoreEntities(
     .map(customerRowToParent);
 
   const serviceRows = servicesResult.data || [];
-  const classes =
-    industryType === 'pilates'
-      ? []
-      : serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass);
-  const serviceOfferings =
-    industryType === 'pilates'
-      ? serviceRows.map(serviceRowToOffering)
-      : [];
+  const appointmentIndustry = isAppointmentIndustry(industryType);
+  const classes = appointmentIndustry
+    ? []
+    : serviceRows.filter((r) => !isPilatesServiceRow(r.metadata)).map(serviceRowToClass);
+  const serviceOfferings = appointmentIndustry ? serviceRows.map(serviceRowToOffering) : [];
 
   const scheduleRows = schedulesResult.data || [];
   const bookings = scheduleRows

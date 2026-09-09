@@ -30,6 +30,7 @@ export function countSlotOccupancy(
   const staffToken = normalizeStaffId(staffId);
   return bookings.filter((b) => {
     if (b.serviceId !== serviceId || b.startsAt !== startsAt) return false;
+    if (b.waitlist) return false;
     if (!isActiveBookingStatus(b.status)) return false;
     return normalizeStaffId(b.staffId) === staffToken;
   }).length;

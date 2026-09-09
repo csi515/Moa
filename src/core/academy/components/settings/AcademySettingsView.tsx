@@ -32,7 +32,9 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import { getIndustryAccent } from '@/core/industry/industryUi';
+import { getIndustryAccent, isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { StaffHoursFields } from '@/modules/skin/components/settings/StaffHoursFields';
+import { useModuleLabels } from '@/core/labels';
 import * as orgService from '@/core/organizations/services/organizationService';
 import {
   ACADEMY_ROOM_KIND_LABEL,
@@ -49,6 +51,14 @@ import {
 export const AcademySettingsView: FC = () => {
   const { showToast, triggerRefresh, openConfirmDialog, setActiveTab } = useApp();
   const { industry, isOwner, isAdmin } = usePermissions();
+  const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const placeLabel = skin ? '샵' : '학원';
+  const customerLabel = skin ? labels.customer.singular : '원생';
+  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const ownerLabel = skin ? '대표' : '원장';
+  const feeLabel = skin ? '이용료' : '수강료';
+  const staffLabel = skin ? labels.staff.singular : '강사';
   const org = useOrganization();
   const importInputRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<File | null>(null);
@@ -124,10 +134,17 @@ export const AcademySettingsView: FC = () => {
     });
   };
 
+  const skinRooms = isSkinClinicIndustry(industry);
   const addRoom = () => {
     setSettings({
       ...settings,
-      rooms: [...rooms, createAcademyRoom({ name: `강의실 ${rooms.length + 1}` })],
+      rooms: [
+        ...rooms,
+        createAcademyRoom({
+          name: skinRooms ? `관리실 ${rooms.length + 1}` : `강의실 ${rooms.length + 1}`,
+          kind: skinRooms ? 'treatment' : 'classroom',
+        }),
+      ],
     });
   };
 
@@ -164,8 +181,12 @@ export const AcademySettingsView: FC = () => {
             defaultTuitionFee: settings.defaultTuitionFee,
             defaultPaymentDay: settings.defaultPaymentDay,
             bankAccount: settings.bankAccount,
+            depositEnabled: settings.depositEnabled,
+            depositAmount: settings.depositAmount,
+            staffHours: settings.staffHours,
             features: settings.features,
             rooms: getConfiguredRooms(settings),
+            retailCatalog: settings.retailCatalog,
           },
         });
 
@@ -195,7 +216,7 @@ export const AcademySettingsView: FC = () => {
     a.download = `academy_backup_${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('학원 전체 데이터 백업 파일이 다운로드되었습니다.', 'success');
+    showToast(`${placeLabel} 전체 데이터 백업 파일이 다운로드되었습니다.`, 'success');
   };
 
   const runImport = (file: File) => {
@@ -300,12 +321,12 @@ export const AcademySettingsView: FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <SettingsCard
           className="lg:col-span-2 sm:p-8"
-          title="학원 기본 프로필"
+          title={`${placeLabel} 기본 프로필`}
           icon={<Building className={`w-4 h-4 ${accentIcon}`} />}
         >
           <form onSubmit={handleSaveSettings} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="학원명" required>
+              <FormField label={`${placeLabel}명`} required>
                 <input
                   type="text"
                   required
@@ -315,7 +336,7 @@ export const AcademySettingsView: FC = () => {
                 />
               </FormField>
 
-              <FormField label="원장님 성명" required>
+              <FormField label={`${ownerLabel}님 성명`} required>
                 <input
                   type="text"
                   required
@@ -327,7 +348,7 @@ export const AcademySettingsView: FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="학원 대표 전화번호" required>
+              <FormField label={`${placeLabel} 대표 전화번호`} required>
                 <input
                   type="tel"
                   required
@@ -357,17 +378,17 @@ export const AcademySettingsView: FC = () => {
                 });
               }}
               legacyAddress={legacyAddress}
-              label="학원 소재지 주소"
+              label={`${placeLabel} 소재지 주소`}
             />
 
             {org.currentOrganization?.public_code && (
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
-                <p className="text-xs font-bold text-indigo-900">학부모 학원 연결코드</p>
+                <p className="text-xs font-bold text-indigo-900">{contactLabel} {placeLabel} 연결코드</p>
                 <p className="font-mono text-lg font-black tracking-widest text-indigo-700">
                   {org.currentOrganization.public_code}
                 </p>
                 <p className="text-xs text-indigo-800/80 leading-relaxed">
-                  학부모가 검색·공개 페이지에서 이 코드로 학원을 찾아 연결을 요청할 수 있습니다.
+                  {contactLabel}가 검색·공개 페이지에서 이 코드로 {placeLabel}을 찾아 연결을 요청할 수 있습니다.
                   자동 연결되지 않으며, 등록 요청 승인 후 연결됩니다.
                 </p>
                 <a
@@ -463,10 +484,53 @@ export const AcademySettingsView: FC = () => {
               </div>
             </div>
 
+            {skin && (
+              <div className="space-y-3 rounded-xl border border-rose-100 bg-rose-50/40 p-3">
+                <label className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    className="mt-1 w-4 h-4"
+                    checked={settings.depositEnabled === true}
+                    onChange={(e) =>
+                      setSettings({ ...settings, depositEnabled: e.target.checked })
+                    }
+                  />
+                  <span>
+                    <span className="block text-sm font-bold text-slate-800">예약금 받기</span>
+                    <span className="block text-[11px] text-slate-500 mt-0.5">
+                      켜면 고객 신청 시 계좌이체와 QR을 보여 줍니다. 끄면 신청만 받습니다.
+                    </span>
+                  </span>
+                </label>
+                {settings.depositEnabled && (
+                  <FormField label="예약금 금액">
+                    <input
+                      type="number"
+                      min={0}
+                      value={settings.depositAmount ?? 0}
+                      onChange={(e) =>
+                        setSettings({ ...settings, depositAmount: Number(e.target.value) || 0 })
+                      }
+                      className={FORM_CONTROL_CLASS}
+                    />
+                  </FormField>
+                )}
+                <StaffHoursFields
+                  teachers={StorageService.getTeachers().filter((t) => t.status === 'active')}
+                  windows={settings.staffHours || []}
+                  onChange={(staffHours) => setSettings({ ...settings, staffHours })}
+                />
+              </div>
+            )}
+
             <FormField label="수납용 계좌번호 안내 (영수증 및 청구서에 표기)">
               <input
                 type="text"
-                placeholder="예: 국민은행 123456-04-123456 (예금주: 선율음악학원)"
+                placeholder={
+                  skin
+                    ? '예: 국민은행 123456-04-123456 (예금주: 샵 이름)'
+                    : '예: 국민은행 123456-04-123456 (예금주: 선율음악학원)'
+                }
                 value={settings.bankAccount || ''}
                 onChange={(e) => setSettings({ ...settings, bankAccount: e.target.value })}
                 className={FORM_CONTROL_CLASS}
@@ -477,7 +541,7 @@ export const AcademySettingsView: FC = () => {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <DoorOpen className={`w-4 h-4 ${accentIcon}`} />
-                  <p className="text-sm font-bold text-slate-800">강의실 · 연습실</p>
+                  <p className="text-sm font-bold text-slate-800">{skinRooms ? '관리실' : '강의실 · 연습실'}</p>
                 </div>
                 <button
                   type="button"
@@ -489,7 +553,9 @@ export const AcademySettingsView: FC = () => {
                 </button>
               </div>
               <p className="text-xs text-slate-500 leading-relaxed">
-                반 개설·보강 예약 시 선택할 공간입니다. 학원에서 쓰는 실 이름을 등록해 주세요.
+                {skinRooms
+                  ? '예약 시 배정할 관리실 이름을 등록해 주세요.'
+                  : '반 개설·보강 예약 시 선택할 공간입니다. 학원에서 쓰는 실 이름을 등록해 주세요.'}
               </p>
               {rooms.length === 0 ? (
                 <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
@@ -507,7 +573,7 @@ export const AcademySettingsView: FC = () => {
                         value={room.name}
                         onChange={(e) => updateRoom(room.id, { name: e.target.value })}
                         className={`${FORM_CONTROL_CLASS} flex-1 min-h-[44px]`}
-                        placeholder="예: 피아노 1실"
+                        placeholder={skinRooms ? '예: 1번 관리실' : '예: 피아노 1실'}
                       />
                       <select
                         value={room.kind}
@@ -516,8 +582,14 @@ export const AcademySettingsView: FC = () => {
                         }
                         className={`${FORM_CONTROL_CLASS} sm:w-32 min-h-[44px]`}
                       >
-                        <option value="classroom">{ACADEMY_ROOM_KIND_LABEL.classroom}</option>
-                        <option value="practice">{ACADEMY_ROOM_KIND_LABEL.practice}</option>
+                        {skinRooms ? (
+                          <option value="treatment">{ACADEMY_ROOM_KIND_LABEL.treatment}</option>
+                        ) : (
+                          <>
+                            <option value="classroom">{ACADEMY_ROOM_KIND_LABEL.classroom}</option>
+                            <option value="practice">{ACADEMY_ROOM_KIND_LABEL.practice}</option>
+                          </>
+                        )}
                       </select>
                       <button
                         type="button"
@@ -583,7 +655,7 @@ export const AcademySettingsView: FC = () => {
             icon={<ShieldCheck className="w-4 h-4 text-emerald-600" />}
           >
             <p className="text-xs text-slate-500 leading-relaxed">
-              원생, 출결, 수강료 등 학원 데이터를 JSON 파일로 백업하거나, 다른 기기에서 복원할 수 있습니다.
+              {customerLabel}, 출결, {feeLabel} 등 {placeLabel} 데이터를 JSON 파일로 백업하거나, 다른 기기에서 복원할 수 있습니다.
               정기적인 백업으로 데이터 손실을 예방하세요.
             </p>
 
@@ -638,7 +710,7 @@ export const AcademySettingsView: FC = () => {
                   <p className="text-xs text-rose-800 leading-relaxed">
                     <strong>조직을 삭제하면 모든 데이터가 영구적으로 삭제됩니다.</strong>
                     <br />
-                    원생, 출결, 수강료, 강사 등 모든 정보가 복구 불가능하게 삭제됩니다.
+                    {customerLabel}, 출결, {feeLabel}, {staffLabel} 등 모든 정보가 복구 불가능하게 삭제됩니다.
                   </p>
                 </div>
                 <button
@@ -677,10 +749,10 @@ export const AcademySettingsView: FC = () => {
                   모든 데이터가 영구적으로 삭제됩니다.
                 </p>
                 <ul className="text-xs text-slate-600 space-y-1 pl-4 list-disc">
-                  <li>모든 원생 및 학부모 정보</li>
-                  <li>출석 및 수업 기록</li>
-                  <li>수강료 및 결제 내역</li>
-                  <li>강사 및 수업 정보</li>
+                  <li>모든 {customerLabel} 및 {contactLabel} 정보</li>
+                  <li>출석 및 {skin ? '시술' : '수업'} 기록</li>
+                  <li>{feeLabel} 및 결제 내역</li>
+                  <li>{staffLabel} 및 {skin ? '시술' : '수업'} 정보</li>
                   <li>공지사항 및 기타 데이터</li>
                 </ul>
               </div>

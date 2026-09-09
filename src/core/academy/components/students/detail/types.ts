@@ -20,7 +20,8 @@ export type DetailTab =
   | 'consultations'
   | 'practice'
   | 'videos'
-  | 'memo';
+  | 'memo'
+  | 'charts';
 
 export interface DetailTabCounts {
   enrolledClasses: number;

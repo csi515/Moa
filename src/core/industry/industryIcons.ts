@@ -51,6 +51,7 @@ export const INDUSTRY_ICONS: Partial<Record<IndustryType, ComponentType<{ classN
   daycare: Baby,
   academy: GraduationCap,
   hair_salon: Scissors,
+  skin_clinic: Sparkles,
 };
 
 export { Building2 as DEFAULT_INDUSTRY_ICON };

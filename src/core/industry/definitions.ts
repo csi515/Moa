@@ -1,7 +1,7 @@
 import type { IndustryCategory } from './categories';
 
 /** 전용 Module이 있는 업종 (플러그인 레지스트리와 동기화) */
-export const MODULE_INDUSTRY_IDS = ['piano', 'pilates', 'gym', 'daycare'] as const;
+export const MODULE_INDUSTRY_IDS = ['piano', 'pilates', 'gym', 'daycare', 'skin_clinic'] as const;
 export type ModuleIndustryId = (typeof MODULE_INDUSTRY_IDS)[number];
 
 type DefinitionSeed = {
@@ -55,7 +55,7 @@ const DEFINITION_LIST = [
 
   def('hair_salon', '헤어샵', '헤어 미용실', 'beauty'),
   def('nail_salon', '네일샵', '네일·페디큐어', 'beauty'),
-  def('skin_clinic', '피부관리', '피부·에스테틱', 'beauty'),
+  def('skin_clinic', '피부관리', '고객·시술·예약·관리권 중심 운영', 'beauty', 'skin_clinic'),
   def('makeup_studio', '메이크업 스튜디오', '메이크업·브라이덜', 'beauty'),
   def('barber_shop', '바버샵', '남성 전문 이발', 'beauty'),
   def('lash_brow', '속눈썹·눈썹', '래쉬·브로우', 'beauty'),
@@ -138,7 +138,7 @@ export const INDUSTRY_IDS: IndustryType[] = DEFINITION_LIST.map((d) => d.id);
  * 신규 가입·사업장 생성 UI에 노출하는 업종.
  * 내부 카탈로그/기존 org 데이터는 그대로 두고, 여기만 켜서 단계적으로 공개한다.
  */
-export const PUBLIC_SELECTABLE_INDUSTRY_IDS = ['piano'] as const satisfies readonly IndustryType[];
+export const PUBLIC_SELECTABLE_INDUSTRY_IDS = ['piano', 'skin_clinic'] as const satisfies readonly IndustryType[];
 
 const PUBLIC_SELECTABLE_SET = new Set<string>(PUBLIC_SELECTABLE_INDUSTRY_IDS);
 

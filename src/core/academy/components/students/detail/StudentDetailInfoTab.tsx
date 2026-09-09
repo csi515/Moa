@@ -12,6 +12,9 @@ import {
 } from '@/core/transport';
 import { formatCurrency, formatPhone, getLevelColor } from '@/utils/formatters';
 import { Award, Bus, Link2, MapPin, Star } from 'lucide-react';
+import { useModuleLabels } from '@/core/labels';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { usePermissions } from '@/core/auth/usePermissions';
 
 interface StudentDetailInfoTabProps {
   student: Student;
@@ -43,15 +46,22 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
   canEditStudent = true,
   onEdit,
   onOpenGuardianLink,
-}) => (
+}) => {
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const customerLabel = skin ? labels.customer.singular : '원생';
+  const contactLabel = skin ? labels.contact.singular : '학부모';
+
+  return (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
     <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200/80 space-y-3">
       <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-        원생 및 학부모 상세
+        {customerLabel} 및 {contactLabel} 상세
       </h4>
       <div className="space-y-2 text-xs">
         <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-          <span className="text-slate-500">원생 번호</span>
+          <span className="text-slate-500">{customerLabel} 번호</span>
           <span className="font-mono font-bold text-slate-800">{student.studentNumber}</span>
         </div>
         <div className="py-1.5 border-b border-slate-200/60">
@@ -257,10 +267,11 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
       <div className="md:col-span-2 p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
         <p className="text-xs font-bold text-amber-800 mb-1 flex items-center gap-1.5">
           <Award className="w-4 h-4 text-amber-600" />
-          원생 특이사항
+          {customerLabel} 특이사항
         </p>
         <p className="text-xs text-amber-900 leading-relaxed">{student.specialNotes}</p>
       </div>
     )}
   </div>
-);
+  );
+};

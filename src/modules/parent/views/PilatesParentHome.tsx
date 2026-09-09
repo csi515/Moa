@@ -14,16 +14,21 @@ function formatBookingWhen(iso: string): string {
   return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 필라테스 학부모/회원 홈 */
+/** 예약형 고객 홈 (필라테스·피부관리) */
 export function PilatesParentHome({
   student,
   organizationId,
   onNavigate,
+  variant = 'pilates',
 }: {
   student: Student;
   organizationId: string;
   onNavigate: (t: ParentPortalTab) => void;
+  variant?: 'pilates' | 'skin';
 }) {
+  const skin = variant === 'skin';
+  const passLabel = skin ? '관리권' : '이용권';
+  const serviceFallback = skin ? '시술' : '수업';
   const summary = TuitionService.getStudentBillingSummary(student.id);
   const now = new Date().toISOString();
   const upcoming = ScheduleService.getBookings()
@@ -36,13 +41,17 @@ export function PilatesParentHome({
     <div className="space-y-4">
       <ParentHeroCard
         student={student}
-        subtitle="필라테스"
-        gradientClass="bg-gradient-to-br from-teal-600 to-cyan-800"
+        subtitle={skin ? '피부관리' : '필라테스'}
+        gradientClass={
+          skin
+            ? 'bg-gradient-to-br from-rose-600 to-rose-800'
+            : 'bg-gradient-to-br from-teal-600 to-cyan-800'
+        }
       />
 
       <div className="grid grid-cols-2 gap-3">
         <SummaryMetricCard
-          label="이용권 잔여"
+          label={`${passLabel} 잔여`}
           value={`${remaining}회`}
           onClick={() => onNavigate('bookings')}
         />
@@ -74,7 +83,7 @@ export function PilatesParentHome({
             {upcoming.slice(0, 4).map((b) => (
               <li key={b.id}>
                 <button type="button" onClick={() => onNavigate('bookings')} className="w-full text-left">
-                  <p className="text-sm font-bold text-slate-800">{b.serviceName || '수업'}</p>
+                  <p className="text-sm font-bold text-slate-800">{b.serviceName || serviceFallback}</p>
                   <p className="text-[11px] text-slate-400 font-mono">
                     {formatBookingWhen(b.startsAt)}
                     {b.staffName ? ` · ${b.staffName}` : ''}

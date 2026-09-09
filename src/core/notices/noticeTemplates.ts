@@ -49,6 +49,7 @@ export function getNoticePlaceWords(industry: string | null | undefined): {
 } {
   if (industry === 'daycare') return { placeWord: '어린이집', feeWord: '보육료' };
   if (industry === 'pilates') return { placeWord: '스튜디오', feeWord: '수강료' };
+  if (industry === 'skin_clinic') return { placeWord: '샵', feeWord: '이용료' };
   if (industry === 'gym') return { placeWord: '체육관', feeWord: '수강료' };
   return { placeWord: '학원', feeWord: '수강료' };
 }

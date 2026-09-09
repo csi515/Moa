@@ -1,4 +1,4 @@
-export type ModuleTheme = 'indigo' | 'teal' | 'orange' | 'sky';
+export type ModuleTheme = 'indigo' | 'teal' | 'orange' | 'sky' | 'rose';
 
 export interface ModuleThemeTokens {
   shell: string;
@@ -46,5 +46,14 @@ export const MODULE_THEMES: Record<ModuleTheme, ModuleThemeTokens> = {
     bottomNavActive: 'text-sky-600 font-bold',
     bottomSheetActive: 'bg-sky-50 border-sky-200 text-sky-700',
     bottomSheetActiveIcon: 'bg-sky-600 text-white',
+  },
+  rose: {
+    shell: 'min-h-screen bg-[#F1F5F9] text-slate-800 flex flex-col font-sans antialiased selection:bg-rose-500 selection:text-white',
+    sidebarActive: 'bg-rose-50 text-rose-700 font-bold',
+    sidebarActiveIcon: 'text-rose-600',
+    sidebarBadge: 'bg-rose-600 text-white',
+    bottomNavActive: 'text-rose-600 font-bold',
+    bottomSheetActive: 'bg-rose-50 border-rose-200 text-rose-700',
+    bottomSheetActiveIcon: 'bg-rose-600 text-white',
   },
 };

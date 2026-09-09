@@ -3,6 +3,7 @@ import type { AcademyRoom, AcademyRoomKind, AcademySettings, ClassItem } from '@
 export const ACADEMY_ROOM_KIND_LABEL: Record<AcademyRoomKind, string> = {
   classroom: '강의실',
   practice: '연습실',
+  treatment: '관리실',
 };
 
 export function createAcademyRoom(
@@ -24,7 +25,7 @@ export function getConfiguredRooms(
     .map((r): AcademyRoom => ({
       id: r.id || crypto.randomUUID(),
       name: r.name.trim(),
-      kind: (r.kind === 'practice' ? 'practice' : 'classroom') as AcademyRoomKind,
+      kind: (r.kind === 'practice' || r.kind === 'treatment' ? r.kind : 'classroom') as AcademyRoomKind,
     }))
     .filter((r) => r.name.length > 0);
 }

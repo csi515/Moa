@@ -46,7 +46,7 @@ export interface IncomeEntry {
   description: string;
   payer?: string;
   memo?: string;
-  sourceType?: 'manual' | 'tuition' | 'textbook' | 'booking';
+  sourceType?: 'manual' | 'tuition' | 'textbook' | 'booking' | 'retail';
   sourceId?: string;
 }
 

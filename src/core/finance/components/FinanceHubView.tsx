@@ -2,6 +2,7 @@ import { useMemo, type FC } from 'react';
 import { BarChart3 } from 'lucide-react';
 import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { PageHeader, SegmentedControl } from '@/shared/components';
 import { FinanceOverviewView } from './FinanceOverviewView';
 import { IncomeManagementView } from './IncomeManagementView';
@@ -41,7 +42,7 @@ function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSeg
 export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = true }) => {
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
-  const billingEnabled = showBilling && industry !== 'pilates';
+  const billingEnabled = showBilling && !isAppointmentIndustry(industry);
   const isPiano = industry === 'piano';
   const hubTitle = isPiano ? '수납' : '재무';
 

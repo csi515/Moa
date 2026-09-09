@@ -8,6 +8,7 @@ import {
 } from '@/core/attendance/services/attendanceService';
 import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import type { MakeupStatus } from '@/types';
 
 const MAKEUP_STATUS_LABEL: Record<MakeupStatus, string> = {
@@ -51,7 +52,7 @@ export function CustomerAttendanceView({
   const title =
     industry === 'daycare'
       ? `${displayName} 등하원 기록`
-      : industry === 'pilates'
+      : isAppointmentIndustry(industry)
         ? `${displayName} 출입 기록`
         : `${displayName} 출결 기록`;
 

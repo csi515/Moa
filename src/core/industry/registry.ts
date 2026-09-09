@@ -10,6 +10,7 @@ import { pianoPluginManifest } from '@/modules/piano/plugin';
 import { pilatesPluginManifest } from '@/modules/pilates/plugin';
 import { gymPluginManifest } from '@/modules/gym/plugin';
 import { daycarePluginManifest } from '@/modules/daycare/plugin';
+import { skinPluginManifest } from '@/modules/skin/plugin';
 import { buildGenericPluginManifest } from './genericPlugin';
 import type { ModuleIndustryId } from './catalog';
 import { isModuleIndustryId } from './catalog';
@@ -20,6 +21,7 @@ export const INDUSTRY_PLUGINS: IndustryPluginManifest[] = [
   pilatesPluginManifest,
   gymPluginManifest,
   daycarePluginManifest,
+  skinPluginManifest,
 ];
 
 const MODULE_BY_ID = Object.fromEntries(INDUSTRY_PLUGINS.map((p) => [p.id, p])) as Record<

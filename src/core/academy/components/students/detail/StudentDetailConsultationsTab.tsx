@@ -1,6 +1,9 @@
 import React from 'react';
 import { Consultation } from '@/types';
 import { Plus } from 'lucide-react';
+import { useModuleLabels } from '@/core/labels';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { usePermissions } from '@/core/auth/usePermissions';
 
 interface StudentDetailConsultationsTabProps {
   allConsultations: Consultation[];
@@ -30,12 +33,19 @@ export const StudentDetailConsultationsTab: React.FC<StudentDetailConsultationsT
   newCstNextDate,
   setNewCstNextDate,
   onSaveConsultation,
-}) => (
+}) => {
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const customerLabel = skin ? labels.customer.singular : '원생';
+  const contactLabel = skin ? labels.contact.singular : '학부모';
+
+  return (
   <div className="space-y-4">
     <div className="flex items-center justify-between">
       <div>
         <h4 className="text-sm font-bold text-slate-900">상담 기록</h4>
-        <p className="text-xs text-slate-500">학부모 및 원생과의 상담 이력</p>
+        <p className="text-xs text-slate-500">{contactLabel} 및 {customerLabel}과의 상담 이력</p>
       </div>
       <button
         onClick={() => setIsAddCstOpen(true)}
@@ -56,8 +66,8 @@ export const StudentDetailConsultationsTab: React.FC<StudentDetailConsultationsT
               onChange={(e) => setNewCstType(e.target.value as Consultation['type'])}
               className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg"
             >
-              <option value="parent">학부모 상담</option>
-              <option value="student">원생 상담</option>
+              <option value="parent">{contactLabel} 상담</option>
+              <option value="student">{customerLabel} 상담</option>
               <option value="career">진로/입시 상담</option>
               <option value="learning">학습/진도 상담</option>
               <option value="other">기타</option>
@@ -121,7 +131,7 @@ export const StudentDetailConsultationsTab: React.FC<StudentDetailConsultationsT
               <div className="flex items-center gap-2">
                 <span className="font-bold text-slate-900">{cst.date}</span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-purple-100 text-purple-800">
-                  {cst.type === 'parent' ? '학부모 상담' : cst.type === 'learning' ? '학습 진도' : cst.type === 'career' ? '진로/입시' : '일반'}
+                  {cst.type === 'parent' ? `${contactLabel} 상담` : cst.type === 'student' ? `${customerLabel} 상담` : cst.type === 'learning' ? '학습 진도' : cst.type === 'career' ? '진로/입시' : '일반'}
                 </span>
               </div>
               <span className="text-slate-400 font-medium">상담자: {cst.counselorName}</span>
@@ -142,4 +152,5 @@ export const StudentDetailConsultationsTab: React.FC<StudentDetailConsultationsT
       </div>
     )}
   </div>
-);
+  );
+};

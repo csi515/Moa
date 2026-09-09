@@ -9,6 +9,8 @@ import { PianoAppContent } from '@/modules/piano/PianoAppContent';
 import { PilatesAppContent } from '@/modules/pilates/PilatesAppContent';
 import { GymAppContent } from '@/modules/gym/GymAppContent';
 import { DaycareAppContent } from '@/modules/daycare/DaycareAppContent';
+import { ModuleLabelsProvider as SkinLabelsProvider } from '@/modules/skin';
+import { SkinAppContent } from '@/modules/skin/SkinAppContent';
 import { ParentShell } from '@/modules/parent/ParentShell';
 import { GenericIndustryShell } from './GenericIndustryShell';
 
@@ -23,6 +25,7 @@ const APP_BY_INDUSTRY: Partial<Record<IndustryType, AppEntry>> = {
   pilates: { LabelsProvider: PilatesLabelsProvider, AppContent: PilatesAppContent },
   gym: { LabelsProvider: GymLabelsProvider, AppContent: GymAppContent },
   daycare: { LabelsProvider: DaycareLabelsProvider, AppContent: DaycareAppContent },
+  skin_clinic: { LabelsProvider: SkinLabelsProvider, AppContent: SkinAppContent },
 };
 
 const GENERIC_ENTRY: AppEntry = {

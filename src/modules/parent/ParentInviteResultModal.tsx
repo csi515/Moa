@@ -11,6 +11,7 @@ interface ParentInviteResultModalProps {
   linkCodes: ParentInviteLinkCode[];
   emailSent: boolean;
   emailMessage?: string;
+  contactLabel?: string;
   onClose: () => void;
 }
 
@@ -21,6 +22,7 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
   linkCodes,
   emailSent,
   emailMessage,
+  contactLabel = '학부모',
   onClose,
 }) => {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -61,13 +63,13 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
             {emailSent ? (
               <>
                 <p className="font-bold">이메일 발송 완료</p>
-                <p className="text-xs mt-0.5 opacity-80">학부모님이 이메일로 초대 링크를 받았습니다.</p>
+                <p className="text-xs mt-0.5 opacity-80">{contactLabel}님이 이메일로 초대 링크를 받았습니다.</p>
               </>
             ) : (
               <>
                 <p className="font-bold">이메일 미발송</p>
                 <p className="text-xs mt-0.5">
-                  이메일 자동 발송이 설정되지 않았습니다. 아래 연결 코드나 링크를 학부모님께 직접 전달해 주세요.
+                  이메일 자동 발송이 설정되지 않았습니다. 아래 연결 코드나 링크를 {contactLabel}님께 직접 전달해 주세요.
                   {emailMessage ? (
                     <span className="block mt-1 opacity-80">{emailMessage}</span>
                   ) : null}
@@ -132,7 +134,7 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
             <p className="text-sm text-slate-700 font-bold mb-2">연결 코드 없음</p>
             <p className="text-xs text-slate-500 leading-relaxed">
               연결된 자녀가 없어 코드가 생성되지 않았습니다.<br />
-              학생 관리에서 학생-학부모를 연결한 후 다시 초대해 주세요.
+              학생 관리에서 학생-{contactLabel}를 연결한 후 다시 초대해 주세요.
             </p>
           </div>
         )}

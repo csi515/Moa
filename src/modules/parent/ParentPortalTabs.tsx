@@ -18,6 +18,7 @@ import { PilatesParentBookingsView } from './views/PilatesParentBookingsView';
 import { ParentShuttleView } from './views/ParentShuttleView';
 import { ParentMoreView } from './views/ParentMoreView';
 import { normalizeIndustryType } from '@/core/industry/types';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 
 export function ParentPortalTabs({
   tab,
@@ -79,7 +80,13 @@ export function ParentPortalTabs({
     case 'events':
       return <ParentEventsView student={student} industryType={industryType} />;
     case 'notices':
-      return <ParentNoticesView student={student} organizationId={organizationId} />;
+      return (
+        <ParentNoticesView
+          student={student}
+          organizationId={organizationId}
+          industryType={industryType}
+        />
+      );
     case 'journals':
       return <ParentCareJournalView student={student} />;
     case 'medications':
@@ -94,8 +101,13 @@ export function ParentPortalTabs({
     case 'schedule':
       return <ParentScheduleView student={student} organizationId={organizationId} />;
     case 'bookings':
-      if (industry === 'pilates') {
-        return <PilatesParentBookingsView student={student} />;
+      if (isAppointmentIndustry(industry)) {
+        return (
+          <PilatesParentBookingsView
+            student={student}
+            variant={industry === 'skin_clinic' ? 'skin' : 'pilates'}
+          />
+        );
       }
       return <ParentBookingsView student={student} />;
     case 'shuttle':

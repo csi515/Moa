@@ -186,3 +186,26 @@ export function notifyParentPracticeRoomBooked(
     portalTab: 'schedule',
   });
 }
+
+/** 피부관리 예약 확정·변경·취소 안내 */
+export function notifySkinBookingChange(params: {
+  studentId: string;
+  studentName: string;
+  parentPhone?: string;
+  title: string;
+  message: string;
+  date?: string;
+}): void {
+  publishParentAlert({
+    type: 'announcement',
+    title: params.title,
+    message: params.message,
+    student: {
+      id: params.studentId,
+      name: params.studentName,
+      parentPhone: params.parentPhone,
+    },
+    scheduledDate: params.date,
+    portalTab: 'bookings',
+  });
+}

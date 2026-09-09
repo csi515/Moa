@@ -1,15 +1,26 @@
 import { useMemo, type FC } from 'react';
 import { Ticket, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useModuleLabels } from '@/core/labels';
 import { PageHeader, SegmentedControl } from '@/shared/components';
 
 type CustomerSegment = 'members' | 'passes';
 
-/** 필라테스 고객 허브 — 회원·이용권 */
+/** 예약형 고객 허브 — 회원/고객·이용권/관리권 */
 export const PilatesCustomerHubView: FC<{
   membersView: FC;
   passesView: FC;
-}> = ({ membersView: MembersView, passesView: PassesView }) => {
+  membersLabel?: string;
+  passesLabel?: string;
+}> = ({
+  membersView: MembersView,
+  passesView: PassesView,
+  membersLabel,
+  passesLabel,
+}) => {
+  const labels = useModuleLabels();
+  const memberText = membersLabel ?? labels.customer.singular;
+  const passText = passesLabel ?? '이용권';
   const { activeTab, setActiveTab } = useApp();
   const segment: CustomerSegment = useMemo(
     () => (activeTab === 'passes' ? 'passes' : 'members'),
@@ -21,14 +32,14 @@ export const PilatesCustomerHubView: FC<{
       <PageHeader
         density="compact"
         icon={segment === 'members' ? <Users className="w-5 h-5" /> : <Ticket className="w-5 h-5" />}
-        title="고객"
-        description={segment === 'members' ? '회원 관리' : '이용권 관리'}
+        title={labels.customer.section}
+        description={segment === 'members' ? labels.customer.management : `${passText} 관리`}
         actions={
           <SegmentedControl
             value={segment}
             options={[
-              { value: 'members', label: '회원' },
-              { value: 'passes', label: '이용권' },
+              { value: 'members', label: memberText },
+              { value: 'passes', label: passText },
             ]}
             onChange={(next) => setActiveTab(next)}
             aria-label="고객 메뉴"

@@ -22,6 +22,7 @@ import { coreScheduleService, reservationService } from '@/core/schedules';
 import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
 import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
 import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
@@ -38,7 +39,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
   const [org, setOrg] = useState<PublicOrgInfo | null>(null);
   const adultFirst =
     !!org &&
-    (normalizeIndustryType(org.industry_type) === 'pilates' ||
+    (isAppointmentIndustry(org.industry_type) ||
       normalizeIndustryType(org.industry_type) === 'gym');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

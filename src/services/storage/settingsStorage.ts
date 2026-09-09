@@ -1,6 +1,7 @@
 import type { AcademySettings, User } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { getIndustryType } from '../adapters/storageContext';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { resolveAttendanceEnabledForBackfill } from '../../core/attendance/features';
 import { DEFAULT_SETTINGS, getItem, setItem, type StorageApi } from './helpers';
 
@@ -184,7 +185,7 @@ export function createSettingsStorage(api: StorageApi) {
     /** 학생·반이 없으면 초기 설정 대상 (이름만 있어도 표시 — CreateOrganization 이후 가이드용) */
     isEligibleForOnboarding(): boolean {
       const industry = getIndustryType();
-      if (industry === 'pilates') {
+      if (isAppointmentIndustry(industry)) {
         return (
           (api.getStudents as () => unknown[])().length === 0 &&
           (api.getServiceOfferings as () => unknown[])().length === 0 &&

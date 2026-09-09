@@ -31,7 +31,7 @@ export function resolveTeacherPayType(teacher: Pick<Teacher, 'payType' | 'hourly
 
 /** 업종별 강사 정산 지출 카테고리 */
 export function getPayrollExpenseCategory(industry?: string | null): string {
-  if (industry === 'pilates' || industry === 'gym' || industry === 'taekwondo') {
+  if (industry === 'pilates' || industry === 'skin_clinic' || industry === 'gym' || industry === 'taekwondo') {
     return 'instructor_fee';
   }
   if (industry === 'daycare' || industry === 'piano') {

@@ -2,6 +2,7 @@
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { studentUsesShuttleService } from '@/core/transport';
 import { useStaffScope } from '@/hooks';
@@ -51,6 +52,8 @@ export const StudentListView: React.FC = () => {
   const { industry } = usePermissions();
   const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const labels = useModuleLabels();
+  const skin = isSkinClinicIndustry(industry);
+  const endedLabel = skin ? '종료' : '퇴원';
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
   const allStudents = StudentService.getStudents();
@@ -208,7 +211,7 @@ export const StudentListView: React.FC = () => {
   const statusChips: Array<{ value: string; label: string; count: number }> = [
     { value: 'active', label: '재원', count: activeCount },
     { value: 'leave', label: '휴원', count: leaveCount },
-    { value: 'withdrawn', label: '퇴원', count: withdrawnCount },
+    { value: 'withdrawn', label: endedLabel, count: withdrawnCount },
     { value: 'ALL', label: '전체', count: students.length },
   ];
 
@@ -389,7 +392,11 @@ export const StudentListView: React.FC = () => {
         <EmptyState
           icon={<Users className="w-12 h-12" />}
           title={`조건에 맞는 ${labels.customer.singular}이 없습니다`}
-          description="검색어나 필터를 바꿔보세요. 퇴원 원생은 ‘퇴원’ 또는 ‘전체’에서 볼 수 있습니다."
+          description={
+            skin
+              ? `검색어나 필터를 바꿔보세요. 종료 ${labels.customer.singular}은 ‘종료’ 또는 ‘전체’에서 볼 수 있습니다.`
+              : '검색어나 필터를 바꿔보세요. 퇴원 원생은 ‘퇴원’ 또는 ‘전체’에서 볼 수 있습니다.'
+          }
           action={
             <button
               type="button"
@@ -408,8 +415,8 @@ export const StudentListView: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-3">원생</th>
-                    <th className="py-2.5 px-3">레슨</th>
+                    <th className="py-2.5 px-3">{skin ? labels.customer.singular : '원생'}</th>
+                    <th className="py-2.5 px-3">{skin ? labels.service.singular : '레슨'}</th>
                     <th className="py-2.5 px-3">담당</th>
                     <th className="py-2.5 px-3">오늘 출결</th>
                     <th className="py-2.5 px-3">이번 달 수납</th>
@@ -444,7 +451,7 @@ export const StudentListView: React.FC = () => {
                                   <span
                                     className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${badge.bg}`}
                                   >
-                                    {badge.label}
+                                    {skin && st.status === 'withdrawn' ? endedLabel : badge.label}
                                   </span>
                                 )}
                                 {showPickupFields && studentUsesShuttleService(st) && (
@@ -509,7 +516,7 @@ export const StudentListView: React.FC = () => {
                             <span
                               className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${badge.bg}`}
                             >
-                              {badge.label}
+                              {skin && st.status === 'withdrawn' ? endedLabel : badge.label}
                             </span>
                           )}
                         </div>

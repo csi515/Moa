@@ -8,6 +8,7 @@ import {
 } from '@/core/attendance/services/attendanceService';
 import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttendanceSessions';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import type { MakeupStatus, Student } from '@/types';
 import { Section } from './shared';
 
@@ -50,7 +51,7 @@ export function ParentAttendanceView({
   const title =
     industry === 'daycare'
       ? `${student.name} 등하원 기록`
-      : industry === 'pilates'
+      : isAppointmentIndustry(industry)
         ? `${student.name} 출입 기록`
         : `${student.name} 출결 기록`;
 

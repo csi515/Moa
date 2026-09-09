@@ -121,6 +121,7 @@ interface PilatesServiceMetadata {
   moduleType: 'pilates';
   maxCapacity: number;
   category: ServiceOffering['category'];
+  careIntervalDays?: number;
 }
 
 interface BookingMetadata {
@@ -130,6 +131,12 @@ interface BookingMetadata {
   /** 연습실 예약 구분 — 일반 예약과 분리 */
   kind?: 'practice_room';
   room?: string;
+  roomId?: string;
+  skinCondition?: string;
+  chartNote?: string;
+  requestedBy?: 'customer' | 'staff';
+  depositStatus?: Booking['depositStatus'];
+  waitlist?: boolean;
   date?: string;
   startTime?: string;
   endTime?: string;
@@ -141,6 +148,7 @@ export function serviceOfferingToRow(offering: ServiceOffering, organizationId: 
     moduleType: 'pilates',
     maxCapacity: offering.maxCapacity,
     category: offering.category,
+    careIntervalDays: offering.careIntervalDays,
   };
 
   return {
@@ -177,6 +185,7 @@ export function serviceRowToOffering(row: {
     category: meta.category ?? 'private',
     isActive: row.is_active,
     isSchedulable: row.is_schedulable,
+    careIntervalDays: meta.careIntervalDays,
   };
 }
 
@@ -190,6 +199,13 @@ export function bookingToScheduleRow(booking: Booking, organizationId: string) {
     customerName: booking.customerName,
     staffName: booking.staffName,
     serviceName: booking.serviceName,
+    room: booking.roomName,
+    roomId: booking.roomId,
+    skinCondition: booking.skinCondition,
+    chartNote: booking.chartNote,
+    requestedBy: booking.requestedBy,
+    depositStatus: booking.depositStatus,
+    waitlist: booking.waitlist,
   };
 
   return {
@@ -232,6 +248,13 @@ export function scheduleRowToBooking(row: {
     status: row.status as Booking['status'],
     memo: row.memo || undefined,
     createdAt: row.created_at,
+    roomId: meta.roomId,
+    roomName: meta.kind === 'practice_room' ? undefined : meta.room,
+    skinCondition: meta.skinCondition,
+    chartNote: meta.chartNote,
+    requestedBy: meta.requestedBy,
+    depositStatus: meta.depositStatus,
+    waitlist: meta.waitlist,
   };
 }
 

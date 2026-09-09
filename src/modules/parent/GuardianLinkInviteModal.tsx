@@ -4,6 +4,9 @@ import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { createGuardianLinkToken } from '@/core/parent/services/guardianLinkService';
 import { buildParentInviteUrl } from '@/core/parent/services/parentInviteService';
 import { GuardianLinkQrDisplay } from '@/modules/parent/components/GuardianLinkQrDisplay';
+import { useModuleLabels } from '@/core/labels';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { usePermissions } from '@/core/auth/usePermissions';
 
 interface GuardianLinkInviteModalProps {
   studentId: string;
@@ -19,6 +22,9 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
   onClose,
 }) => {
   const { currentOrganization } = useOrganization();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const contactLabel = isSkinClinicIndustry(industry) ? labels.contact.singular : '학부모';
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
@@ -78,7 +84,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
         </div>
 
         <p className="text-sm text-slate-600 mb-4">
-          <strong>{studentName}</strong> 학부모님께 전달할 8자리 연결 코드를 생성합니다.
+          <strong>{studentName}</strong> {contactLabel}님께 전달할 8자리 연결 코드를 생성합니다.
         </p>
 
         {error && (
@@ -94,8 +100,8 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
               <p className="text-xs text-indigo-900 leading-relaxed">
                 <strong>코드 전달 방법:</strong><br />
                 1. 코드 생성 후 QR·링크·코드 중 선택<br />
-                2. 학부모님께 전달 (문자·카톡 등)<br />
-                3. 학부모 앱에서 코드 입력 시 자녀 자동 연결
+                2. {contactLabel}님께 전달 (문자·카톡 등)<br />
+                3. {contactLabel} 앱에서 코드 입력 시 자동 연결
               </p>
             </div>
             <button
@@ -125,7 +131,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
               <p className="text-xs text-emerald-900">
                 <span className="font-bold">✓ 코드가 생성되었습니다</span><br />
-                <span className="text-emerald-700">아래 버튼으로 학부모님께 전달하세요</span>
+                <span className="text-emerald-700">아래 버튼으로 {contactLabel}님께 전달하세요</span>
               </p>
             </div>
 

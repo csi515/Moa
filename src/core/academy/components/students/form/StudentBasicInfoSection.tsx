@@ -1,21 +1,29 @@
 import React from 'react';
 import { User } from 'lucide-react';
 import type { StudentFormData } from './studentFormTypes';
+import { useModuleLabels } from '@/core/labels';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { usePermissions } from '@/core/auth/usePermissions';
 
 interface Props {
   formData: StudentFormData;
   onChange: (patch: Partial<StudentFormData>) => void;
 }
 
-export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange }) => (
+export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange }) => {
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = isSkinClinicIndustry(industry) ? labels.customer.singular : '학생';
+
+  return (
   <section>
     <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-      <User className="w-3.5 h-3.5" /> 학생 정보
+      <User className="w-3.5 h-3.5" /> {customerLabel} 정보
     </h4>
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
       <div>
         <label className="block text-xs font-semibold text-slate-700 mb-1">
-          학생 이름 <span className="text-rose-500">*</span>
+          {customerLabel} 이름 <span className="text-rose-500">*</span>
         </label>
         <input
           type="text"
@@ -57,4 +65,5 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
       </div>
     </div>
   </section>
-);
+  );
+};

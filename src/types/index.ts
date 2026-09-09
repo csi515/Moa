@@ -143,6 +143,14 @@ export interface Teacher {
 
 export type DayOfWeek = '월' | '화' | '수' | '목' | '금' | '토' | '일';
 
+/** 피부관리 관리사 근무 창. 설정 JSON에만 둔다 */
+export interface StaffWorkWindow {
+  staffId: string;
+  days: DayOfWeek[];
+  startTime: string;
+  endTime: string;
+}
+
 export interface ClassItem {
   id: string;
   name: string; // e.g. 월수금 유치부 기초반, 화목 체르니 중급반
@@ -628,13 +636,21 @@ export interface EventParticipantSummary {
   videoTitle?: string;
 }
 
-export type AcademyRoomKind = 'classroom' | 'practice';
+export type AcademyRoomKind = 'classroom' | 'practice' | 'treatment';
 
-/** 학원 강의실·연습실 마스터 */
+/** 학원 강의실·연습실·관리실 마스터 */
 export interface AcademyRoom {
   id: string;
   name: string;
   kind: AcademyRoomKind;
+}
+
+/** 피부관리 판매 상품 */
+export interface RetailProduct {
+  id: string;
+  name: string;
+  price: number;
+  stock: number;
 }
 
 export interface AcademySettings {
@@ -669,8 +685,15 @@ export interface AcademySettings {
    * organizations.settings.business_hours 와 동일 키로 동기화됨.
    */
   business_hours?: string;
-  /** 강의실·연습실 목록 (반 개설·보강 선택용) */
+  /** 강의실·연습실·관리실 목록 */
   rooms?: AcademyRoom[];
+  /** 피부관리 상품 카탈로그 */
+  retailCatalog?: RetailProduct[];
+  /** 피부관리 예약금. 끄면 신청만 받는다 */
+  depositEnabled?: boolean;
+  depositAmount?: number;
+  /** 관리사 근무시간. 없으면 겹침만 검사 */
+  staffHours?: StaffWorkWindow[];
   /** Industry Module 기능 플래그 */
   features?: {
     attendance?: {

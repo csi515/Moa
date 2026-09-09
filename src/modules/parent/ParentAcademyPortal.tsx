@@ -19,7 +19,11 @@ import type { Student } from '@/types';
 import type { ParentPortalTab } from '@/types/education';
 import { ParentPortalTabs } from './ParentPortalTabs';
 import { ParentReadOnlyBanner } from './ParentReadOnlyBanner';
-import { getParentPortalNav, getParentPortalSecondaryTabs } from './parentPortalNav';
+import {
+  getParentPortalNav,
+  getParentPortalRoleLabel,
+  getParentPortalSecondaryTabs,
+} from './parentPortalNav';
 import { consumePendingPortalTab } from '@/core/push';
 
 export interface ParentAcademyPortalProps {
@@ -127,9 +131,14 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
                 aria-expanded={childMenuOpen}
                 aria-haspopup="listbox"
               >
-                <h1 className="text-base font-black text-slate-900 truncate">
-                  {selectedStudent?.displayName || student.name}
-                </h1>
+                <span className="min-w-0 text-left">
+                  <span className="block text-[10px] font-bold text-slate-400">
+                    {getParentPortalRoleLabel(industryType)}
+                  </span>
+                  <h1 className="text-base font-black text-slate-900 truncate">
+                    {selectedStudent?.displayName || student.name}
+                  </h1>
+                </span>
                 {children.length > 1 && <ChevronDown className="w-4 h-4 text-slate-400 shrink-0" />}
               </button>
               {childMenuOpen && children.length > 0 && (

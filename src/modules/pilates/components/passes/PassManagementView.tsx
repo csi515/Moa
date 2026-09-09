@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<SessionPassStatus, string> = {
   cancelled: '취소',
 };
 
-export type PassManagementVariant = 'pilates' | 'piano';
+export type PassManagementVariant = 'pilates' | 'piano' | 'skin';
 
 const VARIANT: Record<
   PassManagementVariant,
@@ -50,6 +50,19 @@ const VARIANT: Record<
     emptyTitle: '이용권이 없습니다',
     customerLabel: '회원',
     defaultPassLabel: '10회 이용권',
+    preferSessionPassStudents: false,
+  },
+  skin: {
+    accent: 'bg-rose-600',
+    accentHover: 'hover:bg-rose-700',
+    accentText: 'text-rose-600',
+    filterActive: 'bg-rose-600 text-white',
+    title: '관리권 관리',
+    description: '횟수제 관리권을 등록하고 잔여 횟수를 관리합니다. 시술 완료 시 1회 차감됩니다.',
+    createLabel: '+ 관리권 등록',
+    emptyTitle: '관리권이 없습니다',
+    customerLabel: '고객',
+    defaultPassLabel: '10회 관리권',
     preferSessionPassStudents: false,
   },
   piano: {
@@ -140,9 +153,14 @@ export const PassManagementView: React.FC<{ variant?: PassManagementVariant }> =
         ...member,
         billingMode: 'session_pass',
       });
-      showToast('회차권이 등록되었고, 원생 수강 형태를 회차권으로 맞췄습니다.', 'success');
+      showToast(
+        variant === 'piano'
+          ? '회차권이 등록되었고, 원생 수강 형태를 회차권으로 맞췄습니다.'
+          : `${variant === 'skin' ? '관리권' : '이용권'}이 등록되었습니다.`,
+        'success'
+      );
     } else {
-      showToast(`${variant === 'piano' ? '회차권' : '이용권'}이 등록되었습니다.`, 'success');
+      showToast(`${variant === 'piano' ? '회차권' : variant === 'skin' ? '관리권' : '이용권'}이 등록되었습니다.`, 'success');
     }
 
     setIsModalOpen(false);
@@ -152,7 +170,7 @@ export const PassManagementView: React.FC<{ variant?: PassManagementVariant }> =
 
   const cancelPass = (pass: SessionPass) => {
     ScheduleService.saveSessionPass({ ...pass, status: 'cancelled' });
-    showToast(`${variant === 'piano' ? '회차권' : '이용권'}을 취소했습니다.`, 'info');
+    showToast(`${variant === 'piano' ? '회차권' : variant === 'skin' ? '관리권' : '이용권'}을 취소했습니다.`, 'info');
   };
 
   return (
@@ -217,7 +235,7 @@ export const PassManagementView: React.FC<{ variant?: PassManagementVariant }> =
       <Modal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        title={variant === 'piano' ? '회차권 등록' : '이용권 등록'}
+        title={variant === 'piano' ? '회차권 등록' : variant === 'skin' ? '관리권 등록' : '이용권 등록'}
       >
         <form onSubmit={handleCreate} className="p-6 space-y-4">
           <div>
@@ -241,7 +259,7 @@ export const PassManagementView: React.FC<{ variant?: PassManagementVariant }> =
           </div>
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
-              {variant === 'piano' ? '회차권 이름' : '이용권 이름'}
+              {variant === 'piano' ? '회차권 이름' : variant === 'skin' ? '관리권 이름' : '이용권 이름'}
             </label>
             <input
               type="text"

@@ -60,6 +60,14 @@ export function getParentPortalNav(industry: IndustryType | string): ParentPorta
         { id: 'attendance', label: '출입', icon: icon(<CheckSquare className="w-5 h-5" />) },
         { id: 'more', label: '더보기', icon: icon(<Menu className="w-5 h-5" />) },
       ];
+    case 'skin_clinic':
+      return [
+        { id: 'home', label: '홈', icon: icon(<Home className="w-5 h-5" />) },
+        { id: 'bookings', label: '예약', icon: icon(<CalendarClock className="w-5 h-5" />) },
+        { id: 'tuition', label: '이용료', icon: icon(<CreditCard className="w-5 h-5" />) },
+        { id: 'attendance', label: '출입', icon: icon(<CheckSquare className="w-5 h-5" />) },
+        { id: 'more', label: '더보기', icon: icon(<Menu className="w-5 h-5" />) },
+      ];
     case 'piano':
     default:
       return PIANO_PARENT_NAV;
@@ -67,7 +75,10 @@ export function getParentPortalNav(industry: IndustryType | string): ParentPorta
 }
 
 export function getParentPortalRoleLabel(industry: IndustryType | string): string {
-  return normalizeIndustryType(industry) === 'daycare' ? '보호자 포털' : '학부모 포털';
+  const type = normalizeIndustryType(industry);
+  if (type === 'daycare') return '보호자 포털';
+  if (type === 'skin_clinic') return '고객 포털';
+  return '학부모 포털';
 }
 
 /** 하단 네비에는 없지만 홈·더보기에서 이동 가능한 탭 */
@@ -78,7 +89,7 @@ export function getParentPortalSecondaryTabs(industry: IndustryType | string): P
   }
   if (type === 'gym') return ['notices', 'events', 'more'];
   if (type === 'daycare') return ['notices', 'more'];
-  if (type === 'pilates') return ['notices', 'more'];
+  if (type === 'pilates' || type === 'skin_clinic') return ['notices', 'more'];
   return ['notices', 'more'];
 }
 

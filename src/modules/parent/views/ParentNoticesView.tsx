@@ -6,15 +6,19 @@ import {
 } from '@/core/notices';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
+import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 import { Section } from './shared';
 
 export function ParentNoticesView({
   student,
   organizationId,
+  industryType,
 }: {
   student: Student;
   organizationId: string;
+  industryType?: IndustryType | string;
 }) {
+  const place = normalizeIndustryType(industryType) === 'skin_clinic' ? '샵' : '학원';
   const { notifications, loading, error } = useParentPortalNotifications(organizationId, student);
 
   return (
@@ -32,7 +36,7 @@ export function ParentNoticesView({
           <div>
             <p className="text-sm font-bold text-slate-700">{NOTICE_COPY.parentEmpty}</p>
             <p className="text-xs text-slate-500 mt-1.5">
-              학원에서 새로운 알림을 보내면 여기에 표시됩니다
+              {place}에서 새로운 알림을 보내면 여기에 표시됩니다
             </p>
           </div>
         </div>

@@ -1,15 +1,26 @@
 import { useMemo, type FC } from 'react';
 import { Calendar, Dumbbell } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { useModuleLabels } from '@/core/labels';
 import { PageHeader, SegmentedControl } from '@/shared/components';
 
 type ScheduleSegment = 'bookings' | 'services';
 
-/** 필라테스 일정 허브 — 예약·수업 종류 */
+/** 예약형 일정 허브 — 예약·서비스(수업/시술) */
 export const PilatesScheduleHubView: FC<{
   bookingsView: FC;
   servicesView: FC;
-}> = ({ bookingsView: BookingsView, servicesView: ServicesView }) => {
+  bookingsLabel?: string;
+  servicesLabel?: string;
+}> = ({
+  bookingsView: BookingsView,
+  servicesView: ServicesView,
+  bookingsLabel,
+  servicesLabel,
+}) => {
+  const labels = useModuleLabels();
+  const bookingText = bookingsLabel ?? labels.schedule.singular;
+  const serviceText = servicesLabel ?? labels.service.management;
   const { activeTab, setActiveTab } = useApp();
   const segment: ScheduleSegment = useMemo(
     () => (activeTab === 'services' ? 'services' : 'bookings'),
@@ -28,13 +39,13 @@ export const PilatesScheduleHubView: FC<{
           )
         }
         title="일정"
-        description={segment === 'bookings' ? '예약 캘린더' : '수업 종류'}
+        description={segment === 'bookings' ? labels.schedule.management : serviceText}
         actions={
           <SegmentedControl
             value={segment}
             options={[
-              { value: 'bookings', label: '예약' },
-              { value: 'services', label: '수업 종류' },
+              { value: 'bookings', label: bookingText },
+              { value: 'services', label: serviceText },
             ]}
             onChange={(next) => setActiveTab(next)}
             aria-label="일정 메뉴"

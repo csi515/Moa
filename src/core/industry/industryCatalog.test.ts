@@ -81,7 +81,11 @@ function run(): void {
   const selectable = listIndustryDefinitions({ selectableOnly: true });
   assert.equal(selectable.length, PUBLIC_SELECTABLE_INDUSTRY_IDS.length);
   assert.equal(selectable[0]?.id, 'piano');
+  assert.ok(selectable.some((d) => d.id === 'skin_clinic'));
   assert.equal(INDUSTRY_DEFINITIONS.piano.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.selectable, true);
+  assert.equal(hasIndustryModule('skin_clinic'), true);
+  assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.moduleId, 'skin_clinic');
   assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, false);
   assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, false);
   assert.equal(INDUSTRY_DEFINITIONS.daycare.selectable, false);

@@ -20,9 +20,30 @@ import {
   getStudentStatusBadge,
 } from '@/utils/formatters';
 import type { ClassItem, DayOfWeek } from '@/types';
-import { DetailTab, getDetailTabConfig } from './detail/types';
+import { Sparkles } from 'lucide-react';
+import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { DetailTab, getDetailTabConfig, type DetailTabConfigItem } from './detail/types';
 
 const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
+
+const SKIN_HIDDEN_DETAIL_TABS = new Set<DetailTab>(['classes', 'practice', 'videos', 'textbooks']);
+
+function filterCustomerDetailTabs(
+  tabs: DetailTabConfigItem[],
+  industry: string
+): DetailTabConfigItem[] {
+  if (!isSkinClinicIndustry(industry)) return tabs;
+  const visible = tabs.filter((tab) => !SKIN_HIDDEN_DETAIL_TABS.has(tab.id));
+  const charts: DetailTabConfigItem = {
+    id: 'charts',
+    label: '시술 기록',
+    icon: React.createElement(Sparkles, { className: 'w-3.5 h-3.5' }),
+    group: 'primary',
+  };
+  const infoIndex = visible.findIndex((tab) => tab.id === 'info');
+  visible.splice(infoIndex + 1, 0, charts);
+  return visible;
+}
 
 /** 등록된 반 기준으로 가장 가까운 다음 수업 라벨 */
 function getNextClassLabel(classes: ClassItem[]): string {
@@ -157,12 +178,15 @@ export function useStudentDetailModal({
 
   const totalPracticeMinutes = allPractice.reduce((sum, p) => sum + p.minutes, 0);
 
-  /** 소프트 퇴원 — 하드 삭제하지 않고 이력 유지, 기본 목록(재원)에서 숨김 */
+  /** 소프트 종료·퇴원 — 하드 삭제하지 않고 이력 유지, 기본 목록에서 숨김 */
   const handleWithdraw = () => {
+    const skin = isSkinClinicIndustry(industry);
+    const who = skin ? '고객' : '원생';
+    const ended = skin ? '종료' : '퇴원';
     if (student.status === 'withdrawn') {
       openConfirmDialog({
         title: '재원으로 복귀',
-        message: `${student.name} 원생을 재원 상태로 되돌릴까요?`,
+        message: `${student.name} ${who}을 재원 상태로 되돌릴까요?`,
         confirmText: '재원 복귀',
         onConfirm: () => {
           StudentService.saveStudent({
@@ -170,7 +194,7 @@ export function useStudentDetailModal({
             status: 'active',
             leaveDate: undefined,
           });
-          showToast(`${student.name} 원생이 재원으로 복귀했습니다.`, 'success');
+          showToast(`${student.name} ${who}이 재원으로 복귀했습니다.`, 'success');
           triggerRefresh();
         },
       });
@@ -178,17 +202,17 @@ export function useStudentDetailModal({
     }
 
     openConfirmDialog({
-      title: '원생 퇴원 처리',
-      message: `${student.name} 원생을 퇴원 처리할까요?\n기록이 보존되며, 목록 기본(재원) 필터에서는 숨겨집니다.`,
+      title: `${who} ${ended} 처리`,
+      message: `${student.name} ${who}을 ${ended} 처리할까요?\n기록이 보존되며, 목록 기본(재원) 필터에서는 숨겨집니다.`,
       isDestructive: true,
-      confirmText: '퇴원 처리',
+      confirmText: `${ended} 처리`,
       onConfirm: () => {
         StudentService.saveStudent({
           ...student,
           status: 'withdrawn',
           leaveDate: new Date().toISOString().slice(0, 10),
         });
-        showToast(`${student.name} 원생이 퇴원 처리되었습니다.`, 'info');
+        showToast(`${student.name} ${who}이 ${ended} 처리되었습니다.`, 'info');
         triggerRefresh();
         onClose();
       },
@@ -233,7 +257,10 @@ export function useStudentDetailModal({
     StorageService.saveConsultation({
       studentId: student.id,
       studentName: student.name,
-      parentName: getPrimaryGuardian(student.id)?.parentName || student.parentName || '학부모',
+      parentName:
+        getPrimaryGuardian(student.id)?.parentName ||
+        student.parentName ||
+        (isSkinClinicIndustry(industry) ? '연락처' : '학부모'),
       date: new Date().toISOString().slice(0, 10),
       type: newCstType,
       content: newCstContent.trim(),
@@ -364,15 +391,18 @@ export function useStudentDetailModal({
 
   const statusBadge = getStudentStatusBadge(student.status);
 
-  const tabConfig = getDetailTabConfig({
-    enrolledClasses: enrolledClasses.length,
-    attRate,
-    invoiceCount: allInvoices.length,
-    salesCount: studentSales.length,
-    consultationCount: allConsultations.length,
-    practiceCount: allPractice.length,
-    videoCount: allVideos.length,
-  });
+  const tabConfig = filterCustomerDetailTabs(
+    getDetailTabConfig({
+      enrolledClasses: enrolledClasses.length,
+      attRate,
+      invoiceCount: allInvoices.length,
+      salesCount: studentSales.length,
+      consultationCount: allConsultations.length,
+      practiceCount: allPractice.length,
+      videoCount: allVideos.length,
+    }),
+    industry
+  );
 
   const latestAttendance = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date))[0];
   const tuitionStatusLabel =

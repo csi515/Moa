@@ -221,9 +221,9 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
                       <td className="py-3.5 px-4 font-semibold text-slate-900">
                         <span className="inline-flex flex-wrap items-center gap-1.5">
                           {entry.description}
-                          {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook') && (
+                          {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook' || entry.sourceType === 'retail') && (
                             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">
-                              {entry.sourceType === 'tuition' ? '수강료 연동' : '교재 연동'}
+                              {entry.sourceType === 'tuition' ? '수강료 연동' : entry.sourceType === 'textbook' ? '교재 연동' : '상품 판매'}
                             </span>
                           )}
                         </span>
@@ -274,9 +274,9 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
                   <div>
                     <p className="font-bold text-slate-900 text-sm">
                       {entry.description}
-                      {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook') && (
+                      {(entry.sourceType === 'tuition' || entry.sourceType === 'textbook' || entry.sourceType === 'retail') && (
                         <span className="ml-1.5 text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700">
-                          {entry.sourceType === 'tuition' ? '수강료' : '교재'}
+                          {entry.sourceType === 'tuition' ? '수강료' : entry.sourceType === 'textbook' ? '교재' : '상품'}
                         </span>
                       )}
                     </p>
