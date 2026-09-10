@@ -25,7 +25,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
       const data = await getOrgEnrollmentRequests(currentOrganization.id, filter);
       setRequests(data);
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '?붿껌 紐⑸줉??遺덈윭?ㅼ? 紐삵뻽?듬땲??, 'error');
+      showToast(err instanceof Error ? err.message : '요청 목록을 불러오지 못했습니다', 'error');
     } finally {
       setLoading(false);
     }
@@ -38,20 +38,20 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
   const handleApprove = async (requestId: string) => {
     try {
       await approveEnrollmentRequest(requestId);
-      showToast('?깅줉 ?붿껌???뱀씤?덉뒿?덈떎', 'success');
+      showToast('등록 요청을 승인했습니다', 'success');
       await loadRequests();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '?뱀씤???ㅽ뙣?덉뒿?덈떎', 'error');
+      showToast(err instanceof Error ? err.message : '승인에 실패했습니다', 'error');
     }
   };
 
   const handleReject = async (requestId: string, reason: string) => {
     try {
       await rejectEnrollmentRequest(requestId, reason);
-      showToast('?깅줉 ?붿껌??嫄곗젅?덉뒿?덈떎', 'success');
+      showToast('등록 요청을 거절했습니다', 'success');
       await loadRequests();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '嫄곗젅 泥섎━???ㅽ뙣?덉뒿?덈떎', 'error');
+      showToast(err instanceof Error ? err.message : '거절 처리에 실패했습니다', 'error');
     }
   };
 
@@ -66,7 +66,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
   return (
     <div id="guardian-enrollment-inbox" className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">?숇?紐??깅줉</h2>
+        <h2 className="text-xl font-bold text-slate-900">학부모 등록</h2>
         <div className="flex gap-2">
           <button
             type="button"
@@ -77,7 +77,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            ?湲?以?
+            대기중
           </button>
           <button
             type="button"
@@ -88,7 +88,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            ?뱀씤??
+            승인됨
           </button>
           <button
             type="button"
@@ -99,7 +99,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            嫄곗젅??
+            거절됨
           </button>
         </div>
       </div>
@@ -108,9 +108,9 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
         <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
           <User className="w-12 h-12 mx-auto text-slate-300 mb-3" />
           <p className="text-slate-500">
-            {filter === 'pending' && '?湲?以묒씤 ?깅줉 ?붿껌???놁뒿?덈떎'}
-            {filter === 'approved' && '?뱀씤???깅줉 ?붿껌???놁뒿?덈떎'}
-            {filter === 'rejected' && '嫄곗젅???깅줉 ?붿껌???놁뒿?덈떎'}
+            {filter === 'pending' && '대기중인 등록 요청이 없습니다'}
+            {filter === 'approved' && '승인된 등록 요청이 없습니다'}
+            {filter === 'rejected' && '거절된 등록 요청이 없습니다'}
           </p>
         </div>
       ) : (
