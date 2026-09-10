@@ -101,6 +101,8 @@ export interface Student {
   memo?: string;
   avatarColor?: string;
   checkInPinSet?: boolean;
+  /** 성인 본인 계정 연결. NULL/미설정 = 비회원 Customer */
+  userId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -24,6 +24,7 @@ import {
   type PracticeRoomRow,
   type RoomReservationRow,
 } from '@/core/customer/services/practiceRoomReservationService';
+import { removeById, upsertById } from '@/shared/utils/listUpdate';
 
 /**
  * 스태프 연습실 — canonical `room_reservations` 단일 원장.
@@ -135,7 +136,7 @@ export const PracticeRoomBookingView: FC = () => {
 
     setSaving(true);
     try {
-      await practiceRoomReservationService.createStaff({
+      const reservationId = await practiceRoomReservationService.createStaff({
         organizationId: orgId,
         roomId: room.id,
         customerId: student.id,
@@ -143,6 +144,20 @@ export const PracticeRoomBookingView: FC = () => {
         endsAt: toSeoulIso(selectedDate, endTime),
         memo: memo.trim() || undefined,
       });
+      const created: RoomReservationRow = {
+        id: reservationId,
+        organization_id: orgId,
+        room_id: room.id,
+        customer_id: student.id,
+        requested_by: '',
+        starts_at: toSeoulIso(selectedDate, startTime),
+        ends_at: toSeoulIso(selectedDate, endTime),
+        status: 'approved',
+        memo: memo.trim() || undefined,
+        practice_rooms: { name: room.name },
+        customers: { name: student.name },
+      };
+      setDayBookings((prev) => upsertById(prev, created));
       notifyParentPracticeRoomBooked(
         {
           studentId: student.id,
@@ -156,7 +171,6 @@ export const PracticeRoomBookingView: FC = () => {
       );
       showToast(`${student.name} 원생 연습실이 예약되었습니다.`, 'success');
       setModalOpen(false);
-      await reload();
     } catch (err) {
       showToast(err instanceof Error ? err.message : '예약 실패', 'error');
     } finally {
@@ -208,7 +222,8 @@ export const PracticeRoomBookingView: FC = () => {
           .cancel(row.id)
           .then(() => {
             showToast('연습실 예약을 취소했습니다.', 'success');
-            return reload();
+            setDayBookings((prev) => removeById(prev, row.id));
+            setPendingRequests((prev) => removeById(prev, row.id));
           })
           .catch((err: Error) => showToast(err.message, 'error'));
       },
@@ -250,7 +265,11 @@ export const PracticeRoomBookingView: FC = () => {
                       .review(r.id, true)
                       .then(() => {
                         showToast('예약을 승인했습니다.', 'success');
-                        return reload();
+                        const approved = { ...r, status: 'approved' as const };
+                        setPendingRequests((prev) => removeById(prev, r.id));
+                        if (seoulDateFromIso(r.starts_at) === selectedDate) {
+                          setDayBookings((prev) => upsertById(prev, approved));
+                        }
                       })
                       .catch((err: Error) => showToast(err.message, 'error'));
                   }}
@@ -265,7 +284,7 @@ export const PracticeRoomBookingView: FC = () => {
                       .review(r.id, false)
                       .then(() => {
                         showToast('예약을 거절했습니다.', 'info');
-                        return reload();
+                        setPendingRequests((prev) => removeById(prev, r.id));
                       })
                       .catch((err: Error) => showToast(err.message, 'error'));
                   }}

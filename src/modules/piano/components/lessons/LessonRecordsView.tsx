@@ -1,11 +1,12 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStaffScope } from '@/hooks';
+import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
 import { LessonService } from '@/core/lessons';
 import { PageHeader, FilterBar, SearchField } from '@/shared/components';
 import { LessonRecord } from '@/types';
+import { removeById, upsertById } from '@/shared/utils/listUpdate';
 import {
   Piano,
   Plus,
@@ -24,11 +25,21 @@ import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomew
 
 export const LessonRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
+  const refreshKey = useStorageRefresh();
   const { staffId, scopeStudents, scopeLessons } = useStaffScope();
 
-  const lessons = useMemo(() => scopeLessons(LessonService.getLessonRecords()), [scopeLessons]);
-  const students = useMemo(() => scopeStudents(StudentService.getStudents()), [scopeStudents]);
-  const teachers = StorageService.getTeachers();
+  const [lessons, setLessons] = useState<LessonRecord[]>(() =>
+    scopeLessons(LessonService.getLessonRecords())
+  );
+  const students = useMemo(
+    () => scopeStudents(StudentService.getStudents()),
+    [scopeStudents, refreshKey]
+  );
+  const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);
+
+  useEffect(() => {
+    setLessons(scopeLessons(LessonService.getLessonRecords()));
+  }, [refreshKey, scopeLessons]);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStudentFilter, setSelectedStudentFilter] = useState('ALL');
@@ -104,6 +115,7 @@ export const LessonRecordsView: React.FC = () => {
       confirmText: '삭제하기',
       onConfirm: () => {
         LessonService.deleteLessonRecord(lesson.id);
+        setLessons((prev) => removeById(prev, lesson.id));
         showToast('레슨 일지가 삭제되었습니다.', 'info');
       }
     });
@@ -121,7 +133,7 @@ export const LessonRecordsView: React.FC = () => {
       return;
     }
 
-    LessonService.saveLessonRecord({
+    const saved = LessonService.saveLessonRecord({
       ...(editingLesson ? { id: editingLesson.id } : {}),
       studentId: st.id,
       studentName: st.name,
@@ -136,6 +148,7 @@ export const LessonRecordsView: React.FC = () => {
       homework: formData.homework.trim(),
       memo: formData.memo.trim(),
     });
+    setLessons((prev) => upsertById(prev, saved));
 
     syncLessonHomeworkToWeeklyAssignment({
       studentId: st.id,

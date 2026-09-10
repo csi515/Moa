@@ -229,6 +229,8 @@ export interface Database {
           metadata: Json;
           memo: string | null;
           check_in_pin_hash: string | null;
+          /** NULL = 비회원(전화 예약·원 등록). 로그인 User와 연결되면 UUID */
+          user_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -242,6 +244,7 @@ export interface Database {
           metadata?: Json;
           memo?: string | null;
           check_in_pin_hash?: string | null;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -255,6 +258,7 @@ export interface Database {
           metadata?: Json;
           memo?: string | null;
           check_in_pin_hash?: string | null;
+          user_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -263,6 +267,12 @@ export interface Database {
             foreignKeyName: 'customers_organization_id_fkey';
             columns: ['organization_id'];
             referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'customers_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           },
         ];
@@ -869,6 +879,33 @@ export interface Database {
       is_org_owner_or_admin: {
         Args: { org_id: string };
         Returns: boolean;
+      };
+      ensure_guest_customer: {
+        Args: {
+          p_org_id: string;
+          p_name: string;
+          p_phone?: string | null;
+          p_email?: string | null;
+          p_source?: string | null;
+        };
+        Returns: string;
+      };
+      link_customer_to_current_user: {
+        Args: {
+          p_customer_id: string;
+          p_expected_phone?: string | null;
+        };
+        Returns: Json;
+      };
+      request_reservation: {
+        Args: {
+          p_schedule_id: string;
+          p_applicant_name: string;
+          p_applicant_phone?: string | null;
+          p_applicant_email?: string | null;
+          p_request_message?: string | null;
+        };
+        Returns: string;
       };
       delete_my_account: {
         Args: Record<string, never>;

@@ -1,10 +1,11 @@
-﻿import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
+import { upsertById } from '@/shared/utils/listUpdate';
 import {
   findClassConflicts,
   formatConflictSummary,
@@ -32,10 +33,15 @@ export const ClassManagementView: React.FC = () => {
   const serviceLabel = labels.service.singular;
   const refreshKey = useStorageRefresh();
 
-  const classes = StorageService.getClasses();
-  const teachers = StorageService.getTeachers();
-  const students = StorageService.getStudents();
-  const textbooks = StorageService.getTextbooks();
+  const [classes, setClasses] = useState<ClassItem[]>(() => StorageService.getClasses());
+  const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);
+  const students = useMemo(() => StorageService.getStudents(), [refreshKey]);
+  const textbooks = useMemo(() => StorageService.getTextbooks(), [refreshKey]);
+
+  useEffect(() => {
+    setClasses(StorageService.getClasses());
+  }, [refreshKey]);
+
   const roomNames = useMemo(
     () =>
       getAcademyRoomNames({
@@ -111,6 +117,7 @@ export const ClassManagementView: React.FC = () => {
       confirmText: '삭제하기',
       onConfirm: () => {
         StorageService.deleteClass(cls.id);
+        setClasses((prev) => prev.filter((item) => item.id !== cls.id));
         showToast(`'${cls.name}' ${serviceLabel}이(가) 삭제되었습니다.`, 'info');
       }
     });
@@ -150,7 +157,7 @@ export const ClassManagementView: React.FC = () => {
     });
 
     const save = () => {
-      StorageService.saveClass({
+      const saved = StorageService.saveClass({
         ...(editingClass ? { id: editingClass.id } : {}),
         name: formData.name.trim(),
         targetLevel: formData.targetLevel,
@@ -165,14 +172,18 @@ export const ClassManagementView: React.FC = () => {
         textbook: formData.textbook.trim(),
         memo: formData.memo.trim(),
       } as any);
+      setClasses((prev) => upsertById(prev, saved));
 
       showToast(
         editingClass
           ? `'${formData.name}' ${serviceLabel}이(가) 수정되었습니다.`
-          : `'${formData.name}' ${serviceLabel}이(가) 개설되었습니다.`,
+          : `'${formData.name}' ${serviceLabel}이(가) 개설되었습니다. 오늘 레슨에서 바로 출결할 수 있습니다.`,
         'success'
       );
       setIsModalOpen(false);
+      if (!editingClass) {
+        setActiveTab('lessons');
+      }
     };
 
     if (conflicts.length > 0) {

@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useState, type FC, type MouseEvent } from 'react';
-import { CheckCircle2, ChevronRight, Clock, MapPin, Piano, Users, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronRight, Clock, CreditCard, MapPin, Piano, Users, XCircle } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
 import { LessonService } from '@/core/lessons';
+import { TuitionService } from '@/core/finance';
 import { EmptyState, PageHeader } from '@/shared/components';
 import type { AttendanceRecord, AttendanceStatus, ClassItem, LessonRecord, Student } from '@/types';
+import { upsertById } from '@/shared/utils/listUpdate';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
 import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
 import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
@@ -77,11 +79,16 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         .sort((a, b) => a.startTime.localeCompare(b.startTime)),
     [scopeClasses, todayKorean, refreshKey]
   );
-  const attendance = useMemo(() => StorageService.getAttendance(), [refreshKey]);
-  const lessons = useMemo(
-    () => scopeLessons(LessonService.getLessonRecords()),
-    [scopeLessons, refreshKey]
+
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => StorageService.getAttendance());
+  const [lessons, setLessons] = useState<LessonRecord[]>(() =>
+    scopeLessons(LessonService.getLessonRecords())
   );
+
+  useEffect(() => {
+    setAttendance(StorageService.getAttendance());
+    setLessons(scopeLessons(LessonService.getLessonRecords()));
+  }, [refreshKey, scopeLessons]);
 
   const findAttendance = (studentId: string, classId: string): AttendanceRecord | undefined =>
     attendance.find((a) => a.date === today && a.studentId === studentId && a.classId === classId);
@@ -101,6 +108,13 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   }, [classes, students, attendance, today]);
 
   const progressPct = stats.total === 0 ? 0 : Math.round((stats.done / stats.total) * 100);
+
+  const unpaidTodayStudents = useMemo(() => {
+    return students.filter((student) => {
+      const summary = TuitionService.getStudentBillingSummary(student.id);
+      return (summary.grandUnpaid ?? summary.totalUnpaid) > 0;
+    }).length;
+  }, [students, refreshKey]);
 
   const offerMakeup = (studentName: string) => {
     openConfirmDialog({
@@ -129,7 +143,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       return false;
     }
 
-    StorageService.saveAttendanceRecord({
+    const saved = StorageService.saveAttendanceRecord({
       ...(existingAtt ? { id: existingAtt.id } : {}),
       date: today,
       studentId: student.id,
@@ -141,6 +155,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       createdBy: currentUser.name,
       sessionPassId: passResult.sessionPassId,
     });
+    setAttendance((prev) => upsertById(prev, saved));
 
     if (status === 'absent') {
       notifyParentAbsence({
@@ -227,7 +242,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         return;
       }
       const existingLesson = findLesson(student.id);
-      LessonService.saveLessonRecord({
+      const savedLesson = LessonService.saveLessonRecord({
         ...(existingLesson ? { id: existingLesson.id } : {}),
         studentId: student.id,
         studentName: student.name,
@@ -245,6 +260,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         nextPlan: form.nextPlan.trim(),
         memo: form.memo.trim(),
       });
+      setLessons((prev) => upsertById(prev, savedLesson));
 
       syncLessonHomeworkToWeeklyAssignment({
         studentId: student.id,
@@ -318,6 +334,16 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
               style={{ width: `${progressPct}%` }}
             />
           </div>
+          {unpaidTodayStudents > 0 && (
+            <button
+              type="button"
+              onClick={() => setActiveTab('finance')}
+              className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-900"
+            >
+              <CreditCard className="w-4 h-4" />
+              오늘 레슨 원생 중 미납 {unpaidTodayStudents}명 · 수강료
+            </button>
+          )}
         </div>
       )}
 

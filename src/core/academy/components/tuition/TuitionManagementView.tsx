@@ -5,6 +5,7 @@ import { TuitionService } from '@/core/finance';
 import { TuitionInvoice, PaymentMethod, Student } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { useStorageRefresh } from '@/hooks';
+import { upsertById } from '@/shared/utils/listUpdate';
 import { getRecentYearMonths } from '@/core/finance/categories';
 import {
   buildInvoiceNotes,
@@ -31,7 +32,7 @@ import {
 } from './tuitionUtils';
 
 export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
-  const { showToast, setSelectedStudentId, setActiveTab, triggerRefresh } = useApp();
+  const { showToast, setSelectedStudentId, setActiveTab } = useApp();
   const refreshKey = useStorageRefresh();
 
   const monthOptions = useMemo(() => getRecentYearMonths(12), []);
@@ -64,9 +65,17 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const [newInvIncludeExtras, setNewInvIncludeExtras] = useState(false);
   const [newInvExtraFee, setNewInvExtraFee] = useState(0);
 
-  const invoices = useMemo(() => TuitionService.getInvoices(), [refreshKey]);
+  const [invoices, setInvoices] = useState<TuitionInvoice[]>(() => TuitionService.getInvoices());
   const students = useMemo(() => StudentService.getStudents(), [refreshKey]);
   const settings = useMemo(() => TuitionService.getSettings(), [refreshKey]);
+
+  useEffect(() => {
+    setInvoices(TuitionService.getInvoices());
+  }, [refreshKey]);
+
+  const patchInvoice = (invoice: TuitionInvoice) => {
+    setInvoices((prev) => upsertById(prev, invoice));
+  };
 
   const extrasPreview = useMemo(() => {
     if (!newInvStudentId) {
@@ -119,7 +128,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
   const handleBatchGenerate = () => {
     const count = TuitionService.generateMonthlyInvoicesForAllActive(selectedMonth);
-    triggerRefresh();
+    setInvoices(TuitionService.getInvoices());
     if (count === 0) {
       showToast(`${formatYearMonthLabel(selectedMonth)} 청구서가 이미 모든 재원생에게 발행되어 있습니다.`, 'info');
     } else {
@@ -165,7 +174,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
 
-    triggerRefresh();
+    patchInvoice(updated);
     showToast(`${payModalInvoice.studentName} 원생 ${formatCurrency(payAmount)} 수납 완료`, 'success');
     setPayModalInvoice(null);
     setReceiptInvoice(updated);
@@ -177,7 +186,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       showToast('청구서 발송에 실패했습니다.', 'error');
       return;
     }
-    triggerRefresh();
+    patchInvoice(sent);
     showToast(`${inv.studentName} 원생에게 청구서를 발송했습니다.`, 'success');
   };
 
@@ -188,7 +197,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     }
     const count = TuitionService.sendInvoices(selectedInvoiceIds);
     setSelectedInvoiceIds([]);
-    triggerRefresh();
+    setInvoices(TuitionService.getInvoices());
     showToast(`청구서 ${count}건을 발송했습니다.`, 'success');
   };
 
@@ -204,7 +213,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       yearMonth: selectedMonth,
     });
     setIsBulkSendOpen(false);
-    triggerRefresh();
+    setInvoices(TuitionService.getInvoices());
     showToast(
       `청구서 ${result.created}건 생성 · ${result.sent}건 발송 완료`,
       result.created > 0 ? 'success' : 'warning'
@@ -302,7 +311,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       );
     }
 
-    triggerRefresh();
+    patchInvoice(saved);
     showToast(`${st.name} 원생의 청구서 초안이 등록되었습니다. [발송]으로 전달하세요.`, 'success');
     setIsNewInvoiceModalOpen(false);
   };
@@ -438,7 +447,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           yearMonth={selectedMonth}
           onSuccess={() => {
             setCombinedStudentForPay(null);
-            triggerRefresh();
+            setInvoices(TuitionService.getInvoices());
           }}
           onClose={() => setCombinedStudentForPay(null)}
         />
