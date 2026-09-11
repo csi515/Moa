@@ -32,7 +32,7 @@ export interface StaffMetadata {
   specialty?: string;
   salary?: number;
   hourlyRate?: number;
-  payType?: 'hourly' | 'monthly' | 'none';
+  payType?: 'hourly' | 'attendance' | 'work_hours' | 'monthly' | 'none';
   color?: string;
   memo?: string;
   classIds?: string[];

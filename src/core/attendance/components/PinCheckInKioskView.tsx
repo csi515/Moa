@@ -7,6 +7,7 @@ import { isAttendanceModuleEnabled } from '../features';
 import type { CheckInMethod } from '../types';
 import { Delete, RotateCcw, Settings } from 'lucide-react';
 import { getIndustryAccent } from '@/core/industry/industryUi';
+import { syncDayAttendanceFromPinCheckIn } from '@/modules/piano/services/pinDayAttendanceSync';
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'enter'] as const;
 const ADMIN_EXIT_HOLD_MS = 2000;
@@ -93,6 +94,15 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
             organizationId
           );
           if (result.success) {
+            if (
+              result.action === 'check_in' &&
+              (industry === 'piano' || industry === 'daycare')
+            ) {
+              const sync = syncDayAttendanceFromPinCheckIn(result.customerId);
+              if (sync.warning) {
+                showToast(sync.warning, 'warning');
+              }
+            }
             setFeedback({
               text: `${result.customerName} 학생 출석이 완료되었습니다.`,
               tone: 'success',
@@ -140,15 +150,13 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
           <p className="text-sm text-slate-500 leading-relaxed mb-6">
             설정에서 학생 PIN 출결을 활성화한 뒤 사용할 수 있습니다.
           </p>
-          {!standalone && (
-            <button
-              type="button"
-              onClick={() => window.history.back()}
-              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
-            >
-              뒤로 가기
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={() => (standalone ? navigate('/', { replace: true }) : window.history.back())}
+            className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-sm font-bold rounded-xl min-h-[44px] transition-colors"
+          >
+            {standalone ? '앱으로 이동' : '뒤로 가기'}
+          </button>
         </div>
       </div>
     );

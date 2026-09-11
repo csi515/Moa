@@ -154,6 +154,26 @@ export const practiceRoomReservationService = {
     return (data || []) as RoomReservationRow[];
   },
 
+  /** 스태프: 기간(포함) 활성 예약 — 주/월 캘린더용 */
+  async listByRange(
+    organizationId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<RoomReservationRow[]> {
+    const { start } = dayRangeSeoul(startDate);
+    const { end } = dayRangeSeoul(endDate);
+    const { data, error } = await client()
+      .from('room_reservations')
+      .select('*, practice_rooms(name), customers(name)')
+      .eq('organization_id', organizationId)
+      .in('status', ['pending', 'approved'])
+      .gte('starts_at', start)
+      .lte('starts_at', end)
+      .order('starts_at', { ascending: true });
+    if (error) throw new Error(error.message || '기간별 예약을 불러오지 못했습니다.');
+    return (data || []) as RoomReservationRow[];
+  },
+
   async listPending(organizationId: string): Promise<RoomReservationRow[]> {
     const { data, error } = await client()
       .from('room_reservations')

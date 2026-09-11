@@ -7,7 +7,7 @@ import { formatCurrency } from '@/utils/formatters';
 import {
   getIncomeCategories,
   getCategoryLabel,
-  getRecentYearMonths,
+  buildYearMonthOptions,
 } from '@/core/finance/categories';
 import { TrendingUp, Plus, Trash2, Edit, X, Save } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
@@ -17,7 +17,6 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const categoryOptions = getIncomeCategories(industry);
-  const monthOptions = getRecentYearMonths(12);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -35,6 +34,14 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   });
 
   const entries = StorageService.getIncomeEntries();
+
+  const monthOptions = useMemo(
+    () =>
+      buildYearMonthOptions({
+        dataYearMonths: entries.map((e) => e.date?.slice(0, 7)),
+      }),
+    [entries]
+  );
 
   const filteredEntries = useMemo(() => {
     return entries.filter((e) => {

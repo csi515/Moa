@@ -250,7 +250,7 @@ export function findPracticeRoomSlotConflicts(params: {
   }
 
   for (const b of bookings) {
-    if (b.status === 'cancelled') continue;
+    if (b.status === 'cancelled' || b.status === 'rejected') continue;
     if (candidate.excludeId && b.id === candidate.excludeId) continue;
     if (b.date !== candidate.date) continue;
     if (!timesOverlap(candidate.startTime, candidate.endTime, b.startTime, b.endTime)) continue;

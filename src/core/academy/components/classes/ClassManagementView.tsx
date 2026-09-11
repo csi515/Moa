@@ -117,7 +117,7 @@ export const ClassManagementView: React.FC = () => {
   const handleDelete = (cls: ClassItem) => {
     openConfirmDialog({
       title: `${serviceLabel} 삭제`,
-      message: `'${cls.name}' ${serviceLabel}을(를) 삭제하시겠습니까?\n배정된 ${customerLabel} 정보는 유지되지만 시간표에서 제외됩니다.`,
+      message: `'${cls.name}' ${serviceLabel}을(를) 삭제하시겠습니까?\n배정된 ${customerLabel}의 해당 ${serviceLabel} 연결도 함께 해제됩니다.`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {

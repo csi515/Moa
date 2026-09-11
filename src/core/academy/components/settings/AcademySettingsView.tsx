@@ -69,10 +69,13 @@ export const AcademySettingsView: FC = () => {
   const accentHover = accent.hoverBg;
 
   const [settings, setSettings] = useState<AcademySettings>(() => StorageService.getSettings());
-  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(
-    EMPTY_ORGANIZATION_ADDRESS
-  );
-  const [legacyAddress, setLegacyAddress] = useState('');
+  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(() => {
+    const saved = StorageService.getSettings();
+    const existing = (saved.address || '').trim();
+    return existing
+      ? { ...EMPTY_ORGANIZATION_ADDRESS, roadAddress: existing }
+      : EMPTY_ORGANIZATION_ADDRESS;
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -100,8 +103,10 @@ export const AcademySettingsView: FC = () => {
       try {
         const loaded = await orgService.fetchOrganizationAddress(orgId);
         if (cancelled) return;
+        const roadAddress =
+          loaded.roadAddress.trim() || loaded.legacyAddress.trim() || '';
         setAddressParts({
-          roadAddress: loaded.roadAddress,
+          roadAddress,
           addressDetail: loaded.addressDetail,
           postal: loaded.postal,
           sido: loaded.sido,
@@ -109,12 +114,16 @@ export const AcademySettingsView: FC = () => {
           dong: loaded.dong,
           jibun: loaded.jibun,
         });
-        setLegacyAddress(loaded.legacyAddress);
-        if (loaded.legacyAddress || loaded.roadAddress) {
+        if (roadAddress || loaded.addressDetail) {
           setSettings((prev) => ({
             ...prev,
             address:
-              formatOrganizationAddress(loaded) || loaded.legacyAddress || prev.address,
+              formatOrganizationAddress({
+                roadAddress,
+                addressDetail: loaded.addressDetail,
+              }) ||
+              loaded.legacyAddress ||
+              prev.address,
           }));
         }
       } catch {
@@ -155,12 +164,41 @@ export const AcademySettingsView: FC = () => {
     });
   };
 
+  /** PIN 출결 토글은 즉시 저장 — 저장 전 키오스크 진입 시 꺼진 것으로 보이는 문제 방지 */
+  const handleAttendanceToggle = async (enabled: boolean) => {
+    if (!canEditAttendanceMode) return;
+    const previous = settings;
+    const next = withAttendanceModuleEnabled(settings, enabled);
+    setSettings(next);
+    try {
+      StorageService.saveSettings(next);
+      if (org.currentOrganization) {
+        await orgService.updateOrganization(org.currentOrganization.id, {
+          settings: { features: next.features },
+        });
+      }
+      triggerRefresh();
+      showToast(
+        enabled
+          ? '학생 PIN 출결이 활성화되었습니다. 출석 키오스크를 사용할 수 있습니다.'
+          : '학생 PIN 출결이 비활성화되었습니다.',
+        'success'
+      );
+    } catch (err) {
+      setSettings(previous);
+      showToast(
+        err instanceof Error ? err.message : '출결 설정 저장 중 오류가 발생했습니다.',
+        'error'
+      );
+    }
+  };
+
   const handleSaveSettings = async (e: FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     try {
       const displayAddress =
-        formatOrganizationAddress(addressParts) || settings.address || legacyAddress;
+        formatOrganizationAddress(addressParts) || settings.address || '';
       const nextSettings = {
         ...settings,
         address: displayAddress,
@@ -372,12 +410,11 @@ export const AcademySettingsView: FC = () => {
               value={addressParts}
               onChange={(next) => {
                 setAddressParts(next);
-                setSettings({
-                  ...settings,
-                  address: formatOrganizationAddress(next) || settings.address,
-                });
+                setSettings((prev) => ({
+                  ...prev,
+                  address: formatOrganizationAddress(next) || prev.address,
+                }));
               }}
-              legacyAddress={legacyAddress}
               label={`${placeLabel} 소재지 주소`}
             />
 
@@ -402,86 +439,116 @@ export const AcademySettingsView: FC = () => {
               </div>
             )}
 
-            <div className="pt-4 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <FormField label="기본 수강 형태">
-                <div className="grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { value: 'monthly' as const, label: '월회비' },
-                      { value: 'session_pass' as const, label: '회차권' },
-                    ] as const
-                  ).map((opt) => {
-                    const active =
-                      (settings.defaultBillingMode || 'monthly') === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          setSettings({ ...settings, defaultBillingMode: opt.value })
-                        }
-                        className={`min-h-[44px] rounded-xl border text-sm font-bold transition-colors ${
-                          active
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white text-slate-600 border-slate-200'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </FormField>
+            <div className="pt-4 border-t border-slate-100 space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField label="기본 수강 형태">
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { value: 'monthly' as const, label: '월회비', hint: '매월 청구' },
+                        { value: 'session_pass' as const, label: '회차권', hint: '레슨 시 차감' },
+                      ] as const
+                    ).map((opt) => {
+                      const active =
+                        (settings.defaultBillingMode || 'monthly') === opt.value;
+                      return (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() =>
+                            setSettings({ ...settings, defaultBillingMode: opt.value })
+                          }
+                          className={`min-h-[52px] rounded-xl border px-3 py-2 text-left transition-colors ${
+                            active
+                              ? `${accent.btn} text-white border-transparent`
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
+                          }`}
+                        >
+                          <span className="block text-sm font-bold">{opt.label}</span>
+                          <span
+                            className={`block text-[10px] mt-0.5 ${
+                              active ? 'text-white/80' : 'text-slate-400'
+                            }`}
+                          >
+                            {opt.hint}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </FormField>
 
-              <FormField label="기본 월 수강료 기준 (₩)">
-                <CurrencyInput
-                  value={settings.defaultTuitionFee}
-                  onChange={(val) => setSettings({ ...settings, defaultTuitionFee: val })}
-                  showQuickButtons
-                />
-              </FormField>
-
-              <FormField label="기본 결제일">
-                <select
-                  value={settings.defaultPaymentDay}
-                  onChange={(e) =>
-                    setSettings({ ...settings, defaultPaymentDay: Number(e.target.value) })
-                  }
-                  className={`${FORM_CONTROL_CLASS} font-bold`}
-                >
-                  <option value={1}>매월 1일</option>
-                  <option value={5}>매월 5일</option>
-                  <option value={10}>매월 10일</option>
-                  <option value={15}>매월 15일</option>
-                  <option value={20}>매월 20일</option>
-                  <option value={25}>매월 25일</option>
-                </select>
-              </FormField>
-
-              <div className="sm:col-span-2 rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
-                <label className="flex items-start gap-3 cursor-pointer min-h-[44px]">
-                  <input
-                    type="checkbox"
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                    checked={settings.includeExtrasInMonthlyInvoice === true}
-                    onChange={(e) =>
-                      setSettings({
-                        ...settings,
-                        includeExtrasInMonthlyInvoice: e.target.checked,
-                      })
-                    }
-                  />
-                  <span>
-                    <span className="block text-sm font-bold text-slate-800">
-                      월 청구에 교재·연주회비 합산
-                    </span>
-                    <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">
-                      켜면 월회비 청구서 생성 시 미납 교재비와 해당 월 연주회·콩쿠르 참가비를
-                      함께 청구합니다. 끄면 교재는 기존처럼 별도 판매·수납합니다.
-                    </span>
-                  </span>
-                </label>
+                {(settings.defaultBillingMode || 'monthly') === 'monthly' ? (
+                  <FormField label="기본 월 수강료 기준 (₩)">
+                    <CurrencyInput
+                      value={settings.defaultTuitionFee}
+                      onChange={(val) =>
+                        setSettings({ ...settings, defaultTuitionFee: val })
+                      }
+                      showQuickButtons
+                    />
+                  </FormField>
+                ) : (
+                  <div className="rounded-xl border border-amber-100 bg-amber-50/80 px-3.5 py-3 text-xs text-slate-600 leading-relaxed">
+                    신규 {customerLabel}은(는) 회차권 형태로 등록됩니다. 월 수강료·결제일은
+                    사용하지 않으며, 설정 &gt; 회차권 관리에서 이용권을 발급하세요.
+                  </div>
+                )}
               </div>
+
+              {(settings.defaultBillingMode || 'monthly') === 'monthly' ? (
+                <>
+                  <FormField label="기본 결제일" className="sm:max-w-xs">
+                    <select
+                      value={settings.defaultPaymentDay}
+                      onChange={(e) =>
+                        setSettings({
+                          ...settings,
+                          defaultPaymentDay: Number(e.target.value),
+                        })
+                      }
+                      className={`${FORM_CONTROL_CLASS} font-bold`}
+                    >
+                      <option value={1}>매월 1일</option>
+                      <option value={5}>매월 5일</option>
+                      <option value={10}>매월 10일</option>
+                      <option value={15}>매월 15일</option>
+                      <option value={20}>매월 20일</option>
+                      <option value={25}>매월 25일</option>
+                    </select>
+                  </FormField>
+
+                  <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 space-y-2">
+                    <label className="flex items-start gap-3 cursor-pointer min-h-[44px]">
+                      <input
+                        type="checkbox"
+                        className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        checked={settings.includeExtrasInMonthlyInvoice === true}
+                        onChange={(e) =>
+                          setSettings({
+                            ...settings,
+                            includeExtrasInMonthlyInvoice: e.target.checked,
+                          })
+                        }
+                      />
+                      <span>
+                        <span className="block text-sm font-bold text-slate-800">
+                          월 청구에 교재·연주회비 합산
+                        </span>
+                        <span className="block text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                          켜면 월회비 청구서 생성 시 미납 교재비와 해당 월 연주회·콩쿠르
+                          참가비를 함께 청구합니다. 끄면 교재는 기존처럼 별도 판매·수납합니다.
+                        </span>
+                      </span>
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-[11px] text-slate-500 leading-relaxed">
+                  회차권 모드에서는 월 청구·결제일·교재 합산 옵션을 쓰지 않습니다. 출석(레슨)
+                  시 회차권에서 1회가 차감됩니다.
+                </div>
+              )}
             </div>
 
             {skin && (
@@ -619,8 +686,7 @@ export const AcademySettingsView: FC = () => {
               <AttendanceFeatureToggle
                 enabled={attendanceEnabled}
                 onChange={(enabled) => {
-                  if (!canEditAttendanceMode) return;
-                  setSettings(withAttendanceModuleEnabled(settings, enabled));
+                  void handleAttendanceToggle(enabled);
                 }}
                 activeClassName={accent.btn}
                 iconClassName={accentIcon}
@@ -629,9 +695,12 @@ export const AcademySettingsView: FC = () => {
               {attendanceEnabled && (
                 <a
                   href="/attendance-kiosk"
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className={`inline-flex items-center gap-1.5 text-xs font-bold min-h-[44px] ${accentIcon}`}
                 >
-                  출석 키오스크 열기 (/attendance-kiosk)
+                  <DoorOpen className="w-4 h-4" />
+                  출석 키오스크 열기
                 </a>
               )}
             </div>

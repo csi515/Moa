@@ -41,7 +41,7 @@ export function useDirectorDashboard(): DirectorDashboardData {
     makeupPendingCount,
     currentMonthLabel,
     hasRevenueData: stats.revenueTrend.some((row) => row.매출 > 0 || row.지출 > 0),
-    hasStudentTrendData: stats.studentTrend.some((row) => row.원생수 > 0),
+    hasStudentTrendData: stats.studentTrend.some((row) => row.학생수 > 0),
     hasTuitionData: stats.totalBilledThisMonth > 0,
     hasClassData: stats.classDistribution.length > 0,
   };

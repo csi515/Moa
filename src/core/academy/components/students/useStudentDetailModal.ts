@@ -13,15 +13,19 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
+import { applySessionPassForAttendance } from '@/modules/piano/services/lessonPassConsume';
+import { DAY_ATTENDANCE_CLASS_ID } from '@/core/attendance/dayAttendance';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   getAttendanceBadge,
   getInvoiceStatusBadge,
   getLevelColor,
   getStudentStatusBadge,
 } from '@/utils/formatters';
-import type { ClassItem, DayOfWeek } from '@/types';
+import type { AttendanceStatus, ClassItem, DayOfWeek } from '@/types';
 import { Sparkles } from 'lucide-react';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { DetailTab, getDetailTabConfig, type DetailTabConfigItem } from './detail/types';
 
 const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
@@ -105,6 +109,7 @@ export function useStudentDetailModal({
 }: UseStudentDetailModalOptions) {
   const { showToast, openConfirmDialog, currentUser, triggerRefresh } = useApp();
   const { attendanceEnabled, isAdmin, industry } = usePermissions();
+  const labels = useModuleLabels();
   const industryPlugin = getIndustryPlugin(industry);
   const [currentTab, setCurrentTab] = useState<DetailTab>('info');
   const [guardianLinkOpen, setGuardianLinkOpen] = useState(false);
@@ -118,7 +123,7 @@ export function useStudentDetailModal({
 
   const [isAddAttOpen, setIsAddAttOpen] = useState(false);
   const [newAttStatus, setNewAttStatus] = useState<any>('present');
-  const [newAttDate, setNewAttDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newAttDate, setNewAttDate] = useState(todayIsoLocal);
   const [newAttMemo, setNewAttMemo] = useState('');
 
   const [isAddCstOpen, setIsAddCstOpen] = useState(false);
@@ -172,17 +177,25 @@ export function useStudentDetailModal({
   const guardians = getGuardiansForStudent(student.id);
   const primaryGuardian = guardians.find((g) => g.isPrimary) || guardians[0];
 
-  const totalAttCount = allAttendance.length;
-  const presentCount = allAttendance.filter((a) => a.status === 'present' || a.status === 'make_up').length;
-  const attRate = totalAttCount > 0 ? Math.round((presentCount / totalAttCount) * 100) : 100;
+  const uniqueDates = new Set(allAttendance.map((a) => a.date));
+  const presentByDate = new Map<string, boolean>();
+  for (const a of allAttendance) {
+    const counted = a.status === 'present' || a.status === 'make_up';
+    if (!presentByDate.has(a.date) || counted) {
+      presentByDate.set(a.date, counted || Boolean(presentByDate.get(a.date)));
+    }
+  }
+  const totalAttCount = uniqueDates.size;
+  const presentCount = [...presentByDate.values()].filter(Boolean).length;
+  const attRate =
+    uniqueDates.size > 0 ? Math.round((presentCount / uniqueDates.size) * 100) : 100;
 
   const totalPracticeMinutes = allPractice.reduce((sum, p) => sum + p.minutes, 0);
 
   /** 소프트 종료·퇴원 — 하드 삭제하지 않고 이력 유지, 기본 목록에서 숨김 */
   const handleWithdraw = () => {
-    const skin = isSkinClinicIndustry(industry);
-    const who = skin ? '고객' : '원생';
-    const ended = skin ? '종료' : '퇴원';
+    const who = labels.customer.singular;
+    const ended = isSkinClinicIndustry(industry) ? '종료' : '퇴원';
     if (student.status === 'withdrawn') {
       openConfirmDialog({
         title: '재원으로 복귀',
@@ -223,17 +236,34 @@ export function useStudentDetailModal({
     e.preventDefault();
     const targetClass = enrolledClasses[0] || allClasses[0];
     const className = targetClass ? targetClass.name : '일반 레슨';
+    const classId = targetClass ? targetClass.id : DAY_ATTENDANCE_CLASS_ID;
+    const status = newAttStatus as AttendanceStatus;
+    const existing = StorageService.getAttendance().find(
+      (r) => r.date === newAttDate && r.studentId === student.id && r.classId === classId
+    );
+    const passResult = applySessionPassForAttendance({
+      student,
+      nextStatus: status,
+      previous: existing || null,
+      date: newAttDate,
+    });
+    if (passResult.warning) {
+      showToast(passResult.warning, 'warning');
+      return;
+    }
     StorageService.saveAttendanceRecord({
+      ...(existing ? { id: existing.id } : {}),
       date: newAttDate,
       studentId: student.id,
       studentName: student.name,
-      classId: targetClass ? targetClass.id : 'c-default',
+      classId,
       className,
-      status: newAttStatus,
+      status,
       memo: newAttMemo,
       createdBy: currentUser.name,
+      sessionPassId: passResult.sessionPassId,
     });
-    if (newAttStatus === 'absent') {
+    if (status === 'absent') {
       notifyParentAbsence({
         studentId: student.id,
         studentName: student.name,
@@ -260,7 +290,7 @@ export function useStudentDetailModal({
       parentName:
         getPrimaryGuardian(student.id)?.parentName ||
         student.parentName ||
-        (isSkinClinicIndustry(industry) ? '연락처' : '학부모'),
+        labels.contact.singular,
       date: new Date().toISOString().slice(0, 10),
       type: newCstType,
       content: newCstContent.trim(),
@@ -404,7 +434,9 @@ export function useStudentDetailModal({
     industry
   );
 
-  const latestAttendance = [...allAttendance].sort((a, b) => b.date.localeCompare(a.date))[0];
+  const latestAttendance = [...allAttendance].sort((a, b) =>
+    (b.date || '').localeCompare(a.date || '')
+  )[0];
   const tuitionStatusLabel =
     billingSummary.tuitionStatus === 'overdue'
       ? '연체'
@@ -423,7 +455,7 @@ export function useStudentDetailModal({
 
   const summary = {
     nextClass: getNextClassLabel(enrolledClasses),
-    recentAttendance: latestAttendance
+    recentAttendance: latestAttendance?.date
       ? `${latestAttendance.date.slice(5)} ${getAttendanceBadge(latestAttendance.status).label}`
       : '기록 없음',
     tuition: tuitionLabel,

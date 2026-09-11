@@ -7,8 +7,9 @@ import { formatCurrency } from '@/utils/formatters';
 import {
   getExpenseCategories,
   getCategoryLabel,
-  getRecentYearMonths,
+  buildYearMonthOptions,
 } from '@/core/finance/categories';
+import { getTeacherPayrollSettlements } from '@/core/finance/teacherPayroll';
 import {
   Receipt,
   Plus,
@@ -21,11 +22,12 @@ import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import type { FinanceExpense } from '@/core/finance/types';
 
+const PAYROLL_RELATED_CATEGORIES = new Set(['teacher_salary', 'instructor_fee', 'salary']);
+
 export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const categoryOptions = getExpenseCategories(industry);
-  const monthOptions = getRecentYearMonths(12);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [categoryFilter, setCategoryFilter] = useState('ALL');
@@ -43,6 +45,14 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   });
 
   const expenses = StorageService.getExpenses();
+
+  const monthOptions = useMemo(
+    () =>
+      buildYearMonthOptions({
+        dataYearMonths: expenses.map((e) => e.date?.slice(0, 7)),
+      }),
+    [expenses]
+  );
 
   const filteredExpenses = useMemo(() => {
     return expenses.filter((e) => {
@@ -116,22 +126,51 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
 
-    StorageService.saveExpense({
-      ...(editingExpense ? { id: editingExpense.id } : {}),
-      date: formData.date,
-      category: formData.category,
-      amount: Number(formData.amount) || 0,
-      description: formData.description.trim(),
-      recipient: formData.recipient.trim(),
-      paymentMethod: formData.paymentMethod,
-      memo: formData.memo.trim(),
-    });
+    const persist = () => {
+      StorageService.saveExpense({
+        ...(editingExpense ? { id: editingExpense.id } : {}),
+        date: formData.date,
+        category: formData.category,
+        amount: Number(formData.amount) || 0,
+        description: formData.description.trim(),
+        recipient: formData.recipient.trim(),
+        paymentMethod: formData.paymentMethod,
+        memo: formData.memo.trim(),
+      });
 
-    showToast(
-      editingExpense ? '지출 내역이 수정되었습니다.' : '신규 지출이 등록되었습니다.',
-      'success'
-    );
-    setIsModalOpen(false);
+      showToast(
+        editingExpense ? '지출 내역이 수정되었습니다.' : '신규 지출이 등록되었습니다.',
+        'success'
+      );
+      setIsModalOpen(false);
+    };
+
+    const yearMonth = formData.date.slice(0, 7);
+    const isPayrollCategory = PAYROLL_RELATED_CATEGORIES.has(formData.category);
+    const hasSettlement =
+      isPayrollCategory &&
+      getTeacherPayrollSettlements().some((s) => s.yearMonth === yearMonth);
+    const hasPayrollExpense =
+      isPayrollCategory &&
+      expenses.some(
+        (exp) =>
+          exp.id !== editingExpense?.id &&
+          exp.settlementKind === 'teacher_payroll' &&
+          (exp.settlementYearMonth === yearMonth || exp.date?.startsWith(yearMonth))
+      );
+
+    if (hasSettlement || hasPayrollExpense) {
+      openConfirmDialog({
+        title: '강사 인건비 중복 가능',
+        message: `${yearMonth}에 강사 정산(또는 정산 지출)이 있습니다. 수동 인건비 지출을 추가하면 손익이 이중 계상될 수 있습니다. 계속할까요?`,
+        confirmText: '그래도 등록',
+        cancelText: '취소',
+        onConfirm: persist,
+      });
+      return;
+    }
+
+    persist();
   };
 
   return (

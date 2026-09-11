@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Textbook,
   TextbookSale,
@@ -103,7 +103,7 @@ export const TextbookManagementView: React.FC = () => {
   const handleCancelSale = (sale: TextbookSale) => {
     openConfirmDialog({
       title: '교재 판매 취소 / 반품',
-      message: `${sale.studentName} 원생의 "${sale.textbookTitle}" (${sale.quantity}권) 판매를 취소하시겠습니까?\n차감되었던 재고 ${sale.quantity}권이 자동으로 복구됩니다.`,
+      message: `${sale.studentName} 학생의 "${sale.textbookTitle}" (${sale.quantity}권) 판매를 취소하시겠습니까?\n차감되었던 재고 ${sale.quantity}권이 자동으로 복구됩니다.`,
       confirmText: '판매 취소 (재고 원복)',
       isDestructive: true,
       onConfirm: () => {

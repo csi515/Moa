@@ -65,10 +65,10 @@ export interface GlobalStudent {
 export type EnrollmentRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export const ENROLLMENT_REQUEST_STATUS_LABELS: Record<EnrollmentRequestStatus, string> = {
-  pending: '검토 중',
-  approved: '승인됨',
-  rejected: '거절됨',
-  cancelled: '취소됨',
+  pending: '연결 요청 중',
+  approved: '연결 완료',
+  rejected: '연결 거절',
+  cancelled: '요청 취소',
 };
 
 /** 등록 요청 */

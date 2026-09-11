@@ -36,13 +36,13 @@ export const TextbookSummaryCards: React.FC<TextbookSummaryCardsProps> = ({
         label="전체 교재비 미납액"
         value={formatCurrency(stats.totalUnpaidAmount)}
         variant="rose"
-        subtitle={`미납 원생 ${stats.unpaidStudentsCount}명`}
+        subtitle={`미납 학생 ${stats.unpaidStudentsCount}명`}
       />
       <SummaryMetricCard
         label="이번달 판매 권수"
         value={`${stats.monthlyBooksSold}권`}
         variant="amber"
-        subtitle="원생 출고 완료"
+        subtitle="학생 출고 완료"
       />
       <SummaryMetricCard
         label="재고 부족 교재"

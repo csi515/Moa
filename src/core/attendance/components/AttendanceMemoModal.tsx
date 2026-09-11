@@ -1,10 +1,11 @@
 import React from 'react';
 import { Modal } from '@/shared/components';
 import { FORM_CONTROL_CLASS } from '@/shared/components/ui';
+import { usePermissions } from '@/core/auth/usePermissions';
 import type { Student } from '@/types';
 import type { AttendanceSession } from '../types';
 
-/** 등하원 하원·전달 메모 편집 모달 */
+/** 출석(세션) 메모 편집 — 어린이집은 하원·전달 카피 유지 */
 export function AttendanceMemoModal({
   open,
   student,
@@ -24,11 +25,21 @@ export function AttendanceMemoModal({
   onSave: () => void;
   saveButtonClassName: string;
 }) {
+  const { industry } = usePermissions();
+  const daycareStyle = industry === 'daycare';
+  const titleSuffix = daycareStyle ? '하원·전달 메모' : '출석 메모';
+  const hint = daycareStyle
+    ? '세션 메모 · 등원 후 전달 사항 기록'
+    : '세션 메모 · 출석 관련 전달 사항';
+  const placeholder = daycareStyle
+    ? '예: 조부모님 하원, 16:30 픽업 예정'
+    : '예: 조부모님이 데리러 오심, 16:30 예정';
+
   return (
     <Modal
       isOpen={open}
       onClose={onClose}
-      title={`${student?.name || ''} 하원·전달 메모`}
+      title={`${student?.name || ''} ${titleSuffix}`}
       maxWidth="md"
     >
       <div className="p-5 space-y-4">
@@ -38,15 +49,13 @@ export function AttendanceMemoModal({
           </p>
         )}
         {session?.checkInAt && (
-          <p className="text-[11px] text-slate-400 font-mono">
-            세션 메모 · 등원 후 전달 사항 기록
-          </p>
+          <p className="text-[11px] text-slate-400 font-mono">{hint}</p>
         )}
         <textarea
           rows={4}
           value={draft}
           onChange={(e) => onDraftChange(e.target.value)}
-          placeholder="예: 조부모님 하원, 16:30 픽업 예정"
+          placeholder={placeholder}
           className={`${FORM_CONTROL_CLASS} resize-none`}
         />
         <div className="flex justify-end gap-2">

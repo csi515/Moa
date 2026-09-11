@@ -2,6 +2,7 @@ import {
   parseGuardianLinkFromUrl,
   storePendingGuardianLink,
 } from '@/core/parent/services/guardianLinkService';
+import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
 import { parseDeepLinksFromUrl } from './deepLinkParser';
 import { parseStaffLinkFromUrl, storePendingStaffLink } from './pendingStaffLink';
 
@@ -9,7 +10,10 @@ import { parseStaffLinkFromUrl, storePendingStaffLink } from './pendingStaffLink
 export function applyDeepLinkFromString(url: string): void {
   const { staffLink, guardianLink } = parseDeepLinksFromUrl(url);
   if (staffLink) storePendingStaffLink(staffLink);
-  if (guardianLink) storePendingGuardianLink(guardianLink);
+  if (guardianLink) {
+    storePendingGuardianLink(guardianLink);
+    setParentPortalModeActive(true);
+  }
 }
 
 /** 웹/PWA: 현재 URL 쿼리(staff_link, link)를 sessionStorage에 저장하고 URL에서 제거 */
@@ -18,5 +22,8 @@ export function bootstrapWebDeepLinks(): void {
   if (staff) storePendingStaffLink(staff);
 
   const guardian = parseGuardianLinkFromUrl();
-  if (guardian) storePendingGuardianLink(guardian);
+  if (guardian) {
+    storePendingGuardianLink(guardian);
+    setParentPortalModeActive(true);
+  }
 }

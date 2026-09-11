@@ -1,4 +1,4 @@
-import type { ClassItem, Teacher } from '../../types';
+import type { ClassItem, Student, Teacher } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { deleteById, generateEntityId, getItem, setItem } from './helpers';
 
@@ -68,6 +68,20 @@ export function createStaffClassStorage() {
       const list = this.getClasses();
       if (!deleteById(list, id)) return false;
       setItem(STORAGE_KEYS.CLASSES, list);
+
+      const students = getItem<Student[]>(STORAGE_KEYS.STUDENTS, []);
+      let changed = false;
+      const nextStudents = students.map((student) => {
+        if (!student.classIds?.includes(id)) return student;
+        changed = true;
+        return {
+          ...student,
+          classIds: student.classIds.filter((classId) => classId !== id),
+        };
+      });
+      if (changed) {
+        setItem(STORAGE_KEYS.STUDENTS, nextStudents);
+      }
       return true;
     },
   };

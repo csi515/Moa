@@ -86,8 +86,6 @@ interface AppContextType {
   confirmDialog: ConfirmDialogOptions | null;
   openConfirmDialog: (options: ConfirmDialogOptions) => void;
   closeConfirmDialog: () => void;
-  globalSearchQuery: string;
-  setGlobalSearchQuery: (query: string) => void;
   refreshKey: number;
   triggerRefresh: () => void;
 }
@@ -101,7 +99,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [currentUser, setCurrentUser] = useState<User>(StorageService.getActiveUser());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogOptions | null>(null);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState<string>('');
   const [refreshKey, setRefreshKey] = useState<number>(0);
 
   const triggerRefresh = () => {
@@ -152,8 +149,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         confirmDialog,
         openConfirmDialog,
         closeConfirmDialog,
-        globalSearchQuery,
-        setGlobalSearchQuery,
         refreshKey,
         triggerRefresh
       }}

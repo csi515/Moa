@@ -17,6 +17,7 @@ import { getPlaceLabel } from '@/core/industry/industryUi';
 import type { Student, TuitionInvoice } from '@/types';
 import { Copy, X } from 'lucide-react';
 import { Section } from './shared';
+import { buildYearMonthOptions } from '@/core/finance/categories';
 
 function statusLabel(status: 'paid' | 'partial' | 'unpaid'): string {
   if (status === 'paid') return '완납';
@@ -143,16 +144,18 @@ export function ParentTuitionView({
     ? StorageService.getTextbookPayments().filter((p) => p.studentId === student.id)
     : [];
 
-  const monthOptions = useMemo(() => {
-    const set = new Set<string>();
-    invoices.forEach((i) => set.add(i.yearMonth));
-    sales.forEach((s) => set.add(s.saleDate.slice(0, 7)));
-    const list = Array.from(set).sort((a, b) => b.localeCompare(a));
-    if (list.length === 0) {
-      list.push(new Date().toISOString().slice(0, 7));
-    }
-    return list.slice(0, 12);
-  }, [invoices, sales]);
+  const monthOptions = useMemo(
+    () =>
+      buildYearMonthOptions({
+        dataYearMonths: [
+          ...invoices.map((i) => i.yearMonth),
+          ...sales.map((s) => s.saleDate?.slice(0, 7)),
+        ],
+        pastMonths: 0,
+        futureMonths: 0,
+      }).map((m) => m.value),
+    [invoices, sales]
+  );
 
   const [selectedMonth, setSelectedMonth] = useState(monthOptions[0]);
   const [detailInvoice, setDetailInvoice] = useState<TuitionInvoice | null>(null);

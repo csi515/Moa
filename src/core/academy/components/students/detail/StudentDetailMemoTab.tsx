@@ -1,39 +1,33 @@
 import React from 'react';
 import { Student } from '@/types';
 import { useModuleLabels } from '@/core/labels';
-import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
+import { getCustomerLabel } from '@/core/industry/industryUi';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { combineStudentNotes } from '../form/studentFormTypes';
 
 interface StudentDetailMemoTabProps {
   student: Student;
 }
 
-/** 활동 탭 — 특이사항·내부 메모 (기존 memo 기능) */
+/** 활동 탭 — 특이사항 (기존 memo·specialNotes 호환 표시) */
 export const StudentDetailMemoTab: React.FC<StudentDetailMemoTabProps> = ({ student }) => {
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
-  const placeLabel = getPlaceLabel(industry);
+  const notes = combineStudentNotes(student.specialNotes, student.memo);
 
   return (
-  <div className="space-y-4">
-    <p className="text-xs text-slate-500">
-      {customerLabel} 관련 특이사항과 {placeLabel} 내부 메모입니다.
-    </p>
-
-    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-      <h5 className="text-xs font-bold text-slate-700 uppercase">특이사항</h5>
-      <p className="text-xs text-slate-800 whitespace-pre-line leading-relaxed">
-        {student.specialNotes || '등록된 특이사항이 없습니다.'}
+    <div className="space-y-4">
+      <p className="text-xs text-slate-500">
+        {customerLabel} 관련 알레르기·건강 주의사항·전달사항입니다.
       </p>
-    </div>
 
-    <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-      <h5 className="text-xs font-bold text-slate-700 uppercase">{placeLabel} 내부 메모</h5>
-      <p className="text-xs text-slate-800 whitespace-pre-line leading-relaxed">
-        {student.memo || '등록된 내부 메모가 없습니다.'}
-      </p>
+      <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 space-y-2">
+        <h5 className="text-xs font-bold text-amber-900 uppercase">특이사항</h5>
+        <p className="text-xs text-amber-950 whitespace-pre-line leading-relaxed">
+          {notes || '등록된 특이사항이 없습니다.'}
+        </p>
+      </div>
     </div>
-  </div>
   );
 };

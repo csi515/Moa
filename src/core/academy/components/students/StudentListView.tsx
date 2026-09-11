@@ -9,6 +9,7 @@ import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
+import { ScheduleService } from '@/core/services/scheduleService';
 import type { DayOfWeek, Student } from '@/types';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
@@ -30,6 +31,8 @@ import {
   getClassLabel,
   getCurrentYearMonth,
   getMonthBillingSignal,
+  getPianoBillingModeLabel,
+  getPianoSessionPassColumnLabel,
   getTodayAttendanceSignal,
   getTodayIsoDate,
   studentHasWeekday,
@@ -53,6 +56,7 @@ export const StudentListView: React.FC = () => {
   const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const labels = useModuleLabels();
   const skin = isSkinClinicIndustry(industry);
+  const isPiano = industry === 'piano';
   const endedLabel = skin ? '종료' : '퇴원';
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
@@ -86,6 +90,10 @@ export const StudentListView: React.FC = () => {
   const billingByStudent = useMemo(
     () => buildBillingByStudent(StorageService.getAllStudentsBillingSummary(yearMonth)),
     [yearMonth, refreshKey]
+  );
+  const sessionPasses = useMemo(
+    () => (isPiano ? ScheduleService.getSessionPasses() : []),
+    [isPiano, refreshKey]
   );
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -395,7 +403,7 @@ export const StudentListView: React.FC = () => {
           description={
             skin
               ? `검색어나 필터를 바꿔보세요. 종료 ${labels.customer.singular}은 ‘종료’ 또는 ‘전체’에서 볼 수 있습니다.`
-              : '검색어나 필터를 바꿔보세요. 퇴원 원생은 ‘퇴원’ 또는 ‘전체’에서 볼 수 있습니다.'
+              : `${endedLabel} 상태의 ${labels.customer.singular}은 ‘${endedLabel}’ 또는 ‘전체’ 필터에서 볼 수 있습니다.`
           }
           action={
             <button
@@ -415,9 +423,11 @@ export const StudentListView: React.FC = () => {
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-2.5 px-3">{skin ? labels.customer.singular : '원생'}</th>
-                    <th className="py-2.5 px-3">{skin ? labels.service.singular : '레슨'}</th>
+                    <th className="py-2.5 px-3">{labels.customer.singular}</th>
+                    <th className="py-2.5 px-3">{isPiano ? '레슨' : labels.service.singular}</th>
                     <th className="py-2.5 px-3">담당</th>
+                    {isPiano && <th className="py-2.5 px-3">수강 형태</th>}
+                    {isPiano && <th className="py-2.5 px-3">회차권</th>}
                     <th className="py-2.5 px-3">오늘 출결</th>
                     <th className="py-2.5 px-3">이번 달 수납</th>
                     <th className="py-2.5 px-3 text-right"> </th>
@@ -428,6 +438,10 @@ export const StudentListView: React.FC = () => {
                     const badge = getStudentStatusBadge(st.status);
                     const att = getTodayAttendanceSignal(st.id, todayAttendanceByStudent);
                     const bill = getMonthBillingSignal(billingByStudent.get(st.id));
+                    const billingModeLabel = isPiano ? getPianoBillingModeLabel(st) : '';
+                    const passLabel = isPiano
+                      ? getPianoSessionPassColumnLabel(st.id, sessionPasses)
+                      : '';
                     return (
                       <tr
                         key={st.id}
@@ -470,6 +484,28 @@ export const StudentListView: React.FC = () => {
                         <td className="py-2.5 px-3 text-slate-600 font-medium">
                           {st.teacherName || '-'}
                         </td>
+                        {isPiano && (
+                          <td className="py-2.5 px-3">
+                            <span
+                              className={`inline-flex px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                                billingModeLabel === '회차권'
+                                  ? 'bg-violet-50 text-violet-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {billingModeLabel}
+                            </span>
+                          </td>
+                        )}
+                        {isPiano && (
+                          <td
+                            className={`py-2.5 px-3 font-bold ${
+                              passLabel === '해당 없음' ? 'text-slate-400' : 'text-indigo-700'
+                            }`}
+                          >
+                            {passLabel}
+                          </td>
+                        )}
                         <td className={`py-2.5 px-3 font-bold ${signalClass(att.tone)}`}>
                           {att.label}
                         </td>
@@ -494,6 +530,10 @@ export const StudentListView: React.FC = () => {
               const att = getTodayAttendanceSignal(st.id, todayAttendanceByStudent);
               const bill = getMonthBillingSignal(billingByStudent.get(st.id));
               const guardian = getPrimaryGuardian(st.id);
+              const billingModeLabel = isPiano ? getPianoBillingModeLabel(st) : '';
+              const passLabel = isPiano
+                ? getPianoSessionPassColumnLabel(st.id, sessionPasses)
+                : '';
               return (
                 <button
                   key={st.id}
@@ -519,6 +559,17 @@ export const StudentListView: React.FC = () => {
                               {skin && st.status === 'withdrawn' ? endedLabel : badge.label}
                             </span>
                           )}
+                          {isPiano && (
+                            <span
+                              className={`px-1.5 py-0.5 rounded-md font-bold text-[10px] ${
+                                billingModeLabel === '회차권'
+                                  ? 'bg-violet-50 text-violet-700'
+                                  : 'bg-slate-100 text-slate-600'
+                              }`}
+                            >
+                              {billingModeLabel}
+                            </span>
+                          )}
                         </div>
                         <p className="text-[11px] text-slate-500 truncate">
                           {getClassLabel(st, classNameById)}
@@ -531,6 +582,15 @@ export const StudentListView: React.FC = () => {
 
                   <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-[11px] font-bold">
                     <span className={signalClass(att.tone)}>출결 {att.label}</span>
+                    {isPiano && (
+                      <span
+                        className={
+                          passLabel === '해당 없음' ? 'text-slate-400' : 'text-indigo-700'
+                        }
+                      >
+                        {passLabel}
+                      </span>
+                    )}
                     <span className={signalClass(bill.tone)}>{bill.label}</span>
                   </div>
                   {guardian?.parentName && (

@@ -1,14 +1,18 @@
 import type { AttendanceRecord, ClassItem, DayOfWeek, Student, StudentMonthlyBillingSummary } from '@/types';
+import { normalizeBillingMode } from '@/types';
 import { formatCurrency, getAttendanceBadge, getInvoiceStatusBadge } from '@/utils/formatters';
+import type { SessionPass } from '@/core/types/schedule';
+import { getPassRemaining } from '@/core/schedules/sessionPassUtils';
+import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 
 const WEEKDAYS: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
 
 export function getTodayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return todayIsoLocal();
 }
 
 export function getCurrentYearMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+  return yearMonthLocal();
 }
 
 /** 오늘 요일 (한글 DayOfWeek) */
@@ -104,6 +108,27 @@ export function buildBillingByStudent(
   const map = new Map<string, StudentMonthlyBillingSummary>();
   summaries.forEach((s) => map.set(s.studentId, s));
   return map;
+}
+
+/** 피아노 목록 — 수강 형태 표시 (일반 / 회차권) */
+export function getPianoBillingModeLabel(student: Pick<Student, 'billingMode'>): string {
+  return normalizeBillingMode(student.billingMode) === 'session_pass' ? '회차권' : '일반';
+}
+
+/**
+ * 피아노 목록 — 회차권 컬럼.
+ * 등록된 회차권이 없으면 해당 없음, 있으면 남은 N회.
+ */
+export function getPianoSessionPassColumnLabel(
+  studentId: string,
+  passes: SessionPass[]
+): string {
+  const owned = passes.filter(
+    (p) => p.customerId === studentId && p.status !== 'cancelled'
+  );
+  if (owned.length === 0) return '해당 없음';
+  const remaining = owned.reduce((sum, p) => sum + getPassRemaining(p), 0);
+  return `남은 ${remaining}회`;
 }
 
 export const WEEKDAY_FILTER_OPTIONS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일'];

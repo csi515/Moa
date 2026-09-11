@@ -61,3 +61,11 @@ export function newGuardianEntry(primary = false): GuardianFormEntry {
     invite: false,
   };
 }
+
+/** 특이사항·메모 표시용 통합 (저장 필드는 specialNotes 우선, memo는 호환용) */
+export function combineStudentNotes(specialNotes?: string | null, memo?: string | null): string {
+  const a = (specialNotes || '').trim();
+  const b = (memo || '').trim();
+  if (a && b && a !== b) return `${a}\n\n${b}`;
+  return a || b;
+}

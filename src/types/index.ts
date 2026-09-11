@@ -118,8 +118,15 @@ export interface Parent {
   createdAt: string;
 }
 
-/** 강사 급여 정산 방식 */
-export type TeacherPayType = 'hourly' | 'monthly' | 'none';
+/**
+ * 강사 급여 정산 방식
+ * - hourly: 레슨 실적 × 회당 지급액 (기존 시급 필드 재사용)
+ * - attendance: 출근 횟수 × 1회 지급액 (실적은 정산 화면에서 입력)
+ * - work_hours: 근무 시간 × 시간당 지급액 (실적은 정산 화면에서 입력)
+ * - monthly: 월 고정
+ * - none: 정산 안 함
+ */
+export type TeacherPayType = 'hourly' | 'attendance' | 'work_hours' | 'monthly' | 'none';
 
 export interface Teacher {
   id: string;
@@ -132,7 +139,12 @@ export interface Teacher {
   specialty?: string;
   /** 월급 (₩) — payType=monthly */
   salary?: number;
-  /** 시급/레슨당 (₩) — payType=hourly */
+  /**
+   * 단위 지급액 (₩)
+   * - hourly: 레슨 1회당
+   * - attendance: 출근 1회당
+   * - work_hours: 근무 1시간당
+   */
   hourlyRate?: number;
   /** 정산 방식. 미설정 시 hourlyRate/salary로 추론 */
   payType?: TeacherPayType;
@@ -540,6 +552,13 @@ export interface ExpenseItem {
   teacherId?: string;
   settlementYearMonth?: string;
   settlementKind?: 'teacher_payroll';
+  /** 정산 계산·조정 내역 (지출 metadata에 동기화) */
+  settlementPayType?: TeacherPayType;
+  settlementQuantity?: number;
+  settlementRate?: number;
+  settlementCalculatedAmount?: number;
+  settlementAdjustmentAmount?: number;
+  settlementAdjustmentReason?: string;
 }
 export type Expense = ExpenseItem;
 

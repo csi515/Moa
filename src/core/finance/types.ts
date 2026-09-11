@@ -35,6 +35,12 @@ export interface FinanceExpense {
   teacherId?: string;
   settlementYearMonth?: string;
   settlementKind?: 'teacher_payroll';
+  settlementPayType?: import('@/types').TeacherPayType;
+  settlementQuantity?: number;
+  settlementRate?: number;
+  settlementCalculatedAmount?: number;
+  settlementAdjustmentAmount?: number;
+  settlementAdjustmentReason?: string;
 }
 
 export interface IncomeEntry {

@@ -129,7 +129,7 @@ export const DirectorDashboardPanels: React.FC<DirectorDashboardPanelsProps> = (
               <div className="text-center py-8 space-y-2">
                 <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
                 <p className="text-xs font-bold text-slate-600">미납된 수강료가 없습니다! ✨</p>
-                <p className="text-xs text-slate-400">모든 원생이 정상 수납되었습니다</p>
+                <p className="text-xs text-slate-400">모든 학생이 정상 수납되었습니다</p>
               </div>
             ) : (
               recentInvoices.map((inv, i) => (

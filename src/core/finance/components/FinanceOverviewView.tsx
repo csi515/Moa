@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StorageService } from '@/services/storage';
 import { formatCurrency } from '@/utils/formatters';
-import { getRecentYearMonths } from '@/core/finance/categories';
+import { buildYearMonthOptions } from '@/core/finance/categories';
 import {
   TrendingUp,
   TrendingDown,
@@ -26,11 +26,22 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
   const { industry } = usePermissions();
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
   const [summaryTick, setSummaryTick] = useState(0);
-  const monthOptions = getRecentYearMonths(12);
 
   const summary = useMemo(
     () => StorageService.getFinanceSummary(industry),
     [industry, summaryTick]
+  );
+
+  const monthOptions = useMemo(
+    () =>
+      buildYearMonthOptions({
+        dataYearMonths: [
+          ...summary.monthlyTrend.map((t) => t.yearMonth),
+          ...StorageService.getIncomeEntries().map((e) => e.date?.slice(0, 7)),
+          ...StorageService.getExpenses().map((e) => e.date?.slice(0, 7)),
+        ],
+      }),
+    [summary.monthlyTrend, summaryTick]
   );
 
   const monthDetail = useMemo(() => {

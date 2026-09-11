@@ -48,7 +48,7 @@ function metadataCounselorId(metadata: Record<string, unknown> | null | undefine
   return typeof raw === 'string' && raw ? raw : null;
 }
 
-/** 담당 원생이거나 상담 담당이 본인인 예약만 */
+/** 담당 학생이거나 상담 담당이 본인인 예약만 */
 export function reservationBelongsToStaff(
   row: ReservationDetail,
   staffId: string,
@@ -64,7 +64,7 @@ export function reservationBelongsToStaff(
   );
 }
 
-/** 담당 원생이거나 상담 담당이 본인인 문의만 */
+/** 담당 학생이거나 상담 담당이 본인인 문의만 */
 export function inquiryBelongsToStaff(
   row: CustomerJoinRequest,
   staffId: string,

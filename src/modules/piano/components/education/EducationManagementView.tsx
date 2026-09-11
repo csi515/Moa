@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope } from '@/hooks';
@@ -70,7 +70,7 @@ function EducationSectionView({ section }: { section: EduSection }) {
 
       {students.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center">
-          <p className="text-sm font-bold text-slate-700">담당 원생이 없습니다</p>
+          <p className="text-sm font-bold text-slate-700">담당 학생이 없습니다</p>
           <p className="text-xs text-slate-500 mt-1">원장이 학생의 담당 선생님을 지정하면 여기에 표시됩니다.</p>
         </div>
       ) : (

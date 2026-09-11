@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -142,7 +142,7 @@ export const MakeupManagementView: React.FC = () => {
       );
       if (refreshed) notifyParentMakeupScheduled(refreshed);
 
-      showToast(`${scheduleTarget.studentName} 원생 보강 일정이 등록되었습니다.`, 'success');
+      showToast(`${scheduleTarget.studentName} 학생 보강 일정이 등록되었습니다.`, 'success');
       setScheduleTarget(null);
     };
 
@@ -161,7 +161,7 @@ export const MakeupManagementView: React.FC = () => {
 
   const handleComplete = (item: MakeupItem) => {
     StorageService.completeMakeup(item.attendanceId);
-    showToast(`${item.studentName} 원생 보강이 완료 처리되었습니다.`, 'success');
+    showToast(`${item.studentName} 학생 보강이 완료 처리되었습니다.`, 'success');
   };
 
   const statusLabel: Record<MakeupStatus, string> = {

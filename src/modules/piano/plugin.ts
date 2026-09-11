@@ -7,7 +7,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
   option: {
     value: 'piano',
     label: '피아노학원',
-    description: '원생·출결·수강료·교재 중심 운영',
+    description: '학생·출결·수강료·교재 중심 운영',
   },
   theme: 'indigo',
   accent: {
@@ -37,7 +37,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'lessons',
     'practice',
     'consultations',
-    'resources',
+    // resources: UI 숨김(nav) — VIEW_MAP·ResourceManagementView·SONGS 데이터는 유지
     'tuition',
     'unpaid',
     'payroll',

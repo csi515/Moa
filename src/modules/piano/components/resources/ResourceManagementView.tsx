@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar, SearchField } from '@/shared/components';
@@ -11,6 +11,10 @@ import {
   X,
 } from 'lucide-react';
 
+/**
+ * 곡·교재 자료 카탈로그 (Song / resourceType).
+ * 판매·재고용 「교재 관리」(textbooks)와는 별 도메인 — UI는 nav에서 숨김, 데이터·VIEW_MAP 유지.
+ */
 type ResourceType = NonNullable<Song['resourceType']>;
 
 interface PianoResource {

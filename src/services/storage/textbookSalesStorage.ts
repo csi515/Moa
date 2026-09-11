@@ -384,7 +384,7 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const sales = (api.getTextbookSales as () => TextbookSale[])().filter(
         (s) =>
           s.studentId === studentId &&
-          (!yearMonth || s.saleDate.startsWith(ym)) &&
+          (!yearMonth || (s.saleDate || '').startsWith(ym)) &&
           !s.billingInvoiceId
       );
       const textbookBilled = sales.reduce((sum, s) => sum + (s.totalAmount || 0), 0);

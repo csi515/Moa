@@ -92,7 +92,7 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-bold text-slate-900 text-sm">교재비 수납 이력 내역서</h3>
-            <p className="text-xs text-slate-500">원생별 교재비 납부 일자 및 영수증 내역입니다.</p>
+            <p className="text-xs text-slate-500">학생별 교재비 납부 일자 및 영수증 내역입니다.</p>
           </div>
           <span className="text-xs font-medium text-slate-500">총 {payments.length}건 수납 기록</span>
         </div>
@@ -103,7 +103,7 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
               <tr>
                 <th className="py-2.5 px-3">납부일자</th>
                 <th className="py-2.5 px-3">영수증 번호</th>
-                <th className="py-2.5 px-3">원생명</th>
+                <th className="py-2.5 px-3">학생명</th>
                 <th className="py-2.5 px-3">교재명</th>
                 <th className="py-2.5 px-3 text-right">수납 금액</th>
                 <th className="py-2.5 px-3 text-center">결제수단</th>

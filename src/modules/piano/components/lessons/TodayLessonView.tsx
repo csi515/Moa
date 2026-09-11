@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FC, type MouseEvent } from 'react';
-import { CheckCircle2, ChevronRight, Clock, CreditCard, MapPin, Piano, Users, XCircle } from 'lucide-react';
+import { Clock, CreditCard, Piano } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -9,39 +9,27 @@ import { TuitionService } from '@/core/finance';
 import { EmptyState, PageHeader } from '@/shared/components';
 import type { AttendanceRecord, AttendanceStatus, ClassItem, LessonRecord, Student } from '@/types';
 import { upsertById } from '@/shared/utils/listUpdate';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
 import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
 import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
 import { consumeOpenUncheckedLessons } from '@/core/customer/studentJoinInbox';
 import { LessonSessionModal, type LessonSessionForm } from './LessonSessionModal';
+import {
+  TodayLessonClassList,
+  type TodayLessonSessionTarget,
+} from './TodayLessonClassList';
 
 const DAY_MAP: Record<number, string> = {
+  0: '일',
   1: '월',
   2: '화',
   3: '수',
   4: '목',
   5: '금',
   6: '토',
-  0: '일',
 };
-
-const STATUS_LABEL: Record<AttendanceStatus, string> = {
-  present: '출석',
-  late: '지각',
-  early_leave: '조퇴',
-  absent: '결석',
-  make_up: '보강',
-};
-
-type SessionTarget = {
-  student: Student;
-  classItem: ClassItem;
-};
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function nowHm(): string {
   const d = new Date();
@@ -57,14 +45,14 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   const refreshKey = useStorageRefresh();
   const { staffId, scopeStudents, scopeClasses, scopeLessons } = useStaffScope();
 
-  const [target, setTarget] = useState<SessionTarget | null>(null);
+  const [target, setTarget] = useState<TodayLessonSessionTarget | null>(null);
   const [uncheckedOnly, setUncheckedOnly] = useState(false);
 
   useEffect(() => {
     if (consumeOpenUncheckedLessons()) setUncheckedOnly(true);
   }, []);
 
-  const today = todayIso();
+  const today = todayIsoLocal();
   const todayKorean = DAY_MAP[new Date().getDay()] || '월';
   const currentHm = nowHm();
 
@@ -93,8 +81,8 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   const findAttendance = (studentId: string, classId: string): AttendanceRecord | undefined =>
     attendance.find((a) => a.date === today && a.studentId === studentId && a.classId === classId);
 
-  const findLesson = (studentId: string): LessonRecord | undefined =>
-    lessons.find((l) => l.date === today && l.studentId === studentId);
+  const findLesson = (studentId: string, classId: string): LessonRecord | undefined =>
+    lessons.find((l) => l.date === today && l.studentId === studentId && l.classId === classId);
 
   const stats = useMemo(() => {
     let total = 0;
@@ -119,7 +107,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   const offerMakeup = (studentName: string) => {
     openConfirmDialog({
       title: '보강 일정',
-      message: `${studentName} 원생 결석이 저장되었습니다. 지금 보강 일정을 잡을까요?`,
+      message: `${studentName} 학생 결석이 저장되었습니다. 지금 보강 일정을 잡을까요?`,
       confirmText: '보강 일정 잡기',
       cancelText: '나중에',
       onConfirm: () => setActiveTab('makeups'),
@@ -137,6 +125,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       student,
       nextStatus: status,
       previous: existingAtt || null,
+      date: today,
     });
     if (passResult.warning) {
       showToast(passResult.warning, 'warning');
@@ -180,8 +169,8 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     if (!persistAttendance(student, classItem, status)) return;
     showToast(
       status === 'absent'
-        ? `${student.name} 원생 결석 처리되었습니다.`
-        : `${student.name} 원생 출석 처리되었습니다.`,
+        ? `${student.name} 학생 결석 처리되었습니다.`
+        : `${student.name} 학생 출석 처리되었습니다.`,
       'success'
     );
     if (status === 'absent') {
@@ -190,7 +179,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     }
     openConfirmDialog({
       title: '레슨 노트',
-      message: `${student.name} 원생 출석이 저장되었습니다. 이어서 노트·과제를 작성할까요?`,
+      message: `${student.name} 학생 출석이 저장되었습니다. 이어서 노트·과제를 작성할까요?`,
       confirmText: '노트 작성',
       cancelText: '나중에',
       onConfirm: () => setTarget({ student, classItem }),
@@ -234,14 +223,15 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     if (!target) return;
     const { student, classItem } = target;
 
+    if (form.status !== 'absent' && !form.songTitle.trim()) {
+      showToast('레슨 곡/교재를 입력해주세요.', 'warning');
+      return;
+    }
+
     if (!persistAttendance(student, classItem, form.status, form.memo)) return;
 
     if (form.status !== 'absent') {
-      if (!form.songTitle.trim()) {
-        showToast('레슨 곡/교재를 입력해주세요.', 'warning');
-        return;
-      }
-      const existingLesson = findLesson(student.id);
+      const existingLesson = findLesson(student.id, classItem.id);
       const savedLesson = LessonService.saveLessonRecord({
         ...(existingLesson ? { id: existingLesson.id } : {}),
         studentId: student.id,
@@ -278,8 +268,8 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
 
     showToast(
       form.status === 'absent'
-        ? `${student.name} 원생 결석 처리되었습니다.`
-        : `${student.name} 원생 레슨이 저장되었습니다.`,
+        ? `${student.name} 학생 결석 처리되었습니다.`
+        : `${student.name} 학생 레슨이 저장되었습니다.`,
       'success'
     );
     setTarget(null);
@@ -322,7 +312,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
               <div>
                 <p className="text-xs font-semibold text-slate-500">처리 현황</p>
                 <p className="text-sm font-bold text-slate-900">
-                  레슨 {classes.length}개 · 원생 {stats.total}명
+                  레슨 {classes.length}개 · 학생 {stats.total}명
                 </p>
               </div>
             </div>
@@ -341,7 +331,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
               className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-900"
             >
               <CreditCard className="w-4 h-4" />
-              오늘 레슨 원생 중 미납 {unpaidTodayStudents}명 · 수강료
+              오늘 레슨 학생 중 미납 {unpaidTodayStudents}명 · 수강료
             </button>
           )}
         </div>
@@ -363,155 +353,16 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
           }
         />
       ) : (
-        <div className="space-y-3">
-          {uncheckedOnly && (
-            <p className="text-xs font-bold text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-              아직 출결이 없는 원생만 표시합니다.
-            </p>
-          )}
-          {classes.map((cls) => {
-            const enrolled = students.filter((s) => s.classIds?.includes(cls.id));
-            const classDone = enrolled.filter((s) => !!findAttendance(s.id, cls.id)).length;
-            const isNow =
-              !!cls.startTime &&
-              !!cls.endTime &&
-              cls.startTime <= currentHm &&
-              currentHm < cls.endTime;
-            const isNext =
-              !isNow &&
-              !!cls.startTime &&
-              cls.startTime > currentHm &&
-              classes.find((c) => c.startTime && c.startTime > currentHm)?.id === cls.id;
-
-            return (
-              <section
-                key={cls.id}
-                className={`rounded-2xl border bg-white overflow-hidden shadow-xs ${
-                  isNow
-                    ? 'border-indigo-300 ring-1 ring-indigo-200'
-                    : isNext
-                      ? 'border-emerald-200'
-                      : 'border-slate-200'
-                }`}
-              >
-                <div
-                  className={`px-3 sm:px-4 py-2.5 flex items-center justify-between gap-3 ${
-                    isNow ? 'bg-indigo-50' : isNext ? 'bg-emerald-50/70' : 'bg-slate-50/80'
-                  }`}
-                >
-                  <div className="min-w-0 flex items-start gap-3">
-                    <div className="shrink-0 w-14 text-center">
-                      <p className="font-mono text-sm font-black text-indigo-700">{cls.startTime}</p>
-                      <p className="text-[10px] text-slate-400">~{cls.endTime}</p>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="font-bold text-slate-900 truncate">{cls.name}</p>
-                        {isNow && (
-                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-indigo-600 text-white">
-                            진행 중
-                          </span>
-                        )}
-                        {isNext && (
-                          <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-emerald-600 text-white">
-                            다음
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2 flex-wrap">
-                        <span className="inline-flex items-center gap-0.5">
-                          <MapPin className="w-3 h-3" />
-                          {cls.room}
-                        </span>
-                        <span className="inline-flex items-center gap-0.5">
-                          <Users className="w-3 h-3" />
-                          {classDone}/{enrolled.length}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {enrolled.length === 0 ? (
-                  <p className="text-sm text-slate-400 text-center py-6">배정된 원생이 없습니다</p>
-                ) : (
-                  <ul className="divide-y divide-slate-100">
-                    {enrolled
-                      .filter((student) => !uncheckedOnly || !findAttendance(student.id, cls.id))
-                      .map((student) => {
-                      const att = findAttendance(student.id, cls.id);
-                      const lesson = findLesson(student.id);
-                      const done = !!att;
-
-                      return (
-                        <li key={student.id}>
-                          <div className="flex items-stretch gap-1 px-2 sm:px-3 py-2 min-h-[60px]">
-                            <button
-                              type="button"
-                              onClick={() => setTarget({ student, classItem: cls })}
-                              className="flex-1 text-left flex items-center gap-2.5 min-w-0 hover:bg-indigo-50/50 active:bg-indigo-50 rounded-xl px-1.5 py-1 transition-colors"
-                            >
-                              <span
-                                className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 ${
-                                  done
-                                    ? att?.status === 'absent'
-                                      ? 'bg-rose-100 text-rose-700'
-                                      : 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-indigo-50 text-indigo-700'
-                                }`}
-                              >
-                                {student.name.slice(0, 1)}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="font-bold text-slate-900 truncate">{student.name}</p>
-                                <p className="text-xs text-slate-500 truncate mt-0.5">
-                                  {done
-                                    ? STATUS_LABEL[att!.status]
-                                    : lesson?.songTitle || '미처리 · 탭하여 레슨'}
-                                </p>
-                              </div>
-                              {done ? (
-                                <CheckCircle2
-                                  className={`w-4 h-4 shrink-0 ${
-                                    att?.status === 'absent' ? 'text-rose-500' : 'text-emerald-500'
-                                  }`}
-                                />
-                              ) : (
-                                <ChevronRight className="w-4 h-4 text-indigo-400 shrink-0" />
-                              )}
-                            </button>
-
-                            {!done && (
-                              <div className="flex items-center gap-1 shrink-0 pr-1">
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleQuickStatus(e, student, cls, 'present')}
-                                  className="min-h-[44px] min-w-[44px] px-2 rounded-xl bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-100 hover:bg-emerald-100"
-                                  aria-label={`${student.name} 출석`}
-                                >
-                                  출석
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={(e) => handleQuickStatus(e, student, cls, 'absent')}
-                                  className="min-h-[44px] min-w-[44px] px-2 rounded-xl bg-rose-50 text-rose-700 text-[11px] font-bold border border-rose-100 hover:bg-rose-100"
-                                  aria-label={`${student.name} 결석`}
-                                >
-                                  <XCircle className="w-4 h-4 mx-auto sm:hidden" />
-                                  <span className="hidden sm:inline">결석</span>
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
-            );
-          })}
-        </div>
+        <TodayLessonClassList
+          classes={classes}
+          students={students}
+          currentHm={currentHm}
+          uncheckedOnly={uncheckedOnly}
+          findAttendance={findAttendance}
+          findLesson={findLesson}
+          onOpenSession={setTarget}
+          onQuickStatus={handleQuickStatus}
+        />
       )}
 
       <LessonSessionModal
@@ -519,7 +370,9 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         student={target?.student ?? null}
         classItem={target?.classItem ?? null}
         date={today}
-        existingLesson={target ? findLesson(target.student.id) || null : null}
+        existingLesson={
+          target ? findLesson(target.student.id, target.classItem.id) || null : null
+        }
         existingStatus={
           target
             ? findAttendance(target.student.id, target.classItem.id)?.status || null

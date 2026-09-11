@@ -6,6 +6,7 @@ import {
 } from '@/core/parent/types';
 import type { GlobalStudent } from '@/core/parent/types/globalParent';
 import { registerParentChild, updateParentChild } from '@/core/parent/services/parentChildService';
+import { BirthDateInput } from '@/shared/components/ui';
 
 interface ParentAddChildModalProps {
   isOpen: boolean;
@@ -133,8 +134,8 @@ export const ParentAddChildModal: React.FC<ParentAddChildModalProps> = ({
 
         <p className="text-sm text-slate-600 mb-4">
           {isEdit
-            ? '이름·생년월일·학교·학년을 고칠 수 있습니다. 연결은 아래 연결 요청이나 연결 코드로 진행합니다.'
-            : '이름만 필수입니다. 등록 후 연결 요청이나 연결 코드로 연결할 수 있습니다.'}
+            ? '이름·생년월일·학교·학년을 고칠 수 있습니다. 학원 연결은 QR·연결 코드 또는 학원 연결하기로 진행합니다.'
+            : '이름만 필수입니다. 생년월일을 넣으면 같은 이름의 자녀와 잘못 합쳐지는 일을 줄일 수 있습니다.'}
         </p>
 
         {error && (
@@ -154,13 +155,18 @@ export const ParentAddChildModal: React.FC<ParentAddChildModalProps> = ({
           </label>
 
           <label className="block">
-            <span className="text-xs font-bold text-slate-500">생년월일 (선택)</span>
-            <input
-              type="date"
+            <span className="text-xs font-bold text-slate-500">생년월일 (권장)</span>
+            <BirthDateInput
+              className="mt-1"
               value={birthDate}
-              onChange={(e) => setBirthDate(e.target.value)}
-              className="mt-1 w-full px-3 py-2.5 text-sm border border-slate-200 rounded-xl min-h-[44px]"
+              onChange={setBirthDate}
             />
+            {!isEdit && !birthDate.trim() && (
+              <p className="mt-1.5 text-[11px] text-amber-700 leading-relaxed">
+                생년월일이 없으면 같은 이름·생년월일 미입력 자녀가 이미 있을 때 기존 자녀로
+                합쳐질 수 있습니다.
+              </p>
+            )}
           </label>
 
           <label className="block">

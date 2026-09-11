@@ -34,7 +34,7 @@ function resolveIndustryType(industry: IndustryType | string | null | undefined)
 
 /**
  * PIN 출결 꺼진 사업장에서 PIN 전용 탭만 숨김.
- * - check-in 탭이 있으면(피아노): check-in만 숨김 — attendance는 레슨 출결
+ * - check-in 탭이 있으면(피아노): check-in만 숨김 — attendance는 등원 출결
  * - check-in 없으면(체육관 등): attendance가 PIN 화면이므로 숨김
  */
 function filterAttendancePinTab(tabs: NavTab[], attendanceEnabled: boolean): NavTab[] {

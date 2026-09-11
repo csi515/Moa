@@ -3,7 +3,8 @@ import type { AssignmentItem } from '@/types/education';
 
 /**
  * 레슨 숙제를 이번 주 주간 과제에 반영합니다.
- * - 동일 곡명 항목이 있으면 instructions만 갱신
+ * - 동일 곡명 + 동일 instructions면 no-op (부모 확인/완료 상태 유지)
+ * - 동일 곡명·instructions 변경 시에만 갱신 (확인/완료 리셋)
  * - 없으면 새 항목 추가
  * - homework가 비어 있으면 no-op
  */
@@ -27,8 +28,12 @@ export function syncLessonHomeworkToWeeklyAssignment(params: {
   );
 
   if (sameSongIdx >= 0) {
+    const prev = items[sameSongIdx];
+    if (prev.instructions.trim() === homework) {
+      return;
+    }
     items[sameSongIdx] = {
-      ...items[sameSongIdx],
+      ...prev,
       instructions: homework,
       parentConfirmed: false,
       completed: false,

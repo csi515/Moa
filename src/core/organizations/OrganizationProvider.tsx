@@ -244,6 +244,12 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         applyMembershipSelection(memberships, null);
       };
 
+      // OAuth/딥링크 후 학부모 연결 대기 중이면 포털로 진입 (자녀 0명이어도 등록·연결 가능)
+      if (isParentPortalModeActive() && parentId !== null) {
+        enterParent();
+        return;
+      }
+
       if (staffMemberships.length === 0 && customerMemberships.length > 0) {
         enterCustomer();
         return;

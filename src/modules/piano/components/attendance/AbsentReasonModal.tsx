@@ -48,7 +48,7 @@ export const AbsentReasonModal: React.FC<AbsentReasonModalProps> = ({
                 결석 사유 입력
               </h3>
               <p className="text-xs text-slate-500">
-                {student.name} 원생 ({student.school} {student.grade})
+                {student.name} 학생 ({student.school} {student.grade})
               </p>
             </div>
           </div>

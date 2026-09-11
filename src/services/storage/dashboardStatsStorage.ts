@@ -1,18 +1,28 @@
 import type { Student, TuitionInvoice } from '../../types';
 import type { StorageApi } from './helpers';
+import { pickUniqueDayAttendanceStatuses } from '../../core/attendance/dayAttendance';
+import { todayIsoLocal, yearMonthLocal } from '../../shared/utils/localDate';
+
+type AttRow = { date: string; status: string; studentId?: string; classId?: string };
 
 /** 대시보드 집계·월별 청구 일괄 생성 */
 export function createDashboardStatsStorage(api: StorageApi) {
   return {
     getDashboardStats() {
       const students = (api.getStudents as () => Student[])();
-      const classes = (api.getClasses as () => { id: string; name: string; daysOfWeek: string[]; capacity: number; color?: string }[])();
-      const attendance = (api.getAttendance as () => { date: string; status: string }[])();
+      const classes = (api.getClasses as () => {
+        id: string;
+        name: string;
+        daysOfWeek: string[];
+        capacity: number;
+        color?: string;
+      }[])();
+      const attendance = (api.getAttendance as () => AttRow[])();
       const invoices = (api.getInvoices as () => TuitionInvoice[])();
       const expenses = (api.getExpenses as () => { date: string; amount: number }[])();
 
-      const currentYearMonth = new Date().toISOString().slice(0, 7);
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const currentYearMonth = yearMonthLocal();
+      const todayStr = todayIsoLocal();
       const dayOfWeekIndex = new Date().getDay();
       const dayMap = ['일', '월', '화', '수', '목', '금', '토'] as const;
       const todayKoreanDay = dayMap[dayOfWeekIndex];
@@ -26,34 +36,49 @@ export function createDashboardStatsStorage(api: StorageApi) {
       ).length;
 
       const currentMonthInvoices = invoices.filter((invoice) => invoice.yearMonth === currentYearMonth);
-      const totalBilledThisMonth = currentMonthInvoices.reduce((sum, invoice) => sum + invoice.totalAmount, 0);
-      const totalPaidThisMonth = currentMonthInvoices.reduce((sum, invoice) => sum + invoice.paidAmount, 0);
-      const totalUnpaidThisMonth = currentMonthInvoices.reduce((sum, invoice) => sum + invoice.unpaidAmount, 0);
+      const totalBilledThisMonth = currentMonthInvoices.reduce(
+        (sum, invoice) => sum + invoice.totalAmount,
+        0
+      );
+      const totalPaidThisMonth = currentMonthInvoices.reduce(
+        (sum, invoice) => sum + invoice.paidAmount,
+        0
+      );
+      const totalUnpaidThisMonth = currentMonthInvoices.reduce(
+        (sum, invoice) => sum + invoice.unpaidAmount,
+        0
+      );
       const unpaidStudentsCount = currentMonthInvoices.filter(
         (invoice) => invoice.status === 'unpaid' || invoice.status === 'partial'
       ).length;
       const collectionRate =
-        totalBilledThisMonth > 0 ? Math.round((totalPaidThisMonth / totalBilledThisMonth) * 100) : 100;
+        totalBilledThisMonth > 0
+          ? Math.round((totalPaidThisMonth / totalBilledThisMonth) * 100)
+          : 100;
 
-      const currentMonthExpenses = expenses.filter((expense) => expense.date.startsWith(currentYearMonth));
-      const totalExpensesThisMonth = currentMonthExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const currentMonthExpenses = expenses.filter((expense) =>
+        expense.date.startsWith(currentYearMonth)
+      );
+      const totalExpensesThisMonth = currentMonthExpenses.reduce(
+        (sum, expense) => sum + expense.amount,
+        0
+      );
       const netProfitThisMonth = totalPaidThisMonth - totalExpensesThisMonth;
 
-      const todayClasses = classes.filter((cls) => cls.daysOfWeek.includes(todayKoreanDay as never));
+      const todayClasses = classes.filter((cls) =>
+        cls.daysOfWeek.includes(todayKoreanDay as never)
+      );
       const todayAttendance = attendance.filter((record) => record.date === todayStr);
-      const todayPresent = todayAttendance.filter(
-        (record) => record.status === 'present' || record.status === 'make_up'
-      ).length;
-      const todayAbsent = todayAttendance.filter((record) => record.status === 'absent').length;
-      const todayLate = todayAttendance.filter(
-        (record) => record.status === 'late' || record.status === 'early_leave'
-      ).length;
+      const { present: todayPresent, absent: todayAbsent, late: todayLate } =
+        pickUniqueDayAttendanceStatuses(todayAttendance);
 
       const months: string[] = [];
       const now = new Date();
       for (let i = 5; i >= 0; i -= 1) {
         const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        months.push(date.toISOString().slice(0, 7));
+        const y = date.getFullYear();
+        const m = String(date.getMonth() + 1).padStart(2, '0');
+        months.push(`${y}-${m}`);
       }
 
       const revenueTrend = months.map((yearMonth) => {
@@ -87,7 +112,7 @@ export function createDashboardStatsStorage(api: StorageApi) {
         const newCount = students.filter((student) => student.joinDate.startsWith(yearMonth)).length;
         return {
           month: label,
-          원생수: activeAtMonth,
+          학생수: activeAtMonth,
           신규: newCount,
         };
       });
@@ -137,7 +162,9 @@ export function createDashboardStatsStorage(api: StorageApi) {
     },
 
     batchGenerateMonthlyInvoices(yearMonth: string): number {
-      const students = (api.getStudents as () => Student[])().filter((student) => student.status === 'active');
+      const students = (api.getStudents as () => Student[])().filter(
+        (student) => student.status === 'active'
+      );
       const existingInvoices = (api.getInvoices as () => TuitionInvoice[])();
       let generatedCount = 0;
 

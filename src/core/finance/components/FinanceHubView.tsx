@@ -38,7 +38,7 @@ function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSeg
   return 'overview';
 }
 
-/** 재무 업무 영역 허브 — 요약·수입·지출·수납·미납 */
+/** 재무 업무 영역 허브 — 수입·지출·수납·미납 (피아노는 finance→수납 통합) */
 export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = true }) => {
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
@@ -53,11 +53,11 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
   }, [activeTab, billingEnabled, isPiano]);
 
   const options = useMemo(() => {
+    // 피아노: finance 탭이 수납(tuition)과 동일 라우트라 요약 탭은 두지 않음
     if (billingEnabled && isPiano) {
       return [
         { value: 'tuition' as const, label: '수납' },
         { value: 'unpaid' as const, label: '미납' },
-        { value: 'overview' as const, label: '요약' },
         { value: 'income' as const, label: '수입' },
         { value: 'expenses' as const, label: '지출' },
         { value: 'payroll' as const, label: '강사정산' },

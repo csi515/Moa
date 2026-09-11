@@ -12,10 +12,7 @@ import {
   getTodayClasses,
   getUpcomingWeekOccurrences,
 } from '../utils/parentScheduleHelpers';
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 /** 등록 반·오늘/이번 주·연습실 예약 (canonical room_reservations) */
 export function ParentScheduleView({
@@ -39,8 +36,9 @@ export function ParentScheduleView({
 
   useEffect(() => {
     let cancelled = false;
+    const today = todayIsoLocal();
     void practiceRoomReservationService
-      .listForCustomer(organizationId, student.id, { fromDate: todayIso(), limit: 10 })
+      .listForCustomer(organizationId, student.id, { fromDate: today, limit: 10 })
       .then((rows) => {
         if (!cancelled) setPracticeBookings(rows);
       })
@@ -48,7 +46,7 @@ export function ParentScheduleView({
         // RLS/마이그레이션 미적용 시 레거시 로컬 캐시 폴백
         if (cancelled) return;
         const legacy = StorageService.getPracticeRoomBookings(student.id)
-          .filter((b) => b.status === 'scheduled' && b.date >= todayIso())
+          .filter((b) => b.status === 'scheduled' && b.date >= today)
           .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime))
           .slice(0, 10)
           .map(
@@ -73,7 +71,7 @@ export function ParentScheduleView({
     };
   }, [organizationId, student.id, student.name]);
 
-  const today = todayIso();
+  const today = todayIsoLocal();
   const todayPractice = practiceBookings.filter((b) => seoulDateFromIso(b.starts_at) === today);
 
   if (classes.length === 0 && practiceBookings.length === 0) {

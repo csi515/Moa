@@ -3,9 +3,9 @@ import { Calendar, CheckCircle, Loader2, Mail, Phone, User, XCircle } from 'luci
 import { useApp } from '@/context/AppContext';
 import type { GuardianEnrollmentRequest } from '@/core/parent/services/enrollmentRequestService';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
-import { ACADEMY_SHARED_FIELD_LABELS, type AcademySharedField } from '@/core/parent/services/parentChildService';
+import { SHARED_CHILD_FIELD_LABELS, type SharedChildField } from '@/core/parent/services/parentChildService';
 
-function sharedFieldValue(field: AcademySharedField, request: GuardianEnrollmentRequest): string {
+function sharedFieldValue(field: SharedChildField, request: GuardianEnrollmentRequest): string {
   if (field === 'display_name') return request.studentName;
   if (field === 'birth_date') {
     return request.birthDate ? new Date(request.birthDate).toLocaleDateString('ko-KR') : '미입력';
@@ -21,7 +21,7 @@ function sharedFieldValue(field: AcademySharedField, request: GuardianEnrollment
 
 const SharedProfilePreview: React.FC<{ request: GuardianEnrollmentRequest }> = ({ request }) => {
   const shared = new Set(request.consentFields);
-  const fields = (Object.keys(ACADEMY_SHARED_FIELD_LABELS) as AcademySharedField[]).filter(
+  const fields = (Object.keys(SHARED_CHILD_FIELD_LABELS) as SharedChildField[]).filter(
     (field) => field !== 'display_name'
   );
 
@@ -33,7 +33,7 @@ const SharedProfilePreview: React.FC<{ request: GuardianEnrollmentRequest }> = (
           const allowed = shared.has(field);
           return (
             <li key={field} className="text-sm text-slate-700">
-              <span className="font-bold">{ACADEMY_SHARED_FIELD_LABELS[field]}</span>
+              <span className="font-bold">{SHARED_CHILD_FIELD_LABELS[field]}</span>
               {' · '}
               {allowed ? sharedFieldValue(field, request) : '제공 안 함'}
             </li>

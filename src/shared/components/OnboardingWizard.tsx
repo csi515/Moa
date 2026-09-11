@@ -8,6 +8,7 @@ import {
   withAttendanceModuleEnabled,
 } from '@/core/attendance';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
+import { formatNumberWithCommas } from '@/utils/formatters';
 import {
   Building2,
   Clock,
@@ -91,9 +92,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     bankAccount: typeof saved.bankAccount === 'string' ? saved.bankAccount : '',
   });
 
-  const [textbooks, setTextbooks] = useState<DraftTextbook[]>([
-    { id: crypto.randomUUID(), title: '', price: '15000' },
-  ]);
+  const [textbooks, setTextbooks] = useState<DraftTextbook[]>([]);
+  const [draftTextbook, setDraftTextbook] = useState({ title: '', price: '15000' });
 
   const [pinAttendanceEnabled, setPinAttendanceEnabled] = useState(
     saved.features?.attendance?.enabled === true
@@ -215,14 +215,49 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     }
   };
 
+  const addDraftTextbook = () => {
+    const title = draftTextbook.title.trim();
+    if (!title) {
+      showToast('교재 이름을 입력해 주세요.', 'warning');
+      return;
+    }
+    const dup = textbooks.some((t) => t.title.toLowerCase() === title.toLowerCase());
+    if (dup) {
+      showToast('이미 목록에 있는 교재입니다.', 'warning');
+      return;
+    }
+    setTextbooks((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), title, price: draftTextbook.price || '15000' },
+    ]);
+    setDraftTextbook({ title: '', price: '15000' });
+  };
+
   const handleSaveTextbooks = () => {
-    const seeded = textbooks
+    const pending =
+      draftTextbook.title.trim().length > 0
+        ? [
+            ...textbooks,
+            {
+              id: 'draft',
+              title: draftTextbook.title.trim(),
+              price: draftTextbook.price || '15000',
+            },
+          ]
+        : textbooks;
+
+    const seeded = pending
       .map((t) => ({ title: t.title.trim(), price: Number(t.price) || 0 }))
       .filter((t) => t.title.length > 0);
 
+    const seen = new Set<string>();
+    let savedCount = 0;
     for (const tb of seeded) {
+      const key = tb.title.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
       const existing = StorageService.getTextbooks().find(
-        (x) => x.title.toLowerCase() === tb.title.toLowerCase()
+        (x) => x.title.toLowerCase() === key
       );
       if (existing) continue;
       StorageService.saveTextbook({
@@ -235,9 +270,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         minStock: 0,
         isForSale: true,
       });
+      savedCount += 1;
     }
-    if (seeded.length > 0) {
-      showToast(`${seeded.length}권의 교재가 등록되었습니다.`, 'success');
+    if (savedCount > 0) {
+      showToast(`${savedCount}권의 교재가 등록되었습니다.`, 'success');
     }
     goNext();
   };
@@ -600,55 +636,79 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 자주 쓰는 교재를 마스터에 등록해 두면 판매 시 가격이 자동 입력됩니다. 선택 단계이며, 판매
                 중단은 교재 관리의 판매용 해제로 처리합니다.
               </p>
-              <ul className="space-y-2">
-                {textbooks.map((tb) => (
-                  <li key={tb.id} className="flex gap-2 items-center">
-                    <input
-                      type="text"
-                      value={tb.title}
-                      onChange={(e) =>
-                        setTextbooks((prev) =>
-                          prev.map((t) => (t.id === tb.id ? { ...t, title: e.target.value } : t))
-                        )
+
+              <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 space-y-3">
+                <h5 className="text-xs font-bold text-slate-700">교재 정보</h5>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">교재 이름</label>
+                  <input
+                    type="text"
+                    value={draftTextbook.title}
+                    onChange={(e) =>
+                      setDraftTextbook((prev) => ({ ...prev, title: e.target.value }))
+                    }
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        addDraftTextbook();
                       }
-                      className="flex-1 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl min-h-[44px]"
-                      placeholder="교재명"
-                    />
-                    <input
-                      type="number"
-                      min={0}
-                      value={tb.price}
-                      onChange={(e) =>
-                        setTextbooks((prev) =>
-                          prev.map((t) => (t.id === tb.id ? { ...t, price: e.target.value } : t))
-                        )
-                      }
-                      className="w-28 px-2 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl min-h-[44px]"
-                      placeholder="가격"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setTextbooks((prev) => prev.filter((t) => t.id !== tb.id))}
-                      className="p-2 text-rose-500 min-h-[44px] min-w-[44px]"
-                      aria-label="삭제"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-              <button
-                type="button"
-                onClick={() =>
-                  setTextbooks((prev) => [
-                    ...prev,
-                    { id: crypto.randomUUID(), title: '', price: '15000' },
-                  ])
-                }
-                className="inline-flex items-center gap-1 text-xs font-bold text-indigo-600 min-h-[44px]"
-              >
-                <Plus className="w-4 h-4" /> 교재 추가
-              </button>
+                    }}
+                    className="w-full px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl min-h-[44px] placeholder:text-slate-300"
+                    placeholder="예: 바이엘"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">가격</label>
+                  <CurrencyInput
+                    value={Number(draftTextbook.price) || 0}
+                    onChange={(val) =>
+                      setDraftTextbook((prev) => ({ ...prev, price: String(val) }))
+                    }
+                    placeholder="15,000"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={addDraftTextbook}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-indigo-600 bg-white border border-indigo-200 rounded-xl min-h-[44px] hover:bg-indigo-50"
+                  >
+                    <Plus className="w-4 h-4" /> 교재 추가
+                  </button>
+                </div>
+              </div>
+
+              {textbooks.length > 0 && (
+                <div className="space-y-2">
+                  <h5 className="text-xs font-bold text-slate-700">등록된 교재</h5>
+                  <ul className="divide-y divide-slate-100 rounded-xl border border-slate-200 overflow-hidden">
+                    {textbooks.map((tb) => (
+                      <li
+                        key={tb.id}
+                        className="flex items-center gap-2 px-3 py-2.5 bg-white min-h-[44px]"
+                      >
+                        <span className="flex-1 text-sm font-medium text-slate-800 truncate">
+                          {tb.title}
+                        </span>
+                        <span className="text-sm tabular-nums text-slate-600 shrink-0">
+                          {formatNumberWithCommas(Number(tb.price) || 0)}원
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setTextbooks((prev) => prev.filter((t) => t.id !== tb.id))
+                          }
+                          className="p-2 text-rose-500 min-h-[44px] min-w-[44px] shrink-0"
+                          aria-label={`${tb.title} 삭제`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
               {footerNav({
                 onNext: handleSaveTextbooks,
                 nextLabel: '등록하기',

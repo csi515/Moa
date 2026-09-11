@@ -178,30 +178,28 @@ function ParentShellContent() {
             <div className="bg-white rounded-2xl p-4 border border-indigo-200 shadow-sm">
               <div className="flex items-center gap-2 text-indigo-700 font-bold text-sm mb-3">
                 <Link2 className="w-4 h-4" />
-                받은 8자리 자녀 연결 코드
+                학원 연결
               </div>
               {!showLinkForm ? (
                 <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowLinkForm(true)}
-                      className="flex-1 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] hover:bg-indigo-700 transition-colors"
-                    >
-                      코드 입력하기
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowQrScanner(true)}
-                      className="px-4 py-2.5 bg-white border-2 border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-1 hover:bg-indigo-50 transition-colors"
-                      aria-label="QR 스캔"
-                    >
-                      <Camera className="w-4 h-4" />
-                      QR
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowQrScanner(true)}
+                    className="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors"
+                  >
+                    <Camera className="w-4 h-4" />
+                    QR 코드 스캔
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowLinkForm(true)}
+                    className="w-full py-2.5 bg-white border-2 border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px] hover:bg-indigo-50 transition-colors"
+                  >
+                    연결 코드 입력
+                  </button>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    발급한 8자리 코드만 입력하세요. 공개코드는 여기에 넣지 않습니다.
+                    사업장에서 받은 QR 또는 8자리 연결 코드로 바로 연결합니다. 공개코드·이름 검색은
+                    아래 「학원 연결하기」에서 진행합니다.
                   </p>
                 </div>
               ) : (
@@ -226,7 +224,7 @@ function ParentShellContent() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    공개코드는 넣지 마세요. 이름·공개코드는 아래 연결 요청에서 검색합니다.
+                    8자리 연결 코드만 입력하세요. 사업장 공개코드는 「학원 연결하기」에서 사용합니다.
                   </p>
                   <button
                     type="button"

@@ -36,13 +36,13 @@ export const DirectorDashboardWelcome: React.FC<DirectorDashboardWelcomeProps> =
           </h2>
           {isEmptyState ? (
             <p className="text-sm text-indigo-200 mt-2 max-w-2xl leading-relaxed">
-              학원을 시작할 준비가 되었습니다! <strong className="text-white">첫 원생을 등록</strong>하고{' '}
+              학원을 시작할 준비가 되었습니다! <strong className="text-white">첫 학생을 등록</strong>하고{' '}
               <strong className="text-white">수업 클래스를 개설</strong>해보세요.
             </p>
           ) : (
             <p className="text-sm text-indigo-200 mt-2 max-w-2xl leading-relaxed">
               오늘 예정된 수업은 <strong className="text-white underline">{stats.todayClassesCount}개 반</strong>이며,
-              재원생 <strong className="text-white">{stats.activeStudents}명</strong>이 즐겁게 피아노를 배우고 있습니다.
+              재학생 <strong className="text-white">{stats.activeStudents}명</strong>이 즐겁게 피아노를 배우고 있습니다.
             </p>
           )}
         </div>
@@ -56,7 +56,7 @@ export const DirectorDashboardWelcome: React.FC<DirectorDashboardWelcomeProps> =
                 className="px-4 py-2.5 bg-white text-indigo-900 font-bold text-xs sm:text-sm rounded-xl hover:bg-indigo-50 transition-all shadow-md flex items-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4 text-indigo-600" />
-                첫 원생 등록하기
+                첫 학생 등록하기
               </button>
               <button
                 onClick={() => setActiveTab('classes')}
@@ -80,7 +80,7 @@ export const DirectorDashboardWelcome: React.FC<DirectorDashboardWelcomeProps> =
                 className="px-4 py-2.5 bg-indigo-600/60 hover:bg-indigo-600 text-white font-semibold text-xs sm:text-sm rounded-xl border border-indigo-400/30 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <UserPlus className="w-4 h-4" />
-                신규 원생 등록
+                신규 학생 등록
               </button>
             </>
           )}

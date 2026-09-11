@@ -1,17 +1,25 @@
-import { supabase } from '@/lib/supabase/client';
+import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
 import type { PublicOrgInfo, ConsultationSubmission } from '@/types';
+
+function asOrgRows(data: unknown): PublicOrgInfo[] {
+  if (Array.isArray(data)) return data as PublicOrgInfo[];
+  if (data && typeof data === 'object') return [data as PublicOrgInfo];
+  return [];
+}
 
 /**
  * Public organization discovery service
  * These functions can be called without authentication
  */
-
 export const publicOrgService = {
   /**
    * Search public organizations by name, code, or address
    */
   async searchOrganizations(query: string, industryType?: string): Promise<PublicOrgInfo[]> {
-    const { data, error } = await supabase.rpc('search_public_organizations', {
+    if (!isSupabaseConfigured()) {
+      throw new Error('서비스 연결이 설정되지 않았습니다');
+    }
+    const { data, error } = await getCoreClient().rpc('search_public_organizations', {
       p_query: query,
       p_industry_type: industryType || null,
       p_limit: 20,
@@ -22,15 +30,21 @@ export const publicOrgService = {
       throw new Error('조직 검색에 실패했습니다');
     }
 
-    return data || [];
+    return asOrgRows(data);
   },
 
   /**
    * Get organization details by public code
    */
   async getOrganizationByCode(code: string): Promise<PublicOrgInfo | null> {
-    const { data, error } = await supabase.rpc('get_public_organization_by_code', {
-      p_code: code.toUpperCase(),
+    if (!isSupabaseConfigured()) {
+      throw new Error('서비스 연결이 설정되지 않았습니다');
+    }
+    const normalized = code.trim().toUpperCase();
+    if (!normalized) return null;
+
+    const { data, error } = await getCoreClient().rpc('get_public_organization_by_code', {
+      p_code: normalized,
     });
 
     if (error) {
@@ -38,7 +52,7 @@ export const publicOrgService = {
       throw new Error('조직 정보를 가져오는데 실패했습니다');
     }
 
-    return data?.[0] || null;
+    return asOrgRows(data)[0] || null;
   },
 
   /**
@@ -48,7 +62,10 @@ export const publicOrgService = {
     orgId: string,
     submission: ConsultationSubmission
   ): Promise<string> {
-    const { data, error } = await supabase.rpc('submit_public_consultation', {
+    if (!isSupabaseConfigured()) {
+      throw new Error('서비스 연결이 설정되지 않았습니다');
+    }
+    const { data, error } = await getCoreClient().rpc('submit_public_consultation', {
       p_org_id: orgId,
       p_contact_name: submission.contact_name,
       p_contact_phone: submission.contact_phone,
@@ -61,6 +78,6 @@ export const publicOrgService = {
       throw new Error('상담 신청에 실패했습니다');
     }
 
-    return data;
+    return data as string;
   },
 };

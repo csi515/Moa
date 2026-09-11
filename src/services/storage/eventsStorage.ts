@@ -81,7 +81,7 @@ export function createEventsStorage(api: StorageApi) {
     getRecitalEvents(): AcademyEvent[] {
       return this.getEvents()
         .filter((event) => event.type === 'concert' || event.type === 'competition')
-        .sort((a, b) => b.startDate.localeCompare(a.startDate));
+        .sort((a, b) => (b.startDate || '').localeCompare(a.startDate || ''));
     },
 
     eventTypeToVideoType(type: AcademyEvent['type']): PerformanceVideo['eventType'] {

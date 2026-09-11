@@ -3,6 +3,7 @@ import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import type { AttendanceSession, CheckInMethod, PinCheckResult } from '../../core/attendance/types';
 import { isAttendanceModuleEnabled } from '../../core/attendance/features';
+import { DAY_ATTENDANCE_CLASS_ID } from '../../core/attendance/dayAttendance';
 import {
   assignCustomerPin,
   generateUniquePin,
@@ -212,8 +213,13 @@ export function createAttendanceStorage(api: StorageApi) {
     getMakeupItems(): MakeupItem[] {
       const students = (api.getStudents as () => Student[])();
       const studentMap = new Map(students.map((s) => [s.id, s]));
+      const statusRank: Record<MakeupItem['status'], number> = {
+        completed: 2,
+        scheduled: 1,
+        pending: 0,
+      };
 
-      return (api.getAttendance as () => AttendanceRecord[])()
+      const mapped = (api.getAttendance as () => AttendanceRecord[])()
         .filter((r) => r.status === 'absent' || r.status === 'make_up')
         .map((r) => {
           const st = studentMap.get(r.studentId);
@@ -241,13 +247,37 @@ export function createAttendanceStorage(api: StorageApi) {
             makeUpTeacherName: r.makeUpTeacherName,
             status,
             memo: r.memo,
-          };
-        })
-        .sort((a, b) => {
-          const order = { pending: 0, scheduled: 1, completed: 2 };
-          if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
-          return b.originalDate.localeCompare(a.originalDate);
+          } satisfies MakeupItem;
         });
+
+      // 등원(c-default) + 레슨 이중 absent면 학생·원결석일 기준 1장만
+      const byKey = new Map<string, MakeupItem>();
+      for (const item of mapped) {
+        const key = `${item.studentId}|${item.originalDate}`;
+        const existing = byKey.get(key);
+        if (!existing) {
+          byKey.set(key, item);
+          continue;
+        }
+        if (statusRank[item.status] !== statusRank[existing.status]) {
+          byKey.set(
+            key,
+            statusRank[item.status] > statusRank[existing.status] ? item : existing
+          );
+          continue;
+        }
+        const preferItem =
+          item.classId !== DAY_ATTENDANCE_CLASS_ID &&
+          existing.classId === DAY_ATTENDANCE_CLASS_ID;
+        byKey.set(key, preferItem ? item : existing);
+      }
+
+      return Array.from(byKey.values()).sort((a, b) => {
+        if (statusRank[a.status] !== statusRank[b.status]) {
+          return statusRank[a.status] - statusRank[b.status];
+        }
+        return b.originalDate.localeCompare(a.originalDate);
+      });
     },
 
     scheduleMakeup(

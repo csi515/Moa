@@ -4,8 +4,8 @@ import { getPlaceLabel } from '@/core/industry/industryUi';
 import type { OrganizationSearchResult } from '@/core/parent/services/enrollmentRequestService';
 import type { GlobalStudent } from '@/core/parent/types/globalParent';
 import {
-  ACADEMY_SHARED_FIELD_LABELS,
-  DEFAULT_ACADEMY_SHARED_FIELDS,
+  SHARED_CHILD_FIELD_LABELS,
+  DEFAULT_SHARED_CHILD_FIELDS,
   sharedFieldPreview,
 } from '@/core/parent/services/parentChildService';
 
@@ -24,7 +24,7 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
   student,
   onConfirm,
 }) => {
-  const [consentFields, setConsentFields] = useState<string[]>([...DEFAULT_ACADEMY_SHARED_FIELDS]);
+  const [consentFields, setConsentFields] = useState<string[]>([...DEFAULT_SHARED_CHILD_FIELDS]);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -90,7 +90,7 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
         <div className="mb-4">
           <p className="text-xs font-bold text-slate-500 mb-2">제공 정보 선택</p>
           <div className="space-y-2">
-            {DEFAULT_ACADEMY_SHARED_FIELDS.map((field) => (
+            {DEFAULT_SHARED_CHILD_FIELDS.map((field) => (
               <label
                 key={field}
                 className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-slate-100 transition-colors"
@@ -104,7 +104,7 @@ export const ParentEnrollmentConsentModal: React.FC<ParentEnrollmentConsentModal
                 />
                 <div className="flex-1">
                   <p className="text-sm font-bold text-slate-900">
-                    {ACADEMY_SHARED_FIELD_LABELS[field]}
+                    {SHARED_CHILD_FIELD_LABELS[field]}
                   </p>
                   <p className="text-xs text-slate-500">{sharedFieldPreview(field, student)}</p>
                 </div>

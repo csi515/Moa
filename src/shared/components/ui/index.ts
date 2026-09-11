@@ -9,4 +9,5 @@ export { ToggleSwitch } from './ToggleSwitch';
 export { AccordionSection } from './AccordionSection';
 export { SettingsCard } from './SettingsCard';
 export { FormField, FORM_CONTROL_CLASS } from './FormField';
+export { BirthDateInput, formatBirthDateDigits } from './BirthDateInput';
 export { SegmentedControl } from './SegmentedControl';

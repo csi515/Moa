@@ -81,7 +81,7 @@ export const TextbookReceiptModal: React.FC<TextbookReceiptModalProps> = ({
               <span className="font-medium text-slate-700">{receiptNo}</span>
             </div>
             <div>
-              <span className="text-slate-400">원생명:</span>{' '}
+              <span className="text-slate-400">학생명:</span>{' '}
               <span className="font-bold text-slate-900">{sale.studentName}</span>
             </div>
             <div>

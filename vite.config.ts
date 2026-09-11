@@ -1,12 +1,17 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
-    // Capacitor WebView에서 정적 자산 로딩 안정화
-    base: './',
+    /**
+     * 웹·Vercel·QR 딥링크(/c/:code/…)는 절대 경로(/)가 필요함.
+     * base './' 이면 /c/.../consultation 진입 시 JS가 /c/.../assets/ 로 요청되어
+     * 번들 로드 실패 → 흰 화면이 된다.
+     * Capacitor(androidScheme: https)도 /assets 절대 경로를 사용한다.
+     */
+    base: '/',
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
@@ -15,9 +20,7 @@ export default defineConfig(() => {
     },
     server: {
       // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };

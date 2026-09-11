@@ -9,19 +9,28 @@ import { isSupabaseConfigured } from './lib/supabase';
 import { MobileBootstrap } from './core/platform';
 import { getPublicLegalPage, LegalPageView, type LegalPageId } from './core/legal';
 import { PublicOrgLanding } from './core/public/PublicOrgLanding';
+import { PublicRouteErrorBoundary } from './core/public/PublicRouteErrorBoundary';
 import { CustomerSignUpFlow } from './core/customer/CustomerSignUpFlow';
 import { AttendanceKioskPage } from './core/attendance';
 
 function PublicOrgRoute() {
   const { code } = useParams<{ code: string }>();
   if (!code) return <Navigate to="/" replace />;
-  return <PublicOrgLanding code={code} />;
+  return (
+    <PublicRouteErrorBoundary>
+      <PublicOrgLanding code={code} />
+    </PublicRouteErrorBoundary>
+  );
 }
 
 function PublicConsultationRoute() {
   const { code } = useParams<{ code: string }>();
   if (!code) return <Navigate to="/" replace />;
-  return <PublicOrgLanding code={code} mode="consultation" />;
+  return (
+    <PublicRouteErrorBoundary>
+      <PublicOrgLanding code={code} mode="consultation" />
+    </PublicRouteErrorBoundary>
+  );
 }
 
 function CustomerSignUpRoute() {

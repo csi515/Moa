@@ -65,41 +65,47 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
 
   return (
     <div id="guardian-enrollment-inbox" className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-slate-900">학부모 등록</h2>
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-slate-900">학부모 자녀 등록</h2>
+          <p className="text-xs text-slate-500 mt-1">
+            학부모가 자녀를 이 사업장에 연결 요청한 건입니다. 성인 자가가입과는 별도입니다.
+            이미 학생으로 등록된 경우는 학생 상세의 학부모 연결 QR을 사용하세요.
+          </p>
+        </div>
+        <div className="flex gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setFilter('pending')}
-            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors min-h-[44px] ${
               filter === 'pending'
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            대기중
+            연결 요청 중
           </button>
           <button
             type="button"
             onClick={() => setFilter('approved')}
-            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors min-h-[44px] ${
               filter === 'approved'
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            승인됨
+            연결 완료
           </button>
           <button
             type="button"
             onClick={() => setFilter('rejected')}
-            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors ${
+            className={`px-4 py-2 text-sm font-bold rounded-lg transition-colors min-h-[44px] ${
               filter === 'rejected'
                 ? 'bg-indigo-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            거절됨
+            연결 거절
           </button>
         </div>
       </div>

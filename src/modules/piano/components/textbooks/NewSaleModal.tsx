@@ -78,7 +78,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     e.preventDefault();
 
     if (!selectedStudentId) {
-      showToast('원생을 선택해주세요.', 'warning');
+      showToast('학생을 선택해주세요.', 'warning');
       return;
     }
     if (!selectedTextbookId) {
@@ -137,9 +137,9 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
               <ShoppingBag className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="font-bold text-slate-900 text-base">원생 교재 판매 등록</h3>
+              <h3 className="font-bold text-slate-900 text-base">학생 교재 판매 등록</h3>
               <p className="text-xs text-slate-500">
-                원생에게 교재를 지급/판매하며, 교재 재고가 자동으로 차감됩니다.
+                학생에게 교재를 지급/판매하며, 교재 재고가 자동으로 차감됩니다.
               </p>
             </div>
           </div>
@@ -153,17 +153,17 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
-          {/* 1. 원생 및 판매일 */}
+          {/* 1. 학생 및 판매일 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-slate-700 font-semibold">
-                  원생 선택 <span className="text-rose-500">*</span>
+                  학생 선택 <span className="text-rose-500">*</span>
                 </label>
                 {students.length > 5 && (
                   <input
                     type="text"
-                    placeholder="원생 검색..."
+                    placeholder="학생 검색..."
                     value={studentSearch}
                     onChange={(e) => setStudentSearch(e.target.value)}
                     className="text-[11px] px-2 py-0.5 border border-slate-200 rounded-md w-28"

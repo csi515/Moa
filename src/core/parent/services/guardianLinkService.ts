@@ -1,8 +1,8 @@
 import { getCoreClient } from '@/lib/supabase';
 import type { Json } from '@/lib/supabase/database.types';
 import {
-  DEFAULT_ACADEMY_SHARED_FIELDS,
-  type AcademySharedField,
+  DEFAULT_SHARED_CHILD_FIELDS,
+  type SharedChildField,
 } from '@/core/parent/services/parentChildService';
 import {
   getSessionItem,
@@ -120,7 +120,7 @@ export async function previewGuardianLinkToken(token: string): Promise<GuardianL
 
 export async function redeemGuardianLinkToken(
   token: string,
-  sharedFields: AcademySharedField[] = [...DEFAULT_ACADEMY_SHARED_FIELDS]
+  sharedFields: SharedChildField[] = [...DEFAULT_SHARED_CHILD_FIELDS]
 ): Promise<RedeemLinkResult> {
   const { data, error } = await getCoreClient().rpc('redeem_guardian_link_token', {
     p_token: token.trim(),

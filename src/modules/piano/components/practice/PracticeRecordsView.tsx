@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -95,7 +95,7 @@ export const PracticeRecordsView: React.FC = () => {
     e.preventDefault();
     const st = students.find((s) => s.id === formData.studentId);
     if (!st) {
-      showToast('원생을 선택해주세요.', 'warning');
+      showToast('학생을 선택해주세요.', 'warning');
       return;
     }
     if (!formData.songTitle.trim()) {
@@ -143,8 +143,8 @@ export const PracticeRecordsView: React.FC = () => {
     <div className="space-y-4 pb-4">
       <PageHeader
         icon={<BookOpenCheck className="w-6 h-6" />}
-        title="원생 연습 기록"
-        description="원생별 일일 연습 시간, 연습곡, 피드백 평가"
+        title="학생 연습 기록"
+        description="학생별 일일 연습 시간, 연습곡, 피드백 평가"
         actions={
           <button
             onClick={handleOpenCreate}
@@ -176,7 +176,7 @@ export const PracticeRecordsView: React.FC = () => {
           onChange={(e) => setStudentFilter(e.target.value)}
           className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
         >
-          <option value="ALL">전체 원생</option>
+          <option value="ALL">전체 학생</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} ({s.school})
@@ -194,7 +194,7 @@ export const PracticeRecordsView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="원생, 연습곡명 검색..."
+          placeholder="학생, 연습곡명 검색..."
           className="flex-1 min-w-[200px]"
         />
       </FilterBar>
@@ -274,7 +274,7 @@ export const PracticeRecordsView: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 text-base">원생 연습 기록 등록</h3>
+              <h3 className="font-bold text-slate-900 text-base">학생 연습 기록 등록</h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-slate-400 hover:text-slate-600"
@@ -286,7 +286,7 @@ export const PracticeRecordsView: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">원생 선택</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">학생 선택</label>
                   <select
                     value={formData.studentId}
                     onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}

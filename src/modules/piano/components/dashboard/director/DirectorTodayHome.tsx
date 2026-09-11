@@ -1,4 +1,4 @@
-﻿import type { FC } from 'react';
+import type { FC } from 'react';
 import type { NavTab } from '@/context/AppContext';
 import { useStudentNavigation } from '@/hooks';
 import { formatCurrency, formatKoreanDate } from '@/utils/formatters';

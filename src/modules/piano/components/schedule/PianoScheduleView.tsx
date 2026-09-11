@@ -4,11 +4,12 @@ import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getPlaceLabel } from '@/core/industry/industryUi';
 import { useStaffGrants, useStaffScope } from '@/hooks';
-import { WeeklyTimetableView, AcademyCalendarView } from '@/core/academy';
+import { AcademyCalendarView } from '@/core/academy';
 import { SegmentedControl } from '@/shared/components';
 import { LessonsHubView } from '../lessons/LessonsHubView';
 import { MakeupManagementView } from '../makeup/MakeupManagementView';
 import { PracticeRoomBookingView } from '../practiceRooms/PracticeRoomBookingView';
+import { PianoLessonTimetableView } from './PianoLessonTimetableView';
 
 type ScheduleSegment = 'classes' | 'events' | 'lessons' | 'makeups' | 'rooms';
 
@@ -22,7 +23,7 @@ const BASE_SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
 
 function tabToSegment(tab: string): ScheduleSegment {
   if (tab === 'calendar') return 'events';
-  if (tab === 'lessons' || tab === 'attendance') return 'lessons';
+  if (tab === 'lessons') return 'lessons';
   if (tab === 'makeups') return 'makeups';
   if (tab === 'practice-rooms') return 'rooms';
   return 'classes';
@@ -108,7 +109,7 @@ export const PianoScheduleView: FC = () => {
         />
       </div>
 
-      {segment === 'classes' && <WeeklyTimetableView embedded />}
+      {segment === 'classes' && <PianoLessonTimetableView />}
       {segment === 'events' && <AcademyCalendarView embedded />}
       {segment === 'lessons' && <LessonsHubView />}
       {segment === 'makeups' && <MakeupManagementView />}

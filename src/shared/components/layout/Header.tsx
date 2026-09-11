@@ -1,30 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useApp } from '@/context/AppContext';
-import { usePermissions } from '@/core/auth/usePermissions';
-import { getCustomerLabel } from '@/core/industry/industryUi';
-import { useModuleLabels } from '@/core/labels';
-import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { Search, Layers, Users } from 'lucide-react';
+import { Layers, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const {
-    setActiveTab,
-    globalSearchQuery,
-    setGlobalSearchQuery,
-    setSelectedStudentId,
-    refreshKey,
-  } = useApp();
-
+  const { setActiveTab, refreshKey } = useApp();
   const supabaseOrg = useOptionalOrganization();
-  const { isStaff, staffId, industry } = usePermissions();
-  const labels = useModuleLabels();
-  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
-  const contactLabel = labels.contact.singular || '보호자';
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
@@ -40,113 +25,34 @@ export const Header: React.FC = () => {
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 
-  const handleSelectStudentSearchResult = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setActiveTab('students');
-    setGlobalSearchQuery('');
-  };
-
-  const filteredStudents = globalSearchQuery.trim()
-    ? StorageService.getStudents()
-        .filter(
-          (s) =>
-            (!isStaff || !staffId || s.teacherId === staffId) &&
-            (s.name.includes(globalSearchQuery) ||
-              studentMatchesGuardianQuery(s.id, globalSearchQuery) ||
-              s.school.includes(globalSearchQuery) ||
-              s.level.includes(globalSearchQuery))
-        )
-        .slice(0, 5)
-    : [];
-
-  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-
-  const searchResultsDropdown = globalSearchQuery.trim() ? (
-    <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
-      <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
-        {customerLabel} 검색 결과 ({filteredStudents.length})
-      </p>
-      {filteredStudents.length === 0 ? (
-        <div className="text-center py-6 space-y-2">
-          <Search className="w-8 h-8 text-slate-300 mx-auto" />
-          <p className="text-xs font-bold text-slate-600">일치하는 {customerLabel}이(가) 없습니다</p>
-          <p className="text-xs text-slate-400">다른 이름이나 연락처로 검색해보세요</p>
-        </div>
-      ) : (
-        filteredStudents.map((st) => (
-          <button
-            key={st.id}
-            type="button"
-            onClick={() => {
-              handleSelectStudentSearchResult(st.id);
-              setMobileSearchOpen(false);
-            }}
-            className="w-full text-left p-2.5 rounded-xl hover:bg-indigo-50 flex items-center justify-between text-xs transition-colors cursor-pointer min-h-[44px]"
-          >
-            <div>
-              <span className="font-bold text-slate-900">{st.name}</span>
-              <span className="ml-2 text-slate-500">
-                {st.school} {st.grade}
-              </span>
-              <span className="ml-2 text-indigo-600 font-medium">[{st.level}]</span>
-            </div>
-            <div className="text-slate-400 font-mono">{st.parentPhone}</div>
-          </button>
-        ))
-      )}
-    </div>
-  ) : null;
-
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-slate-200 px-4 sm:px-6 py-3 transition-all">
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-none">
-          <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-xs shrink-0">
-            <Layers className="w-5 h-5" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h1 className="font-bold text-lg text-indigo-950 tracking-tight truncate">{displayName}</h1>
-              <span className="hidden sm:inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
-                프로
-              </span>
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab('dashboard')}
+            className="flex items-center gap-3 min-w-0 text-left rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+            aria-label="홈으로 이동"
+          >
+            <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-xs shrink-0">
+              <Layers className="w-5 h-5" />
             </div>
-            <p className="text-xs text-slate-400 font-normal hidden md:block">{todayStr}</p>
-          </div>
-        </div>
-
-        <div className="flex-1 max-w-md relative hidden sm:block">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder={`${customerLabel} 이름, ${contactLabel} 연락처, 학교, 레벨 검색...`}
-              value={globalSearchQuery}
-              onChange={(e) => setGlobalSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
-            />
-            {globalSearchQuery && (
-              <button
-                type="button"
-                onClick={() => setGlobalSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400 hover:text-slate-600 min-h-[44px]"
-              >
-                지우기
-              </button>
-            )}
-          </div>
-          {searchResultsDropdown}
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h1 className="font-bold text-lg text-indigo-950 tracking-tight truncate hover:text-indigo-700 transition-colors">
+                  {displayName}
+                </h1>
+                <span className="hidden sm:inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
+                  프로
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 font-normal hidden md:block">{todayStr}</p>
+            </div>
+          </button>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <button
-            type="button"
-            onClick={() => setMobileSearchOpen((v) => !v)}
-            className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600"
-            aria-label={`${customerLabel} 검색`}
-          >
-            <Search className="w-5 h-5" />
-          </button>
           {canEnterParentPortal && (
             <button
               type="button"
@@ -161,23 +67,6 @@ export const Header: React.FC = () => {
           <PwaInstallPrompt />
         </div>
       </div>
-
-      {mobileSearchOpen && (
-        <div className="sm:hidden max-w-[1600px] mx-auto mt-3 relative">
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="search"
-              autoFocus
-              placeholder={`${customerLabel} 이름, ${contactLabel} 연락처 검색...`}
-              value={globalSearchQuery}
-              onChange={(e) => setGlobalSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"
-            />
-          </div>
-          {searchResultsDropdown}
-        </div>
-      )}
     </header>
   );
 };

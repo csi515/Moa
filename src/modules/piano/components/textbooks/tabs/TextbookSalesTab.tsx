@@ -49,7 +49,7 @@ export const TextbookSalesTab: React.FC<TextbookSalesTabProps> = ({
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
-            placeholder="원생명, 학부모명, 교재명 검색..."
+            placeholder="학생명, 학부모명, 교재명 검색..."
             value={salesSearch}
             onChange={(e) => setSalesSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"
@@ -83,7 +83,7 @@ export const TextbookSalesTab: React.FC<TextbookSalesTabProps> = ({
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">판매일</th>
-                <th className="py-3 px-4">원생 (보호자)</th>
+                <th className="py-3 px-4">학생 (보호자)</th>
                 <th className="py-3 px-4">교재명</th>
                 <th className="py-3 px-3 text-center">수량</th>
                 <th className="py-3 px-3 text-right">판매단가</th>

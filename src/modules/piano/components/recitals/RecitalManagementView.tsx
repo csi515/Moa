@@ -1,4 +1,4 @@
-﻿import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStudentNavigation, useStaffScope, useStaffGrants } from '@/hooks';
 import { RecitalService } from '@/modules/piano/services/recitalService';
@@ -145,7 +145,7 @@ export const RecitalManagementView: React.FC = () => {
   const handleAddParticipant = (studentId: string) => {
     if (!selectedEvent) return;
     RecitalService.addParticipant(selectedEvent.id, studentId);
-    showToast('참가 원생이 추가되었습니다.', 'success');
+    showToast('참가 학생이 추가되었습니다.', 'success');
     setParticipantSearch('');
   };
 
@@ -153,7 +153,7 @@ export const RecitalManagementView: React.FC = () => {
     if (!selectedEvent) return;
     openConfirmDialog({
       title: '참가자 제외',
-      message: `${studentName} 원생을 참가 명단에서 제외하시겠습니까?`,
+      message: `${studentName} 학생을 참가 명단에서 제외하시겠습니까?`,
       isDestructive: true,
       confirmText: '제외하기',
       onConfirm: () => {
@@ -174,7 +174,7 @@ export const RecitalManagementView: React.FC = () => {
         icon={<Award className="w-6 h-6" />}
         iconClassName="text-purple-600"
         title="연주회·콩쿠르 관리"
-        description="행사 일정, 참가 원생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다"
+        description="행사 일정, 참가 학생 명단, 연주 영상 등록 현황을 한곳에서 관리합니다"
         actions={
           canManageRecitals ? (
           <button
@@ -277,7 +277,7 @@ export const RecitalManagementView: React.FC = () => {
             <EmptyState
               icon={<Award className="w-12 h-12" />}
               title="왼쪽에서 행사를 선택하세요"
-              description="참가 원생 명단과 영상 등록 현황을 확인할 수 있습니다"
+              description="참가 학생 명단과 영상 등록 현황을 확인할 수 있습니다"
               className="h-full flex flex-col items-center justify-center min-h-[320px]"
             />
           ) : (
@@ -346,12 +346,12 @@ export const RecitalManagementView: React.FC = () => {
                 <div>
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
                     <Users className="w-4 h-4 text-indigo-600" />
-                    참가 원생 ({participants.length}명)
+                    참가 학생 ({participants.length}명)
                   </h4>
 
                   {participants.length === 0 ? (
                     <p className="text-xs text-slate-400 py-4 text-center bg-slate-50 rounded-xl">
-                      아직 참가 원생이 없습니다. 아래에서 추가하세요.
+                      아직 참가 학생이 없습니다. 아래에서 추가하세요.
                     </p>
                   ) : (
                     <div className="space-y-2">
@@ -406,7 +406,7 @@ export const RecitalManagementView: React.FC = () => {
                               onClick={() => openStudent(p.studentId, 'videos')}
                               className="px-2.5 py-1.5 text-[11px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
                             >
-                              {p.hasVideo ? '원생 보기' : '영상 등록'}
+                              {p.hasVideo ? '학생 보기' : '영상 등록'}
                             </button>
                             <button
                               onClick={() => handleRemoveParticipant(p.studentId, p.studentName)}
@@ -424,17 +424,17 @@ export const RecitalManagementView: React.FC = () => {
                 <div className="pt-4 border-t border-slate-100">
                   <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
                     <UserPlus className="w-4 h-4 text-emerald-600" />
-                    참가 원생 추가
+                    참가 학생 추가
                   </h4>
                   <SearchField
                     value={participantSearch}
                     onChange={setParticipantSearch}
-                    placeholder="원생명 검색..."
+                    placeholder="학생명 검색..."
                     className="mb-2"
                   />
                   <div className="max-h-40 overflow-y-auto space-y-1">
                     {availableStudents.length === 0 ? (
-                      <p className="text-xs text-slate-400 py-3 text-center">추가 가능한 원생이 없습니다</p>
+                      <p className="text-xs text-slate-400 py-3 text-center">추가 가능한 학생이 없습니다</p>
                     ) : (
                       availableStudents.slice(0, 8).map((st) => (
                         <button

@@ -34,8 +34,8 @@ const COMMON_FINANCE: FeatureGuideSection = {
     {
       id: 'payroll',
       title: '강사 정산',
-      summary: '레슨 횟수×시급 또는 월급으로 강사료를 계산해 인건비 지출로 등록합니다.',
-      howTo: '강사 정보에 시급/월급을 넣은 뒤, 수납(재무) > 강사정산에서 월별로 지출 등록하세요.',
+      summary: '강사별 지급 기준(레슨·출근·근무시간·월급)으로 금액을 계산·확정하고 지출로 등록합니다.',
+      howTo: '강사 정보에 정산 방식·지급 기준을 넣은 뒤, 수납(재무) > 강사정산에서 월별 실적을 확인하고 정산 확정 → 지출 등록하세요. 출근·근무시간은 자동 집계가 없어 정산 시 직접 입력합니다.',
     },
   ],
 };
@@ -49,12 +49,12 @@ const COMMON_SETTINGS: FeatureGuideSection = {
       id: 'settings',
       title: '사업장 설정',
       summary: '상호·연락처·계좌·출입(핀번호) 사용 여부를 설정합니다.',
-      howTo: '출입 관리를 쓰면 PIN 입·퇴실 메뉴가 열리고, 끄면 메뉴가 숨겨집니다.',
+      howTo: '출입 관리를 쓰면 PIN 출석 메뉴가 열리고, 끄면 메뉴가 숨겨집니다.',
     },
     {
       id: 'attendance',
       title: '출입 관리 (핀번호)',
-      summary: '회원마다 PIN을 주고, 키패드로 입실·퇴실을 남깁니다.',
+      summary: '회원마다 PIN을 주고, 키패드로 출석(입실)을 남깁니다.',
       howTo: '설정에서 기능을 켠 뒤, 회원 상세에서 PIN을 발급하세요.',
     },
   ],
@@ -138,18 +138,18 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'attendance',
         title: '출입 관리',
-        summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
+        summary: 'PIN으로 출석(입실)을 기록하고 당일 현황을 봅니다.',
       },
       {
         id: 'lessons',
         title: '오늘 레슨',
         summary: '출석·레슨 노트·과제를 한 화면에서 저장합니다.',
-        howTo: '오늘 수업 원생을 선택한 뒤 출석·노트·과제·다음곡을 한 화면에서 저장합니다. 과제는 학부모 앱에, 다음곡은 커리큘럼 진도에 반영됩니다.',
+        howTo: '오늘 수업 학생을 선택한 뒤 출석·노트·과제·다음곡을 한 화면에서 저장합니다. 과제는 학부모 앱에, 다음곡은 커리큘럼 진도에 반영됩니다.',
       },
       {
         id: 'assignments',
         title: '주간 과제',
-        summary: '원생별 주간 연습 과제를 관리합니다.',
+        summary: '학생별 주간 연습 과제를 관리합니다.',
       },
       {
         id: 'makeups',
@@ -161,7 +161,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'practice-rooms',
         title: '연습실 예약',
-        summary: '원생별 연습실 사용 시간을 잡고 수업·보강과 충돌을 확인합니다.',
+        summary: '학생별 연습실 사용 시간을 잡고 수업·보강과 충돌을 확인합니다.',
         howTo: '일정 > 연습실에서 예약합니다. 학부모 일정 탭과 앱 푸시로 안내됩니다.',
       },
     ],
@@ -183,7 +183,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
     description: '수강료 청구·회차권·미납을 관리합니다.',
     tuitionTitle: '수강료 및 수납',
     tuitionSummary:
-      '월회비 원생의 청구서를 만들고 입금을 기록합니다. 설정에서 교재·연주회비를 월 청구에 합산할 수 있습니다. 회차권 원생은 월 청구에서 제외됩니다.',
+      '월회비 학생의 청구서를 만들고 입금을 기록합니다. 설정에서 교재·연주회비를 월 청구에 합산할 수 있습니다. 회차권 학생은 월 청구에서 제외됩니다.',
     unpaidSummary: '미납 학생을 모아 보고 연락·수납을 이어갑니다.',
   }),
   buildGuideSection({
@@ -194,9 +194,9 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'passes',
         title: '회차권 관리',
-        summary: '원생별 회차권을 등록하고 잔여 횟수를 확인합니다.',
+        summary: '학생별 회차권을 등록하고 잔여 횟수를 확인합니다.',
         howTo:
-          '원생 수강 형태를 회차권으로 두고 「회차권」메뉴에서 발급하세요. 오늘 레슨 출석 시 1회 자동 차감됩니다.',
+          '학생 수강 형태를 회차권으로 두고 「회차권」메뉴에서 발급하세요. 오늘 레슨 출석 시 1회 자동 차감됩니다.',
       },
     ],
   }),
@@ -216,11 +216,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         title: '교재 판매',
         summary: '교재 판매·재고·수납을 관리합니다. 미납 교재는 월 청구 합산 옵션으로 월회비와 함께 청구할 수 있습니다.',
       },
-      {
-        id: 'resources',
-        title: '교재·곡 자료',
-        summary: '교재·곡 자료를 정리합니다.',
-      },
+      // resources(교재·곡 자료): 당분간 안내에서도 숨김 — 기능 코드는 유지
       {
         id: 'recitals',
         title: '연주회·콩쿠르',
@@ -245,7 +241,10 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'enrollment-requests',
         title: '등록 요청',
-        summary: '학부모가 앱에서 보낸 원생 등록 요청을 승인합니다.',
+        summary:
+          '성인 자가가입(Customer Join)과 학부모 자녀 등록(Guardian Enrollment)을 구분해 승인합니다.',
+        howTo:
+          '자녀 연결은 「학부모 자녀 등록」에서, 본인 계정 가입은 「수강생 자가가입」에서 처리합니다. 이미 학생으로 등록된 경우는 학생 상세의 학부모 연결 QR을 사용하세요.',
       },
     ],
   }),
@@ -495,7 +494,7 @@ const GUIDE_BY_INDUSTRY: Partial<Record<IndustryType, FeatureGuideSection[]>> = 
 const INTRO_BY_INDUSTRY: Partial<Record<IndustryType, { title: string; body: string }>> = {
   piano: {
     title: '피아노학원 기능 안내',
-    body: '원생·수업·수납·교육 기록을 중심으로 학원을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
+    body: '학생·수업·수납·교육 기록을 중심으로 학원을 운영하는 메뉴입니다. 아래에서 각 기능이 무엇을 하는지 확인해 보세요.',
   },
   pilates: {
     title: '필라테스 스튜디오 기능 안내',
@@ -562,7 +561,7 @@ const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'adult-attendance',
         title: '출결',
-        summary: '입·퇴실·보강 등 출결 기록을 확인합니다.',
+        summary: '출석·보강 등 출결 기록을 확인합니다.',
         howTo: '키오스크·PIN 출석은 사업장에서 기능을 켠 경우에만 사용할 수 있습니다.',
       },
     ],

@@ -9,7 +9,7 @@ import { TuitionInvoice, PaymentMethod, Student } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import { useStorageRefresh } from '@/hooks';
 import { upsertById } from '@/shared/utils/listUpdate';
-import { getRecentYearMonths } from '@/core/finance/categories';
+import { buildYearMonthOptions } from '@/core/finance/categories';
 import {
   buildInvoiceNotes,
   collectPendingRecitalFees,
@@ -41,7 +41,6 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
   const refreshKey = useStorageRefresh();
 
-  const monthOptions = useMemo(() => getRecentYearMonths(12), []);
   const initialMonth = getCurrentYearMonth();
 
   const [selectedMonth, setSelectedMonth] = useState(initialMonth);
@@ -74,6 +73,14 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const [invoices, setInvoices] = useState<TuitionInvoice[]>(() => TuitionService.getInvoices());
   const students = useMemo(() => StudentService.getStudents(), [refreshKey]);
   const settings = useMemo(() => TuitionService.getSettings(), [refreshKey]);
+
+  const monthOptions = useMemo(
+    () =>
+      buildYearMonthOptions({
+        dataYearMonths: invoices.map((i) => i.yearMonth),
+      }),
+    [invoices]
+  );
 
   useEffect(() => {
     setInvoices(TuitionService.getInvoices());

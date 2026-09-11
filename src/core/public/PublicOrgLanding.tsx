@@ -168,14 +168,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
 
   const handleOpenBookingForm = (schedule: BookableSchedule) => {
     if (!isAuthenticated) {
-      alert('예약하려면 로그인이 필요합니다.');
-      navigate('/login', {
-        state: {
-          redirectTo: isConsultationMode
-            ? `/c/${code}/consultation`
-            : `/c/${code}`,
-        },
-      });
+      alert('슬롯 예약은 로그인이 필요합니다. 로그인 없이 아래 상담 문의 양식을 이용할 수 있습니다.');
       return;
     }
     setSelectedSchedule(schedule);
@@ -395,8 +388,8 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
               <h2 className="text-lg font-bold text-slate-900">이용 대상 선택</h2>
               <p className="text-sm text-slate-600 mt-1">
                 {adultFirst
-                  ? '본인 수강·회원 가입, 또는 자녀 연결·상담을 선택하세요'
-                  : '학부모 연결, 성인 수강생 가입, 상담 문의를 선택하세요'}
+                  ? '본인 계정 가입과 자녀 연결은 서로 다른 경로입니다. 목적에 맞게 선택하세요.'
+                  : '자녀를 연결할지, 본인 계정으로 가입할지 선택하세요. 두 경로는 다릅니다.'}
               </p>
             </div>
 
@@ -420,7 +413,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                       학부모 · 우리 아이 {placeLabel} 연결
                     </button>
                     <p className="text-xs text-slate-500 text-center">
-                      보호자 계정으로 자녀·{placeLabel} 연결 ({placeLabel} 승인 필요)
+                      자녀 프로필을 등록한 뒤 {placeLabel}에 연결 요청합니다 (본인 회원 가입 아님)
                     </p>
                   </div>
                 );
@@ -441,7 +434,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                       성인 수강생 · 회원 가입
                     </button>
                     <p className="text-xs text-slate-500 text-center">
-                      본인 계정으로 가입 신청 후 {placeLabel} 승인을 기다립니다
+                      본인 MOA 계정으로 {placeLabel} 회원 가입을 신청합니다 (자녀 연결 아님)
                     </p>
                   </div>
                 );

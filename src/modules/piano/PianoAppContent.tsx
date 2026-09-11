@@ -18,6 +18,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import { financeViewEntries } from '@/core/industry/commonViewEntries';
 import { AttendanceManagementView } from '@/core/attendance';
+import { PianoAttendanceView } from './components/attendance/PianoAttendanceView';
 import {
   CustomerHubView,
   SettingsHubView,
@@ -45,8 +46,8 @@ const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
   { tab: 'practice', label: '연습 기록' },
   { tab: 'practice-rooms', label: '연습실 예약' },
   { tab: 'textbooks', label: '교재 관리' },
-  { tab: 'passes', label: '회차권' },
-  { tab: 'resources', label: '교재·곡 자료' },
+  { tab: 'passes', label: '회차권 관리' },
+  // 교재·곡 자료(resources): 당분간 UI 숨김 — VIEW_MAP·ResourceManagementView 유지
   { tab: 'recitals', label: '연주회·콩쿠르' },
   { tab: 'curriculum', label: '커리큘럼·진도' },
   { tab: 'achievements', label: '시험·등급' },
@@ -64,8 +65,9 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   students: customerHub,
   parents: customerHub,
   'enrollment-requests': customerHub,
-  /** 레슨 출결 정본 — PIN 출석과 분리 */
-  attendance: () => <PianoScheduleView />,
+  /** 등원 출결 (레슨과 분리) */
+  attendance: () => <PianoAttendanceView />,
+  /** 오늘 레슨·레슨 일지 — 일정 허브 */
   lessons: () => <PianoScheduleView />,
   'check-in': () => <AttendanceManagementView />,
   timetable: () => <PianoScheduleView />,

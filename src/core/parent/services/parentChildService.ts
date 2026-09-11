@@ -1,7 +1,7 @@
 import type { GuardianRelationship } from '@/core/parent/types';
 import { getCoreClient } from '@/lib/supabase';
 
-export const DEFAULT_ACADEMY_SHARED_FIELDS = [
+export const DEFAULT_SHARED_CHILD_FIELDS = [
   'display_name',
   'birth_date',
   'gender',
@@ -9,9 +9,9 @@ export const DEFAULT_ACADEMY_SHARED_FIELDS = [
   'grade',
 ] as const;
 
-export type AcademySharedField = (typeof DEFAULT_ACADEMY_SHARED_FIELDS)[number];
+export type SharedChildField = (typeof DEFAULT_SHARED_CHILD_FIELDS)[number];
 
-export const ACADEMY_SHARED_FIELD_LABELS: Record<AcademySharedField, string> = {
+export const SHARED_CHILD_FIELD_LABELS: Record<SharedChildField, string> = {
   display_name: '이름',
   birth_date: '생년월일',
   gender: '성별',
@@ -20,7 +20,7 @@ export const ACADEMY_SHARED_FIELD_LABELS: Record<AcademySharedField, string> = {
 };
 
 export function sharedFieldPreview(
-  field: AcademySharedField,
+  field: SharedChildField,
   student: {
     displayName: string;
     birthDate?: string | null;

@@ -2,8 +2,6 @@ import React from 'react';
 import { Consultation } from '@/types';
 import { Plus } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
-import { usePermissions } from '@/core/auth/usePermissions';
 
 interface StudentDetailConsultationsTabProps {
   allConsultations: Consultation[];
@@ -34,11 +32,9 @@ export const StudentDetailConsultationsTab: React.FC<StudentDetailConsultationsT
   setNewCstNextDate,
   onSaveConsultation,
 }) => {
-  const { industry } = usePermissions();
   const labels = useModuleLabels();
-  const skin = isSkinClinicIndustry(industry);
-  const customerLabel = skin ? labels.customer.singular : '원생';
-  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
 
   return (
   <div className="space-y-4">

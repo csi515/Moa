@@ -6,8 +6,9 @@ import { formatKoreanDate } from '@/utils/formatters';
 import { Users, Piano, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
 import { requestOpenPendingPractice } from '@/core/customer/studentJoinInbox';
 import { TodayLessonView } from '../lessons/TodayLessonView';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
-/** 강사 홈 — 오늘 레슨 작업면 + 담당 원생·교육 숏컷 */
+/** 강사 홈 — 오늘 레슨 작업면 + 담당 학생·교육 숏컷 */
 export const StaffDashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
   const { scopeStudents, scopeClasses, scopeMakeupItems, scopeByStudentIds } = useStaffScope();
@@ -29,9 +30,17 @@ export const StaffDashboardView: React.FC = () => {
 
   const activeStudents = students.filter((s) => s.status === 'active');
   const pendingMakeups = makeups.filter((m) => m.status === 'pending').length;
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoLocal();
   const dayIndex = new Date().getDay();
-  const dayMap: Record<number, string> = { 1: '월', 2: '화', 3: '수', 4: '목', 5: '금', 6: '토' };
+  const dayMap: Record<number, string> = {
+    0: '일',
+    1: '월',
+    2: '화',
+    3: '수',
+    4: '목',
+    5: '금',
+    6: '토',
+  };
   const todayKorean = dayMap[dayIndex] || '월';
   const todayClasses = classes.filter((c) =>
     c.daysOfWeek.includes(todayKorean as (typeof c.daysOfWeek)[number])
@@ -49,7 +58,7 @@ export const StaffDashboardView: React.FC = () => {
         </div>
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {[
-            { label: '원생', value: activeStudents.length, tab: 'students' as const },
+            { label: '학생', value: activeStudents.length, tab: 'students' as const },
             { label: '오늘', value: todayClasses.length, tab: 'lessons' as const },
             { label: '미보강', value: pendingMakeups, tab: 'makeups' as const },
             { label: '연습', value: pendingPracticeCount, tab: 'practice' as const },
@@ -79,7 +88,7 @@ export const StaffDashboardView: React.FC = () => {
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
               <Users className="w-4 h-4 text-indigo-600" />
-              담당 원생
+              담당 학생
             </h3>
             <button
               type="button"
@@ -94,7 +103,7 @@ export const StaffDashboardView: React.FC = () => {
           </div>
           {activeStudents.length === 0 ? (
             <div className="py-3 text-center">
-              <p className="text-sm text-slate-400">담당 원생이 없습니다</p>
+              <p className="text-sm text-slate-400">담당 학생이 없습니다</p>
               <p className="text-xs text-slate-400 mt-1">원장이 학생의 담당 선생님을 지정하면 여기에 표시됩니다.</p>
             </div>
           ) : (

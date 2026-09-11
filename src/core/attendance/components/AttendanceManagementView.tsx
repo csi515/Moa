@@ -136,7 +136,10 @@ export const AttendanceManagementView: React.FC = () => {
         updatedAt: now,
       });
     }
-    showToast('하원·전달 메모를 저장했습니다.', 'success');
+    showToast(
+      industry === 'daycare' ? '하원·전달 메모를 저장했습니다.' : '출석 메모를 저장했습니다.',
+      'success'
+    );
     setMemoTarget(null);
     triggerRefresh();
   };
@@ -191,8 +194,13 @@ export const AttendanceManagementView: React.FC = () => {
           <PinCheckInKioskView />
           <p className="text-center text-[11px] text-slate-400 mt-3">
             입구 태블릿 전용:{' '}
-            <a href="/attendance-kiosk" className={`font-bold ${accent.icon}`}>
-              /attendance-kiosk
+            <a
+              href="/attendance-kiosk"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`font-bold ${accent.icon}`}
+            >
+              출석 키오스크 열기
             </a>
           </p>
         </div>

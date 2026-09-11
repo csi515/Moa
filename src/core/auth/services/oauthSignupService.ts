@@ -8,6 +8,7 @@ import {
 import type { AccountType } from '../types/signup';
 import { storePendingGuardianLink } from '@/core/parent/services/guardianLinkService';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
+import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
 
 /**
  * 카카오 OAuth 복귀 후 sessionStorage에 저장된 가입 의도를 user_metadata에 반영
@@ -20,9 +21,11 @@ export async function applyOAuthSignupIntentIfAny(): Promise<OAuthSignupIntent |
 
   if (intent.pendingGuardianLink) {
     storePendingGuardianLink(intent.pendingGuardianLink);
+    setParentPortalModeActive(true);
   }
   if (intent.pendingOrgPublicCode) {
     storePendingOrgPublicCode(intent.pendingOrgPublicCode);
+    setParentPortalModeActive(true);
   }
 
   if (intent.mode !== 'signup') return intent;

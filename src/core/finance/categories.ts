@@ -96,15 +96,77 @@ export function getCategoryLabel(
   return categories.find((c) => c.value === value)?.label || value;
 }
 
-/** 최근 N개월 YYYY-MM 목록 */
-export function getRecentYearMonths(count = 12): { value: string; label: string }[] {
+const YEAR_MONTH_RE = /^\d{4}-\d{2}$/;
+
+/** 로컬 기준 YYYY-MM (UTC toISOString 월 밀림 방지) */
+export function toLocalYearMonth(date = new Date()): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}`;
+}
+
+export function formatYearMonthOption(ym: string): { value: string; label: string } {
+  const [y, m] = ym.split('-').map(Number);
+  return { value: ym, label: `${y}년 ${m}월` };
+}
+
+function shiftYearMonth(ym: string, deltaMonths: number): string {
+  const [y, m] = ym.split('-').map(Number);
+  return toLocalYearMonth(new Date(y, m - 1 + deltaMonths, 1));
+}
+
+/**
+ * 월 선택 옵션.
+ * - 데이터가 있으면 가장 이른 월 ~ 가장 늦은 월을 연속으로 포함 (중간 빈 월도 선택 가능)
+ * - 현재월·미래 여유·과거 최소 보장도 반영해 데이터 없는 월 조회 가능
+ * - 최신월이 앞에 오도록 정렬
+ */
+export function buildYearMonthOptions(params?: {
+  dataYearMonths?: Iterable<string | undefined | null>;
+  /** 현재월 기준 과거 최소 보장 개월 (기본 12) */
+  pastMonths?: number;
+  /** 현재월 기준 미래 조회 가능 개월 (기본 6) */
+  futureMonths?: number;
+}): { value: string; label: string }[] {
+  const pastMonths = params?.pastMonths ?? 12;
+  const futureMonths = params?.futureMonths ?? 6;
+  const nowYm = toLocalYearMonth();
+
+  const data: string[] = [];
+  for (const raw of params?.dataYearMonths ?? []) {
+    if (!raw) continue;
+    const ym = String(raw).slice(0, 7);
+    if (YEAR_MONTH_RE.test(ym)) data.push(ym);
+  }
+
+  let start = nowYm;
+  let end = nowYm;
+  if (data.length > 0) {
+    start = data.reduce((a, b) => (a < b ? a : b));
+    end = data.reduce((a, b) => (a > b ? a : b));
+  }
+
+  const paddedStart = shiftYearMonth(nowYm, -Math.max(pastMonths, 0));
+  const paddedEnd = shiftYearMonth(nowYm, Math.max(futureMonths, 0));
+  if (paddedStart < start) start = paddedStart;
+  if (paddedEnd > end) end = paddedEnd;
+  if (nowYm < start) start = nowYm;
+  if (nowYm > end) end = nowYm;
+
   const result: { value: string; label: string }[] = [];
-  const now = new Date();
-  for (let i = 0; i < count; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const ym = d.toISOString().slice(0, 7);
-    const label = `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
-    result.push({ value: ym, label });
+  let cursor = end;
+  while (cursor >= start) {
+    result.push(formatYearMonthOption(cursor));
+    if (cursor === start) break;
+    cursor = shiftYearMonth(cursor, -1);
   }
   return result;
+}
+
+/** 최근 N개월 YYYY-MM 목록 (하위 호환 — 데이터 구간 확장 시 buildYearMonthOptions 사용) */
+export function getRecentYearMonths(count = 12): { value: string; label: string }[] {
+  return buildYearMonthOptions({
+    pastMonths: Math.max(count - 1, 0),
+    futureMonths: 0,
+  });
 }

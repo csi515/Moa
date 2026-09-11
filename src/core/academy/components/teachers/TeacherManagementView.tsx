@@ -15,7 +15,8 @@ import { JoinRequestsPanel } from '@/core/organizations/components/JoinRequestsP
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import { Teacher } from '@/types';
+import { Teacher, type TeacherPayType } from '@/types';
+import { payTypeLabel, payTypeRateUnitLabel, payTypeUsesUnitRate } from '@/core/finance/teacherPayroll';
 import { normalizeStaffGrants, type StaffGrants } from '@/core/staff/staffGrants';
 import { StaffGrantFields, emptyStaffGrants } from './StaffGrantFields';
 import { formatCurrency } from '@/utils/formatters';
@@ -87,7 +88,7 @@ export const TeacherManagementView: React.FC = () => {
     specialty: '클래식 피아노, 기초 테크닉',
     status: 'active' as 'active' | 'inactive',
     color: '#4f46e5',
-    payType: 'hourly' as 'hourly' | 'monthly' | 'none',
+    payType: 'hourly' as import('@/types').TeacherPayType,
     hourlyRate: 30000,
     salary: 0,
     grants: emptyStaffGrants(),
@@ -159,7 +160,12 @@ export const TeacherManagementView: React.FC = () => {
       status: formData.status,
       color: formData.color,
       payType: formData.payType,
-      hourlyRate: formData.payType === 'hourly' ? Number(formData.hourlyRate) || 0 : undefined,
+      hourlyRate:
+        formData.payType === 'hourly' ||
+        formData.payType === 'attendance' ||
+        formData.payType === 'work_hours'
+          ? Number(formData.hourlyRate) || 0
+          : undefined,
       salary: formData.payType === 'monthly' ? Number(formData.salary) || 0 : undefined,
       grants: formData.grants,
     } as Teacher);
@@ -325,12 +331,19 @@ export const TeacherManagementView: React.FC = () => {
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-500">정산</span>
-                    <strong className="text-slate-800">
-                      {t.payType === 'monthly' || (!(t.hourlyRate || 0) && (t.salary || 0) > 0)
-                        ? `월급 ${formatTeacherPay(t.salary)}`
-                        : t.payType === 'none'
-                          ? '미설정'
-                          : `시급 ${formatTeacherPay(t.hourlyRate)}`}
+                    <strong className="text-slate-800 text-right">
+                      {(() => {
+                        const type =
+                          t.payType ||
+                          ((t.hourlyRate || 0) > 0
+                            ? 'hourly'
+                            : (t.salary || 0) > 0
+                              ? 'monthly'
+                              : 'none');
+                        if (type === 'none') return '미설정';
+                        if (type === 'monthly') return `월급 ${formatTeacherPay(t.salary)}`;
+                        return `${payTypeLabel(type)} ${formatTeacherPay(t.hourlyRate)}`;
+                      })()}
                     </strong>
                   </div>
                 </div>
@@ -458,36 +471,46 @@ export const TeacherManagementView: React.FC = () => {
 
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">급여 정산 방식</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">정산 방식</label>
                   <select
                     value={formData.payType}
                     onChange={(e) =>
                       setFormData({
                         ...formData,
-                        payType: e.target.value as 'hourly' | 'monthly' | 'none',
+                        payType: e.target.value as TeacherPayType,
                       })
                     }
                     className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-bold min-h-[44px]"
                   >
-                    <option value="hourly">시급 (레슨 횟수 × 시급)</option>
+                    <option value="hourly">레슨 실적 (레슨 횟수 × 회당 지급액)</option>
+                    <option value="attendance">출근 횟수 (출근 × 1회 지급액)</option>
+                    <option value="work_hours">근무 시간 (시간 × 시간당 지급액)</option>
                     <option value="monthly">월급 (월 고정)</option>
                     <option value="none">정산 안 함</option>
                   </select>
                 </div>
-                {formData.payType === 'hourly' && (
+                {payTypeUsesUnitRate(formData.payType) && (
                   <div>
                     <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      시급 / 레슨당 (₩)
+                      지급 기준 ({payTypeRateUnitLabel(formData.payType)})
                     </label>
                     <CurrencyInput
                       value={formData.hourlyRate}
                       onChange={(v) => setFormData({ ...formData, hourlyRate: v })}
                     />
+                    {(formData.payType === 'attendance' || formData.payType === 'work_hours') && (
+                      <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed">
+                        강사 출근·근무시간은 아직 자동 집계되지 않습니다. 매월 정산 화면에서
+                        실적을 직접 입력합니다.
+                      </p>
+                    )}
                   </div>
                 )}
                 {formData.payType === 'monthly' && (
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">월급 (₩)</label>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      지급 기준 (원 / 월)
+                    </label>
                     <CurrencyInput
                       value={formData.salary}
                       onChange={(v) => setFormData({ ...formData, salary: v })}
@@ -495,7 +518,7 @@ export const TeacherManagementView: React.FC = () => {
                   </div>
                 )}
                 <p className="text-[11px] text-slate-500 leading-relaxed">
-                  재무의 급여 정산에서 월별 근무를 반영해 지출로 등록합니다.
+                  재무 &gt; 강사정산에서 월별 실적을 확인하고 정산 확정·지출 등록을 진행합니다.
                 </p>
               </div>
 

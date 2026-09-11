@@ -102,7 +102,7 @@ const StudentDetailModalContent: React.FC<
               className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-extrabold shadow-md shrink-0"
               style={{ backgroundColor: student.avatarColor || '#4f46e5' }}
             >
-              {student.name.slice(0, 1)}
+              {(student.name || '?').slice(0, 1)}
             </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">

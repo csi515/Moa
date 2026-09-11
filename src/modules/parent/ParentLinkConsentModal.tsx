@@ -1,9 +1,9 @@
 import React from 'react';
 import { Shield, X } from 'lucide-react';
 import {
-  ACADEMY_SHARED_FIELD_LABELS,
-  DEFAULT_ACADEMY_SHARED_FIELDS,
-  type AcademySharedField,
+  SHARED_CHILD_FIELD_LABELS,
+  DEFAULT_SHARED_CHILD_FIELDS,
+  type SharedChildField,
 } from '@/core/parent/services/parentChildService';
 
 interface ParentLinkConsentModalProps {
@@ -23,8 +23,8 @@ export const ParentLinkConsentModal: React.FC<ParentLinkConsentModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const fields = DEFAULT_ACADEMY_SHARED_FIELDS.map(
-    (key) => ACADEMY_SHARED_FIELD_LABELS[key as AcademySharedField]
+  const fields = DEFAULT_SHARED_CHILD_FIELDS.map(
+    (key) => SHARED_CHILD_FIELD_LABELS[key as SharedChildField]
   );
 
   return (

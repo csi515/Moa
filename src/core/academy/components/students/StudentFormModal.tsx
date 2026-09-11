@@ -26,6 +26,7 @@ import { StudentPinSection } from './form/StudentPinSection';
 import { StudentAdvancedSection } from './form/StudentAdvancedSection';
 import { StudentPickupSection } from './form/StudentPickupSection';
 import {
+  combineStudentNotes,
   newGuardianEntry,
   type GuardianFormEntry,
   type StudentFormData,
@@ -119,8 +120,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         billingMode: student.billingMode === 'session_pass' ? 'session_pass' : 'monthly',
         tuitionFee: student.tuitionFee || 180000,
         paymentDay: student.paymentDay || 10,
-        specialNotes: student.specialNotes || '',
-        memo: student.memo || '',
+        specialNotes: combineStudentNotes(student.specialNotes, student.memo),
+        memo: '',
         address: student.address || '',
         usesShuttleService: student.usesShuttleService ?? false,
         pickupAddresses:
@@ -284,7 +285,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
       tuitionFee: Number(formData.tuitionFee) || 0,
       paymentDay: Number(formData.paymentDay) || 10,
       specialNotes: formData.specialNotes.trim() || undefined,
-      memo: formData.memo.trim() || undefined,
+      // 등록·수정 시 특이사항으로 통합 저장 (기존 memo는 삭제하지 않고 비워 중복 표시 방지)
+      memo: undefined,
     };
   };
 
@@ -527,28 +529,15 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
             />
           )}
 
-          <section className="space-y-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                특이사항 (알레르기·주의)
-              </label>
-              <textarea
-                rows={2}
-                value={formData.specialNotes}
-                onChange={(e) => updateFormData({ specialNotes: e.target.value })}
-                placeholder="예: 땅콩 알레르기, 하원 시 조부모만 가능"
-                className="w-full px-3 py-2 text-sm bg-amber-50/60 border border-amber-100 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">메모</label>
-              <textarea
-                rows={2}
-                value={formData.memo}
-                onChange={(e) => updateFormData({ memo: e.target.value })}
-                className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-              />
-            </div>
+          <section>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">특이사항</label>
+            <textarea
+              rows={3}
+              value={formData.specialNotes}
+              onChange={(e) => updateFormData({ specialNotes: e.target.value, memo: '' })}
+              placeholder="알레르기, 건강 관련 주의사항, 기타 전달사항 등을 입력하세요."
+              className="w-full px-3 py-2 text-sm bg-amber-50/60 border border-amber-100 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[88px]"
+            />
           </section>
 
           <StudentAdvancedSection

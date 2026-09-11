@@ -25,11 +25,12 @@ export function parseInviteLinkCodesFromResult(data: unknown): ParentInviteLinkC
   return parseLinkCodes(root.link_codes ?? root.linkCodes);
 }
 
+/** 앱 공개 URL (QR·초대 링크). 브라우저에서는 현재 origin을 우선해 배포 호스트와 맞춤 */
 export function getAppBaseUrl(): string {
-  return (
-    (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') ||
-    (typeof window !== 'undefined' ? window.location.origin : '')
-  );
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin;
+  }
+  return (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') || '';
 }
 
 export function buildParentInviteUrl(token: string): string {

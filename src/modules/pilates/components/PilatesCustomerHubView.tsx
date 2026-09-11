@@ -42,7 +42,7 @@ export const PilatesCustomerHubView: FC<{
               { value: 'passes', label: passText },
             ]}
             onChange={(next) => setActiveTab(next)}
-            aria-label="고객 메뉴"
+            aria-label={`${labels.customer.singular} 메뉴`}
             fullWidth
             className="w-full sm:w-auto min-w-[180px]"
           />

@@ -116,7 +116,7 @@ export const PianoConsultationHubView: FC = () => {
               <p className="text-sm font-bold text-slate-700">오늘 예정된 상담이 없습니다</p>
               <p className="text-xs text-slate-500 mt-1">
                 {isScoped
-                  ? '담당 원생이거나 본인 상담만 표시됩니다.'
+                  ? '담당 학생이거나 본인 상담만 표시됩니다.'
                   : '가능시간을 설정하거나 상담 일정을 추가하세요.'}
               </p>
             </div>
@@ -207,7 +207,7 @@ export const PianoConsultationHubView: FC = () => {
           title="상담 문의"
           description={
             isScoped
-              ? '담당 원생이거나 본인에게 온 상담 문의입니다.'
+              ? '담당 학생이거나 본인에게 온 상담 문의입니다.'
               : 'QR·공개 페이지에서 보낸 자유 양식 상담 문의입니다.'
           }
           includeRequest={isScoped ? keepInquiry : undefined}

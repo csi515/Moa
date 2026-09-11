@@ -23,7 +23,7 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
   const [results, setResults] = useState<OrganizationSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'search' | 'code'>('search');
+  const [mode, setMode] = useState<'search' | 'code'>('code');
 
   if (!isOpen) return null;
 
@@ -75,24 +75,18 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60">
       <div className="bg-white rounded-2xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-4">
-          <h3 className="font-bold text-lg">연결 요청</h3>
+          <h3 className="font-bold text-lg">학원 연결하기</h3>
           <button type="button" onClick={onClose} aria-label="닫기">
             <X className="w-5 h-5 text-slate-400" />
           </button>
         </div>
 
+        <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+          QR·8자리 연결 코드가 있으면 홈의 「QR 스캔 / 연결 코드」를 먼저 사용하세요. 여기에서는
+          사업장 공개코드 또는 이름 검색으로 연결을 요청합니다.
+        </p>
+
         <div className="flex gap-2 mb-4">
-          <button
-            type="button"
-            onClick={() => setMode('search')}
-            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors min-h-[44px] ${
-              mode === 'search'
-                ? 'bg-indigo-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
-          >
-            이름으로 검색
-          </button>
           <button
             type="button"
             onClick={() => setMode('code')}
@@ -102,7 +96,18 @@ export const ParentRequestEnrollmentModal: React.FC<ParentRequestEnrollmentModal
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            코드로 찾기
+            학원 코드 입력
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('search')}
+            className={`flex-1 py-2.5 text-sm font-bold rounded-xl transition-colors min-h-[44px] ${
+              mode === 'search'
+                ? 'bg-indigo-600 text-white'
+                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+            }`}
+          >
+            학원 이름 검색
           </button>
         </div>
 

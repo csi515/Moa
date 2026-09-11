@@ -34,6 +34,12 @@ interface ExpenseMetadata {
   teacherId?: string;
   settlementYearMonth?: string;
   settlementKind?: 'teacher_payroll';
+  settlementPayType?: string;
+  settlementQuantity?: number;
+  settlementRate?: number;
+  settlementCalculatedAmount?: number;
+  settlementAdjustmentAmount?: number;
+  settlementAdjustmentReason?: string;
 }
 
 export function expenseToCoreRow(expense: FinanceExpense | Expense, organizationId: string) {
@@ -41,6 +47,18 @@ export function expenseToCoreRow(expense: FinanceExpense | Expense, organization
   if (expense.teacherId) metadata.teacherId = expense.teacherId;
   if (expense.settlementYearMonth) metadata.settlementYearMonth = expense.settlementYearMonth;
   if (expense.settlementKind) metadata.settlementKind = expense.settlementKind;
+  if (expense.settlementPayType) metadata.settlementPayType = expense.settlementPayType;
+  if (expense.settlementQuantity != null) metadata.settlementQuantity = expense.settlementQuantity;
+  if (expense.settlementRate != null) metadata.settlementRate = expense.settlementRate;
+  if (expense.settlementCalculatedAmount != null) {
+    metadata.settlementCalculatedAmount = expense.settlementCalculatedAmount;
+  }
+  if (expense.settlementAdjustmentAmount != null) {
+    metadata.settlementAdjustmentAmount = expense.settlementAdjustmentAmount;
+  }
+  if (expense.settlementAdjustmentReason) {
+    metadata.settlementAdjustmentReason = expense.settlementAdjustmentReason;
+  }
 
   return {
     id: expense.id,
@@ -86,6 +104,12 @@ export function coreRowToExpense(row: {
     teacherId: meta.teacherId,
     settlementYearMonth: meta.settlementYearMonth,
     settlementKind: meta.settlementKind,
+    settlementPayType: meta.settlementPayType as FinanceExpense['settlementPayType'],
+    settlementQuantity: meta.settlementQuantity,
+    settlementRate: meta.settlementRate,
+    settlementCalculatedAmount: meta.settlementCalculatedAmount,
+    settlementAdjustmentAmount: meta.settlementAdjustmentAmount,
+    settlementAdjustmentReason: meta.settlementAdjustmentReason,
   };
 }
 

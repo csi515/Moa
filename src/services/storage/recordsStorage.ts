@@ -93,15 +93,30 @@ export function createRecordsStorage(api: StorageApi) {
       const now = new Date().toISOString();
       let saved: LessonRecord;
 
+      const naturalKeyIdx = list.findIndex(
+        (entry) =>
+          entry.date === record.date &&
+          entry.studentId === record.studentId &&
+          (entry.classId || '') === (record.classId || '')
+      );
+
       if (record.id) {
         const idx = list.findIndex((entry) => entry.id === record.id);
         if (idx >= 0) {
           saved = { ...list[idx], ...record, id: record.id };
           list[idx] = saved;
+        } else if (naturalKeyIdx >= 0) {
+          const existingId = list[naturalKeyIdx].id;
+          saved = { ...list[naturalKeyIdx], ...record, id: existingId };
+          list[naturalKeyIdx] = saved;
         } else {
           saved = { ...record, id: record.id, createdAt: now };
           list.unshift(saved);
         }
+      } else if (naturalKeyIdx >= 0) {
+        const existingId = list[naturalKeyIdx].id;
+        saved = { ...list[naturalKeyIdx], ...record, id: existingId };
+        list[naturalKeyIdx] = saved;
       } else {
         saved = { ...record, id: generateEntityId('lr'), createdAt: now };
         list.unshift(saved);

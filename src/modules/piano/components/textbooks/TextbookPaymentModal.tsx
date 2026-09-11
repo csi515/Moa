@@ -63,7 +63,7 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
             </div>
             <div>
               <h3 className="font-bold text-slate-900 text-base">교재비 수납 (분할/완납)</h3>
-              <p className="text-xs text-slate-500">원생 교재비 미납 잔액에 대한 수납을 처리합니다.</p>
+              <p className="text-xs text-slate-500">학생 교재비 미납 잔액에 대한 수납을 처리합니다.</p>
             </div>
           </div>
           <button
@@ -79,7 +79,7 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
           {/* Summary Banner */}
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
             <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-500">원생명:</span>
+              <span className="text-slate-500">학생명:</span>
               <span className="font-bold text-slate-900 text-sm">{sale.studentName}</span>
             </div>
             <div className="flex justify-between items-center text-xs">

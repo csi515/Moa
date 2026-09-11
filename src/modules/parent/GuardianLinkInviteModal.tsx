@@ -76,7 +76,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold flex items-center gap-2">
             <Link2 className="w-4 h-4 text-indigo-600" />
-            보호자 연결 코드
+            학부모에게 MOA 연결 안내
           </h3>
           <button type="button" onClick={handleClose} aria-label="닫기">
             <X className="w-5 h-5 text-slate-400" />
@@ -84,12 +84,12 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
         </div>
 
         <p className="text-sm text-slate-600 mb-4">
-          <strong>{studentName}</strong> {contactLabel}님께 전달할 8자리 연결 코드를 생성합니다.
+          <strong>{studentName}</strong> 학생과 연결할 {contactLabel}님께 QR·링크를 전달합니다.
         </p>
 
         {error && (
           <div className="mb-3 p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-            <p className="font-bold">코드 생성 실패</p>
+            <p className="font-bold">안내 생성 실패</p>
             <p className="text-xs mt-0.5">{error}</p>
           </div>
         )}
@@ -98,10 +98,13 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
           <div className="space-y-3">
             <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
               <p className="text-xs text-indigo-900 leading-relaxed">
-                <strong>코드 전달 방법:</strong><br />
-                1. 코드 생성 후 QR·링크·코드 중 선택<br />
-                2. {contactLabel}님께 전달 (문자·카톡 등)<br />
-                3. {contactLabel} 앱에서 코드 입력 시 자동 연결
+                <strong>전달 방법:</strong>
+                <br />
+                1. 생성 후 QR을 보여주거나 링크·코드를 공유
+                <br />
+                2. {contactLabel}님이 MOA에서 QR 스캔 또는 코드 입력
+                <br />
+                3. 승인 없이 바로 학생과 연결됩니다
               </p>
             </div>
             <button
@@ -111,11 +114,12 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
               className="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-              {loading ? '코드 생성 중...' : '8자리 코드 생성'}
+              {loading ? '생성 중...' : '학부모 연결 QR 만들기'}
             </button>
           </div>
         ) : (
           <div className="space-y-3">
+            <GuardianLinkQrDisplay url={buildParentInviteUrl(token)} />
             <div className="text-center p-4 bg-indigo-50 rounded-xl border border-indigo-100">
               <p className="text-[10px] text-indigo-600 font-bold uppercase mb-1">연결 코드</p>
               <p className="text-3xl font-black font-mono tracking-[0.3em] text-indigo-900">
@@ -127,15 +131,15 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
                 </p>
               )}
             </div>
-            
+
             <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
               <p className="text-xs text-emerald-900">
-                <span className="font-bold">✓ 코드가 생성되었습니다</span><br />
-                <span className="text-emerald-700">아래 버튼으로 {contactLabel}님께 전달하세요</span>
+                <span className="font-bold">✓ 연결 안내가 준비되었습니다</span>
+                <br />
+                <span className="text-emerald-700">QR을 보여주거나 아래 버튼을 사용하세요</span>
               </p>
             </div>
 
-            <GuardianLinkQrDisplay url={buildParentInviteUrl(token)} />
             <div className="flex gap-2">
               <button
                 type="button"

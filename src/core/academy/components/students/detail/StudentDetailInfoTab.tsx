@@ -13,8 +13,7 @@ import {
 import { formatCurrency, formatPhone, getLevelColor } from '@/utils/formatters';
 import { Award, Bus, Link2, MapPin, Star } from 'lucide-react';
 import { useModuleLabels } from '@/core/labels';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
-import { usePermissions } from '@/core/auth/usePermissions';
+import { combineStudentNotes } from '../form/studentFormTypes';
 
 interface StudentDetailInfoTabProps {
   student: Student;
@@ -47,11 +46,10 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
   onEdit,
   onOpenGuardianLink,
 }) => {
-  const { industry } = usePermissions();
   const labels = useModuleLabels();
-  const skin = isSkinClinicIndustry(industry);
-  const customerLabel = skin ? labels.customer.singular : '원생';
-  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
+  const notes = combineStudentNotes(student.specialNotes, student.memo);
 
   return (
   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -75,7 +73,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
                   className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2 flex items-center gap-1"
                 >
                   <Link2 className="w-3 h-3" />
-                  연결 코드
+                  학부모에게 MOA 연결 안내
                 </button>
               )}
               {canEditStudent && (
@@ -223,15 +221,21 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
         <div className="flex justify-between py-1.5 border-b border-slate-200/60">
           <span className="text-slate-500">수강 형태</span>
           <span className="font-bold text-slate-800">
-            {student.billingMode === 'session_pass' ? '회차권' : '월회비'}
+            {student.billingMode === 'session_pass' ? '회차권' : '일반'}
           </span>
         </div>
         )}
         {showTuition && student.billingMode === 'session_pass' ? (
           <div className="flex justify-between py-1.5 border-b border-slate-200/60">
-            <span className="text-slate-500">회차권 잔여</span>
+            <span className="text-slate-500">회차권</span>
             <span className="font-bold text-indigo-700 text-sm">
-              {ScheduleService.getCustomerRemainingSessions(student.id)}회
+              {(() => {
+                const passes = ScheduleService.getCustomerSessionPasses(student.id).filter(
+                  (p) => p.status !== 'cancelled'
+                );
+                if (passes.length === 0) return '해당 없음';
+                return `남은 ${ScheduleService.getCustomerRemainingSessions(student.id)}회`;
+              })()}
             </span>
           </div>
         ) : showTuition ? (
@@ -263,13 +267,13 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
       </div>
     )}
 
-    {student.specialNotes && (
+    {notes && (
       <div className="md:col-span-2 p-4 rounded-2xl bg-amber-50/80 border border-amber-200">
         <p className="text-xs font-bold text-amber-800 mb-1 flex items-center gap-1.5">
           <Award className="w-4 h-4 text-amber-600" />
           {customerLabel} 특이사항
         </p>
-        <p className="text-xs text-amber-900 leading-relaxed">{student.specialNotes}</p>
+        <p className="text-xs text-amber-900 leading-relaxed whitespace-pre-line">{notes}</p>
       </div>
     )}
   </div>

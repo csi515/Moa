@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -110,7 +110,7 @@ export const LessonRecordsView: React.FC = () => {
   const handleDelete = (lesson: LessonRecord) => {
     openConfirmDialog({
       title: '레슨 일지 삭제',
-      message: `${lesson.studentName} 원생의 ${lesson.date} 레슨 일지를 삭제하시겠습니까?`,
+      message: `${lesson.studentName} 학생의 ${lesson.date} 레슨 일지를 삭제하시겠습니까?`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
@@ -125,7 +125,7 @@ export const LessonRecordsView: React.FC = () => {
     e.preventDefault();
     const st = students.find((s) => s.id === formData.studentId);
     if (!st) {
-      showToast('원생을 선택해주세요.', 'warning');
+      showToast('학생을 선택해주세요.', 'warning');
       return;
     }
     if (!formData.songTitle.trim()) {
@@ -173,7 +173,7 @@ export const LessonRecordsView: React.FC = () => {
       <PageHeader
         icon={<Piano className="w-6 h-6" />}
         title="레슨 일지 및 진도 관리"
-        description="원생별 피아노 레슨 진도, 강점 및 보완점, 과제 기록"
+        description="학생별 피아노 레슨 진도, 강점 및 보완점, 과제 기록"
         actions={
           <button
             onClick={handleOpenCreate}
@@ -191,7 +191,7 @@ export const LessonRecordsView: React.FC = () => {
           onChange={(e) => setSelectedStudentFilter(e.target.value)}
           className="px-3.5 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold"
         >
-          <option value="ALL">전체 원생</option>
+          <option value="ALL">전체 학생</option>
           {students.map((s) => (
             <option key={s.id} value={s.id}>
               {s.name} ({s.level})
@@ -201,7 +201,7 @@ export const LessonRecordsView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="원생, 레슨 곡명, 내용 검색..."
+          placeholder="학생, 레슨 곡명, 내용 검색..."
           className="flex-1 min-w-[200px]"
         />
         <span className="text-xs text-slate-500 font-medium shrink-0">
@@ -308,7 +308,7 @@ export const LessonRecordsView: React.FC = () => {
             <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">원생 선택</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">학생 선택</label>
                   <select
                     value={formData.studentId}
                     onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}

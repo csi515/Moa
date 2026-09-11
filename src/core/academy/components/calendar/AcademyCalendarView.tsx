@@ -2,6 +2,7 @@
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getPlaceLabel } from '@/core/industry/industryUi';
+import { usePublicHolidays, holidaysOnDate, holidaysForMonth } from '@/core/calendar';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar, Modal } from '@/shared/components';
@@ -15,6 +16,7 @@ import {
   Trash2,
   Clock,
   Cake,
+  Flag,
 } from 'lucide-react';
 
 export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
@@ -31,6 +33,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   const [currentMonth, setCurrentMonth] = useState(now.getMonth() + 1);
   const [selectedDay, setSelectedDay] = useState<number | null>(now.getDate());
   useStorageRefresh();
+  const publicHolidays = usePublicHolidays(currentYear);
   const allStudents = StorageService.getStudents();
   const students = useMemo(
     () => (isScoped ? scopeStudents(allStudents) : allStudents),
@@ -78,6 +81,11 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
     return events.filter((e) => e.startDate.startsWith(currentYearMonthStr));
   }, [events, currentYearMonthStr]);
 
+  const monthHolidays = useMemo(
+    () => holidaysForMonth(publicHolidays, currentYear, currentMonth),
+    [publicHolidays, currentYear, currentMonth]
+  );
+
   const birthdayStudents = useMemo(() => {
     return students.filter((s) => {
       if (!s.birthDate) return false;
@@ -87,7 +95,13 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   }, [students, currentMonth]);
 
   const selectedDayEvents = useMemo(() => {
-    if (!selectedDay) return { dayEvents: [] as typeof events, dayBdays: [] as typeof birthdayStudents };
+    if (!selectedDay) {
+      return {
+        dayEvents: [] as typeof events,
+        dayBdays: [] as typeof birthdayStudents,
+        dayHolidays: [] as typeof publicHolidays,
+      };
+    }
     const dateStr = `${currentYearMonthStr}-${String(selectedDay).padStart(2, '0')}`;
     return {
       dayEvents: events.filter((ev) => ev.startDate === dateStr),
@@ -95,8 +109,9 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
         const bDay = parseInt(s.birthDate.split('-')[2], 10);
         return bDay === selectedDay;
       }),
+      dayHolidays: holidaysOnDate(publicHolidays, dateStr),
     };
-  }, [selectedDay, currentYearMonthStr, events, birthdayStudents]);
+  }, [selectedDay, currentYearMonthStr, events, birthdayStudents, publicHolidays]);
 
   const handleAddEvent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,14 +153,24 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   const renderDayDetailList = (
     dayEvents: typeof events,
     dayBdays: typeof birthdayStudents,
+    dayHolidays: typeof publicHolidays = [],
     emptyMessage = isScoped ? '볼 일정이 없습니다.' : '등록된 일정이 없습니다.'
   ) => {
-    if (dayEvents.length === 0 && dayBdays.length === 0) {
+    if (dayEvents.length === 0 && dayBdays.length === 0 && dayHolidays.length === 0) {
       return <p className="text-xs text-slate-400 py-4 text-center">{emptyMessage}</p>;
     }
 
     return (
       <div className="space-y-2">
+        {dayHolidays.map((h) => (
+          <div
+            key={`holiday-${h.date}-${h.name}`}
+            className="p-3 rounded-xl bg-rose-50 border border-rose-100 flex items-center gap-2 text-sm font-bold text-rose-700"
+          >
+            <Flag className="w-4 h-4 shrink-0" />
+            {h.name}
+          </div>
+        ))}
         {dayEvents.map((ev) => (
           <div
             key={ev.id}
@@ -247,8 +272,12 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
               const bDay = parseInt(s.birthDate.split('-')[2], 10);
               return bDay === dayNum;
             });
-            const hasItems = dayEvents.length > 0 || dayBdays.length > 0;
+            const dayHolidays = holidaysOnDate(publicHolidays, dateStr);
+            const hasItems =
+              dayEvents.length > 0 || dayBdays.length > 0 || dayHolidays.length > 0;
             const isSelected = selectedDay === dayNum;
+            const isSunday = new Date(currentYear, currentMonth - 1, dayNum).getDay() === 0;
+            const isHoliday = dayHolidays.length > 0;
 
             return (
               <button
@@ -259,13 +288,21 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                   isSelected
                     ? 'bg-indigo-600 text-white shadow-md'
                     : hasItems
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                      : 'bg-white text-slate-700 border border-slate-200'
+                      ? isHoliday
+                        ? 'bg-rose-50 text-rose-700 border border-rose-200'
+                        : 'bg-indigo-50 text-indigo-700 border border-indigo-200'
+                      : isSunday || isHoliday
+                        ? 'bg-white text-rose-600 border border-slate-200'
+                        : 'bg-white text-slate-700 border border-slate-200'
                 }`}
               >
                 <span>{dayNum}</span>
                 {hasItems && !isSelected && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-500 mt-0.5" />
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full mt-0.5 ${
+                      isHoliday ? 'bg-rose-500' : 'bg-indigo-500'
+                    }`}
+                  />
                 )}
               </button>
             );
@@ -277,7 +314,11 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
             <h4 className="font-bold text-sm text-slate-900">
               {currentMonth}월 {selectedDay}일 일정
             </h4>
-            {renderDayDetailList(selectedDayEvents.dayEvents, selectedDayEvents.dayBdays)}
+            {renderDayDetailList(
+              selectedDayEvents.dayEvents,
+              selectedDayEvents.dayBdays,
+              selectedDayEvents.dayHolidays
+            )}
           </div>
         )}
       </div>
@@ -308,6 +349,9 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                 const bDay = parseInt(s.birthDate.split('-')[2], 10);
                 return bDay === dayNum;
               });
+              const dayHolidays = holidaysOnDate(publicHolidays, dateStr);
+              const isSunday = new Date(currentYear, currentMonth - 1, dayNum).getDay() === 0;
+              const isHoliday = dayHolidays.length > 0;
 
               return (
                 <div
@@ -317,7 +361,23 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                     selectedDay === dayNum ? 'bg-indigo-50/50 ring-2 ring-indigo-600 ring-inset' : ''
                   }`}
                 >
-                  <span className="font-bold text-slate-700">{dayNum}</span>
+                  <span
+                    className={`font-bold ${
+                      isHoliday || isSunday ? 'text-rose-600' : 'text-slate-700'
+                    }`}
+                  >
+                    {dayNum}
+                  </span>
+
+                  {dayHolidays.map((h) => (
+                    <div
+                      key={`${h.date}-${h.name}`}
+                      className="p-0.5 rounded-md text-[10px] font-bold bg-rose-100 text-rose-700 truncate"
+                      title={h.name}
+                    >
+                      {h.name}
+                    </div>
+                  ))}
 
                   {dayEvents.map((ev) => (
                     <div
@@ -354,7 +414,11 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
                 : `${currentMonth}월 일정`}
             </h4>
             {selectedDay ? (
-              renderDayDetailList(selectedDayEvents.dayEvents, selectedDayEvents.dayBdays)
+              renderDayDetailList(
+                selectedDayEvents.dayEvents,
+                selectedDayEvents.dayBdays,
+                selectedDayEvents.dayHolidays
+              )
             ) : (
               <p className="text-xs text-slate-400 py-4 text-center">날짜를 선택하세요.</p>
             )}
@@ -362,9 +426,29 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
 
           <div className="border-t border-slate-100 pt-3 space-y-2 shrink-0 max-h-48 overflow-y-auto">
             <p className="text-[11px] font-bold text-slate-500">
-              이달 전체 · {monthEvents.length}건
+              이달 전체 · 일정 {monthEvents.length}건
+              {monthHolidays.length > 0 ? ` · 공휴일 ${monthHolidays.length}일` : ''}
             </p>
-            {monthEvents.length === 0 ? (
+            {monthHolidays.map((h) => (
+              <button
+                key={`month-holiday-${h.date}`}
+                type="button"
+                onClick={() => {
+                  const day = parseInt(h.date.split('-')[2], 10);
+                  setSelectedDay(day);
+                }}
+                className="w-full text-left p-2 rounded-xl border border-rose-100 bg-rose-50/70 hover:bg-rose-50 flex items-center gap-2 min-h-[44px]"
+              >
+                <Flag className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                <div className="min-w-0">
+                  <span className="text-[10px] font-mono font-bold text-rose-700">
+                    {h.date.slice(8)}일
+                  </span>
+                  <p className="font-bold text-xs text-rose-800 truncate">{h.name}</p>
+                </div>
+              </button>
+            ))}
+            {monthEvents.length === 0 && monthHolidays.length === 0 ? (
               <p className="text-xs text-slate-400 text-center py-2">
                 {isScoped ? '볼 일정이 없습니다' : '일정 없음'}
               </p>
