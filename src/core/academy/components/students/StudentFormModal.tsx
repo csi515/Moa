@@ -12,7 +12,7 @@ import {
 } from '@/core/students';
 import { getStudentLevelOptions } from '@/core/students/levelOptions';
 import { getIndustryPlugin } from '@/core/industry/registry';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { getPlaceLabel, isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { createPickupAddress, normalizePickupAddresses, sanitizePickupAddressesForSave } from '@/core/transport';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
@@ -50,7 +50,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   const skin = isSkinClinicIndustry(industry);
   const customerLabel = skin ? labels.customer.singular : '학생';
   const contactLabel = skin ? labels.contact.singular : '학부모';
-  const placeLabel = skin ? '샵' : '학원';
+  const placeLabel = getPlaceLabel(industry);
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
 

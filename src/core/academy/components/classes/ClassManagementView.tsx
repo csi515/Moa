@@ -1,6 +1,8 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
@@ -29,8 +31,11 @@ const DAYS_OF_WEEK: DayOfWeek[] = ['월', '화', '수', '목', '금', '토'];
 
 export const ClassManagementView: React.FC = () => {
   const { showToast, openConfirmDialog, setSelectedStudentId, setActiveTab } = useApp();
+  const { industry } = usePermissions();
   const labels = useModuleLabels();
   const serviceLabel = labels.service.singular;
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const placeLabel = getPlaceLabel(industry);
   const refreshKey = useStorageRefresh();
 
   const [classes, setClasses] = useState<ClassItem[]>(() => StorageService.getClasses());
@@ -112,7 +117,7 @@ export const ClassManagementView: React.FC = () => {
   const handleDelete = (cls: ClassItem) => {
     openConfirmDialog({
       title: `${serviceLabel} 삭제`,
-      message: `'${cls.name}' ${serviceLabel}을(를) 삭제하시겠습니까?\n배정된 원생 정보는 유지되지만 시간표에서 제외됩니다.`,
+      message: `'${cls.name}' ${serviceLabel}을(를) 삭제하시겠습니까?\n배정된 ${customerLabel} 정보는 유지되지만 시간표에서 제외됩니다.`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
@@ -281,7 +286,7 @@ export const ClassManagementView: React.FC = () => {
                 {/* Capacity progress bar */}
                 <div className="mt-4 pt-3 border-t border-slate-100">
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="text-slate-500 font-medium">수강 원생 현황</span>
+                    <span className="text-slate-500 font-medium">수강 {customerLabel} 현황</span>
                     <span className="font-bold text-slate-800">
                       {enrolled.length} / {cls.capacity}명 ({percent}%)
                     </span>
@@ -434,7 +439,7 @@ export const ClassManagementView: React.FC = () => {
                   {roomNames.length === 0 ? (
                     <div className="space-y-2">
                       <p className="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
-                        등록된 실이 없습니다. 학원 설정에서 강의실·연습실을 먼저 등록해 주세요.
+                        등록된 실이 없습니다. {placeLabel} 설정에서 강의실·연습실을 먼저 등록해 주세요.
                       </p>
                       <button
                         type="button"
@@ -444,7 +449,7 @@ export const ClassManagementView: React.FC = () => {
                         }}
                         className="text-xs font-bold text-indigo-600 min-h-[44px]"
                       >
-                        학원 설정으로 이동
+                        {placeLabel} 설정으로 이동
                       </button>
                       <input
                         type="text"

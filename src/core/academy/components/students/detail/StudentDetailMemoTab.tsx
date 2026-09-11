@@ -1,7 +1,7 @@
 import React from 'react';
 import { Student } from '@/types';
 import { useModuleLabels } from '@/core/labels';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 
 interface StudentDetailMemoTabProps {
@@ -12,16 +12,13 @@ interface StudentDetailMemoTabProps {
 export const StudentDetailMemoTab: React.FC<StudentDetailMemoTabProps> = ({ student }) => {
   const { industry } = usePermissions();
   const labels = useModuleLabels();
-  const skin = isSkinClinicIndustry(industry);
-  const customerLabel = skin ? labels.customer.singular : '원생';
-  const placeLabel = skin ? '샵' : '학원';
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const placeLabel = getPlaceLabel(industry);
 
   return (
   <div className="space-y-4">
     <p className="text-xs text-slate-500">
-      {skin
-        ? `${customerLabel} 관련 특이사항과 ${placeLabel} 내부 메모입니다.`
-        : '원생 관련 특이사항과 학원 내부 메모입니다. 연습·연주영상은 더보기 탭에서 확인하세요.'}
+      {customerLabel} 관련 특이사항과 {placeLabel} 내부 메모입니다.
     </p>
 
     <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">

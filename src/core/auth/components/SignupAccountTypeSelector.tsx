@@ -10,20 +10,20 @@ const ACCOUNT_TYPE_OPTIONS: Array<{
 }> = [
   {
     value: 'owner',
-    label: '사업주 (학원 운영)',
-    description: '학원을 새로 시작하거나 이미 운영 중인 원장님',
+    label: '사업주 (사업장 운영)',
+    description: '사업장을 새로 시작하거나 이미 운영 중인 대표·운영자',
     icon: Building2,
   },
   {
     value: 'teacher',
     label: '강사 / 직원',
-    description: '학원에서 수업하거나 근무하는 강사 및 직원',
+    description: '사업장에서 수업하거나 근무하는 강사 및 직원',
     icon: GraduationCap,
   },
   {
     value: 'parent',
     label: '학부모',
-    description: '자녀의 학원 정보를 확인하고 소통하는 학부모',
+    description: '자녀의 사업장 정보를 확인하고 소통하는 학부모',
     icon: Users,
   },
 ];

@@ -1,4 +1,5 @@
 import type { IndustryType } from '@/core/industry/types';
+import { getOwnerLabel } from '@/core/industry/industryUi';
 import {
   formatOrganizationAddress,
   type OrganizationAddressValue,
@@ -250,9 +251,12 @@ export async function createOrganization(
 }
 
 /** org 멤버 role 라벨 */
-export function getRoleLabel(role: MemberRole): string {
+export function getRoleLabel(
+  role: MemberRole,
+  industry?: IndustryType | string | null
+): string {
   const labels: Record<MemberRole, string> = {
-    owner: '원장',
+    owner: industry != null ? getOwnerLabel(industry) : '대표',
     admin: '관리자',
     manager: '매니저',
     staff: '강사',

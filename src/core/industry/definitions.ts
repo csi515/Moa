@@ -138,7 +138,13 @@ export const INDUSTRY_IDS: IndustryType[] = DEFINITION_LIST.map((d) => d.id);
  * 신규 가입·사업장 생성 UI에 노출하는 업종.
  * 내부 카탈로그/기존 org 데이터는 그대로 두고, 여기만 켜서 단계적으로 공개한다.
  */
-export const PUBLIC_SELECTABLE_INDUSTRY_IDS = ['piano', 'skin_clinic'] as const satisfies readonly IndustryType[];
+export const PUBLIC_SELECTABLE_INDUSTRY_IDS = [
+  'piano',
+  'pilates',
+  'gym',
+  'daycare',
+  'skin_clinic',
+] as const satisfies readonly IndustryType[];
 
 const PUBLIC_SELECTABLE_SET = new Set<string>(PUBLIC_SELECTABLE_INDUSTRY_IDS);
 

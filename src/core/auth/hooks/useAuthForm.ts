@@ -45,39 +45,25 @@ export function useAuthForm() {
 
     try {
       if (mode === 'signup') {
+        // 카카오 가입: 약관·계정유형만 확인. 사업장 정보는 OAuth 복귀 후 마법사에서 입력
         if (!agreedToTerms) {
           throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
         }
-        if (accountType === 'owner') {
-          validateSignUpBusiness({
-            industryType,
-            businessName: businessName.trim(),
-            phone: phone.trim(),
-            address: address.trim(),
-            businessNumber: businessNumber.trim() || undefined,
-            openingDate: openingDate.trim() || undefined,
-          });
-          if (!fullName.trim()) {
-            throw new Error('대표자 이름을 입력해 주세요.');
-          }
-          saveOAuthSignupIntent({
-            mode: 'signup',
-            accountType,
-            fullName: fullName.trim() || undefined,
-            industryType,
-            businessName: businessName.trim() || undefined,
-            phone: phone.trim() || undefined,
-            address: address.trim() || undefined,
-            businessNumber: businessNumber.trim() || undefined,
-            openingDate: openingDate.trim() || undefined,
-          });
-        } else {
-          saveOAuthSignupIntent({
-            mode: 'signup',
-            accountType,
-            fullName: fullName.trim() || undefined,
-          });
-        }
+        saveOAuthSignupIntent({
+          mode: 'signup',
+          accountType,
+          fullName: fullName.trim() || undefined,
+          ...(accountType === 'owner'
+            ? {
+                industryType,
+                businessName: businessName.trim() || undefined,
+                phone: phone.trim() || undefined,
+                address: address.trim() || undefined,
+                businessNumber: businessNumber.trim() || undefined,
+                openingDate: openingDate.trim() || undefined,
+              }
+            : {}),
+        });
       } else if (mode === 'forgot') {
         throw new Error('비밀번호 찾기는 이메일로 진행해 주세요.');
       } else {
@@ -90,6 +76,8 @@ export function useAuthForm() {
       const message =
         err instanceof Error ? err.message : '카카오 로그인 중 오류가 발생했습니다.';
       setError(message);
+    } finally {
+      // OAuth 리다이렉트가 실패·차단되면 버튼을 다시 활성화
       setLoading(false);
     }
   };

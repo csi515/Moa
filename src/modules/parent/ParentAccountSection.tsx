@@ -4,16 +4,17 @@ import { LegalLinks } from '@/core/legal';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { updateMyParentPhone } from '@/core/parent/services/parentPortalService';
 import { useApp } from '@/context/AppContext';
-import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import { getCustomerLabel, getOwnerLabel, getPlaceLabel } from '@/core/industry/industryUi';
+import type { IndustryType } from '@/core/industry/types';
 
 /** 학부모 포털 공통 계정·법적 고지 영역 */
 export const ParentAccountSection: FC<{ industryType?: IndustryType | string }> = ({
   industryType,
 }) => {
-  const skin = normalizeIndustryType(industryType) === 'skin_clinic';
-  const accountDescription = skin
-    ? '고객 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 샵에 등록된 고객 정보는 샵 데이터로 남을 수 있습니다.'
-    : '학부모 계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. 학원에 등록된 원생 정보는 학원 데이터로 남을 수 있습니다.';
+  const placeLabel = getPlaceLabel(industryType);
+  const ownerLabel = getOwnerLabel(industryType);
+  const customerLabel = getCustomerLabel(industryType);
+  const accountDescription = `계정을 삭제하면 로그인 정보와 포털 연결이 제거됩니다. ${placeLabel}에 등록된 ${customerLabel} 정보는 ${placeLabel} 데이터로 남을 수 있습니다.`;
   const { portalTree, refreshPortalTree } = useParentPortal();
   const { showToast } = useApp();
   const [phone, setPhone] = useState(portalTree?.parent?.phone ?? '');
@@ -43,7 +44,7 @@ export const ParentAccountSection: FC<{ industryType?: IndustryType | string }> 
         <div>
           <p className="text-sm font-bold text-slate-900">보호자 연락처</p>
           <p className="text-xs text-slate-500 mt-1">
-            {skin ? '샵 등록 요청 시 대표가 이 번호로 연락합니다.' : '학원 등록 요청 시 원장이 이 번호로 연락합니다.'}
+            {placeLabel} 등록 요청 시 {ownerLabel}이(가) 이 번호로 연락합니다.
           </p>
         </div>
         <label className="block text-xs font-semibold text-slate-700" htmlFor="parent-phone">

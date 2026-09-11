@@ -43,19 +43,19 @@ export function SignUpTypeSelector({ onSelect }: SignUpTypeSelectorProps) {
         <TypeCard
           icon={Building2}
           title="사업주"
-          description="학원·체육관·시설 운영"
+          description="사업장·체육관·시설 운영"
           onClick={() => onSelect('business')}
         />
         <TypeCard
           icon={GraduationCap}
           title="강사"
-          description="학원에서 강의 활동"
+          description="사업장에서 강의·근무"
           onClick={() => onSelect('instructor')}
         />
         <TypeCard
           icon={UserCheck}
           title="고객"
-          description="학원·시설 이용"
+          description="사업장·시설 이용"
           onClick={() => onSelect('customer')}
         />
         <TypeCard

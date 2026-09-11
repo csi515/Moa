@@ -161,7 +161,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
                       >
                         {child.displayName}
                         <span className="block text-[10px] text-slate-400 font-normal">
-                          학원 {child.enrollments.length}곳
+                          사업장 {child.enrollments.length}곳
                         </span>
                       </button>
                     </li>
@@ -230,7 +230,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
                         }}
                         className="w-full text-left px-3 py-2.5 text-xs font-bold text-slate-500 min-h-[44px] hover:bg-slate-50"
                       >
-                        학원 목록으로
+                        사업장 목록으로
                       </button>
                     </li>
                   )}

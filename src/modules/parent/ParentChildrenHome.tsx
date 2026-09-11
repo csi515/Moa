@@ -46,16 +46,16 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
         if (cancelled) return;
         if (!org) {
           consumePendingOrgPublicCode();
-          showToast('학원 코드를 찾을 수 없습니다. 다시 검색해 주세요.', 'error');
+          showToast('사업장 코드를 찾을 수 없습니다. 다시 검색해 주세요.', 'error');
           return;
         }
         consumePendingOrgPublicCode();
         setSelectedOrg(org);
         setShowChildSelector(true);
-        showToast(`${org.name} 학원 연결이 대기 중입니다`, 'info');
+        showToast(`${org.name} 사업장 연결이 대기 중입니다`, 'info');
       } catch (err) {
         if (!cancelled) {
-          showToast(err instanceof Error ? err.message : '학원 조회에 실패했습니다', 'error');
+          showToast(err instanceof Error ? err.message : '사업장 조회에 실패했습니다', 'error');
         }
       }
     })();
@@ -160,7 +160,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
   const handleCancelRequest = async (requestId: string) => {
     try {
       await cancelEnrollmentRequest(requestId);
-      showToast('학원 연결 요청을 취소했습니다', 'success');
+      showToast('사업장 연결 요청을 취소했습니다', 'success');
       await refreshPortalTree();
     } catch (err) {
       showToast(err instanceof Error ? err.message : '요청 취소에 실패했습니다', 'error');
@@ -183,9 +183,9 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
           </div>
           <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 자녀가 없습니다</h3>
           <p className="text-sm text-slate-500 leading-relaxed mb-6">
-            학원에서 8자리 자녀 연결 코드로 바로 연결되거나
+            사업장에서 8자리 자녀 연결 코드로 바로 연결되거나
             <br />
-            내 자녀를 등록한 뒤 학원 공개코드로 요청할 수 있습니다
+            내 자녀를 등록한 뒤 사업장 공개코드로 요청할 수 있습니다
           </p>
           {selectedOrg && (
             <p className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl p-3 mb-4">
@@ -204,14 +204,14 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
             onClick={startEnrollmentRequest}
             className="w-full py-2.5 mb-4 border border-indigo-200 text-indigo-700 text-sm font-bold rounded-xl min-h-[44px]"
           >
-            학원 연결 요청
+            사업장 연결 요청
           </button>
           <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-left">
-            <p className="text-xs font-bold text-indigo-900 mb-2">학원 연결 방법</p>
+            <p className="text-xs font-bold text-indigo-900 mb-2">사업장 연결 방법</p>
             <ul className="text-xs text-indigo-700 space-y-1">
-              <li>• 학원에 연결 코드를 요청하세요</li>
+              <li>• 사업장에 연결 코드를 요청하세요</li>
               <li>• QR 코드가 있다면 위의 QR로 스캔할 수 있습니다</li>
-              <li>• 학원 이름·공개코드는 학원 연결 요청에서 검색하세요</li>
+              <li>• 사업장 이름·공개코드는 사업장 연결 요청에서 검색하세요</li>
             </ul>
           </div>
         </div>
@@ -225,7 +225,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
             className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors min-h-[44px]"
           >
             <Plus className="w-3.5 h-3.5" />
-            학원 연결 요청
+            사업장 연결 요청
           </button>
         </div>
 
@@ -259,7 +259,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
 
       {requests.length > 0 && (
         <div className="mt-6">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">학원 연결 요청 현황</p>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">사업장 연결 요청 현황</p>
           <div className="space-y-2">
             {requests.map((request) => (
                 <ParentEnrollmentStatusCard

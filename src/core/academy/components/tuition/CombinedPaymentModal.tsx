@@ -2,6 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { Student, PaymentMethod } from '@/types';
 import { TuitionService } from '@/core/finance';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { Modal } from '@/shared/components/ui/Modal';
 import { CreditCard, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
@@ -10,6 +13,7 @@ import { ONSITE_PAYMENT_METHOD_OPTIONS } from '@/core/finance/paymentMethodLabel
 interface CombinedPaymentModalProps {
   student: Student;
   yearMonth?: string;
+  customerLabel?: string;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -17,10 +21,14 @@ interface CombinedPaymentModalProps {
 export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   student,
   yearMonth,
+  customerLabel: customerLabelProp,
   onSuccess,
   onClose,
 }) => {
   const { showToast, triggerRefresh } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = customerLabelProp || labels.customer.singular || getCustomerLabel(industry);
   const effectiveYearMonth = yearMonth ?? new Date().toISOString().slice(0, 7);
 
   const billingSummary = TuitionService.getStudentBillingSummary(student.id, yearMonth);
@@ -108,7 +116,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
       });
 
       showToast(
-        `${student.name} 원생 통합 수납 ${formatCurrency(res.totalPaidAmount)} 처리 · 재무 수입에 반영됨`,
+        `${student.name} ${customerLabel} 통합 수납 ${formatCurrency(res.totalPaidAmount)} 처리 · 재무 수입에 반영됨`,
         'success'
       );
       triggerRefresh();

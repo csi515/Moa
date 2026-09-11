@@ -1,6 +1,8 @@
 import { useEffect, useMemo, type FC } from 'react';
 import { Calendar, Clock, DoorOpen, Piano, Sparkles } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { useStaffGrants, useStaffScope } from '@/hooks';
 import { WeeklyTimetableView, AcademyCalendarView } from '@/core/academy';
 import { SegmentedControl } from '@/shared/components';
@@ -10,7 +12,7 @@ import { PracticeRoomBookingView } from '../practiceRooms/PracticeRoomBookingVie
 
 type ScheduleSegment = 'classes' | 'events' | 'lessons' | 'makeups' | 'rooms';
 
-const SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
+const BASE_SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
   { value: 'classes', label: '시간표' },
   { value: 'events', label: '캘린더' },
   { value: 'lessons', label: '레슨' },
@@ -29,13 +31,19 @@ function tabToSegment(tab: string): ScheduleSegment {
 /** 피아노 일정 허브 — 시간표·캘린더·레슨·보강·연습실 */
 export const PianoScheduleView: FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const { industry } = usePermissions();
+  const placeLabel = getPlaceLabel(industry);
   const { isScoped } = useStaffScope();
   const { allow } = useStaffGrants();
   const canRooms = !isScoped || allow('practiceRooms');
 
   const segmentOptions = useMemo(
-    () => (canRooms ? SEGMENT_OPTIONS : SEGMENT_OPTIONS.filter((option) => option.value !== 'rooms')),
-    [canRooms]
+    () =>
+      (canRooms ? BASE_SEGMENT_OPTIONS : BASE_SEGMENT_OPTIONS.filter((option) => option.value !== 'rooms')).map(
+        (option) =>
+          option.value === 'events' ? { ...option, label: `${placeLabel} 캘린더` } : option
+      ),
+    [canRooms, placeLabel]
   );
 
   useEffect(() => {
@@ -60,7 +68,7 @@ export const PianoScheduleView: FC = () => {
     segment === 'classes'
       ? '수업 시간표'
       : segment === 'events'
-        ? '학원 캘린더'
+        ? `${placeLabel} 캘린더`
         : segment === 'lessons'
           ? '오늘 레슨'
           : segment === 'makeups'

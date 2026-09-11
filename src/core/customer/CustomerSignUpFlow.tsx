@@ -60,7 +60,7 @@ export function CustomerSignUpFlow() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  // 랜딩에서 넘어온 학원 자동 선택
+  // 랜딩에서 넘어온 사업장 자동 선택
   useEffect(() => {
     const state = (location.state || {}) as LocationState;
     if (state.openPending) {
@@ -97,11 +97,11 @@ export function CustomerSignUpFlow() {
           setStep('form');
           navigate(location.pathname, { replace: true, state: {} });
         } else {
-          setPreloadError('학원 정보를 불러오지 못했습니다. 검색으로 다시 찾아주세요.');
+          setPreloadError('사업장 정보를 불러오지 못했습니다. 검색으로 다시 찾아주세요.');
         }
       } catch (err) {
         if (!cancelled) {
-          setPreloadError(err instanceof Error ? err.message : '학원 정보를 불러오지 못했습니다.');
+          setPreloadError(err instanceof Error ? err.message : '사업장 정보를 불러오지 못했습니다.');
         }
       } finally {
         if (!cancelled) setPreloading(false);
@@ -232,7 +232,7 @@ export function CustomerSignUpFlow() {
 
       <main className="max-w-2xl mx-auto px-4 py-8">
         {preloading && (
-          <p className="text-center text-sm text-slate-500 mb-4">학원 정보를 불러오는 중...</p>
+          <p className="text-center text-sm text-slate-500 mb-4">사업장 정보를 불러오는 중...</p>
         )}
         {preloadError && (
           <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
@@ -243,8 +243,8 @@ export function CustomerSignUpFlow() {
         {step === 'search' && (
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">학원 검색</h2>
-              <p className="text-slate-600 mb-6">가입하고 싶은 학원을 검색하세요</p>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">사업장 검색</h2>
+              <p className="text-slate-600 mb-6">가입하고 싶은 사업장을 검색하세요</p>
 
               <form onSubmit={handleSearch} className="space-y-4">
                 <div className="relative">
@@ -256,7 +256,7 @@ export function CustomerSignUpFlow() {
                       setHasSearched(false);
                       setSearchResults([]);
                     }}
-                    placeholder="학원 이름, 코드, 주소로 검색"
+                    placeholder="사업장 이름, 코드, 주소로 검색"
                     className="w-full pl-12 pr-4 py-4 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-indigo-500 text-lg"
                   />
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
@@ -285,7 +285,7 @@ export function CustomerSignUpFlow() {
             {hasSearched && searchResults.length === 0 && (
               <div className="rounded-xl border border-slate-200 bg-white px-4 py-8 text-center">
                 <p className="text-sm font-bold text-slate-700">검색 결과가 없습니다</p>
-                <p className="text-xs text-slate-500 mt-1">학원 이름이나 공개코드를 다시 확인해 주세요.</p>
+                <p className="text-xs text-slate-500 mt-1">사업장 이름이나 공개코드를 다시 확인해 주세요.</p>
               </div>
             )}
 
@@ -336,7 +336,7 @@ export function CustomerSignUpFlow() {
                 onClick={() => setStep('search')}
                 className="text-indigo-600 hover:text-indigo-700 font-medium mb-4 min-h-[44px]"
               >
-                ← 다른 학원 검색
+                ← 다른 사업장 검색
               </button>
 
               <div className="mb-6 pb-6 border-b border-slate-200">
@@ -347,7 +347,7 @@ export function CustomerSignUpFlow() {
               </div>
 
               <h2 className="text-2xl font-bold text-slate-900 mb-2">가입 신청서</h2>
-              <p className="text-slate-600 mb-6">학원 담당자가 승인하면 알림을 보내드립니다</p>
+              <p className="text-slate-600 mb-6">담당자가 승인하면 알림을 보내드립니다</p>
 
               <form onSubmit={handleSubmitRequest} className="space-y-4">
                 <div>
@@ -398,7 +398,7 @@ export function CustomerSignUpFlow() {
                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                     rows={4}
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                    placeholder="학원에 전하고 싶은 말씀을 자유롭게 작성해주세요"
+                    placeholder="사업장에 전하고 싶은 말씀을 자유롭게 작성해주세요"
                   />
                 </div>
 
@@ -433,7 +433,7 @@ export function CustomerSignUpFlow() {
               </h2>
               <p className="text-slate-700">
                 {justSubmitted
-                  ? '학원 담당자가 승인하면 수강생 포털을 이용할 수 있습니다'
+                  ? '담당자가 승인하면 이용자 포털을 이용할 수 있습니다'
                   : '대기·승인·거절된 신청을 확인할 수 있습니다'}
               </p>
             </div>
@@ -527,7 +527,7 @@ export function CustomerSignUpFlow() {
                 }}
                 className="w-full mt-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors min-h-[44px]"
               >
-                다른 학원 신청하기
+                다른 사업장 신청하기
               </button>
             </div>
           </div>

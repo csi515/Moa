@@ -5,6 +5,7 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { formatCurrency } from '@/utils/formatters';
 
 interface TuitionNewInvoiceModalProps {
+  customerLabel: string;
   students: Student[];
   studentId: string;
   onStudentIdChange: (id: string) => void;
@@ -29,6 +30,7 @@ interface TuitionNewInvoiceModalProps {
 }
 
 export const TuitionNewInvoiceModal: React.FC<TuitionNewInvoiceModalProps> = ({
+  customerLabel,
   students,
   studentId,
   onStudentIdChange,
@@ -63,7 +65,7 @@ export const TuitionNewInvoiceModal: React.FC<TuitionNewInvoiceModalProps> = ({
     <Modal isOpen onClose={onClose} title="개별 수강료 청구서 초안" maxWidth="md">
       <form onSubmit={onSubmit} className="p-6 space-y-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">대상 원생</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">대상 {customerLabel}</label>
           <select
             value={studentId}
             onChange={(e) => onStudentIdChange(e.target.value)}

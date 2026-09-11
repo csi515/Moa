@@ -5,6 +5,7 @@ import { formatCurrency } from '@/utils/formatters';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface TuitionCombinedBillingViewProps {
+  customerLabel: string;
   students: Student[];
   selectedMonth: string;
   searchQuery: string;
@@ -45,6 +46,7 @@ function StatusBadge({ totalUnpaid, totalPaid }: { totalUnpaid: number; totalPai
 }
 
 export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProps> = ({
+  customerLabel,
   students,
   selectedMonth,
   searchQuery,
@@ -54,7 +56,7 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
   const filteredStudents = useFilteredStudents(students, searchQuery);
 
   const emptyMessage = (
-    <p className="py-12 text-center text-slate-400 text-sm">검색 조건에 맞는 원생이 없습니다.</p>
+    <p className="py-12 text-center text-slate-400 text-sm">검색 조건에 맞는 {customerLabel}이(가) 없습니다.</p>
   );
 
   return (
@@ -63,7 +65,7 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
       <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-1 text-xs">
           <span className="font-bold text-slate-800">
-            원생별 총 청구/수납/미납 현황 (수강료 + 교재비 자동 합산)
+            {customerLabel}별 총 청구/수납/미납 현황 (수강료 + 교재비 자동 합산)
           </span>
           <span className="text-slate-500">
             * 항목별로 개별 관리되면서도 통합 수납이 가능합니다.
@@ -74,7 +76,7 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="px-6 py-4">원생명 / 학부모</th>
+                <th className="px-6 py-4">{customerLabel}명 / 학부모</th>
                 <th className="px-6 py-4 text-right">수강료 (청구/미납)</th>
                 <th className="px-6 py-4 text-right">교재비 (구매/미납)</th>
                 <th className="px-6 py-4 text-right">합산 총 청구액</th>

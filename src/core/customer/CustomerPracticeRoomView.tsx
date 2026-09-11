@@ -168,7 +168,7 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
         memo,
       });
       setMemo('');
-      setSuccess('예약 신청이 접수되었습니다. 학원 승인 후 확정됩니다.');
+      setSuccess('예약 신청이 접수되었습니다. 승인 후 확정됩니다.');
       await Promise.all([reloadMineAndRooms(), reloadDay()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : '신청 실패');
@@ -207,7 +207,7 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
 
       {rooms.length === 0 ? (
         <p className="text-sm text-slate-400 text-center py-8 bg-white rounded-2xl border border-slate-200">
-          등록된 연습실이 없습니다. 학원에 문의해 주세요.
+          등록된 연습실이 없습니다. 사업장에 문의해 주세요.
         </p>
       ) : (
         <form

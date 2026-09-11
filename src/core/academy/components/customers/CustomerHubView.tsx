@@ -2,7 +2,7 @@ import { useEffect, useMemo, type FC } from 'react';
 import { Users } from 'lucide-react';
 import { useApp, type NavTab } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
-import { getCustomerListTab } from '@/core/industry/industryUi';
+import { getCustomerListTab, getPlaceLabel } from '@/core/industry/industryUi';
 import { PageHeader, SegmentedControl } from '@/shared/components';
 import { StudentListView } from '../students/StudentListView';
 import { ParentManagementView } from '../parents/ParentManagementView';
@@ -23,6 +23,7 @@ export const CustomerHubView: FC<{
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const listTab = getCustomerListTab(industry) as NavTab;
+  const placeLabel = getPlaceLabel(industry);
   const ListView = listView ?? StudentListView;
 
   const segment: CustomerSegment = useMemo(() => {
@@ -72,12 +73,12 @@ export const CustomerHubView: FC<{
 
       {segment === 'list' && <ListView />}
       {segment === 'parents' && <ParentManagementView />}
-      {segment === 'enrollment' && <EnrollmentInbox />}
+      {segment === 'enrollment' && <EnrollmentInbox placeLabel={placeLabel} />}
     </div>
   );
 };
 
-function EnrollmentInbox() {
+function EnrollmentInbox({ placeLabel }: { placeLabel: string }) {
   useEffect(() => {
     const openGuardian = consumeOpenGuardianEnrollments();
     const openMembership = consumeOpenMembershipJoins();
@@ -97,7 +98,7 @@ function EnrollmentInbox() {
           embedded
           requestType="membership"
           title="수강 가입"
-          description="성인 수강생이 보낸 가입 신청입니다. 승인하면 그 계정으로 이 학원을 이용할 수 있습니다."
+          description={`성인 수강생이 보낸 가입 신청입니다. 승인하면 그 계정으로 이 ${placeLabel}을(를) 이용할 수 있습니다.`}
         />
       </div>
       <GuardianEnrollmentRequestsView />

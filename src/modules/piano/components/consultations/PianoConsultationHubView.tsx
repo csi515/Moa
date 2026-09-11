@@ -45,7 +45,7 @@ export const PianoConsultationHubView: FC = () => {
     loadToday,
   } = usePianoConsultationHub();
 
-  const orgName = currentOrganization?.name || '학원';
+  const orgName = currentOrganization?.name || '사업장';
   const publicCode = currentOrganization?.public_code;
 
   return (

@@ -1,18 +1,19 @@
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
 import { normalizeIndustryType } from '@/core/industry/types';
+import { getOwnerLabel } from '@/core/industry/industryUi';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { withOwnerFinanceTabs } from '@/core/industry/pluginTypes';
 import type { UserRole } from '@/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import type { AcademySettings } from '@/types';
 
-/** owner/admin/manager — 학원 운영 전체 메뉴 */
+/** owner/admin/manager — 사업장 운영 전체 메뉴 */
 export function isOrgAdmin(role: UserRole | string | null | undefined): boolean {
   return role === 'owner' || role === 'admin' || role === 'manager';
 }
 
-/** 원장(owner) 역할 여부 */
+/** 사업주(owner) 역할 여부 */
 export function isOrgOwner(role: UserRole | string | null | undefined): boolean {
   return role === 'owner';
 }
@@ -95,9 +96,13 @@ export function getDefaultTab(
 }
 
 /** 역할 표시 라벨 (UI용) */
-export function getUserRoleLabel(role: UserRole | string | null | undefined): string {
+export function getUserRoleLabel(
+  role: UserRole | string | null | undefined,
+  industry?: IndustryType | string | null
+): string {
+  const ownerLabel = industry != null ? getOwnerLabel(industry) : '대표';
   const labels: Record<UserRole, string> = {
-    owner: '원장',
+    owner: ownerLabel,
     admin: '관리자',
     manager: '매니저',
     staff: '강사',
@@ -112,9 +117,13 @@ export function getUserRoleLabel(role: UserRole | string | null | undefined): st
 }
 
 /** 역할별 아바타 이니셜 */
-export function getUserRoleBadge(role: UserRole | string | null | undefined): string {
+export function getUserRoleBadge(
+  role: UserRole | string | null | undefined,
+  industry?: IndustryType | string | null
+): string {
+  const ownerBadge = industry != null ? getOwnerLabel(industry) : '대표';
   const badges: Record<UserRole, string> = {
-    owner: '원장',
+    owner: ownerBadge,
     admin: '관리',
     manager: '매니저',
     staff: '강사',

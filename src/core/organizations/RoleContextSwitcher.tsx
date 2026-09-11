@@ -76,7 +76,12 @@ export const RoleContextSwitcher: React.FC = () => {
 
   const currentOrgName =
     settingsName || selectedMembership?.organization.name || '';
-  const currentRoleLabel = selectedMembership ? getRoleLabel(selectedMembership.role) : '';
+  const currentRoleLabel = selectedMembership
+    ? getRoleLabel(
+        selectedMembership.role,
+        selectedMembership.organization.industry_type
+      )
+    : '';
   const displayName = currentUser.name?.trim() || auth.user?.email || '사용자';
 
   const handleSwitchMembership = async (membershipId: string) => {
@@ -185,7 +190,11 @@ export const RoleContextSwitcher: React.FC = () => {
                 <div className="space-y-1">
                   {group.memberships.map((membership) => {
                     const isSelected = selectedMembership?.id === membership.id;
-                    const roleLabel = getRoleLabel(membership.role);
+                    const fullMembership = memberships.find((m) => m.id === membership.id);
+                    const roleLabel = getRoleLabel(
+                      membership.role,
+                      fullMembership?.organization.industry_type
+                    );
                     const sectionLabel = getSectionLabel(membership.role);
                     const roleIcon = getRoleIcon(membership.role);
 
@@ -250,7 +259,7 @@ export const RoleContextSwitcher: React.FC = () => {
                   className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
                 >
                   <UserRound className="w-4 h-4" />
-                  수강생 포털
+                  이용자 포털
                 </button>
               )}
               <button
@@ -263,7 +272,7 @@ export const RoleContextSwitcher: React.FC = () => {
                 className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
               >
                 <UserPlus className="w-4 h-4 shrink-0" />
-                다른 학원에 수강 신청
+                다른 사업장에 이용 신청
               </button>
               <button
                 type="button"

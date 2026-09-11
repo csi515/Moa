@@ -1,16 +1,13 @@
 import { useMemo, type FC } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { SegmentedControl } from '@/shared/components';
 import { WeeklyTimetableView } from '../timetable/WeeklyTimetableView';
 import { AcademyCalendarView } from '../calendar/AcademyCalendarView';
 
 type ScheduleSegment = 'classes' | 'events';
-
-const SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
-  { value: 'classes', label: '수업 시간표' },
-  { value: 'events', label: '학원 캘린더' },
-];
 
 /**
  * 반·시간표 기반 업종 공통 일정 허브 (Gym/Daycare/Piano 패턴)
@@ -18,6 +15,18 @@ const SEGMENT_OPTIONS: { value: ScheduleSegment; label: string }[] = [
  */
 export const ClassScheduleHubView: FC = () => {
   const { activeTab, setActiveTab } = useApp();
+  const { industry } = usePermissions();
+  const placeLabel = getPlaceLabel(industry);
+  const eventsLabel = `${placeLabel} 캘린더`;
+
+  const segmentOptions = useMemo(
+    () =>
+      [
+        { value: 'classes' as const, label: '수업 시간표' },
+        { value: 'events' as const, label: eventsLabel },
+      ],
+    [eventsLabel]
+  );
 
   const segment: ScheduleSegment = useMemo(
     () => (activeTab === 'calendar' ? 'events' : 'classes'),
@@ -40,13 +49,13 @@ export const ClassScheduleHubView: FC = () => {
               ) : (
                 <Calendar className="w-5 h-5 text-indigo-600" />
               )}
-              {segment === 'classes' ? '수업 시간표' : '학원 캘린더'}
+              {segment === 'classes' ? '수업 시간표' : eventsLabel}
             </h2>
           </div>
         </div>
         <SegmentedControl
           value={segment}
-          options={SEGMENT_OPTIONS}
+          options={segmentOptions}
           onChange={handleSegmentChange}
           aria-label="일정 보기 전환"
           fullWidth

@@ -42,6 +42,23 @@ export function getPlaceLabel(industry: IndustryType | string | null | undefined
   return '학원';
 }
 
+/** 사업주(owner) 호칭. 교육·돌봄은 원장, 그 외는 대표. */
+export function getOwnerLabel(industry: IndustryType | string | null | undefined): string {
+  const type = resolveIndustry(industry);
+  if (type === 'daycare' || type === 'piano' || type === 'academy') return '원장';
+  return '대표';
+}
+
+/** 사업장 이름 입력 예시 (생성·가입 폼용) */
+export function getPlaceNamePlaceholder(industry: IndustryType | string | null | undefined): string {
+  const type = resolveIndustry(industry);
+  if (type === 'skin_clinic') return '예: 하루 피부관리';
+  if (type === 'pilates') return '예: 밸런스 필라테스';
+  if (type === 'gym') return '예: 강남 체육관';
+  if (type === 'daycare') return '예: 햇살 어린이집';
+  return '예: 행복 피아노 학원';
+}
+
 /** 보호자 화면용 고객 명칭. 앱 안에서는 useModuleLabels를 우선한다. */
 export function getCustomerLabel(industry: IndustryType | string | null | undefined): string {
   const type = resolveIndustry(industry);

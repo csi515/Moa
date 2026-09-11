@@ -6,6 +6,7 @@ import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { Modal } from '@/shared/components/ui/Modal';
 
 interface TuitionBulkSendModalProps {
+  customerLabel: string;
   students: Student[];
   yearMonth: string;
   defaultAmount: number;
@@ -22,6 +23,7 @@ interface TuitionBulkSendModalProps {
 
 /** 일괄 청구 발송 — shared Modal */
 export const TuitionBulkSendModal: React.FC<TuitionBulkSendModalProps> = ({
+  customerLabel,
   students,
   yearMonth,
   defaultAmount,
@@ -68,12 +70,12 @@ export const TuitionBulkSendModal: React.FC<TuitionBulkSendModalProps> = ({
     <Modal isOpen onClose={onClose} title="일괄 청구서 발송" maxWidth="lg">
       <form onSubmit={handleSubmit} className="p-6 space-y-4">
         <p className="text-xs text-slate-500 -mt-2">
-          선택 원생에게만 청구서를 생성·발송합니다. (자동 발송 없음)
+          선택 {customerLabel}에게만 청구서를 생성·발송합니다. (자동 발송 없음)
         </p>
 
         <div className="flex items-center justify-between">
           <p className="text-xs font-bold text-slate-700">
-            대상 원생 ({selectedIds.length}/{eligible.length})
+            대상 {customerLabel} ({selectedIds.length}/{eligible.length})
           </p>
           <button
             type="button"
@@ -86,7 +88,7 @@ export const TuitionBulkSendModal: React.FC<TuitionBulkSendModalProps> = ({
 
         <div className="max-h-48 overflow-y-auto rounded-xl border border-slate-200 divide-y divide-slate-100">
           {eligible.length === 0 ? (
-            <p className="text-xs text-slate-400 text-center py-6">월회비 대상 재원생이 없습니다.</p>
+            <p className="text-xs text-slate-400 text-center py-6">월회비 대상 재원 {customerLabel}이(가) 없습니다.</p>
           ) : (
             eligible.map((s) => (
               <label

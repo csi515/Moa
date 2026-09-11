@@ -87,7 +87,7 @@ export const OwnerOperationStoppedView: React.FC = () => {
           className="w-full min-h-[44px] rounded-2xl border border-slate-200 font-bold text-slate-700 inline-flex items-center justify-center gap-2"
         >
           <UserPlus className="w-5 h-5" />
-          다른 학원에 수강생으로 가입
+          다른 사업장에 이용자로 가입
         </button>
 
         <button

@@ -1,5 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar, Modal } from '@/shared/components';
@@ -19,6 +21,9 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
   embedded = false,
 }) => {
   const { showToast } = useApp();
+  const { industry } = usePermissions();
+  const placeLabel = getPlaceLabel(industry);
+  const scheduleLabel = `${placeLabel} 일정`;
   const { isScoped, scopeStudents, scopeRecitalEvents } = useStaffScope();
   const now = new Date();
 
@@ -182,7 +187,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
         <PageHeader
           density="compact"
           icon={<CalendarDays className="w-6 h-6" />}
-          title="학원 일정 및 캘린더"
+          title={`${scheduleLabel} 및 캘린더`}
           actions={
             !isScoped ? (
             <button
@@ -191,7 +196,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
               className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              학원 일정 등록
+              {scheduleLabel} 등록
             </button>
             ) : undefined
           }
@@ -204,7 +209,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            학원 일정 등록
+            {scheduleLabel} 등록
           </button>
         </div>
       ) : null}
@@ -391,7 +396,7 @@ export const AcademyCalendarView: React.FC<{ embedded?: boolean }> = ({
         </aside>
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="학원 일정 등록">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`${scheduleLabel} 등록`}>
         <form onSubmit={handleAddEvent} className="p-6 space-y-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">

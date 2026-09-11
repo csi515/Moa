@@ -1,5 +1,8 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import {
   fetchParentAccountStatuses,
@@ -29,6 +32,9 @@ import {
 
 export const ParentManagementView: React.FC = () => {
   const { setSelectedStudentId, setActiveTab, showToast, refreshKey } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
   const { currentOrganization, currentRole } = useOrganization();
   const canInvite = currentRole === 'owner' || currentRole === 'admin' || currentRole === 'manager';
 
@@ -185,7 +191,7 @@ export const ParentManagementView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="학부모 이름, 연락처, 원생 이름 검색..."
+          placeholder={`학부모 이름, 연락처, ${customerLabel} 이름 검색...`}
           className="flex-1 min-w-[200px]"
         />
       </FilterBar>
@@ -281,7 +287,7 @@ export const ParentManagementView: React.FC = () => {
           title={searchQuery.trim() ? "검색 결과가 없습니다" : "등록된 학부모가 없습니다"}
           description={searchQuery.trim()
             ? "다른 이름이나 연락처로 검색해보세요. 또는 검색어를 지우고 전체 목록을 확인하세요."
-            : "원생 등록 시 학부모 정보가 자동으로 생성됩니다. 원생 관리에서 첫 원생을 등록해보세요."}
+            : `${customerLabel} 등록 시 학부모 정보가 자동으로 생성됩니다. ${customerLabel} 관리에서 첫 ${customerLabel}을(를) 등록해보세요.`}
           action={
             searchQuery.trim() && (
               <button
@@ -332,7 +338,7 @@ export const ParentManagementView: React.FC = () => {
             parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || '학부모'
           }
           email={inviteResult.email || ''}
-          organizationName={inviteResult.organizationName || currentOrganization?.name || '학원'}
+          organizationName={inviteResult.organizationName || currentOrganization?.name || '사업장'}
           linkCodes={inviteResult.linkCodes}
           emailSent={inviteEmailSent}
           emailMessage={inviteEmailMessage}

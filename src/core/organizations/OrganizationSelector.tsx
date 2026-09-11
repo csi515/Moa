@@ -77,9 +77,9 @@ export const OrganizationSelector: React.FC = () => {
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
             <Building2 className="w-7 h-7" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">학원 선택</h1>
+          <h1 className="text-2xl font-bold text-slate-900">사업장 선택</h1>
           <p className="text-sm text-slate-500 mt-2">
-            운영·근무할 학원을 선택하거나 새로 등록하세요. 수강 가입은 아래 별도 메뉴입니다.
+            운영·근무할 사업장을 선택하거나 새로 등록하세요. 이용자 가입은 아래 별도 메뉴입니다.
           </p>
         </div>
 
@@ -87,7 +87,7 @@ export const OrganizationSelector: React.FC = () => {
           {organizations.length > 0 && (
             <>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                내 학원 ({organizations.length})
+                내 사업장 ({organizations.length})
               </p>
               <div className="space-y-2">
                 {organizations.map((membership) => (
@@ -107,7 +107,10 @@ export const OrganizationSelector: React.FC = () => {
                         </p>
                         <p className="text-xs text-slate-500">
                           {getIndustryLabel(membership.organization.industry_type as IndustryType)} ·{' '}
-                          {getRoleLabel(membership.role)}
+                          {getRoleLabel(
+                            membership.role,
+                            membership.organization.industry_type as IndustryType
+                          )}
                           {membership.role === 'owner' &&
                           blockedOwnerOrgIds.includes(membership.organizationId)
                             ? ' · 운영 중지'
@@ -137,7 +140,7 @@ export const OrganizationSelector: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-indigo-200 rounded-2xl text-indigo-700 font-bold hover:bg-indigo-50 hover:border-indigo-300 transition-colors min-h-[44px]"
           >
             <Plus className="w-5 h-5" />
-            새 학원 등록하기
+            새 사업장 등록하기
           </button>
 
           <button
@@ -146,7 +149,7 @@ export const OrganizationSelector: React.FC = () => {
             className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-slate-200 rounded-2xl text-slate-700 font-bold hover:bg-slate-50 hover:border-slate-300 transition-colors min-h-[44px]"
           >
             <UserPlus className="w-5 h-5" />
-            다른 학원에 수강생으로 가입
+            다른 사업장에 이용자로 가입
           </button>
 
           {organizations.length === 0 && (
@@ -156,7 +159,7 @@ export const OrganizationSelector: React.FC = () => {
               className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-700 font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-colors min-h-[44px]"
             >
               <GraduationCap className="w-5 h-5" />
-              기존 학원에 강사로 가입하기
+              기존 사업장에 직원·강사로 가입하기
             </button>
           )}
         </div>

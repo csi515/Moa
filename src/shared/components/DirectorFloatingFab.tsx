@@ -1,5 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel, isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import {
   Plus,
   UserPlus,
@@ -12,6 +15,14 @@ import {
 
 export const DirectorFloatingFab: React.FC = () => {
   const { setActiveTab } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const feeLabel = isSkinClinicIndustry(industry)
+    ? '이용료'
+    : industry === 'daycare'
+      ? '보육료'
+      : '수강료';
   const [isOpen, setIsOpen] = useState(false);
 
   const handleAction = (tab: Parameters<typeof setActiveTab>[0]) => {
@@ -32,7 +43,7 @@ export const DirectorFloatingFab: React.FC = () => {
             onClick={() => handleAction('students')}
             className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-95"
           >
-            <span>신규 원생 등록</span>
+            <span>신규 {customerLabel} 등록</span>
             <div className="w-7 h-7 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center">
               <UserPlus className="w-4 h-4" />
             </div>
@@ -43,7 +54,7 @@ export const DirectorFloatingFab: React.FC = () => {
             onClick={() => handleAction('tuition')}
             className="flex items-center gap-2.5 px-4 py-2.5 bg-white text-slate-800 font-bold text-xs rounded-2xl shadow-lg border border-slate-100 hover:bg-emerald-50 hover:text-emerald-600 transition-all active:scale-95"
           >
-            <span>수강료/교재 수납</span>
+            <span>{feeLabel} 수납</span>
             <div className="w-7 h-7 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
               <CreditCard className="w-4 h-4" />
             </div>

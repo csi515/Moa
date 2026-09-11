@@ -1,5 +1,8 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { useStorageRefresh, useStudentNavigation } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
@@ -32,6 +35,9 @@ const FILTER_TABS: FilterTabItem<UnpaidFilter>[] = [
 
 export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
 
@@ -61,7 +67,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   }, [summaries, filterMode, searchQuery, refreshKey]);
 
   const handleExportCsv = () => {
-    const header = '원생명,학부모,연락처,수강료미납,교재비미납,합계,연체건수\n';
+    const header = `${customerLabel}명,학부모,연락처,수강료미납,교재비미납,합계,연체건수\n`;
     const rows = filtered
       .map(
         (s) =>
@@ -100,7 +106,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
           icon={<AlertCircle className="w-6 h-6" />}
           iconClassName="text-rose-600"
           title="미납 통합 관리"
-          description="수강료·교재비 미납을 원생별로 한눈에 확인하고 수납 처리합니다"
+          description={`수강료·교재비 미납을 ${customerLabel}별로 한눈에 확인하고 수납 처리합니다`}
           actions={
             <button
               onClick={handleExportCsv}
@@ -114,7 +120,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
       )}
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <SummaryMetricCard label="미납 원생" value={`${stats.studentCount}명`} />
+        <SummaryMetricCard label={`미납 ${customerLabel}`} value={`${stats.studentCount}명`} />
         <SummaryMetricCard label="총 미납액" value={formatCurrency(stats.grandTotal)} variant="rose" />
         <SummaryMetricCard label="수강료 미납" value={formatCurrency(stats.tuitionTotal)} variant="indigo" />
         <SummaryMetricCard label="교재비 미납" value={formatCurrency(stats.textbookTotal)} variant="amber" />
@@ -125,7 +131,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="원생명, 학부모, 연락처 검색..."
+          placeholder={`${customerLabel}명, 학부모, 연락처 검색...`}
           className="flex-1 min-w-[200px]"
         />
       </FilterBar>
@@ -140,7 +146,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
-                    <th className="py-3.5 px-4">원생명</th>
+                    <th className="py-3.5 px-4">{customerLabel}명</th>
                     <th className="py-3.5 px-4">학부모 / 연락처</th>
                     <th className="py-3.5 px-4 text-right">수강료 미납</th>
                     <th className="py-3.5 px-4 text-right">교재비 미납</th>

@@ -32,7 +32,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import { getIndustryAccent, isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { getIndustryAccent, getCustomerLabel, getOwnerLabel, getPlaceLabel, isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { StaffHoursFields } from '@/modules/skin/components/settings/StaffHoursFields';
 import { useModuleLabels } from '@/core/labels';
 import * as orgService from '@/core/organizations/services/organizationService';
@@ -53,12 +53,12 @@ export const AcademySettingsView: FC = () => {
   const { industry, isOwner, isAdmin } = usePermissions();
   const labels = useModuleLabels();
   const skin = isSkinClinicIndustry(industry);
-  const placeLabel = skin ? '샵' : '학원';
-  const customerLabel = skin ? labels.customer.singular : '원생';
-  const contactLabel = skin ? labels.contact.singular : '학부모';
-  const ownerLabel = skin ? '대표' : '원장';
-  const feeLabel = skin ? '이용료' : '수강료';
-  const staffLabel = skin ? labels.staff.singular : '강사';
+  const placeLabel = getPlaceLabel(industry);
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const contactLabel = labels.contact.singular;
+  const ownerLabel = getOwnerLabel(industry);
+  const feeLabel = industry === 'skin_clinic' ? '이용료' : industry === 'daycare' ? '보육료' : '수강료';
+  const staffLabel = labels.staff.singular;
   const org = useOrganization();
   const importInputRef = useRef<HTMLInputElement>(null);
   const pendingImportRef = useRef<File | null>(null);

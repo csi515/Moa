@@ -13,6 +13,7 @@ import {
   isInvoiceVisibleToParent,
 } from '@/core/finance/paymentMethodLabels';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import type { Student, TuitionInvoice } from '@/types';
 import { Copy, X } from 'lucide-react';
 import { Section } from './shared';
@@ -26,7 +27,7 @@ function statusLabel(status: 'paid' | 'partial' | 'unpaid'): string {
 function ParentInvoiceDetailModal({
   invoice,
   bankAccountText,
-  placeLabel = '학원',
+  placeLabel = '사업장',
   onClose,
   onRequestCashReceipt,
 }: {
@@ -441,7 +442,7 @@ export function ParentTuitionView({
         <ParentInvoiceDetailModal
           invoice={detailInvoice}
           bankAccountText={bankAccountText}
-          placeLabel={industry === 'skin_clinic' ? '샵' : '학원'}
+          placeLabel={getPlaceLabel(industry)}
           onClose={() => setDetailInvoice(null)}
           onRequestCashReceipt={() => {
             void TuitionService.requestCashReceipt(detailInvoice.id).then((updated) => {

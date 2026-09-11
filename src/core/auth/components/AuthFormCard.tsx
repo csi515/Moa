@@ -75,6 +75,19 @@ export function AuthFormCard({
   onSubmit,
   onKakao,
 }: AuthFormCardProps) {
+  const termsLabel = (
+    <span>
+      <a href={legalPageHref('terms')} className="text-indigo-600 underline">
+        이용약관
+      </a>
+      과{' '}
+      <a href={legalPageHref('privacy')} className="text-indigo-600 underline">
+        개인정보처리방침
+      </a>
+      에 동의합니다 (필수 · 카카오 가입 포함)
+    </span>
+  );
+
   return (
     <>
       {mode !== 'forgot' && (
@@ -114,13 +127,55 @@ export function AuthFormCard({
         </button>
       )}
 
-      {mode !== 'forgot' && (
-        <div className="mb-5 space-y-3">
-          <KakaoAuthButton
-            mode={mode === 'signup' ? 'signup' : 'login'}
-            loading={loading}
-            onClick={onKakao}
+      {/* 회원가입: 계정 유형 → 약관 → 카카오 → 이메일 폼 */}
+      {mode === 'signup' && (
+        <div className="mb-5 space-y-4">
+          <SignupAccountTypeSelector
+            accountType={accountType}
+            onAccountTypeChange={onAccountTypeChange}
           />
+
+          <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={(event) => onAgreedToTermsChange(event.target.checked)}
+              className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            {termsLabel}
+          </label>
+
+          <div className="space-y-2">
+            <KakaoAuthButton mode="signup" loading={loading} onClick={onKakao} />
+            {!agreedToTerms && (
+              <p className="text-[11px] text-slate-500 px-0.5">
+                카카오로 가입하려면 위 약관에 동의해 주세요.
+              </p>
+            )}
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        </div>
+      )}
+
+      {/* 로그인: 카카오를 상단에 유지 */}
+      {mode === 'login' && (
+        <div className="mb-5 space-y-3">
+          <KakaoAuthButton mode="login" loading={loading} onClick={onKakao} />
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
           <div className="flex items-center gap-3">
             <div className="h-px flex-1 bg-slate-200" />
             <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
@@ -130,13 +185,6 @@ export function AuthFormCard({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
-        {mode === 'signup' && (
-          <SignupAccountTypeSelector
-            accountType={accountType}
-            onAccountTypeChange={onAccountTypeChange}
-          />
-        )}
-
         {mode === 'signup' && (
           <div>
             <label className="block text-xs font-bold text-slate-600 mb-1.5">
@@ -228,28 +276,14 @@ export function AuthFormCard({
           />
         )}
 
-        {mode === 'signup' && (
-          <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreedToTerms}
-              onChange={(event) => onAgreedToTermsChange(event.target.checked)}
-              className="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-            />
-            <span>
-              <a href={legalPageHref('terms')} className="text-indigo-600 underline">
-                이용약관
-              </a>
-              과{' '}
-              <a href={legalPageHref('privacy')} className="text-indigo-600 underline">
-                개인정보처리방침
-              </a>
-              에 동의합니다 (필수 · 카카오 가입 포함)
-            </span>
-          </label>
+        {error && mode === 'forgot' && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+            {error}
+          </div>
         )}
 
-        {error && (
+        {/* 이메일 가입 에러는 제출 버튼 위에 (카카오 에러는 위 섹션에 이미 표시) */}
+        {error && mode === 'signup' && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
             {error}
           </div>

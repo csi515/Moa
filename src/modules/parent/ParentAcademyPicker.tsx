@@ -25,7 +25,7 @@ export const ParentAcademyPicker: React.FC = () => {
     <div className="space-y-6">
       <div>
         <p className="text-xs text-slate-500">{selectedStudent.displayName}</p>
-        <h2 className="text-lg font-black text-slate-900">학원 선택</h2>
+        <h2 className="text-lg font-black text-slate-900">사업장 선택</h2>
       </div>
 
       {active.length > 0 && (
@@ -41,9 +41,9 @@ export const ParentAcademyPicker: React.FC = () => {
           <div className="w-16 h-16 mx-auto bg-slate-100 rounded-2xl flex items-center justify-center mb-4">
             <Building2 className="w-8 h-8 text-slate-400" />
           </div>
-          <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 학원이 없습니다</h3>
+          <h3 className="font-bold text-slate-900 text-lg mb-2">연결된 사업장이 없습니다</h3>
           <p className="text-sm text-slate-500 leading-relaxed">
-            {selectedStudent.displayName}님이 다니는 학원에서<br />
+            {selectedStudent.displayName}님이 다니는 사업장에서<br />
             연결 코드를 받아 입력해 주세요
           </p>
         </div>

@@ -126,7 +126,7 @@ export const CustomerShell: React.FC = () => {
         <div>
           <h1 className="text-lg font-black text-slate-900">연결된 수강 정보가 없습니다</h1>
           <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-            학원 가입 신청이 승인되면 여기에서 출석·이용권·연습실을 확인할 수 있습니다.
+            가입 신청이 승인되면 여기에서 출석·이용권·연습실을 확인할 수 있습니다.
           </p>
         </div>
 
@@ -175,7 +175,7 @@ export const CustomerShell: React.FC = () => {
             onClick={() => navigate('/signup/customer', { state: { openPending: pending.length > 0 } })}
             className="w-full px-4 py-3 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px]"
           >
-            {pending.length > 0 ? '신청 현황·추가 신청' : '학원 가입 신청하기'}
+            {pending.length > 0 ? '신청 현황·추가 신청' : '사업장 가입 신청하기'}
           </button>
           <button
             type="button"

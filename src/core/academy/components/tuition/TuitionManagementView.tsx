@@ -1,5 +1,8 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { StudentService } from '@/core/students';
 import { TuitionService } from '@/core/finance';
 import { TuitionInvoice, PaymentMethod, Student } from '@/types';
@@ -33,6 +36,9 @@ import {
 
 export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, setSelectedStudentId, setActiveTab } = useApp();
+  const { industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
   const refreshKey = useStorageRefresh();
 
   const monthOptions = useMemo(() => getRecentYearMonths(12), []);
@@ -130,10 +136,10 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     const count = TuitionService.generateMonthlyInvoicesForAllActive(selectedMonth);
     setInvoices(TuitionService.getInvoices());
     if (count === 0) {
-      showToast(`${formatYearMonthLabel(selectedMonth)} 청구서가 이미 모든 재원생에게 발행되어 있습니다.`, 'info');
+      showToast(`${formatYearMonthLabel(selectedMonth)} 청구서가 이미 모든 재원 ${customerLabel}에게 발행되어 있습니다.`, 'info');
     } else {
       showToast(
-        `${formatYearMonthLabel(selectedMonth)} 청구서 ${count}건을 초안으로 생성했습니다. [발송]으로 학부모에게 전달하세요.`,
+        `${formatYearMonthLabel(selectedMonth)} 청구서 ${count}건을 초안으로 생성했습니다. [발송]으로 전달하세요.`,
         'success'
       );
     }
@@ -175,7 +181,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     }
 
     patchInvoice(updated);
-    showToast(`${payModalInvoice.studentName} 원생 ${formatCurrency(payAmount)} 수납 완료`, 'success');
+    showToast(`${payModalInvoice.studentName} ${customerLabel} ${formatCurrency(payAmount)} 수납 완료`, 'success');
     setPayModalInvoice(null);
     setReceiptInvoice(updated);
   };
@@ -187,7 +193,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
     patchInvoice(sent);
-    showToast(`${inv.studentName} 원생에게 청구서를 발송했습니다.`, 'success');
+    showToast(`${inv.studentName} ${customerLabel}에게 청구서를 발송했습니다.`, 'success');
   };
 
   const handleSendSelected = () => {
@@ -224,7 +230,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     e.preventDefault();
     const st = students.find((s) => s.id === newInvStudentId);
     if (!st) {
-      showToast('원생을 선택해주세요.', 'warning');
+      showToast(`${customerLabel}을(를) 선택해주세요.`, 'warning');
       return;
     }
 
@@ -312,7 +318,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     }
 
     patchInvoice(saved);
-    showToast(`${st.name} 원생의 청구서 초안이 등록되었습니다. [발송]으로 전달하세요.`, 'success');
+    showToast(`${st.name} ${customerLabel}의 청구서 초안이 등록되었습니다. [발송]으로 전달하세요.`, 'success');
     setIsNewInvoiceModalOpen(false);
   };
 
@@ -385,7 +391,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
         <PageHeader
           icon={<CreditCard className="w-6 h-6" />}
           title="수강료 및 수납 관리"
-          description="원생별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급"
+          description={`${customerLabel}별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급`}
           actions={billingActions}
         />
       )}
@@ -393,6 +399,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       <TuitionSummaryCards selectedMonth={formatYearMonthLabel(selectedMonth)} stats={stats} />
 
       <TuitionFilterBar
+        customerLabel={customerLabel}
         viewMode={viewMode}
         onViewModeChange={setViewMode}
         selectedMonth={selectedMonth}
@@ -408,6 +415,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
       {viewMode === 'combined' ? (
         <TuitionCombinedBillingView
+          customerLabel={customerLabel}
           students={students}
           selectedMonth={selectedMonth}
           searchQuery={searchQuery}
@@ -416,6 +424,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
         />
       ) : (
         <TuitionInvoiceListView
+          customerLabel={customerLabel}
           filteredInvoices={filteredInvoices}
           students={students}
           selectedIds={selectedInvoiceIds}
@@ -443,6 +452,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
       {combinedStudentForPay && (
         <CombinedPaymentModal
+          customerLabel={customerLabel}
           student={combinedStudentForPay}
           yearMonth={selectedMonth}
           onSuccess={() => {
@@ -473,6 +483,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
       {isBulkSendOpen && (
         <TuitionBulkSendModal
+          customerLabel={customerLabel}
           students={students}
           yearMonth={selectedMonth}
           defaultAmount={settings.defaultTuitionFee || 180000}
@@ -491,6 +502,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
       {isNewInvoiceModalOpen && (
         <TuitionNewInvoiceModal
+          customerLabel={customerLabel}
           students={students}
           studentId={newInvStudentId}
           onStudentIdChange={(id) => {

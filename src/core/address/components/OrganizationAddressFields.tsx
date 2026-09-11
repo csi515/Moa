@@ -18,7 +18,7 @@ export const OrganizationAddressFields: FC<OrganizationAddressFieldsProps> = ({
   onChange,
   legacyAddress,
   required = false,
-  label = '학원 주소',
+  label = '사업장 주소',
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const hasRoad = value.roadAddress.trim().length > 0;

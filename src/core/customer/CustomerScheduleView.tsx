@@ -69,7 +69,7 @@ export function CustomerScheduleView({
     return (
       <div className="bg-white rounded-2xl border border-slate-200 p-6 text-center">
         <p className="text-sm text-slate-400">
-          {displayName}님의 등록된 수업·연습 일정이 없습니다. 학원에 문의해 주세요.
+          {displayName}님의 등록된 수업·연습 일정이 없습니다. 사업장에 문의해 주세요.
         </p>
       </div>
     );

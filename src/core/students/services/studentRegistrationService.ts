@@ -98,7 +98,7 @@ export async function registerStudentWithParent(
 
         if (inviteResult.status === 'invited' && inviteResult.linkCodes.length > 0) {
           const orgName =
-            inviteResult.organizationName || StorageService.getSettings().name || '학원';
+            inviteResult.organizationName || StorageService.getSettings().name || '사업장';
           const emailResult = await sendParentInvitationEmail({
             organizationName: orgName,
             parentName: parent.name,

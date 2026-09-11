@@ -120,8 +120,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       },
       {
         id: 'calendar',
-        title: '학원 캘린더',
-        summary: '휴강·행사 등 학원 일정을 표시합니다.',
+        title: '캘린더',
+        summary: '휴강·행사 등 사업장 일정을 표시합니다.',
       },
       {
         id: 'curriculum',
@@ -539,7 +539,7 @@ const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
       {
         id: 'adult-pass',
         title: '이용권·미납',
-        summary: '잔여 이용권과 학원이 발송한 청구서의 미납만 표시됩니다.',
+        summary: '잔여 이용권과 사업장이 발송한 청구서의 미납만 표시됩니다.',
         howTo: '초안(미발송) 청구서는 보이지 않습니다. 청구서를 눌러 계좌·현금영수증을 확인하세요.',
       },
       {
@@ -563,14 +563,14 @@ const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
         id: 'adult-attendance',
         title: '출결',
         summary: '입·퇴실·보강 등 출결 기록을 확인합니다.',
-        howTo: '키오스크·PIN 출석은 학원에서 기능을 켠 경우에만 사용할 수 있습니다.',
+        howTo: '키오스크·PIN 출석은 사업장에서 기능을 켠 경우에만 사용할 수 있습니다.',
       },
     ],
   },
   {
     id: 'adult-practice',
     title: '연습실',
-    description: '피아노 학원에서만 표시됩니다.',
+    description: '피아노학원에서만 표시됩니다.',
     items: [
       {
         id: 'adult-practice-book',
@@ -583,7 +583,7 @@ const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
   {
     id: 'adult-notices-billing',
     title: '알림·수납',
-    description: '학원 안내와 청구·납부 안내입니다. 알림은 앱 푸시만 사용합니다.',
+    description: '사업장 안내와 청구·납부 안내입니다. 알림은 앱 푸시만 사용합니다.',
     items: [
       {
         id: 'adult-notices',

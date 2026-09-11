@@ -107,7 +107,7 @@ export function CustomerHomeView({
             <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
               <p className="text-xs font-black text-amber-800">이용권 잔여 부족</p>
               <p className="text-sm text-amber-900 mt-0.5">
-                잔여 {passSummary.remaining}회 — 학원에 문의해 주세요
+                잔여 {passSummary.remaining}회 — 사업장에 문의해 주세요
               </p>
             </div>
           )}
@@ -163,7 +163,7 @@ export function CustomerHomeView({
 
       <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
         <h2 className="text-sm font-black text-slate-900">청구서</h2>
-        <p className="text-[11px] text-slate-400">학원이 발송한 청구서만 표시됩니다.</p>
+        <p className="text-[11px] text-slate-400">사업장이 발송한 청구서만 표시됩니다.</p>
         {invoices.length === 0 ? (
           <p className="text-xs text-slate-400 py-2">도착한 청구서가 없습니다.</p>
         ) : (
@@ -250,7 +250,7 @@ export function CustomerHomeView({
 
             {bankAccountText ? (
               <div className="rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 space-y-2">
-                <p className="text-xs font-bold text-indigo-800">학원 계좌번호</p>
+                <p className="text-xs font-bold text-indigo-800">사업장 계좌번호</p>
                 <p className="text-sm font-semibold text-slate-900 break-all">{bankAccountText}</p>
                 <button
                   type="button"
@@ -264,7 +264,7 @@ export function CustomerHomeView({
             ) : null}
 
             <p className="text-[12px] leading-relaxed text-slate-600 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
-              지역사랑상품권 및 현장 카드는 학원 방문 시 결제 가능합니다.
+              지역사랑상품권 및 현장 카드는 사업장 방문 시 결제 가능합니다.
             </p>
 
             {detailInvoice.unpaidAmount > 0 && (

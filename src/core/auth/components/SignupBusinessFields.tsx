@@ -5,6 +5,7 @@ import { Building2, MapPin, Phone, Search } from 'lucide-react';
 import { normalizePhoneInput } from '../utils/validateSignup';
 import { AddressSearchModal } from '@/shared/components/AddressSearchModal';
 import type { AddressSearchResult } from '@/services/address/addressSearchService';
+import { getPlaceNamePlaceholder } from '@/core/industry/industryUi';
 
 interface SignupBusinessFieldsProps {
   industryType: IndustryType;
@@ -62,7 +63,7 @@ export function SignupBusinessFields({
             type="text"
             value={businessName}
             onChange={(event) => onBusinessNameChange(event.target.value)}
-            placeholder="하모니 피아노 음악학원"
+            placeholder={getPlaceNamePlaceholder(industryType)}
             autoComplete="organization"
             className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
           />

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { getCustomerLabel } from '@/core/industry/industryUi';
+import { useModuleLabels } from '@/core/labels';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
@@ -19,19 +21,22 @@ export const Header: React.FC = () => {
   } = useApp();
 
   const supabaseOrg = useOptionalOrganization();
-  const { isStaff, staffId } = usePermissions();
+  const { isStaff, staffId, industry } = usePermissions();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const contactLabel = labels.contact.singular || '보호자';
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
 
-  // refreshKey: 설정 저장 후 로컬 학원명 재조회
+  // refreshKey: 설정 저장 후 로컬 사업장명 재조회
   void refreshKey;
   const settingsName = StorageService.getSettings().name?.trim();
   const displayName =
     settingsName ||
     supabaseOrg?.currentOrganization?.name ||
-    '학원';
+    '사업장';
 
   const todayStr = formatKoreanDate(new Date().toISOString());
 
@@ -59,12 +64,12 @@ export const Header: React.FC = () => {
   const searchResultsDropdown = globalSearchQuery.trim() ? (
     <div className="absolute left-0 right-0 top-full mt-1.5 bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50">
       <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
-        원생 검색 결과 ({filteredStudents.length})
+        {customerLabel} 검색 결과 ({filteredStudents.length})
       </p>
       {filteredStudents.length === 0 ? (
         <div className="text-center py-6 space-y-2">
           <Search className="w-8 h-8 text-slate-300 mx-auto" />
-          <p className="text-xs font-bold text-slate-600">일치하는 원생이 없습니다</p>
+          <p className="text-xs font-bold text-slate-600">일치하는 {customerLabel}이(가) 없습니다</p>
           <p className="text-xs text-slate-400">다른 이름이나 연락처로 검색해보세요</p>
         </div>
       ) : (
@@ -115,7 +120,7 @@ export const Header: React.FC = () => {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="원생 이름, 학부모 연락처, 학교, 레벨 검색..."
+              placeholder={`${customerLabel} 이름, ${contactLabel} 연락처, 학교, 레벨 검색...`}
               value={globalSearchQuery}
               onChange={(e) => setGlobalSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-slate-800 placeholder:text-slate-400"
@@ -138,7 +143,7 @@ export const Header: React.FC = () => {
             type="button"
             onClick={() => setMobileSearchOpen((v) => !v)}
             className="sm:hidden min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 text-slate-600"
-            aria-label="원생 검색"
+            aria-label={`${customerLabel} 검색`}
           >
             <Search className="w-5 h-5" />
           </button>
@@ -164,7 +169,7 @@ export const Header: React.FC = () => {
             <input
               type="search"
               autoFocus
-              placeholder="원생 이름, 학부모 연락처 검색..."
+              placeholder={`${customerLabel} 이름, ${contactLabel} 연락처 검색...`}
               value={globalSearchQuery}
               onChange={(e) => setGlobalSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2.5 min-h-[44px] text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white"

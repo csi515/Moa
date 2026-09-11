@@ -22,7 +22,7 @@ import { coreScheduleService, reservationService } from '@/core/schedules';
 import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
 import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
-import { isAppointmentIndustry } from '@/core/industry/industryUi';
+import { getPlaceLabel, isAppointmentIndustry } from '@/core/industry/industryUi';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
 import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
@@ -37,6 +37,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
   const navigate = useNavigate();
   const isConsultationMode = mode === 'consultation';
   const [org, setOrg] = useState<PublicOrgInfo | null>(null);
+  const placeLabel = getPlaceLabel(org?.industry_type);
   const adultFirst =
     !!org &&
     (isAppointmentIndustry(org.industry_type) ||
@@ -416,10 +417,10 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                       }`}
                     >
                       <Link2 className="w-6 h-6" />
-                      학부모 · 우리 아이 학원 연결
+                      학부모 · 우리 아이 {placeLabel} 연결
                     </button>
                     <p className="text-xs text-slate-500 text-center">
-                      보호자 계정으로 자녀·학원 연결 (학원 승인 필요)
+                      보호자 계정으로 자녀·{placeLabel} 연결 ({placeLabel} 승인 필요)
                     </p>
                   </div>
                 );
@@ -440,7 +441,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                       성인 수강생 · 회원 가입
                     </button>
                     <p className="text-xs text-slate-500 text-center">
-                      본인 계정으로 가입 신청 후 학원 승인을 기다립니다
+                      본인 계정으로 가입 신청 후 {placeLabel} 승인을 기다립니다
                     </p>
                   </div>
                 );
@@ -858,7 +859,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
               onClick={() => navigate(`/c/${code}`)}
               className="text-sm font-bold text-slate-500 hover:text-indigo-600 min-h-[44px]"
             >
-              학원 소개 페이지로 이동
+              {placeLabel} 소개 페이지로 이동
             </button>
           </section>
         )}

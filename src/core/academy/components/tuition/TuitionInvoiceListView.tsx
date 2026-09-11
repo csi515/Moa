@@ -4,6 +4,7 @@ import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
 import { FileText, Send } from 'lucide-react';
 
 interface TuitionInvoiceListViewProps {
+  customerLabel: string;
   filteredInvoices: TuitionInvoice[];
   students: Student[];
   selectedIds: string[];
@@ -20,6 +21,7 @@ function isUnsent(inv: TuitionInvoice): boolean {
 }
 
 export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
+  customerLabel,
   filteredInvoices,
   students,
   selectedIds,
@@ -50,7 +52,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                   />
                 </th>
                 <th className="py-3.5 px-4">청구월</th>
-                <th className="py-3.5 px-4">원생 이름</th>
+                <th className="py-3.5 px-4">{customerLabel} 이름</th>
                 <th className="py-3.5 px-4">기본 수강료</th>
                 <th className="py-3.5 px-4">할인/감면</th>
                 <th className="py-3.5 px-4">최종 청구액</th>

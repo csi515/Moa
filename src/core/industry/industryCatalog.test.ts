@@ -80,17 +80,20 @@ function run(): void {
 
   const selectable = listIndustryDefinitions({ selectableOnly: true });
   assert.equal(selectable.length, PUBLIC_SELECTABLE_INDUSTRY_IDS.length);
-  assert.equal(selectable[0]?.id, 'piano');
+  assert.ok(selectable.some((d) => d.id === 'piano'));
+  assert.ok(selectable.some((d) => d.id === 'pilates'));
+  assert.ok(selectable.some((d) => d.id === 'gym'));
+  assert.ok(selectable.some((d) => d.id === 'daycare'));
   assert.ok(selectable.some((d) => d.id === 'skin_clinic'));
   assert.equal(INDUSTRY_DEFINITIONS.piano.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.daycare.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.selectable, true);
   assert.equal(hasIndustryModule('skin_clinic'), true);
   assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.moduleId, 'skin_clinic');
-  assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, false);
-  assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, false);
-  assert.equal(INDUSTRY_DEFINITIONS.daycare.selectable, false);
 
-  // 비공개 업종도 카탈로그·모듈 정의는 유지
+  // 모듈 업종은 공개·모듈 정의 유지
   assert.equal(hasIndustryModule('pilates'), true);
   assert.equal(hasIndustryModule('gym'), true);
   assert.equal(hasIndustryModule('daycare'), true);

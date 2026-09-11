@@ -11,6 +11,12 @@ import {
 } from 'lucide-react';
 import { type IndustryType } from '../industry/types';
 import { IndustryPicker } from '../industry/IndustryPicker';
+import {
+  getOwnerLabel,
+  getPlaceLabel,
+  getPlaceNamePlaceholder,
+  isAppointmentIndustry,
+} from '../industry/industryUi';
 import { StorageService } from '@/services/storage';
 import { withAttendanceModuleEnabled } from '@/core/attendance/features';
 import {
@@ -49,6 +55,10 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
     EMPTY_ORGANIZATION_ADDRESS
   );
 
+  const placeLabel = getPlaceLabel(formData.industryType);
+  const ownerLabel = getOwnerLabel(formData.industryType);
+  const appointmentStyle = isAppointmentIndustry(formData.industryType);
+
   const handleStepInfo = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || !formData.directorName.trim() || !formData.phone.trim()) {
@@ -82,13 +92,13 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
         onComplete();
       }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '학원 등록 중 오류가 발생했습니다');
+      setError(err instanceof Error ? err.message : '사업장 등록 중 오류가 발생했습니다');
       setIsSaving(false);
     }
   };
 
   const steps = [
-    { icon: Building2, label: '학원 정보' },
+    { icon: Building2, label: '사업장 정보' },
     { icon: KeyRound, label: '출결 방식' },
     { icon: CheckCircle2, label: '완료' },
   ];
@@ -99,7 +109,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
         <div className="sticky top-0 z-10 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-indigo-600" />
-            <h2 className="font-bold text-slate-900">새 학원 등록</h2>
+            <h2 className="font-bold text-slate-900">새 사업장 등록</h2>
           </div>
           {step < 2 && (
             <button
@@ -147,7 +157,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
 
         {step === 0 && (
           <form onSubmit={handleStepInfo} className="p-6 space-y-4">
-            <p className="text-sm text-slate-500">학원 기본 정보를 입력해 주세요.</p>
+            <p className="text-sm text-slate-500">사업장 기본 정보를 입력해 주세요.</p>
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -161,12 +171,12 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                학원명 <span className="text-rose-500">*</span>
+                {placeLabel} 이름 <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="예: 행복 피아노 학원"
+                placeholder={getPlaceNamePlaceholder(formData.industryType)}
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-bold min-h-[44px]"
@@ -175,12 +185,12 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                원장님 성함 <span className="text-rose-500">*</span>
+                {ownerLabel} 성함 <span className="text-rose-500">*</span>
               </label>
               <input
                 type="text"
                 required
-                placeholder="예: 김원장"
+                placeholder={ownerLabel === '원장' ? '예: 김원장' : '예: 김대표'}
                 value={formData.directorName}
                 onChange={(e) => setFormData({ ...formData, directorName: e.target.value })}
                 className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
@@ -188,7 +198,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
-                학원 대표 전화번호 <span className="text-rose-500">*</span>
+                {placeLabel} 대표 전화번호 <span className="text-rose-500">*</span>
               </label>
               <input
                 type="tel"
@@ -202,6 +212,7 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             <OrganizationAddressFields
               value={addressParts}
               onChange={setAddressParts}
+              label={`${placeLabel} 주소`}
             />
 
             {error && (
@@ -231,7 +242,9 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
         {step === 1 && (
           <div className="p-6 space-y-4">
             <div>
-              <h3 className="font-bold text-slate-900">출결 관리 방식을 선택해주세요</h3>
+              <h3 className="font-bold text-slate-900">
+                {appointmentStyle ? '방문·출입 관리 방식을 선택해주세요' : '출결 관리 방식을 선택해주세요'}
+              </h3>
               <p className="text-xs text-slate-500 mt-1">나중에 설정에서 언제든지 변경할 수 있습니다.</p>
             </div>
 
@@ -246,10 +259,12 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             >
               <p className="font-bold text-slate-900 flex items-center gap-2">
                 <KeyRound className="w-4 h-4 text-indigo-600" />
-                학생 PIN 출결
+                {appointmentStyle ? '회원 PIN 출입' : '학생 PIN 출결'}
               </p>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                입구 태블릿에서 학생이 PIN을 입력해 출석합니다. 선생님이 일일이 체크하지 않아도 됩니다.
+                {appointmentStyle
+                  ? '입구 태블릿에서 회원이 PIN을 입력해 방문·출입을 기록합니다.'
+                  : '입구 태블릿에서 학생이 PIN을 입력해 출석합니다. 선생님이 일일이 체크하지 않아도 됩니다.'}
               </p>
             </button>
 
@@ -264,10 +279,12 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
             >
               <p className="font-bold text-slate-900 flex items-center gap-2">
                 <UserCheck className="w-4 h-4 text-slate-600" />
-                선생님 직접 출결
+                {appointmentStyle ? '직원이 직접 기록' : '선생님 직접 출결'}
               </p>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
-                선생님·관리자가 MOA에서 출석을 직접 처리합니다. PIN·키오스크는 숨겨집니다.
+                {appointmentStyle
+                  ? '직원·관리자가 MOA에서 방문·출입을 직접 처리합니다. PIN·키오스크는 숨겨집니다.'
+                  : '선생님·관리자가 MOA에서 출석을 직접 처리합니다. PIN·키오스크는 숨겨집니다.'}
               </p>
             </button>
 
@@ -322,11 +339,11 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-slate-900">학원 등록 완료!</h3>
+              <h3 className="font-bold text-lg text-slate-900">사업장 등록 완료!</h3>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
                 {formData.name} 등록이 완료되었습니다
                 <br />
-                앱에서 강의실·교재 초기 설정을 이어서 진행할 수 있습니다.
+                이어서 사업장 설정을 진행할 수 있습니다.
               </p>
             </div>
           </div>

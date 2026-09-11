@@ -42,14 +42,15 @@ export function buildNoticeTemplates(placeWord: string, feeWord: string): Notice
   ];
 }
 
+import { getPlaceLabel } from '@/core/industry/industryUi';
+
 /** 업종 → 사업장/요금 용어 */
 export function getNoticePlaceWords(industry: string | null | undefined): {
   placeWord: string;
   feeWord: string;
 } {
-  if (industry === 'daycare') return { placeWord: '어린이집', feeWord: '보육료' };
-  if (industry === 'pilates') return { placeWord: '스튜디오', feeWord: '수강료' };
-  if (industry === 'skin_clinic') return { placeWord: '샵', feeWord: '이용료' };
-  if (industry === 'gym') return { placeWord: '체육관', feeWord: '수강료' };
-  return { placeWord: '학원', feeWord: '수강료' };
+  const placeWord = getPlaceLabel(industry);
+  if (industry === 'daycare') return { placeWord, feeWord: '보육료' };
+  if (industry === 'skin_clinic') return { placeWord, feeWord: '이용료' };
+  return { placeWord, feeWord: '수강료' };
 }

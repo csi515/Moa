@@ -1,6 +1,8 @@
 import { useRef, type FC } from 'react';
 import { Download, Printer, QrCode, X } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
+import { usePermissions } from '@/core/auth/usePermissions';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { getAppBaseUrl } from '@/core/parent/services/parentInviteService';
 
 interface ConsultationQrModalProps {
@@ -15,6 +17,8 @@ export const ConsultationQrModal: FC<ConsultationQrModalProps> = ({
   publicCode,
   onClose,
 }) => {
+  const { industry } = usePermissions();
+  const placeLabel = getPlaceLabel(industry);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const code = (publicCode || '').trim().toUpperCase();
   const consultUrl = code ? `${getAppBaseUrl()}/c/${code}/consultation` : '';
@@ -60,7 +64,7 @@ export const ConsultationQrModal: FC<ConsultationQrModalProps> = ({
             <div className="text-center space-y-2 py-8">
               <p className="text-sm font-bold text-slate-800">공개 코드가 없습니다</p>
               <p className="text-xs text-slate-500">
-                설정에서 학원 공개 코드(public code)를 확인한 뒤 다시 시도하세요.
+                설정에서 {placeLabel} 공개 코드(public code)를 확인한 뒤 다시 시도하세요.
               </p>
             </div>
           ) : (

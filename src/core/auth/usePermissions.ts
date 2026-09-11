@@ -65,7 +65,7 @@ export function usePermissions() {
     allowedTabs,
     canAccess: (tab: NavTab) => allowedTabs.includes(tab),
     defaultTab: getDefaultTab(role, industry),
-    roleLabel: getUserRoleLabel(role),
-    roleBadge: getUserRoleBadge(role),
+    roleLabel: getUserRoleLabel(role, industry),
+    roleBadge: getUserRoleBadge(role, industry),
   };
 }

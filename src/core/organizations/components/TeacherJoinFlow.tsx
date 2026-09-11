@@ -57,7 +57,7 @@ export const TeacherJoinFlow: React.FC<TeacherJoinFlowProps> = ({ onBack }) => {
       const results = await joinRequestService.searchOrganizations(searchQuery);
       setSearchResults(results);
     } catch (err) {
-      showToast('학원 검색 중 오류가 발생했습니다.', 'error');
+      showToast('사업장 검색 중 오류가 발생했습니다.', 'error');
       console.error(err);
     } finally {
       setSearching(false);
@@ -116,8 +116,8 @@ export const TeacherJoinFlow: React.FC<TeacherJoinFlowProps> = ({ onBack }) => {
               <Building2 className="w-6 h-6 text-indigo-600" />
             </div>
             <div>
-              <h1 className="text-xl font-black text-slate-900">학원 찾기</h1>
-              <p className="text-sm text-slate-500">근무할 학원을 검색하고 가입 신청하세요</p>
+              <h1 className="text-xl font-black text-slate-900">사업장 찾기</h1>
+              <p className="text-sm text-slate-500">근무할 사업장을 검색하고 가입 신청하세요</p>
             </div>
           </div>
 
@@ -159,7 +159,7 @@ export const TeacherJoinFlow: React.FC<TeacherJoinFlowProps> = ({ onBack }) => {
                       handleSearch();
                     }
                   }}
-                  placeholder="학원 이름을 입력하세요"
+                  placeholder="사업장 이름을 입력하세요"
                   className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
                 />
               </div>

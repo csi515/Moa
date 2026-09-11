@@ -9,6 +9,7 @@ interface MonthOption {
 }
 
 interface TuitionFilterBarProps {
+  customerLabel: string;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
   selectedMonth: string;
@@ -23,6 +24,7 @@ interface TuitionFilterBarProps {
 }
 
 export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
+  customerLabel,
   viewMode,
   onViewModeChange,
   selectedMonth,
@@ -52,7 +54,7 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
       </button>
       <button
         onClick={() => onViewModeChange('combined')}
-        title="원생별 월간 통합 청구 및 수납"
+        title={`${customerLabel}별 월간 통합 청구 및 수납`}
         className={`px-3 sm:px-4 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'combined'
             ? 'bg-indigo-600 text-white shadow-xs'
@@ -97,7 +99,7 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="원생 이름 검색..."
+            placeholder={`${customerLabel} 이름 검색...`}
             value={searchQuery}
             onChange={(e) => onSearchQueryChange(e.target.value)}
             className="w-full pl-8 pr-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
