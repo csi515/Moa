@@ -17,7 +17,8 @@ export const SupabaseRoleSync: React.FC = () => {
       auth.user.email?.split('@')[0] ||
       '사용자';
 
-    const role: UserRole = org?.currentRole ?? 'owner';
+    // membership 없는 부모 전용 세션에서 owner 폴백 금지
+    const role: UserRole = org?.currentRole ?? 'parent';
     const staffId = org?.currentStaffId ?? null;
     const parentCustomerId = org?.currentParentCustomerId ?? null;
 

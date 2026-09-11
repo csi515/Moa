@@ -155,13 +155,20 @@ export const TextbookSalesTab: React.FC<TextbookSalesTabProps> = ({
                       <td className="py-3 px-3 text-center">{statusBadge}</td>
                       <td className="py-3 px-4">
                         <div className="flex items-center justify-center gap-1.5">
-                          {sale.unpaidAmount > 0 ? (
+                          {sale.unpaidAmount > 0 && !sale.billingInvoiceId ? (
                             <button
                               onClick={() => onOpenPaymentModal(sale)}
                               className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors shadow-xs"
                             >
                               수납하기
                             </button>
+                          ) : sale.unpaidAmount > 0 && sale.billingInvoiceId ? (
+                            <span
+                              className="px-2 py-1 text-[10px] font-bold rounded-lg bg-slate-100 text-slate-500"
+                              title="월 청구에 합산됨 — 수강료에서 수납"
+                            >
+                              월청구 합산
+                            </span>
                           ) : (
                             <button
                               onClick={() => onOpenReceiptModal(sale)}
@@ -238,13 +245,17 @@ export const TextbookSalesTab: React.FC<TextbookSalesTabProps> = ({
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {sale.unpaidAmount > 0 ? (
+                    {sale.unpaidAmount > 0 && !sale.billingInvoiceId ? (
                       <button
                         onClick={() => onOpenPaymentModal(sale)}
                         className="px-4 py-2.5 min-h-[44px] text-xs font-bold rounded-xl bg-emerald-600 text-white hover:bg-emerald-700"
                       >
                         수납하기
                       </button>
+                    ) : sale.unpaidAmount > 0 && sale.billingInvoiceId ? (
+                      <span className="px-3 py-2 text-[11px] font-bold rounded-xl bg-slate-100 text-slate-500">
+                        월청구 합산
+                      </span>
                     ) : (
                       <button
                         onClick={() => onOpenReceiptModal(sale)}

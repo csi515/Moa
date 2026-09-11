@@ -101,7 +101,7 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const now = new Date();
       const nowIso = now.toISOString();
       const saleDate = data.saleDate || nowIso.slice(0, 10);
-      const saleId = `ts-${Date.now()}`;
+      const saleId = generateEntityId('ts');
 
       const newSale: TextbookSale = {
         id: saleId,
@@ -268,13 +268,19 @@ export function createTextbookSalesStorage(api: StorageApi) {
       amount: number,
       paymentMethod: PaymentMethod = 'card',
       paymentDate?: string,
-      memo?: string
+      memo?: string,
+      options?: { skipIncome?: boolean; allowLinkedInvoice?: boolean }
     ): { payment: TextbookPayment; updatedSale: TextbookSale } {
       const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
       const idx = sales.findIndex((s) => s.id === saleId);
       if (idx === -1) throw new Error('해당 교재 판매 내역을 찾을 수 없습니다.');
 
       const sale = sales[idx];
+      if (sale.billingInvoiceId && !options?.allowLinkedInvoice) {
+        throw new Error(
+          '월 청구에 합산된 교재입니다. 수강료 청구서에서 수납해 주세요.'
+        );
+      }
       if (sale.unpaidAmount <= 0) throw new Error('이미 전액 납부 완료된 교재입니다.');
 
       const payAmount = Math.min(amount, sale.unpaidAmount);
@@ -313,16 +319,18 @@ export function createTextbookSalesStorage(api: StorageApi) {
             : `교재비 부분 납부 (잔액 ₩${newUnpaidAmount.toLocaleString()})`),
       });
 
-      upsertLinkedIncome({
-        sourceType: 'textbook',
-        paymentId: payment.id,
-        date: pDate,
-        amount: payAmount,
-        paymentMethod,
-        description: `교재비 · ${sale.textbookTitle} · ${sale.studentName}`,
-        payer: sale.studentName,
-        memo: payment.memo,
-      });
+      if (!options?.skipIncome) {
+        upsertLinkedIncome({
+          sourceType: 'textbook',
+          paymentId: payment.id,
+          date: pDate,
+          amount: payAmount,
+          paymentMethod,
+          description: `교재비 · ${sale.textbookTitle} · ${sale.studentName}`,
+          payer: sale.studentName,
+          memo: payment.memo,
+        });
+      }
 
       return { payment, updatedSale };
     },

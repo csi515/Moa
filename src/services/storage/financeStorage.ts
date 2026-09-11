@@ -2,6 +2,7 @@ import type {
   Expense,
   Student,
   TextbookSale,
+  TextbookPayment,
   TuitionInvoice,
   TuitionPayment,
   UnpaidInvoiceItem,
@@ -169,7 +170,7 @@ export function createFinanceStorage(api: StorageApi) {
         memo: notes,
       });
 
-      // 월 청구 완납 시 합산 교재 미납분 정산
+      // 월 청구 완납 시 합산 교재 미납분 정산 — 수입은 수강료 income에만 계상(이중 수입 방지)
       if (updated.status === 'paid' && (inv.linkedTextbookSaleIds || []).length > 0) {
         for (const saleId of inv.linkedTextbookSaleIds || []) {
           try {
@@ -183,9 +184,17 @@ export function createFinanceStorage(api: StorageApi) {
                 amount: number,
                 method?: PaymentMethod,
                 date?: string,
-                memo?: string
+                memo?: string,
+                options?: { skipIncome?: boolean; allowLinkedInvoice?: boolean }
               ) => unknown
-            )(saleId, sale.unpaidAmount, method, pDate, `${inv.yearMonth} 월청구 합산 수납`);
+            )(
+              saleId,
+              sale.unpaidAmount,
+              method,
+              pDate,
+              `${inv.yearMonth} 월청구 합산 수납|tuitionPayment:${payment.id}`,
+              { skipIncome: true, allowLinkedInvoice: true }
+            );
           } catch (err) {
             console.error('Failed to settle linked textbook sale:', err);
           }
@@ -303,7 +312,7 @@ export function createFinanceStorage(api: StorageApi) {
       return { created, sent };
     },
 
-    /** 연동 납부 삭제 — charge 잔액·income 동시 복원 */
+    /** 연동 납부 삭제 — charge 잔액·income·합산 교재 정산 동시 복원 */
     reverseTuitionPayment(paymentId: string): boolean {
       const payments = readTuitionPayments();
       const payment = payments.find((p) => p.id === paymentId);
@@ -322,6 +331,17 @@ export function createFinanceStorage(api: StorageApi) {
           status: newUnpaid === 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid',
         };
         setItem(STORAGE_KEYS.INVOICES, list);
+      }
+
+      // 이 수강료 납부로 합산 정산된 교재 수납 롤백
+      const tbPayments = (api.getTextbookPayments as () => TextbookPayment[])();
+      const marker = `tuitionPayment:${paymentId}`;
+      for (const tbPay of tbPayments.filter((p) => p.memo?.includes(marker))) {
+        try {
+          (api.reverseTextbookPayment as (id: string) => boolean)(tbPay.id);
+        } catch (err) {
+          console.error('Failed to reverse linked textbook payment:', err);
+        }
       }
 
       setItem(

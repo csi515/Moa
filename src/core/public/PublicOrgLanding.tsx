@@ -4,7 +4,6 @@ import {
   Building2, 
   MapPin, 
   Phone, 
-  Mail, 
   Clock, 
   CheckCircle2, 
   MessageSquare,
@@ -350,19 +349,6 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                     <dd className="text-slate-900">
                       <a href={`tel:${org.phone}`} className="hover:text-indigo-600 transition-colors">
                         {org.phone}
-                      </a>
-                    </dd>
-                  </div>
-                </div>
-              )}
-              {org.email && (
-                <div className="flex items-start gap-3">
-                  <Mail className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <dt className="text-sm font-medium text-slate-500">이메일</dt>
-                    <dd className="text-slate-900">
-                      <a href={`mailto:${org.email}`} className="hover:text-indigo-600 transition-colors">
-                        {org.email}
                       </a>
                     </dd>
                   </div>

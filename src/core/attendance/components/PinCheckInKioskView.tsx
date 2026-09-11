@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
+import { getOrganizationId } from '@/services/adapters/storageContext';
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../features';
 import type { CheckInMethod } from '../types';
@@ -25,7 +26,8 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
   const { showToast } = useApp();
   const navigate = useNavigate();
   const org = useOptionalOrganization();
-  const organizationId = org?.currentOrganization?.id || 'local-org';
+  const organizationId =
+    org?.currentOrganization?.id || getOrganizationId() || (standalone ? '' : 'local-org');
   const industry = org?.currentOrganization?.industry_type || 'piano';
   const settings = StorageService.getSettings();
 
@@ -42,6 +44,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
 
   const customerPins = StorageService.getCustomerPins();
   const hasPinsConfigured = customerPins.length > 0;
+  const orgReady = Boolean(organizationId && organizationId !== 'local-org');
 
   const maskedPin = useMemo(() => (pin ? '●'.repeat(pin.length) : ''), [pin]);
 
@@ -82,6 +85,10 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
       }
 
       if (key === 'enter') {
+        if (standalone && !orgReady) {
+          setFeedback({ text: '사업장 로그인 후 키오스크를 사용해 주세요.', tone: 'error' });
+          return;
+        }
         if (pin.length < 4) {
           setFeedback({ text: 'PIN은 4자리 이상 입력해 주세요.', tone: 'error' });
           return;
@@ -132,7 +139,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
       if (pin.length >= 8) return;
       setPin((prev) => prev + key);
     },
-    [pin, processing, method, organizationId, showToast]
+    [pin, processing, method, organizationId, showToast, industry, standalone, orgReady]
   );
 
   const shellClass = standalone

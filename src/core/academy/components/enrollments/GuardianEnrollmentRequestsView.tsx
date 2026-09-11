@@ -52,6 +52,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
       await loadRequests();
     } catch (err) {
       showToast(err instanceof Error ? err.message : '거절 처리에 실패했습니다', 'error');
+      throw err;
     }
   };
 
@@ -126,7 +127,7 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
               key={request.id}
               request={request}
               onApprove={() => void handleApprove(request.id)}
-              onReject={(reason) => void handleReject(request.id, reason)}
+              onReject={(reason) => handleReject(request.id, reason)}
             />
           ))}
         </div>

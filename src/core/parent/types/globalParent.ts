@@ -6,7 +6,7 @@ export type EnrollmentStatus = 'active' | 'leave' | 'withdrawn' | 'alumni';
 export const ENROLLMENT_STATUS_LABELS: Record<EnrollmentStatus, string> = {
   active: '재원',
   leave: '휴원',
-  withdrawn: '퇴원',
+  withdrawn: '연결 종료',
   alumni: '졸업',
 };
 
@@ -22,7 +22,7 @@ export function getReadOnlyEnrollmentMessage(status: EnrollmentStatus): string {
     return '졸업 처리된 기록입니다. 조회만 가능하며 새 요청은 보낼 수 없습니다.';
   }
   if (status === 'withdrawn') {
-    return '퇴원 처리된 기록입니다. 조회만 가능하며 새 요청은 보낼 수 없습니다.';
+    return '앱 연결이 종료된 기록입니다. 조회만 가능합니다. 학원 재원·퇴원 여부는 학원에 문의해 주세요.';
   }
   return '';
 }

@@ -105,15 +105,24 @@ export function ParentMoreView({
     if (!selectedEnrollment) return;
     openConfirmDialog({
       title: `${place} 연결 해제`,
-      message: `${selectedEnrollment.organizationName} 연결을 해제할까요? 출결·수납 기록은 삭제되지 않으며, 이후에는 조회만 가능합니다. 다시 연결하려면 ${place} 연결 코드가 필요합니다.`,
+      message: `${selectedEnrollment.organizationName} 앱 연결만 해제할까요? 학원 원생(재원) 등록은 유지되며, 퇴원은 학원에서만 처리합니다. 출결·수납 기록은 삭제되지 않고 조회만 가능합니다. 다시 연결하려면 ${place} 연결 코드가 필요합니다.`,
       isDestructive: true,
       confirmText: '연결 해제',
       onConfirm: () => {
         void (async () => {
           setUnlinking(true);
           try {
-            await unlinkParentEnrollment(selectedEnrollment.enrollmentId);
-            showToast(`${place} 연결을 해제했습니다`, 'success');
+            const result = await unlinkParentEnrollment(selectedEnrollment.enrollmentId);
+            if (!result.success) {
+              showToast('연결 해제에 실패했습니다', 'error');
+              return;
+            }
+            showToast(
+              result.alreadyUnlinked
+                ? `이미 해제된 ${place} 연결입니다`
+                : `${place} 연결을 해제했습니다`,
+              'success'
+            );
             await refreshPortalTree();
             goToChildren();
           } catch (err) {
@@ -209,7 +218,7 @@ export function ParentMoreView({
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-bold text-rose-700">{place} 연결 해제</span>
               <span className="block text-[11px] text-rose-500/90">
-                {selectedEnrollment?.organizationName} · 기록은 보존됩니다
+                앱 연결만 해제 · 학원 재원/퇴원은 별도
               </span>
             </span>
             <ChevronRight className="w-4 h-4 text-rose-300 shrink-0" />

@@ -18,14 +18,14 @@ export function isOrgOwner(role: UserRole | string | null | undefined): boolean 
   return role === 'owner';
 }
 
-/** staff(강사) 역할 여부 */
+/** staff / instructor(강사) 역할 여부 */
 export function isStaffRole(role: UserRole | string | null | undefined): boolean {
-  return role === 'staff';
+  return role === 'staff' || role === 'instructor';
 }
 
-/** parent(학부모) 역할 여부 */
+/** parent / guardian(학부모·보호자) 역할 여부 */
 export function isParentRole(role: UserRole | string | null | undefined): boolean {
-  return role === 'parent';
+  return role === 'parent' || role === 'guardian';
 }
 
 function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
@@ -76,7 +76,8 @@ export function getAllowedTabs(
     return [];
   }
 
-  return appendAccountTab(filterAttendancePinTab(withOwnerFinanceTabs(plugin.adminTabs), attendanceEnabled));
+  // customer/member/null/unknown — admin 폴백 금지 (최소 권한)
+  return [];
 }
 
 export function canAccessTab(
@@ -112,7 +113,7 @@ export function getUserRoleLabel(
     customer: '고객',
     guardian: '보호자',
   };
-  if (!role || !(role in labels)) return '운영자';
+  if (!role || !(role in labels)) return '사용자';
   return labels[role as UserRole];
 }
 
@@ -133,6 +134,6 @@ export function getUserRoleBadge(
     customer: '고객',
     guardian: '보호자',
   };
-  if (!role || !(role in badges)) return '운영';
+  if (!role || !(role in badges)) return '사용자';
   return badges[role as UserRole];
 }

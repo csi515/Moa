@@ -31,7 +31,7 @@ function matchesStudentTarget(n: AppNotification, student: Student): boolean {
     return (student.classIds || []).includes(id);
   }
   if (n.targetStudentId) return n.targetStudentId === student.id;
-  return true;
+  return false;
 }
 
 /** 학부모 포털 — 해당 원아/회원에게 보이는 게시된 안내·출결 알림 */

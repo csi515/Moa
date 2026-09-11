@@ -19,7 +19,7 @@ import type {
   PianoInventoryTransactionType,
   PianoTextbookPaymentStatus,
 } from '../../../../lib/supabase/database.types';
-import { APP_TO_DB_PAYMENT } from './shared';
+import { APP_TO_DB_PAYMENT, DB_TO_APP_PAYMENT } from './shared';
 
 // ─── Textbook Payments ────────────────────────────────────────────
 
@@ -57,13 +57,6 @@ export function pianoRowToPayment(row: {
     studentName?: string;
     textbookTitle?: string;
   };
-  const methodReverse: Record<string, TextbookPayment['paymentMethod']> = {
-    card: 'card',
-    transfer: 'transfer',
-    cash: 'cash',
-    other: 'other',
-    online: 'other',
-  };
 
   return {
     id: row.id,
@@ -73,7 +66,7 @@ export function pianoRowToPayment(row: {
     textbookTitle: meta.textbookTitle,
     paymentDate: row.payment_date,
     amount: row.amount,
-    paymentMethod: methodReverse[row.payment_method] || 'cash',
+    paymentMethod: (DB_TO_APP_PAYMENT[row.payment_method] || 'cash') as TextbookPayment['paymentMethod'],
     memo: row.memo || undefined,
     receiptNumber: row.receipt_number || undefined,
     createdAt: row.created_at,

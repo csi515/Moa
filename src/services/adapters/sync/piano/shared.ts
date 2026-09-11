@@ -28,4 +28,17 @@ export const APP_TO_DB_PAYMENT: Record<string, DbPaymentMethod> = {
   transfer: 'transfer',
   cash: 'cash',
   other: 'other',
+  online: 'other',
+  local_currency: 'local_currency',
+  onsite_card: 'onsite_card',
+};
+
+export const DB_TO_APP_PAYMENT: Record<string, string> = {
+  card: 'card',
+  transfer: 'transfer',
+  cash: 'cash',
+  other: 'other',
+  online: 'other',
+  local_currency: 'local_currency',
+  onsite_card: 'onsite_card',
 };

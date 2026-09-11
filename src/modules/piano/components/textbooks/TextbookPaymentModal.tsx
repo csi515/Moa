@@ -32,6 +32,10 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
       alert('납부 금액은 0원보다 커야 합니다.');
       return;
     }
+    if (sale.billingInvoiceId) {
+      showToast('월 청구에 합산된 교재입니다. 수강료 청구서에서 수납해 주세요.', 'warning');
+      return;
+    }
 
     try {
       const res = StorageService.recordTextbookPayment(

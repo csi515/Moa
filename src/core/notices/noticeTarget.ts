@@ -20,5 +20,6 @@ export function parseNoticeTarget(targetGroup?: string): {
     return { mode: 'student', id: targetGroup.slice('student:'.length) };
   }
   if (targetGroup.includes('전체')) return { mode: 'all' };
-  return { mode: 'all' };
+  // 알 수 없는 인코딩 — 전체 공개로 폴백하지 않음
+  return { mode: 'student', id: '__unmatched__' };
 }

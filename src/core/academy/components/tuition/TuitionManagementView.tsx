@@ -33,6 +33,7 @@ import {
   defaultDueDateForMonth,
   formatYearMonthLabel,
 } from './tuitionUtils';
+import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
 
 export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, setSelectedStudentId, setActiveTab } = useApp();
@@ -233,11 +234,20 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     );
   };
 
+  const monthlyBillingStudents = useMemo(
+    () => students.filter((s) => isMonthlyBillingStudent(s)),
+    [students]
+  );
+
   const handleCreateCustomInvoice = (e: React.FormEvent) => {
     e.preventDefault();
     const st = students.find((s) => s.id === newInvStudentId);
     if (!st) {
       showToast(`${customerLabel}을(를) 선택해주세요.`, 'warning');
+      return;
+    }
+    if (!isMonthlyBillingStudent(st)) {
+      showToast('회차권 원생은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.', 'warning');
       return;
     }
 
@@ -335,12 +345,19 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   };
 
   const openNewInvoiceModal = () => {
-    const firstStudent = students.find((s) => s.status === 'active') || students[0];
-    setNewInvStudentId(firstStudent?.id || '');
-    setNewInvAmount(firstStudent?.tuitionFee || settings.defaultTuitionFee || 180000);
+    const eligible = students.filter(
+      (s) => s.status === 'active' && isMonthlyBillingStudent(s)
+    );
+    if (eligible.length === 0) {
+      showToast('월 청구 대상 원생이 없습니다. 회차권 원생은 개별 청구서를 발행하지 않습니다.', 'warning');
+      return;
+    }
+    const firstStudent = eligible[0];
+    setNewInvStudentId(firstStudent.id);
+    setNewInvAmount(firstStudent.tuitionFee || settings.defaultTuitionFee || 180000);
     setNewInvDiscount(0);
     setNewInvDueDate(
-      defaultDueDateForMonth(selectedMonth, firstStudent?.paymentDay || settings.defaultPaymentDay || 10)
+      defaultDueDateForMonth(selectedMonth, firstStudent.paymentDay || settings.defaultPaymentDay || 10)
     );
     setNewInvNotes('');
     setNewInvIncludeExtras(settings.includeExtrasInMonthlyInvoice === true);
@@ -510,11 +527,11 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       {isNewInvoiceModalOpen && (
         <TuitionNewInvoiceModal
           customerLabel={customerLabel}
-          students={students}
+          students={monthlyBillingStudents}
           studentId={newInvStudentId}
           onStudentIdChange={(id) => {
             setNewInvStudentId(id);
-            const st = students.find((s) => s.id === id);
+            const st = monthlyBillingStudents.find((s) => s.id === id);
             if (st) {
               setNewInvAmount(st.tuitionFee || settings.defaultTuitionFee || 180000);
               setNewInvDueDate(defaultDueDateForMonth(selectedMonth, st.paymentDay || 10));

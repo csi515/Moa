@@ -44,7 +44,7 @@ function ParentShellContent() {
   const { loading, error, step, portalTree, refreshPortalTree } = useParentPortal();
   const { currentUser, showToast } = useApp();
   const { signOut, user } = useAuth();
-  const { isParentOnly, exitParentPortal, currentOrganization } = useOrganization();
+  const { isParentOnly, exitParentPortal } = useOrganization();
   const [redeeming, setRedeeming] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [showLinkForm, setShowLinkForm] = useState(false);
@@ -54,18 +54,29 @@ function ParentShellContent() {
   const [showConsent, setShowConsent] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
 
+  const pushOrganizationId = (() => {
+    const enrollments =
+      portalTree?.children.flatMap((s) => s.enrollments) ?? [];
+    const active = enrollments.find((e) => e.status === 'active' || e.status === 'leave');
+    return active?.organizationId ?? enrollments[0]?.organizationId;
+  })();
+
   useEffect(() => {
     if (!isNativeApp() || !isSupabaseConfigured() || !user?.id) return;
     void registerAppPush({
       userId: user.id,
-      organizationId: currentOrganization?.id,
+      organizationId: pushOrganizationId,
     });
-  }, [user?.id, currentOrganization?.id]);
+  }, [user?.id, pushOrganizationId]);
 
   const runRedeem = async (token: string) => {
     setRedeeming(true);
     try {
       const result = await redeemGuardianLinkToken(token);
+      if (!result.success) {
+        showToast('연결에 실패했습니다. 코드를 다시 확인해 주세요.', 'error');
+        return;
+      }
       clearPendingGuardianLink();
       setLinkPreview(null);
       const mergeNote =
@@ -95,7 +106,7 @@ function ParentShellContent() {
         setLinkPreview(preview);
         setShowConsent(true);
       } catch (err) {
-        clearPendingGuardianLink();
+        // 일시적 preview 실패 시 pending 토큰 유지(재시도 가능)
         setPendingToken(null);
         setLinkPreview(null);
         setShowConsent(false);

@@ -46,8 +46,8 @@ const SharedProfilePreview: React.FC<{ request: GuardianEnrollmentRequest }> = (
 
 export const GuardianEnrollmentRequestCard: React.FC<{
   request: GuardianEnrollmentRequest;
-  onApprove: () => void;
-  onReject: (reason: string) => void;
+  onApprove: () => void | Promise<void>;
+  onReject: (reason: string) => void | Promise<void>;
 }> = ({ request, onApprove, onReject }) => {
   const { showToast } = useApp();
   const [showRejectForm, setShowRejectForm] = useState(false);
@@ -71,10 +71,12 @@ export const GuardianEnrollmentRequestCard: React.FC<{
     setProcessing(true);
     try {
       await onReject(rejectReason);
-    } finally {
-      setProcessing(false);
       setShowRejectForm(false);
       setRejectReason('');
+    } catch {
+      // 부모에서 토스트 — 실패 시 사유 폼 유지
+    } finally {
+      setProcessing(false);
     }
   };
 

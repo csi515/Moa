@@ -194,12 +194,17 @@ export async function rejectEnrollmentRequest(
   reason?: string
 ): Promise<void> {
   // @ts-expect-error - RPC not in generated types yet
-  const { error } = await getCoreClient().rpc('reject_guardian_enrollment', {
+  const { data, error } = await getCoreClient().rpc('reject_guardian_enrollment', {
     p_request_id: requestId,
     p_reason: reason ?? null,
   });
 
   if (error) throw error;
+
+  const result = (data ?? {}) as { success?: boolean };
+  if (result.success === false) {
+    throw new Error('연결 요청 거절에 실패했습니다.');
+  }
 }
 
 export async function getOrgEnrollmentRequests(

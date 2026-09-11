@@ -21,6 +21,7 @@ import type {
 } from '../../../../lib/supabase/database.types';
 import {
   APP_TO_DB_PAYMENT,
+  DB_TO_APP_PAYMENT,
   DB_TO_SALE_STATUS,
   SALE_STATUS_TO_DB,
   type SaleMetadata,
@@ -79,13 +80,9 @@ export function pianoRowToSale(row: {
   updated_at: string;
 }): TextbookSale {
   const meta = (row.metadata || {}) as SaleMetadata;
-  const methodReverse: Record<string, TextbookSale['paymentMethod']> = {
-    card: 'card',
-    transfer: 'transfer',
-    cash: 'cash',
-    other: 'other',
-    online: 'other',
-  };
+  const paymentMethod = row.payment_method
+    ? ((DB_TO_APP_PAYMENT[row.payment_method] || 'other') as TextbookSale['paymentMethod'])
+    : undefined;
 
   return {
     id: row.id,
@@ -104,7 +101,7 @@ export function pianoRowToSale(row: {
     paidAmount: row.paid_amount,
     unpaidAmount: Math.max(0, row.total_amount - row.paid_amount),
     status: DB_TO_SALE_STATUS[row.status],
-    paymentMethod: row.payment_method ? methodReverse[row.payment_method] : null,
+    paymentMethod: paymentMethod ?? null,
     memo: row.memo || undefined,
     teacherId: row.staff_id || undefined,
     teacherName: meta.teacherName,

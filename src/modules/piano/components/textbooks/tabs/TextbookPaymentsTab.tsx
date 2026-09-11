@@ -15,7 +15,7 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
   onOpenPaymentModal,
   onOpenReceiptModal
 }) => {
-  const unpaidSales = sales.filter((s) => s.unpaidAmount > 0);
+  const unpaidSales = sales.filter((s) => s.unpaidAmount > 0 && !s.billingInvoiceId);
 
   return (
     <div className="space-y-6">
