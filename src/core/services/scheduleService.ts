@@ -53,6 +53,13 @@ export const ScheduleService = {
 
     if (deducting && !wasDeducting && !sessionPassId) {
       sessionPassId = StorageService.consumeSessionPass(existing.customerId) ?? undefined;
+      // 비취소 이용권이 있는데 차감 실패(잔여 0 등)면 completed/no_show 저장 차단
+      const hasPassEntitlement = StorageService.getSessionPasses().some(
+        (p) => p.customerId === existing.customerId && p.status !== 'cancelled'
+      );
+      if (!sessionPassId && hasPassEntitlement) {
+        return null;
+      }
     }
 
     if (wasDeducting && !deducting && existing.sessionPassId) {

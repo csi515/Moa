@@ -8,26 +8,24 @@ import type {
   Student,
   Textbook,
   TextbookInventoryTransaction,
-  TextbookPayment,
   TextbookSale,
 } from '../../../types';
 import { getPianoClient } from '../../../lib/supabase/pianoClient';
 import { writeLocal } from '../localStorageEngine';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
-import type { SyncCache } from './coreEntitySync';
+import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
   attendanceToPianoRow,
   eventToPianoRow,
   inventoryToPianoRow,
   lessonToPianoRow,
   mergeStudentWithPiano,
-  paymentToPianoRow,
+  performanceVideoToPianoRow,
   pianoRowToAttendance,
   pianoRowToEvent,
   pianoRowToInventory,
   pianoRowToLesson,
   pianoRowToPayment,
-  performanceVideoToPianoRow,
   pianoRowToPerformanceVideo,
   pianoRowToPractice,
   pianoRowToSale,
@@ -36,10 +34,14 @@ import {
   practiceToPianoRow,
   saleToPianoRow,
   songToPianoRow,
-  studentToPianoCustomerRow,
   textbookToPianoRow,
 } from './pianoEntityMappers';
-import { diffIds } from './utils';
+import { checkHydrateErrors } from './persistHelpers';
+import {
+  persistPianoCustomers,
+  persistPianoPayments,
+  persistPianoTable,
+} from './pianoEntityPersist';
 
 /** Piano 모듈 hydrate — Core hydrate 이후 호출 */
 export async function hydratePianoEntities(
@@ -76,20 +78,23 @@ export async function hydratePianoEntities(
     client.from('performance_videos').select('*').eq('organization_id', organizationId),
   ]);
 
-  logErrors({
-    pianoCustomers: pianoCustomersResult.error,
-    classMembers: classMembersResult.error,
-    attendance: attendanceResult.error,
-    lessonRecords: lessonResult.error,
-    practiceRecords: practiceResult.error,
-    textbooks: textbooksResult.error,
-    sales: salesResult.error,
-    payments: paymentsResult.error,
-    inventory: inventoryResult.error,
-    songs: songsResult.error,
-    events: eventsResult.error,
-    performanceVideos: performanceVideosResult.error,
-  });
+  checkHydrateErrors(
+    {
+      pianoCustomers: pianoCustomersResult.error,
+      classMembers: classMembersResult.error,
+      attendance: attendanceResult.error,
+      lessonRecords: lessonResult.error,
+      practiceRecords: practiceResult.error,
+      textbooks: textbooksResult.error,
+      sales: salesResult.error,
+      payments: paymentsResult.error,
+      inventory: inventoryResult.error,
+      songs: songsResult.error,
+      events: eventsResult.error,
+      performanceVideos: performanceVideosResult.error,
+    },
+    'piano'
+  );
 
   // Merge piano.customers + class_members into students
   const teachers = cache.get<{ id: string; name: string }[]>(STORAGE_KEYS.TEACHERS) || [];
@@ -139,35 +144,61 @@ export async function hydratePianoEntities(
 export async function persistPianoEntity(
   key: StorageKey,
   organizationId: string,
-  cache: SyncCache
+  cache: SyncCache,
+  isAborted: PersistAbortGuard = () => false
 ): Promise<void> {
-  if (!PIANO_SYNC_KEYS.has(key)) return;
+  if (!PIANO_SYNC_KEYS.has(key) || isAborted()) return;
 
   switch (key) {
     case STORAGE_KEYS.STUDENTS:
-      return persistPianoCustomers(organizationId, cache);
+      return persistPianoCustomers(organizationId, cache, isAborted);
     case STORAGE_KEYS.ATTENDANCE:
-      return persistPianoTable('attendance', organizationId, cache, STORAGE_KEYS.ATTENDANCE, (items) =>
-        (items as AttendanceRecord[]).map((r) => attendanceToPianoRow(r, organizationId))
+      return persistPianoTable(
+        'attendance',
+        organizationId,
+        cache,
+        STORAGE_KEYS.ATTENDANCE,
+        (items) => (items as AttendanceRecord[]).map((r) => attendanceToPianoRow(r, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.LESSON_RECORDS:
-      return persistPianoTable('lesson_records', organizationId, cache, STORAGE_KEYS.LESSON_RECORDS, (items) =>
-        (items as LessonRecord[]).map((r) => lessonToPianoRow(r, organizationId))
+      return persistPianoTable(
+        'lesson_records',
+        organizationId,
+        cache,
+        STORAGE_KEYS.LESSON_RECORDS,
+        (items) => (items as LessonRecord[]).map((r) => lessonToPianoRow(r, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.PRACTICE_RECORDS:
-      return persistPianoTable('practice_records', organizationId, cache, STORAGE_KEYS.PRACTICE_RECORDS, (items) =>
-        (items as PracticeRecord[]).map((r) => practiceToPianoRow(r, organizationId))
+      return persistPianoTable(
+        'practice_records',
+        organizationId,
+        cache,
+        STORAGE_KEYS.PRACTICE_RECORDS,
+        (items) => (items as PracticeRecord[]).map((r) => practiceToPianoRow(r, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.TEXTBOOKS:
-      return persistPianoTable('textbooks', organizationId, cache, STORAGE_KEYS.TEXTBOOKS, (items) =>
-        (items as Textbook[]).map((t) => textbookToPianoRow(t, organizationId))
+      return persistPianoTable(
+        'textbooks',
+        organizationId,
+        cache,
+        STORAGE_KEYS.TEXTBOOKS,
+        (items) => (items as Textbook[]).map((t) => textbookToPianoRow(t, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.TEXTBOOK_SALES:
-      return persistPianoTable('textbook_sales', organizationId, cache, STORAGE_KEYS.TEXTBOOK_SALES, (items) =>
-        (items as TextbookSale[]).map((s) => saleToPianoRow(s, organizationId))
+      return persistPianoTable(
+        'textbook_sales',
+        organizationId,
+        cache,
+        STORAGE_KEYS.TEXTBOOK_SALES,
+        (items) => (items as TextbookSale[]).map((s) => saleToPianoRow(s, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.TEXTBOOK_PAYMENTS:
-      return persistPianoPayments(organizationId, cache);
+      return persistPianoPayments(organizationId, cache, isAborted);
     case STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS:
       return persistPianoTable(
         'textbook_inventory_transactions',
@@ -175,156 +206,38 @@ export async function persistPianoEntity(
         cache,
         STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
         (items) =>
-          (items as TextbookInventoryTransaction[]).map((t) => inventoryToPianoRow(t, organizationId))
+          (items as TextbookInventoryTransaction[]).map((t) => inventoryToPianoRow(t, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.SONGS:
-      return persistPianoTable('songs', organizationId, cache, STORAGE_KEYS.SONGS, (items) =>
-        (items as Song[]).map((s) => songToPianoRow(s, organizationId))
+      return persistPianoTable(
+        'songs',
+        organizationId,
+        cache,
+        STORAGE_KEYS.SONGS,
+        (items) => (items as Song[]).map((s) => songToPianoRow(s, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.EVENTS:
-      return persistPianoTable('events', organizationId, cache, STORAGE_KEYS.EVENTS, (items) =>
-        (items as AcademyEvent[]).map((e) => eventToPianoRow(e, organizationId))
+      return persistPianoTable(
+        'events',
+        organizationId,
+        cache,
+        STORAGE_KEYS.EVENTS,
+        (items) => (items as AcademyEvent[]).map((e) => eventToPianoRow(e, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.PERFORMANCE_VIDEOS:
-      return persistPianoTable('performance_videos', organizationId, cache, STORAGE_KEYS.PERFORMANCE_VIDEOS, (items) =>
-        (items as PerformanceVideo[]).map((v) => performanceVideoToPianoRow(v, organizationId))
+      return persistPianoTable(
+        'performance_videos',
+        organizationId,
+        cache,
+        STORAGE_KEYS.PERFORMANCE_VIDEOS,
+        (items) =>
+          (items as PerformanceVideo[]).map((v) => performanceVideoToPianoRow(v, organizationId)),
+        isAborted
       );
     default:
       return;
-  }
-}
-
-async function persistPianoCustomers(orgId: string, cache: SyncCache): Promise<void> {
-  const client = getPianoClient();
-  const students = cache.get<Student[]>(STORAGE_KEYS.STUDENTS) || [];
-
-  const { data: existing } = await client
-    .from('customers')
-    .select('customer_id')
-    .eq('organization_id', orgId);
-
-  const existingIds = (existing || []).map((r) => r.customer_id);
-  const currentIds = students.map((s) => s.id);
-  const toDelete = diffIds(existingIds, currentIds);
-
-  if (toDelete.length > 0) {
-    const { error } = await client.from('customers').delete().in('customer_id', toDelete);
-    if (error) console.error('Failed to delete piano customers:', error);
-  }
-
-  for (const student of students) {
-    const { error } = await client
-      .from('customers')
-      .upsert(studentToPianoCustomerRow(student, orgId));
-    if (error) console.error('Failed to upsert piano customer:', error);
-  }
-
-  // Sync class_members
-  const { error: deleteMembersError } = await client
-    .from('class_members')
-    .delete()
-    .eq('organization_id', orgId);
-  if (deleteMembersError) console.error('Failed to clear class members:', deleteMembersError);
-
-  const memberRows = students.flatMap((s) =>
-    (s.classIds || []).map((classId) => ({
-      organization_id: orgId,
-      service_id: classId,
-      customer_id: s.id,
-    }))
-  );
-
-  if (memberRows.length > 0) {
-    const { error } = await client.from('class_members').upsert(memberRows);
-    if (error) console.error('Failed to upsert class members:', error);
-  }
-
-  writeLocal(STORAGE_KEYS.STUDENTS, students);
-}
-
-async function persistPianoPayments(orgId: string, cache: SyncCache): Promise<void> {
-  const client = getPianoClient();
-  const payments = cache.get<TextbookPayment[]>(STORAGE_KEYS.TEXTBOOK_PAYMENTS) || [];
-
-  const { data: existing, error } = await client
-    .from('textbook_payments')
-    .select('id')
-    .eq('organization_id', orgId);
-
-  if (error) {
-    console.error('Failed to fetch textbook payments:', error);
-    return;
-  }
-
-  const toDelete = diffIds(
-    (existing || []).map((r) => r.id),
-    payments.map((p) => p.id)
-  );
-  if (toDelete.length > 0) {
-    const { error: deleteError } = await client.from('textbook_payments').delete().in('id', toDelete);
-    if (deleteError) console.error('Failed to delete textbook payments:', deleteError);
-  }
-
-  for (const payment of payments) {
-    const { error: upsertError } = await client
-      .from('textbook_payments')
-      .upsert(paymentToPianoRow(payment, orgId));
-    if (upsertError) console.error('Failed to upsert textbook payment:', upsertError);
-  }
-
-  writeLocal(STORAGE_KEYS.TEXTBOOK_PAYMENTS, payments);
-}
-
-async function persistPianoTable<T extends { id: string }>(
-  table:
-    | 'attendance'
-    | 'lesson_records'
-    | 'practice_records'
-    | 'textbooks'
-    | 'textbook_sales'
-    | 'textbook_inventory_transactions'
-    | 'songs'
-    | 'expenses'
-    | 'events'
-    | 'performance_videos',
-  orgId: string,
-  cache: SyncCache,
-  storageKey: StorageKey,
-  toRows: (items: unknown[]) => T[]
-): Promise<void> {
-  const client = getPianoClient();
-  const items = cache.get<unknown[]>(storageKey) || [];
-  const rows = toRows(items);
-
-  const { data: existing, error } = await client
-    .from(table)
-    .select('id')
-    .eq('organization_id', orgId);
-
-  if (error) {
-    console.error(`Failed to fetch piano.${table}:`, error);
-    return;
-  }
-
-  const toDelete = diffIds(
-    (existing || []).map((r) => r.id),
-    rows.map((r) => r.id)
-  );
-  if (toDelete.length > 0) {
-    const { error: deleteError } = await client.from(table).delete().in('id', toDelete);
-    if (deleteError) console.error(`Failed to delete from piano.${table}:`, deleteError);
-  }
-
-  for (const row of rows) {
-    const { error: upsertError } = await client.from(table).upsert(row as never);
-    if (upsertError) console.error(`Failed to upsert piano.${table}:`, upsertError);
-  }
-
-  writeLocal(storageKey, items);
-}
-
-function logErrors(errors: Record<string, unknown>): void {
-  for (const [key, err] of Object.entries(errors)) {
-    if (err) console.error(`Failed to load ${key}:`, err);
   }
 }

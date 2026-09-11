@@ -141,6 +141,8 @@ interface BookingMetadata {
   startTime?: string;
   endTime?: string;
   createdBy?: string;
+  /** 이용권 차감 연결 — hydrate 후 refund/재차감용 */
+  sessionPassId?: string;
 }
 
 export function serviceOfferingToRow(offering: ServiceOffering, organizationId: string) {
@@ -206,6 +208,7 @@ export function bookingToScheduleRow(booking: Booking, organizationId: string) {
     requestedBy: booking.requestedBy,
     depositStatus: booking.depositStatus,
     waitlist: booking.waitlist,
+    sessionPassId: booking.sessionPassId,
   };
 
   return {
@@ -255,6 +258,7 @@ export function scheduleRowToBooking(row: {
     requestedBy: meta.requestedBy,
     depositStatus: meta.depositStatus,
     waitlist: meta.waitlist,
+    sessionPassId: meta.sessionPassId,
   };
 }
 

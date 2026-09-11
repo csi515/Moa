@@ -9,7 +9,7 @@ import type {
 import { getPianoClient } from '@/lib/supabase/pianoClient';
 import { writeLocal } from '../localStorageEngine';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
-import type { SyncCache } from './coreEntitySync';
+import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
   achievementToRow,
   assignmentItemToRow,
@@ -25,7 +25,11 @@ import {
   rowToWeeklyAssignment,
   weeklyAssignmentToRow,
 } from './educationEntityMappers';
-import { diffIds } from './utils';
+import {
+  checkHydrateErrors,
+  requireCacheList,
+  upsertThenDiffDelete,
+} from './persistHelpers';
 
 const EDUCATION_KEYS = new Set<StorageKey>([
   STORAGE_KEYS.CURRICULUM_LEVELS,
@@ -61,15 +65,18 @@ export async function hydrateEducationEntities(
     client.from('learning_reports').select('*').eq('organization_id', organizationId),
   ]);
 
-  logErrors({
-    curriculumLevels: levelsResult.error,
-    curriculumItems: itemsResult.error,
-    curriculumProgress: progressResult.error,
-    weeklyAssignments: assignmentsResult.error,
-    assignmentItems: assignmentItemsResult.error,
-    achievements: achievementsResult.error,
-    learningReports: reportsResult.error,
-  });
+  checkHydrateErrors(
+    {
+      curriculumLevels: levelsResult.error,
+      curriculumItems: itemsResult.error,
+      curriculumProgress: progressResult.error,
+      weeklyAssignments: assignmentsResult.error,
+      assignmentItems: assignmentItemsResult.error,
+      achievements: achievementsResult.error,
+      learningReports: reportsResult.error,
+    },
+    'education'
+  );
 
   const itemsByAssignment = new Map<string, typeof assignmentItemsResult.data>();
   for (const item of assignmentItemsResult.data || []) {
@@ -101,9 +108,10 @@ export async function hydrateEducationEntities(
 export async function persistEducationEntity(
   key: StorageKey,
   organizationId: string,
-  cache: SyncCache
+  cache: SyncCache,
+  isAborted: PersistAbortGuard = () => false
 ): Promise<void> {
-  if (!PIANO_SYNC_KEYS.has(key) || !EDUCATION_KEYS.has(key)) return;
+  if (!PIANO_SYNC_KEYS.has(key) || !EDUCATION_KEYS.has(key) || isAborted()) return;
 
   switch (key) {
     case STORAGE_KEYS.CURRICULUM_LEVELS:
@@ -112,7 +120,8 @@ export async function persistEducationEntity(
         organizationId,
         cache,
         STORAGE_KEYS.CURRICULUM_LEVELS,
-        (items) => (items as CurriculumLevel[]).map((l) => curriculumLevelToRow(l, organizationId))
+        (items) => (items as CurriculumLevel[]).map((l) => curriculumLevelToRow(l, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.CURRICULUM_ITEMS:
       return persistEducationTable(
@@ -120,7 +129,8 @@ export async function persistEducationEntity(
         organizationId,
         cache,
         STORAGE_KEYS.CURRICULUM_ITEMS,
-        (items) => (items as CurriculumItem[]).map((i) => curriculumItemToRow(i, organizationId))
+        (items) => (items as CurriculumItem[]).map((i) => curriculumItemToRow(i, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.CURRICULUM_PROGRESS:
       return persistEducationTable(
@@ -131,17 +141,19 @@ export async function persistEducationEntity(
         (items) =>
           (items as StudentCurriculumProgress[]).map((p) =>
             curriculumProgressToRow(p, organizationId)
-          )
+          ),
+        isAborted
       );
     case STORAGE_KEYS.WEEKLY_ASSIGNMENTS:
-      return persistWeeklyAssignments(organizationId, cache);
+      return persistWeeklyAssignments(organizationId, cache, isAborted);
     case STORAGE_KEYS.ACHIEVEMENTS:
       return persistEducationTable(
         'achievements',
         organizationId,
         cache,
         STORAGE_KEYS.ACHIEVEMENTS,
-        (items) => (items as Achievement[]).map((a) => achievementToRow(a, organizationId))
+        (items) => (items as Achievement[]).map((a) => achievementToRow(a, organizationId)),
+        isAborted
       );
     case STORAGE_KEYS.LEARNING_REPORTS:
       return persistEducationTable(
@@ -149,7 +161,8 @@ export async function persistEducationEntity(
         organizationId,
         cache,
         STORAGE_KEYS.LEARNING_REPORTS,
-        (items) => (items as LearningReport[]).map((r) => learningReportToRow(r, organizationId))
+        (items) => (items as LearningReport[]).map((r) => learningReportToRow(r, organizationId)),
+        isAborted
       );
     default:
       return;
@@ -166,106 +179,118 @@ async function persistEducationTable<T extends { id: string }>(
   orgId: string,
   cache: SyncCache,
   storageKey: StorageKey,
-  toRows: (items: unknown[]) => T[]
+  toRows: (items: unknown[]) => T[],
+  isAborted: PersistAbortGuard
 ): Promise<void> {
+  if (isAborted()) return;
+  const items = requireCacheList<unknown>(cache, storageKey, `education.${table}`);
+  if (!items) return;
+
   const client = getPianoClient();
-  const items = cache.get<unknown[]>(storageKey) || [];
   const rows = toRows(items);
 
-  const { data: existing, error } = await client
-    .from(table)
-    .select('id')
-    .eq('organization_id', orgId);
+  await upsertThenDiffDelete({
+    context: `education.${table}`,
+    cachePresent: true,
+    currentIds: rows.map((r) => r.id),
+    isAborted,
+    upsertAll: async () => {
+      for (const row of rows) {
+        if (isAborted()) return;
+        const { error: upsertError } = await client.from(table).upsert(row as never);
+        if (upsertError) console.error(`Failed to upsert piano.${table}:`, upsertError);
+      }
+    },
+    fetchRemoteIds: async () => {
+      const { data: existing, error } = await client
+        .from(table)
+        .select('id')
+        .eq('organization_id', orgId);
+      return { ids: (existing || []).map((r) => r.id), error };
+    },
+    deleteIds: async (ids) => {
+      const { error } = await client.from(table).delete().in('id', ids);
+      return { error };
+    },
+  });
 
-  if (error) {
-    console.error(`Failed to fetch piano.${table}:`, error);
-    return;
-  }
-
-  const toDelete = diffIds(
-    (existing || []).map((r) => r.id),
-    rows.map((r) => r.id)
-  );
-  if (toDelete.length > 0) {
-    const { error: deleteError } = await client.from(table).delete().in('id', toDelete);
-    if (deleteError) console.error(`Failed to delete from piano.${table}:`, deleteError);
-  }
-
-  for (const row of rows) {
-    const { error: upsertError } = await client.from(table).upsert(row as never);
-    if (upsertError) console.error(`Failed to upsert piano.${table}:`, upsertError);
-  }
-
+  if (isAborted()) return;
   writeLocal(storageKey, items);
 }
 
-async function persistWeeklyAssignments(orgId: string, cache: SyncCache): Promise<void> {
-  const client = getPianoClient();
-  const assignments = cache.get<WeeklyAssignment[]>(STORAGE_KEYS.WEEKLY_ASSIGNMENTS) || [];
-
-  const { data: existingAssignments, error: fetchError } = await client
-    .from('weekly_assignments')
-    .select('id')
-    .eq('organization_id', orgId);
-
-  if (fetchError) {
-    console.error('Failed to fetch weekly_assignments:', fetchError);
-    return;
-  }
-
-  const currentIds = assignments.map((a) => a.id);
-  const toDeleteAssignments = diffIds(
-    (existingAssignments || []).map((r) => r.id),
-    currentIds
+async function persistWeeklyAssignments(
+  orgId: string,
+  cache: SyncCache,
+  isAborted: PersistAbortGuard
+): Promise<void> {
+  if (isAborted()) return;
+  const assignments = requireCacheList<WeeklyAssignment>(
+    cache,
+    STORAGE_KEYS.WEEKLY_ASSIGNMENTS,
+    'weekly_assignments'
   );
-  if (toDeleteAssignments.length > 0) {
-    const { error } = await client
-      .from('weekly_assignments')
-      .delete()
-      .in('id', toDeleteAssignments);
-    if (error) console.error('Failed to delete weekly_assignments:', error);
-  }
+  if (!assignments) return;
 
-  for (const assignment of assignments) {
-    const { error } = await client
-      .from('weekly_assignments')
-      .upsert(weeklyAssignmentToRow(assignment, orgId));
-    if (error) console.error('Failed to upsert weekly_assignment:', error);
-  }
+  const client = getPianoClient();
+
+  // 과제 본문 sync 실패 시 assignment_items로 진행하지 않음 (기존 early-return 유지)
+  const assignmentsOk = await upsertThenDiffDelete({
+    context: 'education.weekly_assignments',
+    cachePresent: true,
+    currentIds: assignments.map((a) => a.id),
+    isAborted,
+    upsertAll: async () => {
+      for (const assignment of assignments) {
+        if (isAborted()) return;
+        const { error } = await client
+          .from('weekly_assignments')
+          .upsert(weeklyAssignmentToRow(assignment, orgId));
+        if (error) console.error('Failed to upsert weekly_assignment:', error);
+      }
+    },
+    fetchRemoteIds: async () => {
+      const { data: existingAssignments, error } = await client
+        .from('weekly_assignments')
+        .select('id')
+        .eq('organization_id', orgId);
+      return { ids: (existingAssignments || []).map((r) => r.id), error };
+    },
+    deleteIds: async (ids) => {
+      const { error } = await client.from('weekly_assignments').delete().in('id', ids);
+      return { error };
+    },
+  });
+  if (!assignmentsOk || isAborted()) return;
 
   const allItems = assignments.flatMap((a) =>
     a.items.map((item) => assignmentItemToRow({ ...item, assignmentId: a.id }, orgId))
   );
 
-  const { data: existingItems, error: itemsFetchError } = await client
-    .from('assignment_items')
-    .select('id')
-    .eq('organization_id', orgId);
+  await upsertThenDiffDelete({
+    context: 'education.assignment_items',
+    cachePresent: true,
+    currentIds: allItems.map((r) => r.id),
+    isAborted,
+    upsertAll: async () => {
+      for (const row of allItems) {
+        if (isAborted()) return;
+        const { error } = await client.from('assignment_items').upsert(row);
+        if (error) console.error('Failed to upsert assignment_item:', error);
+      }
+    },
+    fetchRemoteIds: async () => {
+      const { data: existingItems, error } = await client
+        .from('assignment_items')
+        .select('id')
+        .eq('organization_id', orgId);
+      return { ids: (existingItems || []).map((r) => r.id), error };
+    },
+    deleteIds: async (ids) => {
+      const { error } = await client.from('assignment_items').delete().in('id', ids);
+      return { error };
+    },
+  });
 
-  if (itemsFetchError) {
-    console.error('Failed to fetch assignment_items:', itemsFetchError);
-    return;
-  }
-
-  const toDeleteItems = diffIds(
-    (existingItems || []).map((r) => r.id),
-    allItems.map((r) => r.id)
-  );
-  if (toDeleteItems.length > 0) {
-    const { error } = await client.from('assignment_items').delete().in('id', toDeleteItems);
-    if (error) console.error('Failed to delete assignment_items:', error);
-  }
-
-  for (const row of allItems) {
-    const { error } = await client.from('assignment_items').upsert(row);
-    if (error) console.error('Failed to upsert assignment_item:', error);
-  }
-
+  if (isAborted()) return;
   writeLocal(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, assignments);
-}
-
-function logErrors(errors: Record<string, unknown>): void {
-  for (const [key, err] of Object.entries(errors)) {
-    if (err) console.error(`Failed to load ${key}:`, err);
-  }
 }

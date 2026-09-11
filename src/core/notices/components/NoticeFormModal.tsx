@@ -34,7 +34,7 @@ interface NoticeFormModalProps {
   onClose: () => void;
   onApplyTemplate: (id: string) => void;
   onSaveDraft: (e: FormEvent) => void;
-  onPublish: (e?: FormEvent) => void;
+  onPublish: (e?: FormEvent) => void | Promise<void>;
 }
 
 export const NoticeFormModal: FC<NoticeFormModalProps> = ({

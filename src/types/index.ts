@@ -713,6 +713,11 @@ export interface AcademySettings {
   /** 피부관리 예약금. 끄면 신청만 받는다 */
   depositEnabled?: boolean;
   depositAmount?: number;
+  /**
+   * 필라테스 슬롯 모집 마감·정원 오버라이드.
+   * SLOT_RECRUITMENTS LOCAL_ONLY 키와 이중 저장 — organizations.settings로 다기기 동기화.
+   */
+  slotRecruitments?: import('@/core/types/schedule').SlotRecruitment[];
   /** 관리사 근무시간. 없으면 겹침만 검사 */
   staffHours?: StaffWorkWindow[];
   /** Industry Module 기능 플래그 */

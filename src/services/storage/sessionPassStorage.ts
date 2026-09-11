@@ -1,8 +1,16 @@
 import type { SessionPass, SlotRecruitment } from '../../core/types/schedule';
+import type { AcademySettings } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
-import { deleteById, generateEntityId, getItem, setItem } from './helpers';
+import { DEFAULT_SETTINGS, deleteById, generateEntityId, getItem, setItem } from './helpers';
 import { getPassRemaining, pickPassToConsume } from '@/core/schedules/sessionPassUtils';
 import { buildSlotKey, normalizeStaffId, UNASSIGNED_STAFF_TOKEN } from '@/core/schedules/bookingCapacity';
+
+/** 슬롯 모집 상태를 settings에도 기록해 다기기 sync */
+function persistSlotRecruitments(list: SlotRecruitment[]): void {
+  setItem(STORAGE_KEYS.SLOT_RECRUITMENTS, list);
+  const settings = getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, DEFAULT_SETTINGS);
+  setItem(STORAGE_KEYS.SETTINGS, { ...settings, slotRecruitments: list });
+}
 
 /** 이용권·슬롯 모집 마감 CRUD (로컬) */
 export function createSessionPassStorage() {
@@ -99,7 +107,7 @@ export function createSessionPassStorage() {
       };
       if (idx >= 0) list[idx] = { ...list[idx], ...saved, maxCapacity: list[idx].maxCapacity };
       else list.unshift(saved);
-      setItem(STORAGE_KEYS.SLOT_RECRUITMENTS, list);
+      persistSlotRecruitments(list);
       return saved;
     },
 
@@ -123,7 +131,7 @@ export function createSessionPassStorage() {
       };
       if (idx >= 0) list[idx] = saved;
       else list.unshift(saved);
-      setItem(STORAGE_KEYS.SLOT_RECRUITMENTS, list);
+      persistSlotRecruitments(list);
       return saved;
     },
   };

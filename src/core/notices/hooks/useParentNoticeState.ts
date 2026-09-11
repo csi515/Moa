@@ -10,6 +10,7 @@ import { encodeNoticeTarget, parseNoticeTarget } from '../noticeTarget';
 import { getNoticeTargetModeLabel, noticeAccentClasses } from '../noticeUi';
 import { buildNoticeTemplates, getNoticePlaceWords } from '../noticeTemplates';
 import { filterParentNotices, resolveNoticeRecipients } from '../noticeHelpers';
+import { flushAndConfirmNoticePublish } from '../flushAndConfirmNoticePublish';
 import type { NoticeTargetMode, ParentNoticeKind } from '../types';
 
 type StatusFilter = 'ALL' | 'pending' | 'sent';
@@ -186,12 +187,21 @@ export function useParentNoticeState() {
     closeModal();
   };
 
-  const handlePublish = (e?: FormEvent) => {
+  const handlePublish = async (e?: FormEvent) => {
     e?.preventDefault();
     if (!canWriteNotices) return;
     const payload = buildPayload('sent');
     if (!payload) return;
-    StorageService.saveNotification(payload);
+    const previous = editing;
+    const saved = StorageService.saveNotification(payload);
+    const ok = await flushAndConfirmNoticePublish(saved, previous ?? 'pending');
+    if (!ok) {
+      showToast(
+        '게시에 실패했습니다. 권한 또는 네트워크를 확인한 뒤 다시 시도해 주세요.',
+        'error'
+      );
+      return;
+    }
     showToast(
       `${labels.contact.singular} 포털에 게시되었습니다. (대상 ${payload.recipientCount}명)`,
       'success'
@@ -199,13 +209,22 @@ export function useParentNoticeState() {
     closeModal();
   };
 
-  const publishExisting = (item: AppNotification) => {
+  const publishExisting = async (item: AppNotification) => {
     if (!canWriteNotices) return;
-    StorageService.saveNotification({
+    const previous = { ...item };
+    const saved = StorageService.saveNotification({
       ...item,
       status: 'sent',
       sentAt: new Date().toISOString(),
     });
+    const ok = await flushAndConfirmNoticePublish(saved, previous);
+    if (!ok) {
+      showToast(
+        '게시에 실패했습니다. 권한 또는 네트워크를 확인한 뒤 다시 시도해 주세요.',
+        'error'
+      );
+      return;
+    }
     showToast(`${labels.contact.singular} 포털에 게시되었습니다.`, 'success');
   };
 

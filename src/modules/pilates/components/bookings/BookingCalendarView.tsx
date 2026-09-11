@@ -10,6 +10,7 @@ import type { Booking, BookingStatus } from '@/core/types/schedule';
 import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 import { bookingChangeNotice } from '@/core/schedules/bookingChangeNotice';
 import { findActiveMemberInSlot, getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { confirmBookingDeposit } from '@/core/schedules/confirmBookingDeposit';
 import { PilatesSlotList } from './PilatesSlotList';
 import { getConfiguredRooms } from '@/core/academy/utils/academyRooms';
 import {
@@ -436,6 +437,19 @@ export const BookingCalendarView: React.FC = () => {
       showToast('이 시간에 다른 예약이 있어 올릴 수 없습니다.', 'warning');
       return;
     }
+    if (booking.roomId) {
+      const roomConflict = findTreatmentRoomConflict({
+        roomId: booking.roomId,
+        startsAt: booking.startsAt,
+        endsAt: booking.endsAt,
+        bookings: ScheduleService.getBookings(),
+        ignoreId: booking.id,
+      });
+      if (roomConflict) {
+        showToast('이 시간에 룸이 이미 예약되어 올릴 수 없습니다.', 'warning');
+        return;
+      }
+    }
     ScheduleService.saveBooking({ ...booking, waitlist: false });
     showToast('대기 신청을 일반 신청으로 올렸습니다.', 'success');
   };
@@ -477,7 +491,14 @@ export const BookingCalendarView: React.FC = () => {
       skin ? undefined : { consumeOnNoShow: true }
     );
     if (!result) {
-      showToast('상태 변경에 실패했습니다.', 'error');
+      const deducting =
+        status === 'completed' || (!skin && status === 'no_show');
+      showToast(
+        deducting
+          ? '이용권 잔여가 없어 완료/결석 처리할 수 없습니다.'
+          : '상태 변경에 실패했습니다.',
+        'error'
+      );
       return;
     }
     const notice = bookingChangeNotice(booking, status, skin ? '시술' : '수업');
@@ -506,17 +527,28 @@ export const BookingCalendarView: React.FC = () => {
     );
     if (targets.length === 0) return;
     let missingPass = 0;
+    let blocked = 0;
     for (const booking of targets) {
       const result = ScheduleService.updateBookingStatus(booking.id, 'completed', { consumeOnNoShow: true });
-      if (result && !booking.sessionPassId && !result.sessionPassId) missingPass += 1;
+      if (!result) {
+        blocked += 1;
+        continue;
+      }
+      if (!booking.sessionPassId && !result.sessionPassId) missingPass += 1;
       const notice = bookingChangeNotice(booking, 'completed', '수업');
       if (notice) notifyCustomer(booking, notice.title, notice.message);
     }
+    if (blocked > 0 && blocked === targets.length) {
+      showToast('이용권 잔여가 없어 참석 완료 처리할 수 없습니다.', 'error');
+      return;
+    }
     showToast(
-      missingPass > 0
-        ? `참석 완료로 닫았습니다. 이용권 잔여 없음 ${missingPass}명`
-        : '참석 완료로 닫았습니다.',
-      missingPass > 0 ? 'info' : 'success'
+      blocked > 0
+        ? `참석 완료 ${targets.length - blocked}명, 이용권 부족으로 제외 ${blocked}명`
+        : missingPass > 0
+          ? `참석 완료로 닫았습니다. 이용권 잔여 없음 ${missingPass}명`
+          : '참석 완료로 닫았습니다.',
+      blocked > 0 || missingPass > 0 ? 'info' : 'success'
     );
   };
 
@@ -707,8 +739,13 @@ export const BookingCalendarView: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => {
-                          ScheduleService.saveBooking({ ...b, depositStatus: 'confirmed' });
-                          showToast('예약금 입금을 확인했습니다.', 'success');
+                          const { createdIncome, income } = confirmBookingDeposit(b);
+                          showToast(
+                            createdIncome && income
+                              ? `예약금 입금 확인 · 수입 ${income.amount.toLocaleString('ko-KR')}원 반영`
+                              : '예약금 입금을 확인했습니다.',
+                            'success'
+                          );
                         }}
                         className="px-2 py-1 text-xs font-bold bg-rose-50 text-rose-700 rounded-lg min-h-[44px]"
                       >

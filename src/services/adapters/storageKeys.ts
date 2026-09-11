@@ -116,13 +116,14 @@ export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
 
 /** 클라이언트 전용 localStorage 키 (Supabase sync 제외)
  * SESSION_PASSES: 회차권은 아직 원격 스키마 없음 — 재무/다기기 미반영(제품 결정).
+ * SLOT_RECRUITMENTS: 키 자체는 LOCAL_ONLY이나 settings.slotRecruitments로 이중 저장·동기화.
  */
 export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
   STORAGE_KEYS.INITIALIZED,
   STORAGE_KEYS.ONBOARDING_PROGRESS,
   STORAGE_KEYS.SESSION_PASSES, // LOCAL_ONLY — sync 금지
-  STORAGE_KEYS.SLOT_RECRUITMENTS,
+  STORAGE_KEYS.SLOT_RECRUITMENTS, // settings.slotRecruitments 미러
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
   STORAGE_KEYS.CARE_CHILD_RECORDS,
   STORAGE_KEYS.CARE_INCIDENTS,

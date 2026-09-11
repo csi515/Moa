@@ -14,7 +14,7 @@ interface NoticeListProps {
   targetLabel: (item: AppNotification) => string;
   onCreate: () => void;
   onEdit: (item: AppNotification) => void;
-  onPublish: (item: AppNotification) => void;
+  onPublish: (item: AppNotification) => void | Promise<void>;
   onDelete: (item: AppNotification) => void;
   canWrite?: boolean;
   canDelete?: boolean;

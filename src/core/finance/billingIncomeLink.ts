@@ -3,9 +3,18 @@ import type { IncomeEntry } from '@/core/finance/types';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import { generateEntityId, getItem, setItem } from '@/services/storage/helpers';
 
-/** 납부 → 재무 수입 연결 (sourceId = paymentId, 중복 방지) */
+type LinkedIncomeSource = 'tuition' | 'textbook' | 'booking' | 'retail';
+
+function defaultCategory(sourceType: LinkedIncomeSource): string {
+  if (sourceType === 'tuition') return 'membership';
+  if (sourceType === 'textbook' || sourceType === 'retail') return 'product';
+  if (sourceType === 'booking') return 'session';
+  return 'other';
+}
+
+/** 납부/예약/판매 → 재무 수입 연결 (sourceId 기준 중복 방지) */
 export function findIncomeByPaymentSource(
-  sourceType: 'tuition' | 'textbook',
+  sourceType: LinkedIncomeSource,
   paymentId: string
 ): IncomeEntry | undefined {
   return getItem<IncomeEntry[]>(STORAGE_KEYS.INCOME_ENTRIES, []).find(
@@ -14,7 +23,7 @@ export function findIncomeByPaymentSource(
 }
 
 export function upsertLinkedIncome(params: {
-  sourceType: 'tuition' | 'textbook';
+  sourceType: LinkedIncomeSource;
   paymentId: string;
   date: string;
   amount: number;
@@ -28,13 +37,11 @@ export function upsertLinkedIncome(params: {
   const existing = list.find(
     (e) => e.sourceType === params.sourceType && e.sourceId === params.paymentId
   );
-  const category =
-    params.category || (params.sourceType === 'tuition' ? 'membership' : 'product');
 
   const entry: IncomeEntry = {
     id: existing?.id || generateEntityId('inc'),
     date: params.date,
-    category,
+    category: params.category || defaultCategory(params.sourceType),
     amount: params.amount,
     paymentMethod: params.paymentMethod,
     description: params.description,
@@ -55,7 +62,7 @@ export function upsertLinkedIncome(params: {
 }
 
 export function deleteLinkedIncome(
-  sourceType: 'tuition' | 'textbook',
+  sourceType: LinkedIncomeSource,
   paymentId: string
 ): boolean {
   const list = getItem<IncomeEntry[]>(STORAGE_KEYS.INCOME_ENTRIES, []);
@@ -68,7 +75,7 @@ export function deleteLinkedIncome(
 }
 
 export function deleteLinkedIncomesForPaymentIds(
-  sourceType: 'tuition' | 'textbook',
+  sourceType: LinkedIncomeSource,
   paymentIds: string[]
 ): number {
   if (paymentIds.length === 0) return 0;
