@@ -438,7 +438,7 @@ export const TeacherManagementView: React.FC = () => {
                 </label>
                 <input
                   type="email"
-                  placeholder="teacher@pianoacademy.com"
+                  placeholder="예: name@example.com"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"

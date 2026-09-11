@@ -385,7 +385,7 @@ export function CustomerSignUpFlow() {
                     value={form.applicantEmail}
                     onChange={(e) => setForm({ ...form, applicantEmail: e.target.value })}
                     className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    placeholder="email@example.com"
+                    placeholder="예: name@example.com"
                   />
                 </div>
 

@@ -8,7 +8,7 @@ export const appBrand = {
     (import.meta.env.VITE_APP_SHORT_NAME as string | undefined)?.trim() || brand.shortName,
   /** MOA 약어 */
   acronym: brand.acronym,
-  /** 브랜드 의미: Manage, Organize, Assist */
+  /** 브랜드 의미: 관리하고, 정리하고, 돕다 */
   acronymMeaning: brand.acronymMeaning,
   /** 외부 슬로건 */
   tagline: brand.tagline,

@@ -397,7 +397,7 @@ export const AcademySettingsView: FC = () => {
                   rel="noreferrer"
                   className="inline-flex items-center text-xs font-bold text-indigo-600 hover:underline min-h-[44px]"
                 >
-                  공개 페이지 열기 (/c/{org.currentOrganization.public_code})
+                  공개 페이지 열기 (코드 {org.currentOrganization.public_code})
                 </a>
               </div>
             )}

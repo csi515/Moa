@@ -317,7 +317,7 @@ export const ParentManagementView: React.FC = () => {
               type="email"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
-              placeholder="parent@email.com"
+              placeholder="예: name@example.com"
               className="w-full mt-1 px-3 py-2 text-sm border border-slate-200 rounded-xl mb-4"
             />
             <button

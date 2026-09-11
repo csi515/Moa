@@ -784,7 +784,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                         value={bookingForm.applicant_email}
                         onChange={(e) => setBookingForm({ ...bookingForm, applicant_email: e.target.value })}
                         className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="your@email.com"
+                        placeholder="예: name@example.com"
                       />
                     </div>
 

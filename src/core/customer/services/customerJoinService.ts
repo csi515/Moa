@@ -44,7 +44,7 @@ export const customerJoinService = {
   async getMyJoinRequests(): Promise<CustomerJoinRequest[]> {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) {
-      throw new Error('Not authenticated');
+      throw new Error('로그인이 필요합니다.');
     }
 
     const { data, error } = await getCoreClient().rpc('list_my_customer_join_requests' as never);

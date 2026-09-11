@@ -9,7 +9,7 @@ import { formatKoreanDate } from '@/utils/formatters';
 import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { Search, Music, Users } from 'lucide-react';
+import { Search, Layers, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const {
@@ -102,13 +102,13 @@ export const Header: React.FC = () => {
       <div className="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0 flex-1 sm:flex-none">
           <div className="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center text-white shadow-xs shrink-0">
-            <Music className="w-5 h-5" />
+            <Layers className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="font-bold text-lg text-indigo-950 tracking-tight truncate">{displayName}</h1>
               <span className="hidden sm:inline-block text-[11px] font-bold px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-100">
-                PRO
+                프로
               </span>
             </div>
             <p className="text-xs text-slate-400 font-normal hidden md:block">{todayStr}</p>

@@ -87,7 +87,7 @@ export function TermsContent() {
 
       <h2 className={legalHeadingClass}>1. 서비스 내용</h2>
       <p>
-        MOA(Manage, Organize, Assist)는 「사업과 고객을 하나로 모으다」는 슬로건 아래,
+        MOA(관리하고, 정리하고, 돕다)는 「사업과 고객을 하나로 모으다」는 슬로건 아래,
         학원·체육관·어린이집·뷰티 등 교육·서비스 사업장의 운영과 고객(원생·회원·보호자) 경험을
         한곳에서 모으는 클라우드 SaaS입니다.
       </p>

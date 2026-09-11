@@ -245,7 +245,7 @@ export async function createOrganization(
   });
 
   if (error) throw error;
-  if (!data) throw new Error('Organization 생성에 실패했습니다.');
+  if (!data) throw new Error('사업장 생성에 실패했습니다.');
 
   return data as string;
 }

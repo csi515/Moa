@@ -64,7 +64,7 @@ export const ConsultationQrModal: FC<ConsultationQrModalProps> = ({
             <div className="text-center space-y-2 py-8">
               <p className="text-sm font-bold text-slate-800">공개 코드가 없습니다</p>
               <p className="text-xs text-slate-500">
-                설정에서 {placeLabel} 공개 코드(public code)를 확인한 뒤 다시 시도하세요.
+                설정에서 {placeLabel} 공개 코드를 확인한 뒤 다시 시도하세요.
               </p>
             </div>
           ) : (

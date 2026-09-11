@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { GraduationCap } from 'lucide-react';
+import { Layers } from 'lucide-react';
 import { appAcronymLine, appBrand } from '@/core/brand';
 import { LegalLinks } from '@/core/legal';
 import type { AuthMode } from '../hooks/useAuthForm';
@@ -29,7 +29,7 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
       <div className={`w-full ${isSignup ? 'max-w-lg' : 'max-w-md'}`}>
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
-            <GraduationCap className="w-7 h-7" />
+            <Layers className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{appBrand.fullName}</h1>
           <p className="text-[11px] font-semibold tracking-wide text-indigo-600 mt-1.5">
@@ -43,7 +43,7 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          계정은 소속 사업장(Organization) 데이터만 접근할 수 있습니다.
+          계정은 소속 사업장 데이터만 접근할 수 있습니다.
         </p>
         <div className="mt-4">
           <LegalLinks />

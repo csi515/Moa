@@ -5,25 +5,31 @@
       <stop offset="100%" stop-color="#4f46e5" />
     </linearGradient>
   </defs>
-  
-  <!-- Background with rounded corners -->
+
   <rect width="512" height="512" rx="112" fill="url(#moaGrad)" />
-  
-  <!-- Geometric "M" mark representing Moa (모아) -->
-  <g transform="translate(256, 256)">
-    <!-- Three stacked rounded rectangles forming abstract "모아" / building blocks -->
-    <!-- Bottom block - widest (represents foundation/academy base) -->
-    <rect x="-120" y="50" width="240" height="56" rx="12" fill="#ffffff" opacity="0.95" />
-    
-    <!-- Middle block - medium width -->
-    <rect x="-100" y="-18" width="200" height="56" rx="12" fill="#ffffff" opacity="0.95" />
-    
-    <!-- Top block - narrowest (pyramid/growth concept) -->
-    <rect x="-80" y="-86" width="160" height="56" rx="12" fill="#ffffff" opacity="0.95" />
-    
-    <!-- Accent dots (representing students/community) -->
-    <circle cx="-60" cy="78" r="8" fill="#fbbf24" />
-    <circle cx="0" cy="10" r="8" fill="#fbbf24" />
-    <circle cx="40" cy="-58" r="8" fill="#fbbf24" />
-  </g>
+
+  <!-- Clean geometric MOA "M" monogram -->
+  <path
+    fill="#ffffff"
+    fill-rule="evenodd"
+    d="
+      M128 368
+      V144
+      h48
+      l80 128
+      80-128
+      h48
+      v224
+      h-48
+      V232
+      l-56 90
+      h-48
+      l-56-90
+      v136
+      h-48
+      z
+    "
+  />
+
+  <circle cx="256" cy="404" r="12" fill="#fbbf24" />
 </svg>

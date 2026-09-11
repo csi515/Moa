@@ -316,7 +316,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     async (membershipId: string) => {
       const membership = organizations.find((m) => m.id === membershipId);
       if (!membership) {
-        throw new Error('Membership not found');
+        throw new Error('소속 정보를 찾을 수 없습니다.');
       }
 
       if (currentOrganization?.id !== membership.organizationId) {

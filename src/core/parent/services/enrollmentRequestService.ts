@@ -126,7 +126,7 @@ export async function requestEnrollment(params: {
   };
 
   if (!result.success || !result.request_id) {
-    throw new Error('Failed to create enrollment request');
+    throw new Error('연결 요청 생성에 실패했습니다.');
   }
 
   return {
@@ -180,7 +180,7 @@ export async function approveEnrollmentRequest(
   };
 
   if (!result.success) {
-    throw new Error('Failed to approve enrollment request');
+    throw new Error('연결 요청 승인에 실패했습니다.');
   }
 
   return {
