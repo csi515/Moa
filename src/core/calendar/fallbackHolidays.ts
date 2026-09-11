@@ -1,4 +1,4 @@
-import type { PublicHolidayItem } from '../types';
+import type { PublicHolidayItem } from './types';
 
 /** 고정 공휴일 (양력) */
 const FIXED_HOLIDAYS: Array<{ month: number; day: number; name: string }> = [
