@@ -101,7 +101,10 @@ export function useParentNoticeState() {
   const openEdit = (item: AppNotification) => {
     if (!canWriteNotices) return;
     const parsed = parseNoticeTarget(item.targetGroup);
-    const mode = parsed.mode === 'class' && !classBased ? 'all' : parsed.mode;
+    const mode: NoticeTargetMode =
+      parsed.mode === 'none' || (parsed.mode === 'class' && !classBased)
+        ? 'all'
+        : parsed.mode;
     setEditing(item);
     setForm({
       kind: (item.type === 'announcement' ? 'announcement' : 'notice') as ParentNoticeKind,
@@ -222,6 +225,7 @@ export function useParentNoticeState() {
 
   const targetLabel = (item: AppNotification) => {
     const { mode, id } = parseNoticeTarget(item.targetGroup);
+    if (mode === 'none') return '대상 미지정';
     if (mode === 'class' && id) {
       const cls = classes.find((c) => c.id === id);
       return cls

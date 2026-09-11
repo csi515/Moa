@@ -15,3 +15,14 @@ export function resolveDefaultBillingMode(
 ): StudentBillingMode {
   return normalizeBillingMode(settingsMode);
 }
+
+/** 월청구 대상 학생 필터 (개별·일괄 청구 UI 공통) */
+export function filterMonthlyBillingStudents<T extends Pick<Student, 'billingMode' | 'status'>>(
+  students: T[],
+  options?: { activeOnly?: boolean }
+): T[] {
+  return students.filter((s) => {
+    if (options?.activeOnly && s.status !== 'active') return false;
+    return isMonthlyBillingStudent(s);
+  });
+}

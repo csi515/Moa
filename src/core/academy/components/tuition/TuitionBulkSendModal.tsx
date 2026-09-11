@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Student } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
-import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
+import { filterMonthlyBillingStudents } from '@/core/academy/utils/billingMode';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { Modal } from '@/shared/components/ui/Modal';
 
@@ -32,7 +32,7 @@ export const TuitionBulkSendModal: React.FC<TuitionBulkSendModalProps> = ({
   onClose,
 }) => {
   const eligible = useMemo(
-    () => students.filter((s) => s.status === 'active' && isMonthlyBillingStudent(s)),
+    () => filterMonthlyBillingStudents(students, { activeOnly: true }),
     [students]
   );
   const [selectedIds, setSelectedIds] = useState<string[]>(() => eligible.map((s) => s.id));

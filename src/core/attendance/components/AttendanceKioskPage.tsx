@@ -2,20 +2,26 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/core/auth/AuthProvider';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { getOrganizationId } from '@/services/adapters/storageContext';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
+import {
+  isKioskOrganizationReady,
+  resolveKioskOrganizationIdFromApp,
+} from '../utils/resolveKioskOrganizationId';
 import { PinCheckInKioskView } from './PinCheckInKioskView';
 
 /** 입구 태블릿용 전체화면 PIN 출석 — 로그인·사업장 필수 */
 export const AttendanceKioskPage: React.FC = () => {
   const { session, loading } = useAuth();
   const org = useOptionalOrganization();
-  const organizationId = org?.currentOrganization?.id || getOrganizationId() || null;
+  const organizationId = resolveKioskOrganizationIdFromApp(
+    org?.currentOrganization?.id,
+    'standalone'
+  );
 
   if (loading) return <LoadingScreen />;
   if (!session) return <Navigate to="/" replace />;
 
-  if (!organizationId || organizationId === 'local-org') {
+  if (!isKioskOrganizationReady(organizationId)) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50 p-6">
         <div className="max-w-sm w-full bg-white border border-slate-200 rounded-2xl p-6 text-center space-y-3">

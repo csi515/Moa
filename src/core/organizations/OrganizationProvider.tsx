@@ -24,8 +24,7 @@ import {
   setParentPortalModeActive,
 } from '../parent/services/appModeService';
 import * as orgService from './services/organizationService';
-import { GUARDIAN_LINK_PENDING_EVENT } from '@/core/platform/bootstrapDeepLinks';
-import { peekPendingGuardianLink } from '@/core/parent/services/guardianLinkService';
+import { useGuardianDeepLinkPortalSync } from './hooks/useGuardianDeepLinkPortalSync';
 
 const STAFF_ROLES = new Set(['owner', 'admin', 'manager', 'staff', 'instructor']);
 const CUSTOMER_ROLES = new Set(['customer', 'member']);
@@ -412,18 +411,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     applyMembershipSelection(organizations, null);
   }, [organizations, applyMembershipSelection]);
 
-  // 로그인 중 보호자 딥링크 → React 포털 상태 동기화
-  useEffect(() => {
-    if (!user) return;
-    const enterIfPending = () => {
-      if (peekPendingGuardianLink() || isParentPortalModeActive()) {
-        enterParentPortal();
-      }
-    };
-    enterIfPending();
-    window.addEventListener(GUARDIAN_LINK_PENDING_EVENT, enterIfPending);
-    return () => window.removeEventListener(GUARDIAN_LINK_PENDING_EVENT, enterIfPending);
-  }, [user, enterParentPortal]);
+  useGuardianDeepLinkPortalSync(user?.id, enterParentPortal);
 
   const exitParentPortal = useCallback(() => {
     setParentPortalActiveState(false);

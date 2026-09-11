@@ -33,7 +33,7 @@ import {
   defaultDueDateForMonth,
   formatYearMonthLabel,
 } from './tuitionUtils';
-import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
+import { isMonthlyBillingStudent, filterMonthlyBillingStudents } from '@/core/academy/utils/billingMode';
 
 export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, setSelectedStudentId, setActiveTab } = useApp();
@@ -235,7 +235,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   };
 
   const monthlyBillingStudents = useMemo(
-    () => students.filter((s) => isMonthlyBillingStudent(s)),
+    () => filterMonthlyBillingStudents(students, { activeOnly: true }),
     [students]
   );
 
@@ -345,9 +345,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   };
 
   const openNewInvoiceModal = () => {
-    const eligible = students.filter(
-      (s) => s.status === 'active' && isMonthlyBillingStudent(s)
-    );
+    const eligible = monthlyBillingStudents;
     if (eligible.length === 0) {
       showToast('월 청구 대상 원생이 없습니다. 회차권 원생은 개별 청구서를 발행하지 않습니다.', 'warning');
       return;

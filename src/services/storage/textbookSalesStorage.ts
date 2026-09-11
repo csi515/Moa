@@ -16,6 +16,7 @@ import {
   deleteLinkedIncomesForPaymentIds,
   upsertLinkedIncome,
 } from '../../core/finance/billingIncomeLink';
+import type { LinkedTextbookPaymentOptions } from '../../core/finance/linkedTextbookSettle';
 
 /** 교재 판매·수납·통합 청구 */
 export function createTextbookSalesStorage(api: StorageApi) {
@@ -269,7 +270,7 @@ export function createTextbookSalesStorage(api: StorageApi) {
       paymentMethod: PaymentMethod = 'card',
       paymentDate?: string,
       memo?: string,
-      options?: { skipIncome?: boolean; allowLinkedInvoice?: boolean }
+      options?: LinkedTextbookPaymentOptions
     ): { payment: TextbookPayment; updatedSale: TextbookSale } {
       const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
       const idx = sales.findIndex((s) => s.id === saleId);

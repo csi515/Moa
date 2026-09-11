@@ -2,7 +2,6 @@ import type {
   Expense,
   Student,
   TextbookSale,
-  TextbookPayment,
   TuitionInvoice,
   TuitionPayment,
   UnpaidInvoiceItem,
@@ -30,6 +29,10 @@ import {
   saveTuitionPaymentDirect,
   upsertLinkedIncome,
 } from '../../core/finance/billingIncomeLink';
+import {
+  reverseLinkedTextbookPaymentsForTuition,
+  settleLinkedTextbookSalesOnTuitionPaid,
+} from '../../core/finance/linkedTextbookSettle';
 
 /** 수강료·지출·수입·미납 도메인 */
 export function createFinanceStorage(api: StorageApi) {
@@ -172,33 +175,13 @@ export function createFinanceStorage(api: StorageApi) {
 
       // 월 청구 완납 시 합산 교재 미납분 정산 — 수입은 수강료 income에만 계상(이중 수입 방지)
       if (updated.status === 'paid' && (inv.linkedTextbookSaleIds || []).length > 0) {
-        for (const saleId of inv.linkedTextbookSaleIds || []) {
-          try {
-            const sale = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []).find(
-              (s) => s.id === saleId
-            );
-            if (!sale || sale.unpaidAmount <= 0) continue;
-            (
-              api.recordTextbookPayment as (
-                saleId: string,
-                amount: number,
-                method?: PaymentMethod,
-                date?: string,
-                memo?: string,
-                options?: { skipIncome?: boolean; allowLinkedInvoice?: boolean }
-              ) => unknown
-            )(
-              saleId,
-              sale.unpaidAmount,
-              method,
-              pDate,
-              `${inv.yearMonth} 월청구 합산 수납|tuitionPayment:${payment.id}`,
-              { skipIncome: true, allowLinkedInvoice: true }
-            );
-          } catch (err) {
-            console.error('Failed to settle linked textbook sale:', err);
-          }
-        }
+        settleLinkedTextbookSalesOnTuitionPaid({
+          api,
+          invoice: inv,
+          paymentId: payment.id,
+          method,
+          paymentDate: pDate,
+        });
       }
 
       return updated;
@@ -334,15 +317,7 @@ export function createFinanceStorage(api: StorageApi) {
       }
 
       // 이 수강료 납부로 합산 정산된 교재 수납 롤백
-      const tbPayments = (api.getTextbookPayments as () => TextbookPayment[])();
-      const marker = `tuitionPayment:${paymentId}`;
-      for (const tbPay of tbPayments.filter((p) => p.memo?.includes(marker))) {
-        try {
-          (api.reverseTextbookPayment as (id: string) => boolean)(tbPay.id);
-        } catch (err) {
-          console.error('Failed to reverse linked textbook payment:', err);
-        }
-      }
+      reverseLinkedTextbookPaymentsForTuition(api, paymentId);
 
       setItem(
         STORAGE_KEYS.TUITION_PAYMENTS,

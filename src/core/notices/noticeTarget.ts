@@ -8,10 +8,12 @@ export function encodeNoticeTarget(mode: NoticeTargetMode, id?: string): string 
   return 'all';
 }
 
-export function parseNoticeTarget(targetGroup?: string): {
-  mode: NoticeTargetMode;
+export type ParsedNoticeTarget = {
+  mode: NoticeTargetMode | 'none';
   id?: string;
-} {
+};
+
+export function parseNoticeTarget(targetGroup?: string): ParsedNoticeTarget {
   if (!targetGroup || targetGroup === 'all') return { mode: 'all' };
   if (targetGroup.startsWith('class:')) {
     return { mode: 'class', id: targetGroup.slice('class:'.length) };
@@ -21,5 +23,5 @@ export function parseNoticeTarget(targetGroup?: string): {
   }
   if (targetGroup.includes('전체')) return { mode: 'all' };
   // 알 수 없는 인코딩 — 전체 공개로 폴백하지 않음
-  return { mode: 'student', id: '__unmatched__' };
+  return { mode: 'none' };
 }

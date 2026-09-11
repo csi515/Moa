@@ -2,7 +2,7 @@ import type { Student, TuitionInvoice } from '../../types';
 import type { StorageApi } from './helpers';
 import { pickUniqueDayAttendanceStatuses } from '../../core/attendance/dayAttendance';
 import { todayIsoLocal, yearMonthLocal } from '../../shared/utils/localDate';
-import { isMonthlyBillingStudent } from '../../core/academy/utils/billingMode';
+import { filterMonthlyBillingStudents } from '../../core/academy/utils/billingMode';
 
 type AttRow = { date: string; status: string; studentId?: string; classId?: string };
 
@@ -163,8 +163,9 @@ export function createDashboardStatsStorage(api: StorageApi) {
     },
 
     batchGenerateMonthlyInvoices(yearMonth: string): number {
-      const students = (api.getStudents as () => Student[])().filter(
-        (student) => student.status === 'active' && isMonthlyBillingStudent(student)
+      const students = filterMonthlyBillingStudents(
+        (api.getStudents as () => Student[])(),
+        { activeOnly: true }
       );
       const existingInvoices = (api.getInvoices as () => TuitionInvoice[])();
       let generatedCount = 0;

@@ -4,12 +4,6 @@ import { useApp } from '@/context/AppContext';
 import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { ParentPortalProvider, useParentPortal } from '@/core/parent/context/ParentPortalContext';
-import {
-  clearPendingGuardianLink,
-  peekPendingGuardianLink,
-  previewGuardianLinkToken,
-  redeemGuardianLinkToken,
-} from '@/core/parent/services/guardianLinkService';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
 import { StorageHydrator } from '@/StorageHydrator';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
@@ -20,6 +14,8 @@ import { ParentLinkConsentModal } from './ParentLinkConsentModal';
 import { GuardianLinkQrScanner } from './components/GuardianLinkQrScanner';
 import { ParentAccountSection } from './ParentAccountSection';
 import { ParentChildPinSection } from './components/ParentChildPinSection';
+import { useGuardianLinkRedeem } from './hooks/useGuardianLinkRedeem';
+import { resolvePushOrganizationId } from './utils/resolvePushOrganizationId';
 import { registerAppPush } from '@/core/push';
 import { isNativeApp } from '@/core/platform';
 import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
@@ -45,21 +41,22 @@ function ParentShellContent() {
   const { currentUser, showToast } = useApp();
   const { signOut, user } = useAuth();
   const { isParentOnly, exitParentPortal } = useOrganization();
-  const [redeeming, setRedeeming] = useState(false);
   const [linkInput, setLinkInput] = useState('');
   const [showLinkForm, setShowLinkForm] = useState(false);
   const [addChildRequest, setAddChildRequest] = useState(0);
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
-  const [linkPreview, setLinkPreview] = useState<{ organizationName: string; studentName: string } | null>(null);
-  const [showConsent, setShowConsent] = useState(false);
   const [showQrScanner, setShowQrScanner] = useState(false);
 
-  const pushOrganizationId = (() => {
-    const enrollments =
-      portalTree?.children.flatMap((s) => s.enrollments) ?? [];
-    const active = enrollments.find((e) => e.status === 'active' || e.status === 'leave');
-    return active?.organizationId ?? enrollments[0]?.organizationId;
-  })();
+  const {
+    redeeming,
+    pendingToken,
+    linkPreview,
+    showConsent,
+    runRedeem,
+    requestRedeem,
+    cancelLinkConsent,
+  } = useGuardianLinkRedeem({ showToast, refreshPortalTree });
+
+  const pushOrganizationId = resolvePushOrganizationId(portalTree);
 
   useEffect(() => {
     if (!isNativeApp() || !isSupabaseConfigured() || !user?.id) return;
@@ -69,68 +66,16 @@ function ParentShellContent() {
     });
   }, [user?.id, pushOrganizationId]);
 
-  const runRedeem = async (token: string) => {
-    setRedeeming(true);
-    try {
-      const result = await redeemGuardianLinkToken(token);
-      if (!result.success) {
-        showToast('연결에 실패했습니다. 코드를 다시 확인해 주세요.', 'error');
-        return;
-      }
-      clearPendingGuardianLink();
-      setLinkPreview(null);
-      const mergeNote =
-        result.mergedDuplicates && result.mergedDuplicates > 0
-          ? ' (기존 자녀 정보와 통합됨)'
-          : '';
-      showToast(`${result.organizationName} · ${result.studentName} 연결 완료${mergeNote}`, 'success');
-      setLinkInput('');
-      setShowLinkForm(false);
-      await refreshPortalTree();
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
-    } finally {
-      setRedeeming(false);
-      setPendingToken(null);
-      setShowConsent(false);
-    }
-  };
-
-  const requestRedeem = (token: string) => {
-    const code = token.trim().toUpperCase();
-    if (!code) return;
-    void (async () => {
-      try {
-        const preview = await previewGuardianLinkToken(code);
-        setPendingToken(code);
-        setLinkPreview(preview);
-        setShowConsent(true);
-      } catch (err) {
-        // 일시적 preview 실패 시 pending 토큰 유지(재시도 가능)
-        setPendingToken(null);
-        setLinkPreview(null);
-        setShowConsent(false);
-        showToast(err instanceof Error ? err.message : '연결 코드가 유효하지 않습니다.', 'error');
-      }
-    })();
-  };
-
-  const cancelLinkConsent = () => {
-    clearPendingGuardianLink();
-    setPendingToken(null);
-    setLinkPreview(null);
-    setShowConsent(false);
-  };
-
-  useEffect(() => {
-    const pending = peekPendingGuardianLink();
-    if (!pending) return;
-
-    requestRedeem(pending);
-  }, []);
-
   const handleManualRedeem = () => {
     requestRedeem(linkInput);
+  };
+
+  const handleRedeemSuccess = async (token: string) => {
+    const ok = await runRedeem(token);
+    if (ok) {
+      setLinkInput('');
+      setShowLinkForm(false);
+    }
   };
 
   if ((loading && !portalTree) || redeeming) {
@@ -285,7 +230,7 @@ function ParentShellContent() {
         organizationName={linkPreview?.organizationName}
         studentName={linkPreview?.studentName}
         onConfirm={() => {
-          if (pendingToken) void runRedeem(pendingToken);
+          if (pendingToken) void handleRedeemSuccess(pendingToken);
         }}
         onCancel={cancelLinkConsent}
       />

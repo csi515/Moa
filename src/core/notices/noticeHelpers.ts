@@ -23,6 +23,7 @@ function matchesStudentTarget(n: AppNotification, student: Student): boolean {
   }
 
   const { mode, id } = parseNoticeTarget(n.targetGroup);
+  if (mode === 'none') return false;
   if (mode === 'all') return true;
   if (mode === 'student') {
     return (id || n.targetStudentId) === student.id;

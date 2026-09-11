@@ -2,10 +2,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/context/AppContext';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { getOrganizationId } from '@/services/adapters/storageContext';
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../features';
 import type { CheckInMethod } from '../types';
+import {
+  isKioskOrganizationReady,
+  resolveKioskOrganizationIdFromApp,
+} from '../utils/resolveKioskOrganizationId';
 import { Delete, RotateCcw, Settings } from 'lucide-react';
 import { getIndustryAccent } from '@/core/industry/industryUi';
 import { syncDayAttendanceFromPinCheckIn } from '@/modules/piano/services/pinDayAttendanceSync';
@@ -26,8 +29,10 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
   const { showToast } = useApp();
   const navigate = useNavigate();
   const org = useOptionalOrganization();
-  const organizationId =
-    org?.currentOrganization?.id || getOrganizationId() || (standalone ? '' : 'local-org');
+  const organizationId = resolveKioskOrganizationIdFromApp(
+    org?.currentOrganization?.id,
+    standalone ? 'standalone' : 'embedded'
+  );
   const industry = org?.currentOrganization?.industry_type || 'piano';
   const settings = StorageService.getSettings();
 
@@ -44,7 +49,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
 
   const customerPins = StorageService.getCustomerPins();
   const hasPinsConfigured = customerPins.length > 0;
-  const orgReady = Boolean(organizationId && organizationId !== 'local-org');
+  const orgReady = isKioskOrganizationReady(organizationId);
 
   const maskedPin = useMemo(() => (pin ? '●'.repeat(pin.length) : ''), [pin]);
 
