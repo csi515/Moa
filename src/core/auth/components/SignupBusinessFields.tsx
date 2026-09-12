@@ -1,23 +1,24 @@
-import { useState } from 'react';
 import type { IndustryType } from '@/core/industry/types';
 import { IndustryPicker } from '@/core/industry/IndustryPicker';
-import { Building2, MapPin, Phone, Search } from 'lucide-react';
+import { Building2, Phone } from 'lucide-react';
 import { normalizePhoneInput } from '../utils/validateSignup';
-import { AddressSearchModal } from '@/shared/components/AddressSearchModal';
-import type { AddressSearchResult } from '@/services/address/addressSearchService';
+import {
+  OrganizationAddressFields,
+  type OrganizationAddressValue,
+} from '@/core/address';
 import { getPlaceNamePlaceholder } from '@/core/industry/industryUi';
 
 interface SignupBusinessFieldsProps {
   industryType: IndustryType;
   businessName: string;
   phone: string;
-  address: string;
+  addressParts: OrganizationAddressValue;
   businessNumber: string;
   openingDate: string;
   onIndustryTypeChange: (value: IndustryType) => void;
   onBusinessNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
-  onAddressChange: (value: string) => void;
+  onAddressPartsChange: (value: OrganizationAddressValue) => void;
   onBusinessNumberChange: (value: string) => void;
   onOpeningDateChange: (value: string) => void;
 }
@@ -26,22 +27,16 @@ export function SignupBusinessFields({
   industryType,
   businessName,
   phone,
-  address,
+  addressParts,
   businessNumber,
   openingDate,
   onIndustryTypeChange,
   onBusinessNameChange,
   onPhoneChange,
-  onAddressChange,
+  onAddressPartsChange,
   onBusinessNumberChange,
   onOpeningDateChange,
 }: SignupBusinessFieldsProps) {
-  const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false);
-
-  const handleAddressSelect = (selectedAddress: AddressSearchResult) => {
-    onAddressChange(selectedAddress.fullAddress);
-  };
-
   return (
     <div className="space-y-4 pt-1 border-t border-slate-100">
       <p className="text-xs font-bold text-slate-500">사업장 정보</p>
@@ -87,35 +82,11 @@ export function SignupBusinessFields({
         </div>
       </div>
 
-      <div>
-        <label className="block text-xs font-bold text-slate-600 mb-1.5">사업장 주소</label>
-        <div className="space-y-2">
-          <button
-            type="button"
-            onClick={() => setIsAddressSearchOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-indigo-50 text-indigo-700 text-sm font-semibold rounded-xl hover:bg-indigo-100 transition-colors min-h-[44px]"
-          >
-            <Search className="w-4 h-4" />
-            주소 검색
-          </button>
-          <div className="relative">
-            <MapPin className="w-4 h-4 text-slate-400 absolute left-3.5 top-3.5" />
-            <textarea
-              value={address}
-              onChange={(event) => onAddressChange(event.target.value)}
-              placeholder="주소 검색 또는 직접 입력"
-              rows={2}
-              autoComplete="street-address"
-              className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white resize-none"
-            />
-          </div>
-        </div>
-      </div>
-
-      <AddressSearchModal
-        isOpen={isAddressSearchOpen}
-        onClose={() => setIsAddressSearchOpen(false)}
-        onSelect={handleAddressSelect}
+      <OrganizationAddressFields
+        value={addressParts}
+        onChange={onAddressPartsChange}
+        required
+        label="사업장 주소"
       />
 
       <div>

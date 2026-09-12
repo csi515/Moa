@@ -17,7 +17,7 @@ export const AuthPage: React.FC = () => {
         industryType={form.industryType}
         businessName={form.businessName}
         phone={form.phone}
-        address={form.address}
+        addressParts={form.addressParts}
         businessNumber={form.businessNumber}
         openingDate={form.openingDate}
         showPassword={form.showPassword}
@@ -32,7 +32,7 @@ export const AuthPage: React.FC = () => {
         onIndustryTypeChange={form.setIndustryType}
         onBusinessNameChange={form.setBusinessName}
         onPhoneChange={form.setPhone}
-        onAddressChange={form.setAddress}
+        onAddressPartsChange={form.setAddressParts}
         onBusinessNumberChange={form.setBusinessNumber}
         onOpeningDateChange={form.setOpeningDate}
         onShowPasswordToggle={() => form.setShowPassword((prev) => !prev)}

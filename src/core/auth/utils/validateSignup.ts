@@ -21,10 +21,11 @@ export function validateSignUpBusiness(details: SignUpBusinessDetails): void {
   if (!isValidKoreanMobilePhone(details.phone)) {
     throw new Error('올바른 휴대폰 번호를 입력해 주세요. (예: 01012345678)');
   }
-  if (!details.address.trim()) {
+  const road = details.addressParts?.roadAddress?.trim() || details.address.trim();
+  if (!road) {
     throw new Error('사업장 주소를 입력해 주세요.');
   }
-  if (details.address.trim().length < 5) {
+  if (road.length < 5) {
     throw new Error('사업장 주소를 더 자세히 입력해 주세요.');
   }
   const digits = (details.businessNumber ?? '').replace(/[^0-9]/g, '');

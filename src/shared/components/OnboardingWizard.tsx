@@ -4,6 +4,12 @@ import { StorageService } from '@/services/storage';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import * as orgService from '@/core/organizations/services/organizationService';
 import {
+  EMPTY_ORGANIZATION_ADDRESS,
+  OrganizationAddressFields,
+  formatOrganizationAddress,
+  type OrganizationAddressValue,
+} from '@/core/address';
+import {
   AttendanceFeatureToggle,
   withAttendanceModuleEnabled,
 } from '@/core/attendance';
@@ -34,6 +40,13 @@ import {
   type LessonDurationPreset,
   type OperatingDayDraft,
 } from './onboarding/onboardingHelpers';
+
+function initialAddressParts(savedAddress: string): OrganizationAddressValue {
+  const existing = savedAddress.trim();
+  return existing
+    ? { ...EMPTY_ORGANIZATION_ADDRESS, roadAddress: existing }
+    : EMPTY_ORGANIZATION_ADDRESS;
+}
 
 interface OnboardingWizardProps {
   onComplete: () => void;
@@ -76,8 +89,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     name: saved.name || org?.currentOrganization?.name || '',
     directorName: saved.directorName || StorageService.getActiveUser().name || '',
     phone: saved.phone || '',
-    address: saved.address || '',
   });
+  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(() =>
+    initialAddressParts(saved.address || '')
+  );
 
   const [operatingDays, setOperatingDays] = useState<OperatingDayDraft[]>(DEFAULT_OPERATING_DAYS);
   const [lessonMinutes, setLessonMinutes] = useState<LessonDurationPreset>(
@@ -103,11 +118,15 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     StorageService.setOnboardingProgress({ status: 'in_progress', step });
   }, [step]);
 
-  const persistLocalAndOrg = async (patch: Parameters<typeof StorageService.updateSettings>[0]) => {
+  const persistLocalAndOrg = async (
+    patch: Parameters<typeof StorageService.updateSettings>[0],
+    nextAddressParts?: OrganizationAddressValue
+  ) => {
     const updated = StorageService.updateSettings(patch);
     if (org?.currentOrganization) {
       await orgService.updateOrganization(org.currentOrganization.id, {
         name: updated.name || undefined,
+        addressParts: nextAddressParts,
         settings: {
           name: updated.name,
           directorName: updated.directorName,
@@ -160,12 +179,16 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     }
     setIsSaving(true);
     try {
-      await persistLocalAndOrg({
-        name: academyForm.name.trim(),
-        directorName: academyForm.directorName.trim(),
-        phone: academyForm.phone.trim(),
-        address: academyForm.address.trim(),
-      });
+      const formatted = formatOrganizationAddress(addressParts);
+      await persistLocalAndOrg(
+        {
+          name: academyForm.name.trim(),
+          directorName: academyForm.directorName.trim(),
+          phone: academyForm.phone.trim(),
+          address: formatted,
+        },
+        addressParts
+      );
       goNext();
     } catch (err) {
       showToast(err instanceof Error ? err.message : '학원 정보 저장 중 오류가 발생했습니다.', 'error');
@@ -458,16 +481,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  주소 <span className="text-slate-400 font-normal">(선택 · 직접 입력)</span>
-                </label>
-                <input
-                  type="text"
-                  value={academyForm.address}
-                  onChange={(e) => setAcademyForm({ ...academyForm, address: e.target.value })}
-                  placeholder="도로명·지번 자유 입력"
-                  className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
+                <OrganizationAddressFields
+                  value={addressParts}
+                  onChange={setAddressParts}
+                  label="주소"
                 />
+                <p className="mt-1 text-[11px] text-slate-400">선택 · 검색 또는 직접 입력</p>
               </div>
               <div className="flex justify-between pt-2">
                 <button

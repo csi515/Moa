@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react';
 import type { IndustryType } from '@/core/industry/types';
+import type { OrganizationAddressValue } from '@/core/address';
 import { legalPageHref } from '@/core/legal/legalPaths';
 import { SignupBusinessFields } from './SignupBusinessFields';
 import { SignupAccountTypeSelector } from './SignupAccountTypeSelector';
@@ -17,7 +18,7 @@ interface AuthFormCardProps {
   industryType: IndustryType;
   businessName: string;
   phone: string;
-  address: string;
+  addressParts: OrganizationAddressValue;
   businessNumber: string;
   openingDate: string;
   showPassword: boolean;
@@ -32,7 +33,7 @@ interface AuthFormCardProps {
   onIndustryTypeChange: (value: IndustryType) => void;
   onBusinessNameChange: (value: string) => void;
   onPhoneChange: (value: string) => void;
-  onAddressChange: (value: string) => void;
+  onAddressPartsChange: (value: OrganizationAddressValue) => void;
   onBusinessNumberChange: (value: string) => void;
   onOpeningDateChange: (value: string) => void;
   onShowPasswordToggle: () => void;
@@ -51,7 +52,7 @@ export function AuthFormCard({
   industryType,
   businessName,
   phone,
-  address,
+  addressParts,
   businessNumber,
   openingDate,
   showPassword,
@@ -66,7 +67,7 @@ export function AuthFormCard({
   onIndustryTypeChange,
   onBusinessNameChange,
   onPhoneChange,
-  onAddressChange,
+  onAddressPartsChange,
   onBusinessNumberChange,
   onOpeningDateChange,
   onShowPasswordToggle,
@@ -264,13 +265,13 @@ export function AuthFormCard({
             industryType={industryType}
             businessName={businessName}
             phone={phone}
-            address={address}
+            addressParts={addressParts}
             businessNumber={businessNumber}
             openingDate={openingDate}
             onIndustryTypeChange={onIndustryTypeChange}
             onBusinessNameChange={onBusinessNameChange}
             onPhoneChange={onPhoneChange}
-            onAddressChange={onAddressChange}
+            onAddressPartsChange={onAddressPartsChange}
             onBusinessNumberChange={onBusinessNumberChange}
             onOpeningDateChange={onOpeningDateChange}
           />

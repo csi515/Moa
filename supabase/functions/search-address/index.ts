@@ -6,6 +6,21 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/** 로그인 사용자 검색 상한 */
+const AUTHED_MAX_PER_PAGE = 100;
+/** 가입 전(anon) 검색 상한 — 키 남용 완화 */
+const ANON_MAX_PER_PAGE = 10;
+
+function jsonResponse(
+  body: Record<string, unknown>,
+  status = 200
+): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 interface SearchAddressRequest {
   keyword: string;
   currentPage?: number;
@@ -63,33 +78,42 @@ function validateKeyword(keyword: string): { valid: boolean; error?: string } {
   return { valid: true };
 }
 
-async function verifyAuth(req: Request): Promise<{ authorized: boolean; error?: string }> {
-  try {
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader) {
-      return { authorized: false, error: "인증이 필요합니다." };
-    }
+/**
+ * JWT가 있으면 사용자 검증. 없거나 anon이면 가입 전 검색 허용.
+ * 항상 apikey(anon) 헤더는 게이트웨이에서 검증됨.
+ */
+async function resolveAuthMode(
+  req: Request
+): Promise<{ mode: "authenticated" | "anon"; error?: string }> {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) {
+    return { mode: "anon" };
+  }
 
+  try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
-
     if (!supabaseUrl || !supabaseAnonKey) {
-      return { authorized: false, error: "서버 설정 오류" };
+      return { mode: "anon", error: "서버 설정 오류" };
     }
 
     const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error,
+    } = await supabase.auth.getUser();
 
     if (error || !user) {
-      return { authorized: false, error: "인증 확인 실패" };
+      // Bearer가 anon 키이거나 만료된 토큰 → 가입 전 검색으로 취급
+      return { mode: "anon" };
     }
 
-    return { authorized: true };
-  } catch (e) {
-    return { authorized: false, error: "인증 오류" };
+    return { mode: "authenticated" };
+  } catch {
+    return { mode: "anon" };
   }
 }
 
@@ -99,34 +123,31 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    const authResult = await verifyAuth(req);
-    if (!authResult.authorized) {
-      return new Response(
-        JSON.stringify({ error: authResult.error || "인증 실패" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    const auth = await resolveAuthMode(req);
+    if (auth.error === "서버 설정 오류") {
+      return jsonResponse({ error: auth.error }, 500);
     }
 
     const payload = (await req.json()) as SearchAddressRequest;
-    
+
     const validation = validateKeyword(payload.keyword);
     if (!validation.valid) {
-      return new Response(
-        JSON.stringify({ error: validation.error }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: validation.error }, 400);
     }
 
     const confmKey = Deno.env.get("JUSO_CONFM_KEY");
     if (!confmKey) {
-      return new Response(
-        JSON.stringify({ error: "주소 검색 서비스가 설정되지 않았습니다." }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "주소 검색 서비스가 설정되지 않았습니다." }, 503);
     }
 
+    const maxPerPage =
+      auth.mode === "authenticated" ? AUTHED_MAX_PER_PAGE : ANON_MAX_PER_PAGE;
+    const defaultPerPage = auth.mode === "authenticated" ? 20 : 10;
     const currentPage = Math.max(1, Math.min(payload.currentPage || 1, 999));
-    const countPerPage = Math.max(1, Math.min(payload.countPerPage || 20, 100));
+    const countPerPage = Math.max(
+      1,
+      Math.min(payload.countPerPage || defaultPerPage, maxPerPage)
+    );
 
     const apiUrl = new URL("https://business.juso.go.kr/addrlink/addrLinkApi.do");
     apiUrl.searchParams.set("confmKey", confmKey);
@@ -138,26 +159,23 @@ Deno.serve(async (req: Request) => {
     const jusoResponse = await fetch(apiUrl.toString(), {
       method: "GET",
       headers: {
-        "Accept": "application/json",
+        Accept: "application/json",
       },
     });
 
     if (!jusoResponse.ok) {
-      return new Response(
-        JSON.stringify({ error: "주소 검색 서비스 오류" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return jsonResponse({ error: "주소 검색 서비스 오류" }, 502);
     }
 
     const jusoData: JusoApiResponse = await jusoResponse.json();
 
     if (jusoData.results.common.errorCode !== "0") {
-      return new Response(
-        JSON.stringify({
+      return jsonResponse(
+        {
           error: jusoData.results.common.errorMessage || "주소 검색 실패",
           errorCode: jusoData.results.common.errorCode,
-        }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        },
+        400
       );
     }
 
@@ -172,20 +190,17 @@ Deno.serve(async (req: Request) => {
       buildingName: item.bdNm || null,
     }));
 
-    return new Response(
-      JSON.stringify({
-        results,
-        totalCount: parseInt(jusoData.results.common.totalCount) || 0,
-        currentPage: parseInt(jusoData.results.common.currentPage) || 1,
-        countPerPage: parseInt(jusoData.results.common.countPerPage) || 20,
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({
+      results,
+      totalCount: parseInt(jusoData.results.common.totalCount) || 0,
+      currentPage: parseInt(jusoData.results.common.currentPage) || 1,
+      countPerPage: parseInt(jusoData.results.common.countPerPage) || countPerPage,
+    });
   } catch (e) {
     console.error("Address search error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "알 수 없는 오류" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    return jsonResponse(
+      { error: e instanceof Error ? e.message : "알 수 없는 오류" },
+      500
     );
   }
 });

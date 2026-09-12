@@ -1,8 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import type { IndustryType } from '@/core/industry/types';
+import {
+  EMPTY_ORGANIZATION_ADDRESS,
+  type OrganizationAddressValue,
+} from '@/core/address';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
+import { buildSignUpBusinessDetails } from '../utils/buildSignUpBusiness';
 import { validateSignUpBusiness } from '../utils/validateSignup';
 import {
   assertBusinessMatches,
@@ -24,7 +29,9 @@ export function useAuthForm() {
   const [industryType, setIndustryType] = useState<IndustryType>('piano');
   const [businessName, setBusinessName] = useState('');
   const [phone, setPhone] = useState('');
-  const [address, setAddress] = useState('');
+  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(
+    EMPTY_ORGANIZATION_ADDRESS
+  );
   const [businessNumber, setBusinessNumber] = useState('');
   const [openingDate, setOpeningDate] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -49,18 +56,29 @@ export function useAuthForm() {
         if (!agreedToTerms) {
           throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
         }
+        const ownerBusiness =
+          accountType === 'owner'
+            ? buildSignUpBusinessDetails({
+                industryType,
+                businessName,
+                phone,
+                addressParts,
+                businessNumber,
+                openingDate,
+              })
+            : null;
         saveOAuthSignupIntent({
           mode: 'signup',
           accountType,
           fullName: fullName.trim() || undefined,
-          ...(accountType === 'owner'
+          ...(ownerBusiness
             ? {
-                industryType,
-                businessName: businessName.trim() || undefined,
-                phone: phone.trim() || undefined,
-                address: address.trim() || undefined,
-                businessNumber: businessNumber.trim() || undefined,
-                openingDate: openingDate.trim() || undefined,
+                industryType: ownerBusiness.industryType,
+                businessName: ownerBusiness.businessName || undefined,
+                phone: ownerBusiness.phone || undefined,
+                address: ownerBusiness.address || undefined,
+                businessNumber: ownerBusiness.businessNumber,
+                openingDate: ownerBusiness.openingDate,
               }
             : {}),
         });
@@ -111,14 +129,14 @@ export function useAuthForm() {
       }
 
       if (accountType === 'owner') {
-        const business = {
+        const business = buildSignUpBusinessDetails({
           industryType,
-          businessName: businessName.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          businessNumber: businessNumber.trim() || undefined,
-          openingDate: openingDate.trim() || undefined,
-        };
+          businessName,
+          phone,
+          addressParts,
+          businessNumber,
+          openingDate,
+        });
         validateSignUpBusiness(business);
 
         await signUp(email.trim(), password, fullName.trim(), accountType, business);
@@ -138,6 +156,7 @@ export function useAuthForm() {
           directorName: fullName.trim(),
           phone: business.phone,
           address: business.address,
+          addressParts: business.addressParts,
           businessNumber: business.businessNumber,
           features: { attendance: { enabled: false } },
         });
@@ -169,8 +188,8 @@ export function useAuthForm() {
     setBusinessName,
     phone,
     setPhone,
-    address,
-    setAddress,
+    addressParts,
+    setAddressParts,
     businessNumber,
     setBusinessNumber,
     openingDate,

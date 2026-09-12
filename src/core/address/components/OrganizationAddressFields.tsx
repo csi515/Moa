@@ -66,6 +66,12 @@ export const OrganizationAddressFields: FC<OrganizationAddressFieldsProps> = ({
             <span className="hidden sm:inline">검색</span>
           </button>
         </div>
+        {value.postal ? (
+          <p className="mt-1.5 text-xs text-slate-500">
+            우편번호{' '}
+            <span className="font-semibold text-slate-700 tabular-nums">{value.postal}</span>
+          </p>
+        ) : null}
       </FormField>
 
       <FormField label="상세주소 (선택)">
