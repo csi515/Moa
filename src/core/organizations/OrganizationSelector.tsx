@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -18,17 +18,11 @@ import { useAuth } from '../auth/AuthProvider';
 
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, loading, blockedOwnerOrgIds } = useOrganization();
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [showTeacherFlow, setShowTeacherFlow] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
-
-  useEffect(() => {
-    if (!loading && organizations.length === 0 && user?.user_metadata?.account_type === 'teacher') {
-      setShowTeacherFlow(true);
-    }
-  }, [loading, organizations.length, user]);
 
   const handleBack = () => {
     // AppGate에 history 스택이 없어 navigate(-1)은 외부로 나갈 수 있음 → 명시적 로그아웃
@@ -45,17 +39,7 @@ export const OrganizationSelector: React.FC = () => {
   }
 
   if (showTeacherFlow) {
-    return (
-      <TeacherJoinFlow
-        onBack={() => {
-          if (user?.user_metadata?.account_type === 'teacher' && organizations.length === 0) {
-            handleBack();
-            return;
-          }
-          setShowTeacherFlow(false);
-        }}
-      />
-    );
+    return <TeacherJoinFlow onBack={() => setShowTeacherFlow(false)} />;
   }
 
   return (

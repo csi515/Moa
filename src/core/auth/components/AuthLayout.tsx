@@ -14,19 +14,12 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
     mode === 'login'
       ? appBrand.tagline
       : mode === 'signup'
-        ? '사업장 정보를 입력하고 지금 바로 시작하세요'
+        ? 'MOA 계정을 만들고, 사업장 개설·초대·연결로 시작하세요'
         : '가입하신 이메일로 비밀번호 재설정 링크를 보내드립니다';
 
-  // 회원가입 폼이 길어 상단(카카오 버튼)이 잘리지 않도록 items-start + py로 스크롤
-  const isSignup = mode === 'signup';
-
   return (
-    <div
-      className={`min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex justify-center p-4 ${
-        isSignup ? 'items-start py-8' : 'items-center'
-      }`}
-    >
-      <div className={`w-full ${isSignup ? 'max-w-lg' : 'max-w-md'}`}>
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex justify-center items-center p-4">
+      <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 bg-indigo-600 rounded-2xl text-white shadow-lg mb-4">
             <Layers className="w-7 h-7" />
@@ -43,7 +36,7 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
         </div>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          계정은 소속 사업장 데이터만 접근할 수 있습니다.
+          역할은 사업장 멤버십에서 결정되며, 소속 사업장 데이터만 접근할 수 있습니다.
         </p>
         <div className="mt-4">
           <LegalLinks />

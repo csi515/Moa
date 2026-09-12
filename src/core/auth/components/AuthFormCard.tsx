@@ -1,26 +1,13 @@
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react';
-import type { IndustryType } from '@/core/industry/types';
-import type { OrganizationAddressValue } from '@/core/address';
 import { legalPageHref } from '@/core/legal/legalPaths';
-import { SignupBusinessFields } from './SignupBusinessFields';
-import { SignupAccountTypeSelector } from './SignupAccountTypeSelector';
-import { KakaoAuthButton } from './KakaoAuthButton';
 import type { AuthMode } from '../hooks/useAuthForm';
-import type { AccountType } from '../types/signup';
 
 interface AuthFormCardProps {
   mode: AuthMode;
   email: string;
   password: string;
   fullName: string;
-  accountType: AccountType;
-  industryType: IndustryType;
-  businessName: string;
-  phone: string;
-  addressParts: OrganizationAddressValue;
-  businessNumber: string;
-  openingDate: string;
   showPassword: boolean;
   agreedToTerms: boolean;
   loading: boolean;
@@ -29,18 +16,10 @@ interface AuthFormCardProps {
   onEmailChange: (value: string) => void;
   onPasswordChange: (value: string) => void;
   onFullNameChange: (value: string) => void;
-  onAccountTypeChange: (value: AccountType) => void;
-  onIndustryTypeChange: (value: IndustryType) => void;
-  onBusinessNameChange: (value: string) => void;
-  onPhoneChange: (value: string) => void;
-  onAddressPartsChange: (value: OrganizationAddressValue) => void;
-  onBusinessNumberChange: (value: string) => void;
-  onOpeningDateChange: (value: string) => void;
   onShowPasswordToggle: () => void;
   onAgreedToTermsChange: (value: boolean) => void;
   onSwitchMode: (mode: AuthMode) => void;
   onSubmit: (event: FormEvent) => void;
-  onKakao: () => void;
 }
 
 export function AuthFormCard({
@@ -48,13 +27,6 @@ export function AuthFormCard({
   email,
   password,
   fullName,
-  accountType,
-  industryType,
-  businessName,
-  phone,
-  addressParts,
-  businessNumber,
-  openingDate,
   showPassword,
   agreedToTerms,
   loading,
@@ -63,18 +35,10 @@ export function AuthFormCard({
   onEmailChange,
   onPasswordChange,
   onFullNameChange,
-  onAccountTypeChange,
-  onIndustryTypeChange,
-  onBusinessNameChange,
-  onPhoneChange,
-  onAddressPartsChange,
-  onBusinessNumberChange,
-  onOpeningDateChange,
   onShowPasswordToggle,
   onAgreedToTermsChange,
   onSwitchMode,
   onSubmit,
-  onKakao,
 }: AuthFormCardProps) {
   const termsLabel = (
     <span>
@@ -85,7 +49,7 @@ export function AuthFormCard({
       <a href={legalPageHref('privacy')} className="text-indigo-600 underline">
         개인정보처리방침
       </a>
-      에 동의합니다 (필수 · 카카오 가입 포함)
+      에 동의합니다 (필수)
     </span>
   );
 
@@ -128,13 +92,11 @@ export function AuthFormCard({
         </button>
       )}
 
-      {/* 회원가입: 계정 유형 → 약관 → 카카오 → 이메일 폼 */}
       {mode === 'signup' && (
         <div className="mb-5 space-y-4">
-          <SignupAccountTypeSelector
-            accountType={accountType}
-            onAccountTypeChange={onAccountTypeChange}
-          />
+          <p className="text-xs text-slate-500 leading-relaxed">
+            MOA 계정을 만든 뒤, 사업장 개설·초대·연결로 역할을 선택합니다.
+          </p>
 
           <label className="flex items-start gap-2 text-xs text-slate-600 cursor-pointer">
             <input
@@ -145,53 +107,13 @@ export function AuthFormCard({
             />
             {termsLabel}
           </label>
-
-          <div className="space-y-2">
-            <KakaoAuthButton mode="signup" loading={loading} onClick={onKakao} />
-            {!agreedToTerms && (
-              <p className="text-[11px] text-slate-500 px-0.5">
-                카카오로 가입하려면 위 약관에 동의해 주세요.
-              </p>
-            )}
-            {error && (
-              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-        </div>
-      )}
-
-      {/* 로그인: 카카오를 상단에 유지 */}
-      {mode === 'login' && (
-        <div className="mb-5 space-y-3">
-          <KakaoAuthButton mode="login" loading={loading} onClick={onKakao} />
-          {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-              {error}
-            </div>
-          )}
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
-            <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
         </div>
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
         {mode === 'signup' && (
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">
-              {accountType === 'owner' ? '대표자 이름' : '이름'}
-              <span className="text-slate-400 font-medium"> (카카오 가입 시 선택)</span>
-            </label>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">이름</label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -260,31 +182,7 @@ export function AuthFormCard({
           </div>
         )}
 
-        {mode === 'signup' && accountType === 'owner' && (
-          <SignupBusinessFields
-            industryType={industryType}
-            businessName={businessName}
-            phone={phone}
-            addressParts={addressParts}
-            businessNumber={businessNumber}
-            openingDate={openingDate}
-            onIndustryTypeChange={onIndustryTypeChange}
-            onBusinessNameChange={onBusinessNameChange}
-            onPhoneChange={onPhoneChange}
-            onAddressPartsChange={onAddressPartsChange}
-            onBusinessNumberChange={onBusinessNumberChange}
-            onOpeningDateChange={onOpeningDateChange}
-          />
-        )}
-
-        {error && mode === 'forgot' && (
-          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
-            {error}
-          </div>
-        )}
-
-        {/* 이메일 가입 에러는 제출 버튼 위에 (카카오 에러는 위 섹션에 이미 표시) */}
-        {error && mode === 'signup' && (
+        {error && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
             {error}
           </div>
@@ -302,8 +200,8 @@ export function AuthFormCard({
           className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[44px]"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {mode === 'login' && '이메일로 로그인'}
-          {mode === 'signup' && '이메일로 가입하기'}
+          {mode === 'login' && '로그인'}
+          {mode === 'signup' && '가입하기'}
           {mode === 'forgot' && '재설정 링크 보내기'}
         </button>
       </form>

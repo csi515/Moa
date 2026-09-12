@@ -1,24 +1,10 @@
-import type { IndustryType } from '@/core/industry/types';
-import type { OrganizationAddressValue } from '@/core/address';
-
-export type AccountType = 'owner' | 'teacher' | 'parent';
-
-export interface SignUpBusinessDetails {
-  industryType: IndustryType;
-  businessName: string;
-  phone: string;
-  /** 표시·레거시용 조합 주소 */
-  address: string;
-  /** 구조화 주소 (org columns) */
-  addressParts: OrganizationAddressValue;
-  businessNumber?: string;
-  openingDate?: string;
-}
-
+/**
+ * 회원가입은 MOA User 계정 생성만 담당한다.
+ * Owner / Instructor / Customer / Parent 역할은
+ * OrganizationMembership(사업장 개설·초대·연결)에서 결정한다.
+ */
 export interface SignUpPayload {
   email: string;
   password: string;
   fullName: string;
-  accountType: AccountType;
-  business?: SignUpBusinessDetails;
 }

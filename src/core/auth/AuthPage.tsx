@@ -13,13 +13,6 @@ export const AuthPage: React.FC = () => {
         email={form.email}
         password={form.password}
         fullName={form.fullName}
-        accountType={form.accountType}
-        industryType={form.industryType}
-        businessName={form.businessName}
-        phone={form.phone}
-        addressParts={form.addressParts}
-        businessNumber={form.businessNumber}
-        openingDate={form.openingDate}
         showPassword={form.showPassword}
         agreedToTerms={form.agreedToTerms}
         loading={form.loading}
@@ -28,18 +21,10 @@ export const AuthPage: React.FC = () => {
         onEmailChange={form.setEmail}
         onPasswordChange={form.setPassword}
         onFullNameChange={form.setFullName}
-        onAccountTypeChange={form.setAccountType}
-        onIndustryTypeChange={form.setIndustryType}
-        onBusinessNameChange={form.setBusinessName}
-        onPhoneChange={form.setPhone}
-        onAddressPartsChange={form.setAddressParts}
-        onBusinessNumberChange={form.setBusinessNumber}
-        onOpeningDateChange={form.setOpeningDate}
         onShowPasswordToggle={() => form.setShowPassword((prev) => !prev)}
         onAgreedToTermsChange={form.setAgreedToTerms}
         onSwitchMode={form.switchMode}
         onSubmit={form.handleSubmit}
-        onKakao={form.handleKakao}
       />
     </AuthLayout>
   );

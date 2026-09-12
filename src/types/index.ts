@@ -774,10 +774,8 @@ export interface CustomerJoinRequest {
   updated_at: string;
 }
 
-/** 회원가입 타입 선택 */
-export type SignUpType = 'business' | 'instructor' | 'customer' | 'guardian';
 
-/** 상담 신청 폼 */
+
 export interface ConsultationSubmission {
   contact_name: string;
   contact_phone: string;

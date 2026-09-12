@@ -1,5 +1,3 @@
-import type { AccountType } from '../types/signup';
-import type { IndustryType } from '@/core/industry/types';
 import { peekPendingGuardianLink } from '@/core/parent/services/guardianLinkService';
 import { peekPendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import {
@@ -12,14 +10,7 @@ const OAUTH_INTENT_KEY = 'moa_oauth_signup_intent';
 
 export type OAuthSignupIntent = {
   mode: 'login' | 'signup';
-  accountType?: AccountType;
   fullName?: string;
-  industryType?: IndustryType;
-  businessName?: string;
-  phone?: string;
-  address?: string;
-  businessNumber?: string;
-  openingDate?: string;
   /** OAuth 리다이렉트 중 유실 방지용 가디언 연결 코드 */
   pendingGuardianLink?: string;
   /** 공개 사업장 코드 → 학원 연결 요청 */

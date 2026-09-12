@@ -1,103 +1,25 @@
 import { useState, type FormEvent } from 'react';
-import type { IndustryType } from '@/core/industry/types';
-import {
-  EMPTY_ORGANIZATION_ADDRESS,
-  type OrganizationAddressValue,
-} from '@/core/address';
-import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
-import { buildSignUpBusinessDetails } from '../utils/buildSignUpBusiness';
-import { validateSignUpBusiness } from '../utils/validateSignup';
-import {
-  assertBusinessMatches,
-  consumeOwnerBusinessBlockMessage,
-} from '../services/ownerBusinessGate';
-import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
-import type { AccountType } from '../types/signup';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function useAuthForm() {
-  const { signIn, signUp, signInWithKakao, signOut } = useAuth();
-  const { createOrganization } = useOrganization();
+  const { signIn, signUp } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
-  const [accountType, setAccountType] = useState<AccountType>('owner');
-  const [industryType, setIndustryType] = useState<IndustryType>('piano');
-  const [businessName, setBusinessName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(
-    EMPTY_ORGANIZATION_ADDRESS
-  );
-  const [businessNumber, setBusinessNumber] = useState('');
-  const [openingDate, setOpeningDate] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(() => consumeOwnerBusinessBlockMessage());
+  const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
   const switchMode = (next: AuthMode) => {
     setMode(next);
     setError(null);
     setInfo(null);
-  };
-
-  const handleKakao = async () => {
-    setError(null);
-    setInfo(null);
-
-    try {
-      if (mode === 'signup') {
-        // 카카오 가입: 약관·계정유형만 확인. 사업장 정보는 OAuth 복귀 후 마법사에서 입력
-        if (!agreedToTerms) {
-          throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
-        }
-        const ownerBusiness =
-          accountType === 'owner'
-            ? buildSignUpBusinessDetails({
-                industryType,
-                businessName,
-                phone,
-                addressParts,
-                businessNumber,
-                openingDate,
-              })
-            : null;
-        saveOAuthSignupIntent({
-          mode: 'signup',
-          accountType,
-          fullName: fullName.trim() || undefined,
-          ...(ownerBusiness
-            ? {
-                industryType: ownerBusiness.industryType,
-                businessName: ownerBusiness.businessName || undefined,
-                phone: ownerBusiness.phone || undefined,
-                address: ownerBusiness.address || undefined,
-                businessNumber: ownerBusiness.businessNumber,
-                openingDate: ownerBusiness.openingDate,
-              }
-            : {}),
-        });
-      } else if (mode === 'forgot') {
-        throw new Error('비밀번호 찾기는 이메일로 진행해 주세요.');
-      } else {
-        saveOAuthSignupIntent({ mode: 'login' });
-      }
-
-      setLoading(true);
-      await signInWithKakao();
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : '카카오 로그인 중 오류가 발생했습니다.';
-      setError(message);
-    } finally {
-      // OAuth 리다이렉트가 실패·차단되면 버튼을 다시 활성화
-      setLoading(false);
-    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -128,41 +50,8 @@ export function useAuthForm() {
         throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
       }
 
-      if (accountType === 'owner') {
-        const business = buildSignUpBusinessDetails({
-          industryType,
-          businessName,
-          phone,
-          addressParts,
-          businessNumber,
-          openingDate,
-        });
-        validateSignUpBusiness(business);
-
-        await signUp(email.trim(), password, fullName.trim(), accountType, business);
-        try {
-          await assertBusinessMatches({
-            businessNumber: business.businessNumber || '',
-            representativeName: fullName.trim(),
-            openingDate: business.openingDate || '',
-            businessName: business.businessName,
-          });
-        } catch (gateError) {
-          await signOut();
-          throw gateError;
-        }
-        await createOrganization(business.businessName, business.industryType, {
-          name: business.businessName,
-          directorName: fullName.trim(),
-          phone: business.phone,
-          address: business.address,
-          addressParts: business.addressParts,
-          businessNumber: business.businessNumber,
-          features: { attendance: { enabled: false } },
-        });
-      } else {
-        await signUp(email.trim(), password, fullName.trim(), accountType);
-      }
+      // 역할·사업장은 가입 후 OrganizationSelector / 초대·연결에서 결정
+      await signUp(email.trim(), password, fullName.trim());
     } catch (err) {
       const message =
         err instanceof Error ? err.message : '인증 처리 중 오류가 발생했습니다.';
@@ -180,20 +69,6 @@ export function useAuthForm() {
     setPassword,
     fullName,
     setFullName,
-    accountType,
-    setAccountType,
-    industryType,
-    setIndustryType,
-    businessName,
-    setBusinessName,
-    phone,
-    setPhone,
-    addressParts,
-    setAddressParts,
-    businessNumber,
-    setBusinessNumber,
-    openingDate,
-    setOpeningDate,
     showPassword,
     setShowPassword,
     agreedToTerms,
@@ -203,6 +78,5 @@ export function useAuthForm() {
     info,
     switchMode,
     handleSubmit,
-    handleKakao,
   };
 }
