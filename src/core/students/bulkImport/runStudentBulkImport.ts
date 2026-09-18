@@ -23,6 +23,18 @@ export interface BulkImportRunResult {
   failed: number;
 }
 
+function resolveClassIds(courseSubject: string): string[] {
+  const name = courseSubject.trim();
+  if (!name) return [];
+  const classes = StorageService.getClasses();
+  const normalized = name.replace(/\s+/g, '').toLowerCase();
+  const matched = classes.filter((c) => {
+    const cn = (c.name || '').replace(/\s+/g, '').toLowerCase();
+    return cn === normalized || cn.includes(normalized) || normalized.includes(cn);
+  });
+  return matched.map((c) => c.id);
+}
+
 function toStudentPayload(
   row: StudentImportNormalizedRow,
   defaults: {
@@ -33,6 +45,11 @@ function toStudentPayload(
     level: Student['level'];
   }
 ): Omit<Student, 'id' | 'createdAt' | 'updatedAt'> {
+  const classIds = resolveClassIds(row.courseSubject);
+  const memoParts = [row.memo, row.courseSubject && !classIds.length ? `과목: ${row.courseSubject}` : '']
+    .map((s) => s?.trim())
+    .filter(Boolean);
+
   return {
     studentNumber: '',
     name: row.name,
@@ -45,17 +62,20 @@ function toStudentPayload(
     status: 'active',
     teacherId: defaults.teacherId,
     teacherName: defaults.teacherName,
-    classIds: [],
+    classIds,
     level: defaults.level,
     billingMode: 'monthly',
     tuitionFee: row.tuitionFee ?? defaults.tuitionFee,
     paymentDay: row.paymentDay ?? defaults.paymentDay,
-    specialNotes: row.memo || undefined,
-    memo: row.memo || undefined,
+    specialNotes: memoParts.join(' · ') || undefined,
+    memo: memoParts.join(' · ') || undefined,
   };
 }
 
-/** 검증된 행을 순차 등록 (청크 간 양보) */
+/**
+ * 검증된 행을 순차 등록 → StudentService/Supabase students(+보호자) 반영
+ * (청크 사이 이벤트 루프 양보)
+ */
 export async function runStudentBulkImport(
   rows: StudentImportNormalizedRow[],
   options: {

@@ -95,7 +95,7 @@ export function AuthFormCard({
         </button>
       )}
 
-      {/* 회원가입: 약관 → 네이버 → 이메일 */}
+      {/* 회원가입: 약관 → 이름 → 네이버 → 이메일 */}
       {mode === 'signup' && (
         <div className="mb-5 space-y-4">
           <p className="text-xs text-slate-500 leading-relaxed">
@@ -111,6 +111,24 @@ export function AuthFormCard({
             />
             {termsLabel}
           </label>
+
+          <div>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              이름
+              <span className="text-slate-400 font-medium"> (네이버 가입 시 선택)</span>
+            </label>
+            <div className="relative">
+              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={fullName}
+                onChange={(event) => onFullNameChange(event.target.value)}
+                placeholder="홍길동"
+                autoComplete="name"
+                className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
+              />
+            </div>
+          </div>
 
           <div className="space-y-2">
             <NaverAuthButton mode="signup" loading={loading} onClick={onNaver} />
@@ -152,26 +170,6 @@ export function AuthFormCard({
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
-        {mode === 'signup' && (
-          <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">
-              이름
-              <span className="text-slate-400 font-medium"> (네이버 가입 시 선택)</span>
-            </label>
-            <div className="relative">
-              <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-              <input
-                type="text"
-                value={fullName}
-                onChange={(event) => onFullNameChange(event.target.value)}
-                placeholder="홍길동"
-                autoComplete="name"
-                className="w-full pl-10 pr-4 py-3 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white min-h-[44px]"
-              />
-            </div>
-          </div>
-        )}
-
         <div>
           <label className="block text-xs font-bold text-slate-600 mb-1.5">이메일</label>
           <div className="relative">

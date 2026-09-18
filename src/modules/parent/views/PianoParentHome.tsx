@@ -182,6 +182,23 @@ export function PianoParentHome({
         </section>
       )}
 
+      {/* 완곡 스탬프 — 미러링 탭 진입 */}
+      <section className="bg-white rounded-2xl border border-indigo-100 p-4 shadow-xs">
+        <button
+          type="button"
+          onClick={() => onNavigate('stamps')}
+          className="w-full flex items-center justify-between gap-2 text-left min-h-[48px]"
+        >
+          <div>
+            <p className="text-[11px] font-bold text-indigo-600">완곡 스탬프</p>
+            <p className="text-sm font-bold text-slate-900 mt-0.5">
+              자녀가 받은 스탬프·완곡 리포트
+            </p>
+          </div>
+          <ChevronRight className="w-4 h-4 text-slate-300 shrink-0" />
+        </button>
+      </section>
+
       {/* 해야 할 일 */}
       {todoItems.length > 0 && (
         <Section title="해야 할 일">

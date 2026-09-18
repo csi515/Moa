@@ -3,6 +3,7 @@ export {
   parseStudentImportCsv,
   parseStudentImportFile,
   parseStudentImportWorkbook,
+  buildTemplateWorkbookBuffer,
 } from './parseStudentImport';
 export {
   validateStudentImportRows,
@@ -10,6 +11,9 @@ export {
   normalizePhoneDigits,
   buildTemplateCsv,
   buildExistingStudentKeys,
+  parseImportDate,
+  excelSerialToIsoDate,
 } from './validateStudentImport';
 export { runStudentBulkImport } from './runStudentBulkImport';
 export type { BulkImportProgress, BulkImportRunResult } from './runStudentBulkImport';
+

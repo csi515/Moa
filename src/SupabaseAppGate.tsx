@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './core/auth/AuthProvider';
 import { AuthPage } from './core/auth/AuthPage';
@@ -9,6 +9,7 @@ import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { ParentShell } from './modules/parent/ParentShell';
 import { CustomerShell } from './core/customer/CustomerShell';
 import { LoadingScreen } from './shared/components/LoadingScreen';
+import { PwaInstallPrompt } from './shared/components/PwaInstallPrompt';
 import { StorageHydrator } from './StorageHydrator';
 
 export const SupabaseAppGate: React.FC = () => {
@@ -56,36 +57,37 @@ export const SupabaseAppGate: React.FC = () => {
     return <LoadingScreen />;
   }
 
+  let content: ReactNode;
+
   if (!session) {
-    return <AuthPage />;
-  }
-
-  if (isParentOnly || parentPortalActive) {
-    return <ParentShell />;
-  }
-
-  if (isCustomerOnly || customerPortalActive) {
-    return <CustomerShell />;
-  }
-
-  if (
+    content = <AuthPage />;
+  } else if (isParentOnly || parentPortalActive) {
+    content = <ParentShell />;
+  } else if (isCustomerOnly || customerPortalActive) {
+    content = <CustomerShell />;
+  } else if (
     currentOrganization &&
     currentRole === 'owner' &&
     blockedOwnerOrgIds.includes(currentOrganization.id)
   ) {
-    return <OwnerOperationStoppedView />;
-  }
-
-  if (!currentOrganization) {
-    return <OrganizationSelector />;
+    content = <OwnerOperationStoppedView />;
+  } else if (!currentOrganization) {
+    content = <OrganizationSelector />;
+  } else {
+    content = (
+      <StorageHydrator
+        organizationId={currentOrganization.id}
+        industryType={currentOrganization.industry_type}
+      >
+        <IndustryAppRouter />
+      </StorageHydrator>
+    );
   }
 
   return (
-    <StorageHydrator
-      organizationId={currentOrganization.id}
-      industryType={currentOrganization.industry_type}
-    >
-      <IndustryAppRouter />
-    </StorageHydrator>
+    <>
+      {content}
+      <PwaInstallPrompt />
+    </>
   );
 };

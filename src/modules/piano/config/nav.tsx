@@ -46,6 +46,11 @@ export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] 
         icon: icon(<MessageSquareText className="w-4 h-4" />),
       },
       { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-4 h-4" />) },
+      {
+        tab: 'song-stamps',
+        label: '완곡 스탬프',
+        icon: icon(<Music2 className="w-4 h-4" />),
+      },
     ]),
     buildNavSection('설정', [
       { tab: 'settings', label: '설정', icon: icon(<Settings className="w-4 h-4" />) },
@@ -105,6 +110,7 @@ export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
     { tab: 'recitals', label: '연주회', icon: icon(<Award className="w-5 h-5" />) },
     { tab: 'curriculum', label: '커리큘럼', icon: icon(<BookOpen className="w-5 h-5" />) },
     { tab: 'achievements', label: '시험·등급', icon: icon(<Award className="w-5 h-5" />) },
+    { tab: 'song-stamps', label: '완곡 스탬프', icon: icon(<Music2 className="w-5 h-5" />) },
     { tab: 'reports', label: '리포트', icon: icon(<BarChart3 className="w-5 h-5" />) },
   ];
 }

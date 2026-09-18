@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, type DragEvent } from 'react';
 import { Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
 import { Modal } from '@/shared/components/ui';
 import { useApp } from '@/context/AppContext';
@@ -9,6 +9,7 @@ import {
   STUDENT_IMPORT_UI,
   buildExistingStudentKeys,
   buildTemplateCsv,
+  buildTemplateWorkbookBuffer,
   parseStudentImportFile,
   runStudentBulkImport,
   validateStudentImportRows,
@@ -21,6 +22,9 @@ interface StudentBulkImportModalProps {
   onClose: () => void;
   onCompleted: () => void;
 }
+
+const ACCEPT =
+  '.csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel';
 
 export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
   isOpen,
@@ -36,6 +40,7 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
   const [errors, setErrors] = useState<StudentImportRowError[]>([]);
   const [warnings, setWarnings] = useState<StudentImportRowError[]>([]);
   const [importing, setImporting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const [progress, setProgress] = useState<{ completed: number; total: number } | null>(null);
 
   const existingKeys = useMemo(() => {
@@ -57,6 +62,7 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
     setErrors([]);
     setWarnings([]);
     setProgress(null);
+    setDragOver(false);
     if (fileRef.current) fileRef.current.value = '';
   };
 
@@ -66,12 +72,25 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
     onClose();
   };
 
-  const downloadTemplate = () => {
+  const downloadTemplateCsv = () => {
     const blob = new Blob([buildTemplateCsv()], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = 'moa-students-import-template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadTemplateXlsx = () => {
+    const buffer = buildTemplateWorkbookBuffer();
+    const blob = new Blob([new Uint8Array(buffer)], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'moa-students-import-template.xlsx';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -90,10 +109,22 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
       setValidRows(result.validRows);
       setErrors(result.errors);
       setWarnings(result.warnings);
+      if (result.validRows.length === 0) {
+        showToast('유효한 행이 없습니다. 오류 목록을 확인해 주세요.', 'warning');
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : STUDENT_IMPORT_UI.unsupported, 'error');
       reset();
     }
+  };
+
+  const onDrop = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+    if (importing) return;
+    const file = e.dataTransfer.files?.[0] ?? null;
+    void handleFile(file);
   };
 
   const handleImport = async () => {
@@ -134,14 +165,14 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} title={STUDENT_IMPORT_UI.title} maxWidth="2xl">
       <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
         <p className="text-sm text-slate-600">
-          CSV 또는 Excel 명단을 올리면 행별 검증 후 수강생을 일괄 등록합니다. 보호자 칸을 비우면 성인
-          본인 등록으로 처리합니다.
+          이름·생년월일·학부모 연락처·수강과목이 담긴 CSV/Excel을 올리면 행별 검증 후 Supabase
+          수강생으로 일괄 등록합니다. 보호자 칸을 비우면 성인 본인 등록으로 처리합니다.
         </p>
 
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={downloadTemplate}
+            onClick={downloadTemplateCsv}
             className="inline-flex items-center gap-2 min-h-[44px] px-3 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl"
           >
             <Download className="w-4 h-4" />
@@ -149,21 +180,52 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => fileRef.current?.click()}
-            disabled={importing}
-            className="inline-flex items-center gap-2 min-h-[44px] px-3 py-2 text-sm font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 rounded-xl disabled:opacity-50"
+            onClick={downloadTemplateXlsx}
+            className="inline-flex items-center gap-2 min-h-[44px] px-3 py-2 text-sm font-bold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-xl"
           >
-            <Upload className="w-4 h-4" />
-            {STUDENT_IMPORT_UI.pickFile}
+            <Download className="w-4 h-4" />
+            {STUDENT_IMPORT_UI.downloadTemplateXlsx}
           </button>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".csv,.xlsx,.xls,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
-            className="hidden"
-            onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
-          />
         </div>
+
+        <button
+          type="button"
+          disabled={importing}
+          onClick={() => fileRef.current?.click()}
+          onDragEnter={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+          }}
+          onDrop={onDrop}
+          className={`w-full min-h-[120px] rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-colors disabled:opacity-50 ${
+            dragOver
+              ? 'border-indigo-400 bg-indigo-50'
+              : 'border-slate-200 bg-slate-50 hover:border-indigo-300 hover:bg-indigo-50/40'
+          }`}
+        >
+          <Upload
+            className={`w-8 h-8 mx-auto mb-2 ${dragOver ? 'text-indigo-600' : 'text-slate-400'}`}
+          />
+          <p className="text-sm font-bold text-slate-800">
+            {dragOver ? STUDENT_IMPORT_UI.dropActive : STUDENT_IMPORT_UI.dropHint}
+          </p>
+          <p className="text-[11px] text-slate-500 mt-1">.xlsx · .xls · .csv</p>
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept={ACCEPT}
+          className="hidden"
+          onChange={(e) => void handleFile(e.target.files?.[0] ?? null)}
+        />
 
         {fileName && (
           <p className="text-xs font-semibold text-slate-500 inline-flex items-center gap-1.5">
@@ -181,7 +243,7 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
             ))}
             {warnings.map((w, i) => (
               <p key={`w-${i}`} className="text-amber-700">
-                {w.rowNumber}행: {w.message}
+                {w.rowNumber}행{w.field ? ` · ${w.field}` : ''}: {w.message}
               </p>
             ))}
           </div>
@@ -198,8 +260,9 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
                   <tr>
                     <th className="px-3 py-2 font-bold text-slate-600">행</th>
                     <th className="px-3 py-2 font-bold text-slate-600">이름</th>
-                    <th className="px-3 py-2 font-bold text-slate-600">보호자</th>
-                    <th className="px-3 py-2 font-bold text-slate-600">전화</th>
+                    <th className="px-3 py-2 font-bold text-slate-600">생년월일</th>
+                    <th className="px-3 py-2 font-bold text-slate-600">학부모</th>
+                    <th className="px-3 py-2 font-bold text-slate-600">과목</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -207,12 +270,15 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
                     <tr key={r.rowNumber} className="border-t border-slate-100">
                       <td className="px-3 py-2 text-slate-500">{r.rowNumber}</td>
                       <td className="px-3 py-2 font-semibold text-slate-800">{r.name}</td>
-                      <td className="px-3 py-2 text-slate-600">
-                        {r.isAdultSelf ? '성인 본인' : r.guardianName}
-                      </td>
                       <td className="px-3 py-2 text-slate-600 tabular-nums">
-                        {r.isAdultSelf ? r.phone || '-' : r.guardianPhone}
+                        {r.birthDate || '-'}
                       </td>
+                      <td className="px-3 py-2 text-slate-600">
+                        {r.isAdultSelf
+                          ? `성인 · ${r.phone || '-'}`
+                          : `${r.guardianName} · ${r.guardianPhone}`}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600">{r.courseSubject || '-'}</td>
                     </tr>
                   ))}
                 </tbody>

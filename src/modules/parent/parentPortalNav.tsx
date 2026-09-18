@@ -85,7 +85,7 @@ export function getParentPortalRoleLabel(industry: IndustryType | string): strin
 export function getParentPortalSecondaryTabs(industry: IndustryType | string): ParentPortalTab[] {
   const type = normalizeIndustryType(industry);
   if (type === 'piano') {
-    return ['notices', 'assignments', 'progress', 'reports', 'events', 'more'];
+    return ['notices', 'assignments', 'progress', 'stamps', 'reports', 'events', 'more'];
   }
   if (type === 'gym') return ['notices', 'events', 'more'];
   if (type === 'daycare') return ['notices', 'incidents', 'pickups', 'more'];

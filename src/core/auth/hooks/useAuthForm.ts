@@ -85,8 +85,13 @@ export function useAuthForm() {
       // 역할·사업장은 가입 후 OrganizationSelector / 초대·연결에서 결정
       await signUp(email.trim(), password, fullName.trim());
     } catch (err) {
-      const message =
+      const raw =
         err instanceof Error ? err.message : '인증 처리 중 오류가 발생했습니다.';
+      const message = /already registered|already been registered|User already exists/i.test(
+        raw
+      )
+        ? '이미 다른 방법으로 가입된 이메일입니다. 기존 로그인 수단으로 로그인해 주세요.'
+        : raw;
       setError(message);
     } finally {
       setLoading(false);

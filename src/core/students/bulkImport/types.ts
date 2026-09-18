@@ -11,6 +11,7 @@ export const STUDENT_IMPORT_TEMPLATE_HEADERS = [
   '보호자전화',
   '보호자이메일',
   '관계',
+  '수강과목',
   '입학일',
   '월수강료',
   '납부일',
@@ -37,6 +38,8 @@ export interface StudentImportNormalizedRow {
   guardianPhone: string;
   guardianEmail: string;
   relationship: 'father' | 'mother' | 'other' | 'self';
+  /** 반/과목명 (기존 Class.name 매칭용) */
+  courseSubject: string;
   joinDate: string;
   tuitionFee: number | null;
   paymentDay: number | null;
@@ -60,7 +63,10 @@ export interface StudentImportValidationResult {
 export const STUDENT_IMPORT_UI = {
   title: '수강생 일괄 등록',
   downloadTemplate: '템플릿 다운로드 (CSV)',
+  downloadTemplateXlsx: '템플릿 다운로드 (Excel)',
   pickFile: 'CSV 또는 Excel 선택',
+  dropHint: '엑셀·CSV 파일을 여기에 끌어다 놓거나 클릭하여 선택하세요',
+  dropActive: '파일을 놓으면 검사를 시작합니다',
   preview: '미리보기',
   importAction: '등록 시작',
   importing: '등록 중…',

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { PracticeRoomStatusGrid } from './components/PracticeRoomStatusGrid';
 import {
   practiceRoomReservationService,
   seoulDateFromIso,
@@ -25,42 +26,7 @@ function statusClass(status: string): string {
   return 'bg-slate-50 text-slate-600';
 }
 
-function parseHm(t: string): number {
-  const [h, m] = t.slice(0, 5).split(':').map(Number);
-  return h * 60 + (m || 0);
-}
-
-function formatHm(mins: number): string {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-}
-
-/** 운영 시간 1시간 단위 슬롯 */
-function buildHourSlots(openTime: string, closeTime: string): string[] {
-  const open = parseHm(openTime);
-  const close = parseHm(closeTime);
-  const slots: string[] = [];
-  for (let t = open; t + 60 <= close; t += 60) {
-    slots.push(formatHm(t));
-  }
-  return slots;
-}
-
-function overlapsSlot(
-  reservation: RoomReservationRow,
-  date: string,
-  slotStart: string
-): boolean {
-  if (seoulDateFromIso(reservation.starts_at) !== date) return false;
-  const slotStartM = parseHm(slotStart);
-  const slotEndM = slotStartM + 60;
-  const resStart = parseHm(seoulTimeFromIso(reservation.starts_at));
-  const resEnd = parseHm(seoulTimeFromIso(reservation.ends_at));
-  return resStart < slotEndM && resEnd > slotStartM;
-}
-
-/** 성인 수강생 — 연습실 타임슬롯 신청 (일별 점유 표시) */
+/** 성인 수강생 — 연습실 타임슬롯 신청 (호실×시간 현황 Grid) */
 export function CustomerPracticeRoomView({ organizationId }: { organizationId: string }) {
   const [rooms, setRooms] = useState<PracticeRoomRow[]>([]);
   const [mine, setMine] = useState<RoomReservationRow[]>([]);
@@ -78,16 +44,6 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
   const selectedRoom = useMemo(
     () => rooms.find((r) => r.id === roomId) || rooms[0],
     [rooms, roomId]
-  );
-
-  const hourSlots = useMemo(() => {
-    if (!selectedRoom) return [];
-    return buildHourSlots(String(selectedRoom.open_time), String(selectedRoom.close_time));
-  }, [selectedRoom]);
-
-  const roomDayBookings = useMemo(
-    () => dayBookings.filter((b) => !selectedRoom || b.room_id === selectedRoom.id),
-    [dayBookings, selectedRoom]
   );
 
   const reloadMineAndRooms = useCallback(async () => {
@@ -134,14 +90,6 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
   useEffect(() => {
     void reloadDay();
   }, [reloadDay]);
-
-  const handlePickSlot = (slot: string) => {
-    setStartTime(slot);
-    const end = formatHm(parseHm(slot) + 60);
-    setEndTime(end);
-    setError(null);
-    setSuccess(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -210,26 +158,8 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
           등록된 연습실이 없습니다. 사업장에 문의해 주세요.
         </p>
       ) : (
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3"
-        >
-          <h2 className="text-sm font-black text-slate-900">연습실 예약 신청</h2>
-          <label className="block text-xs font-semibold text-slate-700">
-            연습실
-            <select
-              value={selectedRoom?.id || ''}
-              onChange={(e) => setRoomId(e.target.value)}
-              className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold min-h-[44px]"
-            >
-              {rooms.map((r) => (
-                <option key={r.id} value={r.id}>
-                  {r.name} ({String(r.open_time).slice(0, 5)}–{String(r.close_time).slice(0, 5)})
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="block text-xs font-semibold text-slate-700">
+        <>
+          <label className="block text-xs font-semibold text-slate-700 bg-white rounded-2xl border border-slate-200 px-4 py-3">
             날짜
             <input
               type="date"
@@ -239,82 +169,78 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
             />
           </label>
 
-          {hourSlots.length > 0 && (
-            <div>
-              <p className="text-xs font-semibold text-slate-700 mb-2">시간대 (탭하여 선택)</p>
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                {hourSlots.map((slot) => {
-                  const busy = roomDayBookings.some((b) => overlapsSlot(b, date, slot));
-                  const selected = startTime === slot;
-                  return (
-                    <button
-                      key={slot}
-                      type="button"
-                      disabled={busy}
-                      onClick={() => handlePickSlot(slot)}
-                      className={`min-h-[44px] rounded-xl text-[11px] font-bold border transition-colors ${
-                        busy
-                          ? 'bg-slate-100 text-slate-400 border-slate-100 cursor-not-allowed'
-                          : selected
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
-                      }`}
-                    >
-                      {slot}
-                      {busy ? ' 예약됨' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-              {roomDayBookings.length > 0 && (
-                <ul className="mt-3 space-y-1">
-                  {roomDayBookings.map((b) => (
-                    <li key={b.id} className="text-[11px] text-slate-500">
-                      {seoulTimeFromIso(b.starts_at)}–{seoulTimeFromIso(b.ends_at)} ·{' '}
-                      {statusLabel(b.status)}
-                      {b.customers?.name ? ` · ${b.customers.name}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 gap-2">
-            <label className="block text-xs font-semibold text-slate-700">
-              시작
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
-              />
-            </label>
-            <label className="block text-xs font-semibold text-slate-700">
-              종료
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
-              />
-            </label>
-          </div>
-          <input
-            type="text"
-            placeholder="메모 (선택)"
-            value={memo}
-            onChange={(e) => setMemo(e.target.value)}
-            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
+          <PracticeRoomStatusGrid
+            date={date}
+            rooms={rooms}
+            bookings={dayBookings}
+            readOnlyOccupancy
+            onPickFreeSlot={(pick) => {
+              setRoomId(pick.roomId);
+              setStartTime(pick.startTime);
+              setEndTime(pick.endTime);
+              setError(null);
+              setSuccess(null);
+            }}
           />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:bg-slate-300"
+
+          <form
+            onSubmit={handleSubmit}
+            className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3"
           >
-            {submitting ? '신청 중...' : '예약 신청'}
-          </button>
-        </form>
+            <h2 className="text-sm font-black text-slate-900">예약 신청</h2>
+            <p className="text-[11px] text-slate-500">
+              위 현황판에서 빈 칸을 누르면 연습실·시간이 채워집니다.
+            </p>
+            <label className="block text-xs font-semibold text-slate-700">
+              연습실
+              <select
+                value={selectedRoom?.id || ''}
+                onChange={(e) => setRoomId(e.target.value)}
+                className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold min-h-[44px]"
+              >
+                {rooms.map((r) => (
+                  <option key={r.id} value={r.id}>
+                    {r.name} ({String(r.open_time).slice(0, 5)}–{String(r.close_time).slice(0, 5)})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block text-xs font-semibold text-slate-700">
+                시작
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
+                />
+              </label>
+              <label className="block text-xs font-semibold text-slate-700">
+                종료
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="mt-1 w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
+                />
+              </label>
+            </div>
+            <input
+              type="text"
+              placeholder="메모 (선택)"
+              value={memo}
+              onChange={(e) => setMemo(e.target.value)}
+              className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs min-h-[44px]"
+            />
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full min-h-[44px] rounded-xl bg-indigo-600 text-white text-xs font-bold disabled:bg-slate-300"
+            >
+              {submitting ? '신청 중...' : '예약 신청'}
+            </button>
+          </form>
+        </>
       )}
 
       <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-2">
@@ -330,7 +256,9 @@ export function CustomerPracticeRoomView({ organizationId }: { organizationId: s
               <div>
                 <p className="font-bold text-slate-800 flex flex-wrap items-center gap-2">
                   {r.practice_rooms?.name || '연습실'}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${statusClass(r.status)}`}>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${statusClass(r.status)}`}
+                  >
                     {statusLabel(r.status)}
                   </span>
                 </p>

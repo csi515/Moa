@@ -103,6 +103,7 @@ export type ParentPortalTab =
   | 'tuition'
   | 'assignments'
   | 'progress'
+  | 'stamps'
   | 'reports'
   | 'events'
   | 'notices'

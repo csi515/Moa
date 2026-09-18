@@ -2,7 +2,6 @@ import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
-import { PwaInstallPrompt } from '@/shared/components/PwaInstallPrompt';
 import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { Layers, Users } from 'lucide-react';
@@ -64,7 +63,6 @@ export const Header: React.FC = () => {
             </button>
           )}
           <RoleContextSwitcher />
-          <PwaInstallPrompt />
         </div>
       </div>
     </header>

@@ -12,8 +12,10 @@ const HEADER_ALIASES: Record<string, string> = {
   성별: '성별',
   gender: '성별',
   생년월일: '생년월일',
+  생일: '생년월일',
   birthdate: '생년월일',
   birth_date: '생년월일',
+  'birth date': '생년월일',
   연락처: '연락처',
   전화: '연락처',
   phone: '연락처',
@@ -23,14 +25,29 @@ const HEADER_ALIASES: Record<string, string> = {
   grade: '학년',
   보호자이름: '보호자이름',
   보호자명: '보호자이름',
+  학부모이름: '보호자이름',
+  학부모명: '보호자이름',
   parent_name: '보호자이름',
+  parentname: '보호자이름',
   보호자전화: '보호자전화',
   보호자연락처: '보호자전화',
+  학부모전화: '보호자전화',
+  학부모연락처: '보호자전화',
+  '학부모 연락처': '보호자전화',
+  '보호자 전화': '보호자전화',
   parent_phone: '보호자전화',
+  parentphone: '보호자전화',
   보호자이메일: '보호자이메일',
   parent_email: '보호자이메일',
   관계: '관계',
   relationship: '관계',
+  수강과목: '수강과목',
+  과목: '수강과목',
+  수강반: '수강과목',
+  반: '수강과목',
+  class: '수강과목',
+  course: '수강과목',
+  subject: '수강과목',
   입학일: '입학일',
   join_date: '입학일',
   월수강료: '월수강료',
@@ -43,8 +60,15 @@ const HEADER_ALIASES: Record<string, string> = {
 };
 
 export function normalizeHeader(raw: string): string {
-  const key = raw.trim().replace(/^\uFEFF/, '').toLowerCase();
-  return HEADER_ALIASES[key] || HEADER_ALIASES[raw.trim()] || raw.trim();
+  const trimmed = raw.trim().replace(/^\uFEFF/, '');
+  const key = trimmed.toLowerCase().replace(/\s+/g, '');
+  const spaced = trimmed.toLowerCase();
+  return (
+    HEADER_ALIASES[key] ||
+    HEADER_ALIASES[spaced] ||
+    HEADER_ALIASES[trimmed] ||
+    trimmed
+  );
 }
 
 export function normalizePhoneDigits(value: string): string {
@@ -70,15 +94,39 @@ function parseRelationship(
   return 'other';
 }
 
-function parseDate(raw: string): string {
-  const v = raw.trim();
+/** YYYY-MM-DD 또는 Excel 시리얼·슬래시 날짜 */
+export function parseImportDate(raw: string | number): string {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    return excelSerialToIsoDate(raw);
+  }
+  const v = String(raw ?? '').trim();
   if (!v) return '';
   if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
-  const m = v.match(/^(\d{4})[./](\d{1,2})[./](\d{1,2})$/);
+  const m = v.match(/^(\d{4})[./-](\d{1,2})[./-](\d{1,2})$/);
   if (m) {
     return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
   }
+  // Excel이 포맷한 로케일 날짜 등
+  const parsed = Date.parse(v);
+  if (!Number.isNaN(parsed)) {
+    const d = new Date(parsed);
+    const y = d.getFullYear();
+    const mo = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    if (y >= 1900 && y <= 2100) return `${y}-${mo}-${day}`;
+  }
   return v;
+}
+
+/** SheetJS Excel date serial → Asia/Seoul 기준 날짜 문자열 */
+export function excelSerialToIsoDate(serial: number): string {
+  // Excel epoch 1899-12-30 (UTC)
+  const utc = Date.UTC(1899, 11, 30) + Math.round(serial * 86400000);
+  const d = new Date(utc);
+  const y = d.getUTCFullYear();
+  const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${mo}-${day}`;
 }
 
 function parseMoney(raw: string): number | null {
@@ -103,7 +151,7 @@ export function normalizeImportRow(row: StudentImportRawRow): StudentImportNorma
     rowNumber: row.rowNumber,
     name: g('이름'),
     gender: parseGender(g('성별')),
-    birthDate: parseDate(g('생년월일')),
+    birthDate: parseImportDate(g('생년월일')),
     phone: normalizePhoneDigits(g('연락처')),
     school: g('학교'),
     grade: g('학년'),
@@ -111,7 +159,8 @@ export function normalizeImportRow(row: StudentImportRawRow): StudentImportNorma
     guardianPhone,
     guardianEmail: g('보호자이메일'),
     relationship: parseRelationship(g('관계')),
-    joinDate: parseDate(g('입학일')) || new Date().toISOString().slice(0, 10),
+    courseSubject: g('수강과목'),
+    joinDate: parseImportDate(g('입학일')) || new Date().toISOString().slice(0, 10),
     tuitionFee: parseMoney(g('월수강료')),
     paymentDay: parseDay(g('납부일')),
     memo: g('메모'),
@@ -157,13 +206,26 @@ export function validateStudentImportRows(
         errors.push({
           rowNumber: row.rowNumber,
           field: '보호자전화',
-          message: '보호자전화는 10~11자리 숫자여야 합니다.',
+          message: '학부모(보호자) 연락처는 10~11자리 숫자여야 합니다.',
         });
         continue;
       }
+    } else if (row.phone && (row.phone.length < 10 || row.phone.length > 11)) {
+      errors.push({
+        rowNumber: row.rowNumber,
+        field: '연락처',
+        message: '연락처는 10~11자리 숫자여야 합니다.',
+      });
+      continue;
     }
 
-    if (row.birthDate && !/^\d{4}-\d{2}-\d{2}$/.test(row.birthDate)) {
+    if (!row.birthDate) {
+      warnings.push({
+        rowNumber: row.rowNumber,
+        field: '생년월일',
+        message: '생년월일이 비어 있습니다. 기본값(2000-01-01)으로 등록됩니다.',
+      });
+    } else if (!/^\d{4}-\d{2}-\d{2}$/.test(row.birthDate)) {
       errors.push({
         rowNumber: row.rowNumber,
         field: '생년월일',
@@ -177,6 +239,14 @@ export function validateStudentImportRows(
         rowNumber: row.rowNumber,
         field: '성별',
         message: '성별을 인식하지 못해 비워 둡니다. (M/F 또는 남/여)',
+      });
+    }
+
+    if (!row.courseSubject) {
+      warnings.push({
+        rowNumber: row.rowNumber,
+        field: '수강과목',
+        message: '수강과목이 비어 있습니다. 반은 나중에 배정할 수 있습니다.',
       });
     }
 
@@ -230,6 +300,7 @@ export function buildTemplateCsv(): string {
     '01012345678',
     'parent@example.com',
     '모',
+    '피아노 초급',
     new Date().toISOString().slice(0, 10),
     '180000',
     '10',

@@ -138,6 +138,12 @@ export const DirectorTodayHome: FC<DirectorTodayHomeProps> = ({
       hidden: pendingEnrollmentCount === 0,
       onClick: openGuardianEnrollments,
     },
+    {
+      label: '완곡',
+      value: '스탬프',
+      tone: 'bg-amber-50 text-amber-900 border-amber-100',
+      onClick: () => setActiveTab('song-stamps'),
+    },
   ];
 
   return (

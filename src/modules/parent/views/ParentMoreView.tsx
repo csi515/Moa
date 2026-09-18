@@ -11,6 +11,7 @@ import {
   Settings,
   Unlink,
   Loader2,
+  Stamp,
 } from 'lucide-react';
 import { StorageService } from '@/services/storage';
 import type { ParentPortalTab } from '@/types/education';
@@ -35,7 +36,8 @@ function getPianoMoreItems(): MoreItem[] {
   return [
     { id: 'notices', label: '안내', description: '학원 공지·알림', icon: <Megaphone className="w-5 h-5" /> },
     { id: 'assignments', label: '과제', description: '이번 주 과제·확인', icon: <BookOpenCheck className="w-5 h-5" /> },
-    { id: 'progress', label: '진도·연습', description: '커리큘럼·연습 기록', icon: <TrendingUp className="w-5 h-5" /> },
+    { id: 'progress', label: '진도·연습', description: '커리큘럼·연습 기록·완곡 신청', icon: <TrendingUp className="w-5 h-5" /> },
+    { id: 'stamps', label: '완곡 스탬프', description: '자녀 스탬프판·완곡 리포트', icon: <Stamp className="w-5 h-5" /> },
     { id: 'reports', label: '학습 리포트', description: '월간 학습 리포트', icon: <FileText className="w-5 h-5" /> },
     { id: 'events', label: '행사', description: '연주회·학원 행사', icon: <Calendar className="w-5 h-5" /> },
   ];

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import type { ParentPortalTab } from '@/types/education';
 import type { Student } from '@/types';
 import type { IndustryType } from '@/core/industry/types';
@@ -21,6 +21,8 @@ import { ParentShuttleView } from './views/ParentShuttleView';
 import { ParentMoreView } from './views/ParentMoreView';
 import { normalizeIndustryType } from '@/core/industry/types';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
+import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
+import { ParentStudentStampView } from '@/modules/piano/components/songProgress';
 
 export function ParentPortalTabs({
   tab,
@@ -44,6 +46,19 @@ export function ParentPortalTabs({
   onSwitchChild?: () => void;
 }) {
   const industry = normalizeIndustryType(industryType);
+  const { portalTree } = useParentPortal();
+
+  const stampChildren = useMemo(() => {
+    const fromTree = (portalTree?.children ?? [])
+      .map((child) => {
+        const enr = child.enrollments.find((e) => e.organizationId === organizationId);
+        if (!enr) return null;
+        return { id: enr.customerId || child.studentId, name: child.displayName };
+      })
+      .filter((c): c is { id: string; name: string } => Boolean(c));
+    if (fromTree.length > 0) return fromTree;
+    return [{ id: student.id, name: student.name }];
+  }, [portalTree?.children, organizationId, student.id, student.name]);
 
   switch (tab) {
     case 'home':
@@ -72,9 +87,21 @@ export function ParentPortalTabs({
       return (
         <ParentProgressView
           student={student}
+          organizationId={organizationId}
+          industryType={industryType}
           readOnly={readOnly}
           showToast={showToast}
           onRefresh={onRefresh}
+        />
+      );
+    case 'stamps':
+      return (
+        <ParentStudentStampView
+          key={student.id}
+          organizationId={organizationId}
+          childrenOptions={stampChildren}
+          initialCustomerId={student.id}
+          onToast={showToast}
         />
       );
     case 'reports':

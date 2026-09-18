@@ -30,6 +30,7 @@ export type NavTab =
   | 'curriculum'
   | 'assignments'
   | 'achievements'
+  | 'song-stamps'
   | 'reports'
   | 'bookings'
   | 'services'

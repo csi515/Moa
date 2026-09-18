@@ -50,6 +50,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'curriculum',
     'assignments',
     'achievements',
+    'song-stamps',
     'reports',
   ]),
   staffTabs: withNoticesTabs([
@@ -66,6 +67,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'curriculum',
     'assignments',
     'achievements',
+    'song-stamps',
     'reports',
   ]),
 };

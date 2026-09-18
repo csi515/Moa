@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import type { StudentImportRawRow } from './types';
-import { normalizeHeader } from './validateStudentImport';
+import { STUDENT_IMPORT_TEMPLATE_HEADERS } from './types';
+import { excelSerialToIsoDate, normalizeHeader } from './validateStudentImport';
 
 function splitCsvLine(line: string): string[] {
   const cells: string[] = [];
@@ -28,18 +29,36 @@ function splitCsvLine(line: string): string[] {
   return cells.map((c) => c.trim());
 }
 
-function rowsFromMatrix(matrix: string[][]): StudentImportRawRow[] {
+function cellToString(value: unknown): string {
+  if (value == null || value === '') return '';
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    // 생년월일 등 Excel 시리얼(대략 20000~60000)
+    if (value > 20000 && value < 80000 && Number.isInteger(value)) {
+      return excelSerialToIsoDate(value);
+    }
+    return String(value);
+  }
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    const y = value.getFullYear();
+    const m = String(value.getMonth() + 1).padStart(2, '0');
+    const d = String(value.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+  return String(value).trim();
+}
+
+function rowsFromMatrix(matrix: unknown[][]): StudentImportRawRow[] {
   if (matrix.length === 0) return [];
-  const headers = matrix[0].map(normalizeHeader);
+  const headers = (matrix[0] || []).map((h) => normalizeHeader(cellToString(h)));
   const rows: StudentImportRawRow[] = [];
 
   for (let r = 1; r < matrix.length; r++) {
-    const cells = matrix[r];
-    if (!cells || cells.every((c) => !String(c || '').trim())) continue;
+    const cells = matrix[r] || [];
+    if (!cells.length || cells.every((c) => !cellToString(c))) continue;
     const values: Record<string, string> = {};
     headers.forEach((h, i) => {
       if (!h) return;
-      values[h] = String(cells[i] ?? '').trim();
+      values[h] = cellToString(cells[i]);
     });
     rows.push({ rowNumber: r + 1, values });
   }
@@ -54,16 +73,44 @@ export function parseStudentImportCsv(text: string): StudentImportRawRow[] {
 }
 
 export function parseStudentImportWorkbook(buffer: ArrayBuffer): StudentImportRawRow[] {
-  const workbook = XLSX.read(buffer, { type: 'array' });
+  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true });
   const sheetName = workbook.SheetNames[0];
   if (!sheetName) return [];
   const sheet = workbook.Sheets[sheetName];
-  const matrix = XLSX.utils.sheet_to_json<string[]>(sheet, {
+  const matrix = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
     header: 1,
     defval: '',
-    raw: false,
-  }) as string[][];
-  return rowsFromMatrix(matrix.map((row) => row.map((c) => String(c ?? ''))));
+    raw: true,
+  }) as unknown[][];
+  return rowsFromMatrix(matrix);
+}
+
+/** SheetJS로 마이그레이션용 xlsx 템플릿 생성 */
+export function buildTemplateWorkbookBuffer(): ArrayBuffer {
+  const sample = [
+    '김민수',
+    '남',
+    '2015-03-12',
+    '',
+    '서울초',
+    '초3',
+    '김부모',
+    '01012345678',
+    'parent@example.com',
+    '모',
+    '피아노 초급',
+    new Date().toISOString().slice(0, 10),
+    '180000',
+    '10',
+    '',
+  ];
+  const aoa = [STUDENT_IMPORT_TEMPLATE_HEADERS as unknown as string[], sample];
+  const sheet = XLSX.utils.aoa_to_sheet(aoa);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, sheet, '수강생');
+  const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+  const bytes = out instanceof Uint8Array ? out : new Uint8Array(out as ArrayLike<number>);
+  return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
 }
 
 export async function parseStudentImportFile(file: File): Promise<StudentImportRawRow[]> {

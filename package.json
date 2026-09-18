@@ -18,6 +18,7 @@
     "lint": "tsc --noEmit",
     "test:bulk-import": "tsx src/core/students/bulkImport/studentBulkImport.test.ts",
     "test:rls-audit": "tsx scripts/rls-org-isolation-audit.ts",
+    "test:auth-hijack-audit": "tsx scripts/auth-providers-hijack-audit.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"

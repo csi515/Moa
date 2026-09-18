@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { useStaffScope } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
-import { Users, Piano, Sparkles, BookOpen, ChevronRight } from 'lucide-react';
+import { Users, Piano, Sparkles, BookOpen, ChevronRight, Stamp } from 'lucide-react';
 import { requestOpenPendingPractice } from '@/core/customer/studentJoinInbox';
 import { TodayLessonView } from '../lessons/TodayLessonView';
 import { todayIsoLocal } from '@/shared/utils/localDate';
@@ -58,10 +58,11 @@ export const StaffDashboardView: React.FC = () => {
         </div>
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {[
-            { label: '학생', value: activeStudents.length, tab: 'students' as const },
-            { label: '오늘', value: todayClasses.length, tab: 'lessons' as const },
-            { label: '미보강', value: pendingMakeups, tab: 'makeups' as const },
-            { label: '연습', value: pendingPracticeCount, tab: 'practice' as const },
+            { label: '학생', value: String(activeStudents.length), tab: 'students' as const },
+            { label: '오늘', value: String(todayClasses.length), tab: 'lessons' as const },
+            { label: '미보강', value: String(pendingMakeups), tab: 'makeups' as const },
+            { label: '연습', value: String(pendingPracticeCount), tab: 'practice' as const },
+            { label: '완곡', value: '스탬프', tab: 'song-stamps' as const },
           ].map(({ label, value, tab }) => (
             <button
               key={label}
@@ -131,6 +132,7 @@ export const StaffDashboardView: React.FC = () => {
           <div className="grid grid-cols-2 gap-2">
             {[
               { tab: 'practice' as const, label: '연습 기록', icon: BookOpen },
+              { tab: 'song-stamps' as const, label: '완곡 스탬프', icon: Stamp },
               { tab: 'curriculum' as const, label: '커리큘럼', icon: BookOpen },
               { tab: 'assignments' as const, label: '주간 과제', icon: BookOpen },
               { tab: 'makeups' as const, label: '보강', icon: Sparkles },

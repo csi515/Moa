@@ -5,16 +5,22 @@ import { useApp } from '@/context/AppContext';
 import { Modal } from '@/shared/components';
 import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui';
 import type { Student } from '@/types';
+import type { IndustryType } from '@/core/industry/types';
 import { CheckCircle2, AlertCircle, Award, Plus } from 'lucide-react';
 import { Section } from './shared';
+import { StudentStampBoard } from '@/modules/piano/components/songProgress';
 
 export function ParentProgressView({
   student,
+  organizationId,
+  industryType = 'piano',
   readOnly = false,
   showToast,
   onRefresh,
 }: {
   student: Student;
+  organizationId?: string;
+  industryType?: IndustryType;
   readOnly?: boolean;
   showToast?: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
   onRefresh?: () => void;
@@ -44,6 +50,7 @@ export function ParentProgressView({
 
   const studentLevel = levels.find((l) => l.name === student.level) || levels[0];
   const levelItems = studentLevel ? items.filter((i) => i.levelId === studentLevel.id) : [];
+  const showSongStamps = industryType === 'piano' && Boolean(organizationId);
 
   const openCreate = () => {
     setForm({
@@ -83,6 +90,17 @@ export function ParentProgressView({
 
   return (
     <div className="space-y-4">
+      {showSongStamps && organizationId && (
+        <StudentStampBoard
+          organizationId={organizationId}
+          customerId={student.id}
+          studentName={student.name}
+          boardSize={20}
+          canRequest={!readOnly}
+          onToast={showToast}
+        />
+      )}
+
       <Section title={`커리큘럼 진도 (${student.level || '미설정'})`}>
         {levelItems.length === 0 ? (
           <p className="text-sm text-slate-400 text-center py-4">등록된 커리큘럼이 없습니다.</p>

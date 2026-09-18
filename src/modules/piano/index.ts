@@ -30,6 +30,15 @@ export {
   AchievementsManagementView,
   ReportsManagementView,
 } from './components/education/EducationManagementView';
+export {
+  StudentStampBoard,
+  DirectorApprovalModal,
+  TeacherDirectPassModal,
+  ParentStudentStampView,
+  CompletionReport,
+  SongProgressStaffView,
+  songProgressService,
+} from './components/songProgress';
 export { PianoAppContent } from './PianoAppContent';
 
 // Module config

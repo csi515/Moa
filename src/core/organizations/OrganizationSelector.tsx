@@ -18,11 +18,12 @@ import { useAuth } from '../auth/AuthProvider';
 
 export const OrganizationSelector: React.FC = () => {
   const { organizations, selectOrganization, loading, blockedOwnerOrgIds } = useOrganization();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [showTeacherFlow, setShowTeacherFlow] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const missingEmail = !user?.email?.trim();
 
   const handleBack = () => {
     // AppGate에 history 스택이 없어 navigate(-1)은 외부로 나갈 수 있음 → 명시적 로그아웃
@@ -65,6 +66,12 @@ export const OrganizationSelector: React.FC = () => {
           <p className="text-sm text-slate-500 mt-2">
             운영·근무할 사업장을 선택하거나 새로 등록하세요. 이용자 가입은 아래 별도 메뉴입니다.
           </p>
+          {missingEmail && (
+            <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 text-left leading-relaxed">
+              이 계정에 이메일이 없습니다. 알림·계정 복구를 위해 나중에 설정에서 이메일을
+              연결해 주세요. 이미 다른 방법으로 가입된 이메일은 자동으로 합쳐지지 않습니다.
+            </p>
+          )}
         </div>
 
         <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-6 sm:p-8 space-y-4">

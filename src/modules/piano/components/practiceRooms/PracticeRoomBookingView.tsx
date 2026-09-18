@@ -26,6 +26,7 @@ import {
 } from '@/core/customer/services/practiceRoomReservationService';
 import { removeById, upsertById } from '@/shared/utils/listUpdate';
 import { PracticeRoomCalendarPanel } from './PracticeRoomCalendarPanel';
+import { PracticeRoomStatusGrid } from '@/core/customer/components/PracticeRoomStatusGrid';
 import {
   calendarPeriodLabel,
   rangeForMode,
@@ -137,12 +138,17 @@ export const PracticeRoomBookingView: FC = () => {
     void reload();
   }, [reload]);
 
-  const openCreate = () => {
+  const openCreate = (preset?: {
+    roomId?: string;
+    startTime?: string;
+    endTime?: string;
+  }) => {
     const lessonMinutes = settings.defaultLessonMinutes || 50;
+    const start = preset?.startTime || '16:00';
     setStudentId(students[0]?.id || '');
-    setRoomId(rooms[0]?.id || '');
-    setStartTime('16:00');
-    setEndTime(addMinutes('16:00', lessonMinutes));
+    setRoomId(preset?.roomId || rooms[0]?.id || '');
+    setStartTime(start);
+    setEndTime(preset?.endTime || addMinutes(start, lessonMinutes));
     setMemo('');
     setModalOpen(true);
   };
@@ -347,7 +353,7 @@ export const PracticeRoomBookingView: FC = () => {
         />
         <button
           type="button"
-          onClick={openCreate}
+          onClick={() => openCreate()}
           disabled={rooms.length === 0}
           className="inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 shrink-0 disabled:opacity-50"
         >
@@ -393,10 +399,27 @@ export const PracticeRoomBookingView: FC = () => {
         bookings={bookings}
         loading={loading}
         onSelectDate={handleSelectDate}
-        onCreate={openCreate}
+        onCreate={() => openCreate()}
         onCancel={handleCancel}
         canCreate={rooms.length > 0}
       />
+
+      {!loading && (
+        <PracticeRoomStatusGrid
+          date={selectedDate}
+          rooms={rooms}
+          bookings={selectedDayBookings}
+          onPickFreeSlot={(pick) => {
+            setViewMode('day');
+            openCreate({
+              roomId: pick.roomId,
+              startTime: pick.startTime,
+              endTime: pick.endTime,
+            });
+          }}
+          onPickBusySlot={handleCancel}
+        />
+      )}
 
       {viewMode !== 'day' && !loading && (
         <section className="rounded-2xl border border-slate-200 bg-white p-3.5 space-y-2">

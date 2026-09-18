@@ -38,6 +38,7 @@ import {
 import { PassManagementView } from '@/modules/pilates/components/passes/PassManagementView';
 import { PianoScheduleView } from './components/schedule';
 import { PianoConsultationHubView } from './components/consultations';
+import { SongProgressStaffView } from './components/songProgress';
 
 const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
   { tab: 'classes', label: '정규 레슨' },
@@ -51,6 +52,7 @@ const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
   { tab: 'recitals', label: '연주회·콩쿠르' },
   { tab: 'curriculum', label: '커리큘럼·진도' },
   { tab: 'achievements', label: '시험·등급' },
+  { tab: 'song-stamps', label: '완곡 스탬프' },
   { tab: 'reports', label: '학습 리포트' },
 ];
 
@@ -85,6 +87,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   curriculum: () => <CurriculumManagementView />,
   assignments: () => <AssignmentsManagementView />,
   achievements: () => <AchievementsManagementView />,
+  'song-stamps': () => <SongProgressStaffView />,
   reports: () => <ReportsManagementView />,
   settings: pianoSettingsHub,
   teachers: pianoSettingsHub,

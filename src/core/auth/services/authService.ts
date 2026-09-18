@@ -1,4 +1,4 @@
-import { Session, User } from '@supabase/supabase-js';
+import { Session, User, type Provider } from '@supabase/supabase-js';
 import { getCoreClient } from '../../../lib/supabase';
 
 export interface SignUpParams {
@@ -71,11 +71,15 @@ export async function signInWithKakao(): Promise<void> {
   if (error) throw error;
 }
 
+/** SDK Provider 유니온에 없는 Custom OIDC (Dashboard `custom:naver`) */
+type OAuthProviderArg = Provider | 'custom:naver';
+
 /** 네이버 OAuth — Custom Auth Provider `custom:naver` (Supabase Dashboard) */
 export async function signInWithNaver(): Promise<void> {
+  const provider: OAuthProviderArg = 'custom:naver';
   const { error } = await getCoreClient().auth.signInWithOAuth({
-    // SDK Provider 유니온에 custom:* 가 없을 때 타입 단언
-    provider: 'custom:naver' as 'kakao',
+    // supabase-js Provider 타입에 custom:* 미포함 → 한 곳에서만 단언
+    provider: provider as Provider,
     options: {
       redirectTo: getAuthRedirectTo(),
       skipBrowserRedirect: false,
