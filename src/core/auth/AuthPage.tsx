@@ -25,6 +25,7 @@ export const AuthPage: React.FC = () => {
         onAgreedToTermsChange={form.setAgreedToTerms}
         onSwitchMode={form.switchMode}
         onSubmit={form.handleSubmit}
+        onNaver={form.handleNaver}
       />
     </AuthLayout>
   );

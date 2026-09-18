@@ -13,7 +13,14 @@ import { hydrateCoreEntities, persistCoreEntity, type SyncCache } from './sync/c
 import { hydrateDaycareEntities, persistDaycareEntity } from './sync/daycareEntitySync';
 import { hydrateEducationEntities, persistEducationEntity } from './sync/educationEntitySync';
 import { hydratePianoEntities, persistPianoEntity } from './sync/pianoEntitySync';
+import {
+  clearSyncOutboxKeys,
+  enqueueSyncOutbox,
+  peekSyncOutbox,
+} from './syncOutbox';
 import type { IStorageAdapter, StorageListener } from './types';
+
+const LOCAL_MISS = Symbol('local-miss');
 
 /** Supabase 하이브리드 어댑터 — Core + Piano 모듈 Supabase sync */
 export class SupabaseAdapter implements IStorageAdapter {
@@ -23,18 +30,24 @@ export class SupabaseAdapter implements IStorageAdapter {
   private cache = new Map<string, unknown>();
   private hydrated = false;
   private hydrating = false;
+  /** 네트워크 hydrate 실패 후 로컬 스냅샷으로 기동 */
+  private offlineHydrated = false;
   /** hydrate / clear 시 증가 — in-flight hydrate·persist 무효화 */
   private hydrateGeneration = 0;
   private persistGeneration = 0;
   private persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private onlineListenerAttached = false;
 
   getItem<T>(key: StorageKey, defaultValue: T): T {
     if (SUPABASE_SYNC_KEYS.has(key)) {
       if (this.cache.has(key)) {
         return this.cache.get(key) as T;
       }
-      // hydrate 완료 전 org 스코프 sync 키는 localStorage fallback 금지 (org 전환 시 이전 데이터 노출 방지)
+      // hydrate 완료 전: org 스코프 로컬 스냅샷만 허용 (오프라인 폴백)
       if (getOrganizationId() && !this.hydrated) {
+        if (this.offlineHydrated) {
+          return readLocal(key, defaultValue);
+        }
         return defaultValue;
       }
     }
@@ -44,6 +57,8 @@ export class SupabaseAdapter implements IStorageAdapter {
   setItem<T>(key: StorageKey, value: T): void {
     if (SUPABASE_SYNC_KEYS.has(key)) {
       this.cache.set(key, value);
+      // 오프라인·재시작 대비 즉시 로컬 미러
+      writeLocal(key, value);
       this.schedulePersist(key);
     } else {
       writeLocal(key, value);
@@ -76,6 +91,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.persistTimers.forEach((timer) => clearTimeout(timer));
     this.persistTimers.clear();
     this.hydrated = false;
+    this.offlineHydrated = false;
     this.hydrating = true;
 
     const cacheAdapter = this.createLiveCacheAdapter();
@@ -97,10 +113,23 @@ export class SupabaseAdapter implements IStorageAdapter {
       }
 
       this.hydrated = true;
+      this.offlineHydrated = false;
+      this.ensureOnlineFlushListener();
       this.notify();
+      void this.flushSyncOutbox();
     } catch (error) {
       if (!isStale()) {
+        const loaded = this.loadLocalSnapshotIntoCache();
+        if (loaded) {
+          this.hydrated = true;
+          this.offlineHydrated = true;
+          this.ensureOnlineFlushListener();
+          this.notify();
+          console.warn('[storage] hydrate failed — using local snapshot (offline mode)', error);
+          return;
+        }
         this.hydrated = false;
+        this.offlineHydrated = false;
         this.cache.clear();
       }
       throw error;
@@ -117,6 +146,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.persistGeneration++;
     this.cache.clear();
     this.hydrated = false;
+    this.offlineHydrated = false;
     this.hydrating = false;
     this.persistTimers.forEach((timer) => clearTimeout(timer));
     this.persistTimers.clear();
@@ -126,6 +156,10 @@ export class SupabaseAdapter implements IStorageAdapter {
 
   isHydrated(): boolean {
     return this.hydrated;
+  }
+
+  isOfflineHydrated(): boolean {
+    return this.offlineHydrated;
   }
 
   isHydrating(): boolean {
@@ -214,26 +248,77 @@ export class SupabaseAdapter implements IStorageAdapter {
 
     if (isAborted()) return false;
 
-    let ok = true;
+    try {
+      let ok = true;
 
-    if (CORE_SYNC_KEYS.has(key)) {
-      ok = (await persistCoreEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-      if (isAborted()) return false;
+      if (CORE_SYNC_KEYS.has(key)) {
+        ok = (await persistCoreEntity(key, orgId, cacheAdapter, isAborted)) && ok;
+        if (isAborted()) return false;
+      }
+
+      if (PIANO_SYNC_KEYS.has(key)) {
+        await persistPianoEntity(key, orgId, cacheAdapter, isAborted);
+        if (isAborted()) return false;
+        await persistEducationEntity(key, orgId, cacheAdapter, isAborted);
+        if (isAborted()) return false;
+      }
+
+      if (DAYCARE_SYNC_KEYS.has(key)) {
+        await persistDaycareEntity(key, orgId, cacheAdapter, isAborted);
+        if (isAborted()) return false;
+      }
+
+      if (!ok) {
+        enqueueSyncOutbox(key);
+      } else {
+        clearSyncOutboxKeys([key]);
+      }
+
+      return ok;
+    } catch (error) {
+      console.error(`[storage] persist failed for ${key}`, error);
+      enqueueSyncOutbox(key);
+      return false;
     }
+  }
 
-    if (PIANO_SYNC_KEYS.has(key)) {
-      await persistPianoEntity(key, orgId, cacheAdapter, isAborted);
-      if (isAborted()) return false;
-      await persistEducationEntity(key, orgId, cacheAdapter, isAborted);
-      if (isAborted()) return false;
+  /** 로컬에 저장된 org 스냅샷을 캐시에 적재 (오프라인 기동) */
+  private loadLocalSnapshotIntoCache(): boolean {
+    let loaded = 0;
+    for (const key of SUPABASE_SYNC_KEYS) {
+      const value = readLocal<unknown | typeof LOCAL_MISS>(key, LOCAL_MISS);
+      if (value !== LOCAL_MISS) {
+        this.cache.set(key, value);
+        loaded++;
+      }
     }
+    return (
+      this.cache.has(STORAGE_KEYS.STUDENTS) ||
+      this.cache.has(STORAGE_KEYS.SETTINGS) ||
+      loaded >= 3
+    );
+  }
 
-    if (DAYCARE_SYNC_KEYS.has(key)) {
-      await persistDaycareEntity(key, orgId, cacheAdapter, isAborted);
-      if (isAborted()) return false;
+  private ensureOnlineFlushListener(): void {
+    if (this.onlineListenerAttached || typeof window === 'undefined') return;
+    this.onlineListenerAttached = true;
+    const flush = () => {
+      void this.flushSyncOutbox();
+    };
+    window.addEventListener('online', flush);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') flush();
+    });
+  }
+
+  async flushSyncOutbox(): Promise<void> {
+    if (!this.hydrated || typeof navigator !== 'undefined' && navigator.onLine === false) {
+      return;
     }
-
-    return ok;
+    const keys = peekSyncOutbox();
+    if (keys.length === 0) return;
+    const ok = await this.flushPersist(keys);
+    if (ok) clearSyncOutboxKeys(keys);
   }
 
   private notify(): void {

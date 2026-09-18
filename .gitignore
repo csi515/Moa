@@ -7,6 +7,12 @@ coverage/
 .env*
 !.env.example
 
+# Playwright
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+
 # Capacitor / native build caches (소스는 커밋)
 android/.gradle/
 android/app/build/

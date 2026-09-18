@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
+import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
 
 export function useAuthForm() {
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, signInWithNaver } = useAuth();
   const [mode, setMode] = useState<AuthMode>('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -20,6 +21,37 @@ export function useAuthForm() {
     setMode(next);
     setError(null);
     setInfo(null);
+  };
+
+  const handleNaver = async () => {
+    setError(null);
+    setInfo(null);
+
+    try {
+      if (mode === 'signup') {
+        if (!agreedToTerms) {
+          throw new Error('이용약관 및 개인정보처리방침에 동의해 주세요.');
+        }
+        saveOAuthSignupIntent({
+          mode: 'signup',
+          fullName: fullName.trim() || undefined,
+        });
+      } else if (mode === 'forgot') {
+        throw new Error('비밀번호 찾기는 이메일로 진행해 주세요.');
+      } else {
+        saveOAuthSignupIntent({ mode: 'login' });
+      }
+
+      setLoading(true);
+      await signInWithNaver();
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : '네이버 로그인 중 오류가 발생했습니다.';
+      setError(message);
+    } finally {
+      // OAuth 리다이렉트가 실패·차단되면 버튼을 다시 활성화
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent) => {
@@ -78,5 +110,6 @@ export function useAuthForm() {
     info,
     switchMode,
     handleSubmit,
+    handleNaver,
   };
 }

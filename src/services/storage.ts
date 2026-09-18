@@ -34,6 +34,10 @@ const storageCore = {
     return getStorageAdapter().isHydrated();
   },
 
+  isOfflineHydrated(): boolean {
+    return getStorageAdapter().isOfflineHydrated?.() ?? false;
+  },
+
   isHydrating(): boolean {
     return getStorageAdapter().isHydrating();
   },

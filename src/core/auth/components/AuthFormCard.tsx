@@ -1,6 +1,7 @@
 import type { FormEvent } from 'react';
 import { Eye, EyeOff, Loader2, Lock, Mail, User } from 'lucide-react';
 import { legalPageHref } from '@/core/legal/legalPaths';
+import { NaverAuthButton } from './NaverAuthButton';
 import type { AuthMode } from '../hooks/useAuthForm';
 
 interface AuthFormCardProps {
@@ -20,6 +21,7 @@ interface AuthFormCardProps {
   onAgreedToTermsChange: (value: boolean) => void;
   onSwitchMode: (mode: AuthMode) => void;
   onSubmit: (event: FormEvent) => void;
+  onNaver: () => void;
 }
 
 export function AuthFormCard({
@@ -39,6 +41,7 @@ export function AuthFormCard({
   onAgreedToTermsChange,
   onSwitchMode,
   onSubmit,
+  onNaver,
 }: AuthFormCardProps) {
   const termsLabel = (
     <span>
@@ -49,7 +52,7 @@ export function AuthFormCard({
       <a href={legalPageHref('privacy')} className="text-indigo-600 underline">
         개인정보처리방침
       </a>
-      에 동의합니다 (필수)
+      에 동의합니다 (필수 · 네이버 가입 포함)
     </span>
   );
 
@@ -92,6 +95,7 @@ export function AuthFormCard({
         </button>
       )}
 
+      {/* 회원가입: 약관 → 네이버 → 이메일 */}
       {mode === 'signup' && (
         <div className="mb-5 space-y-4">
           <p className="text-xs text-slate-500 leading-relaxed">
@@ -107,13 +111,53 @@ export function AuthFormCard({
             />
             {termsLabel}
           </label>
+
+          <div className="space-y-2">
+            <NaverAuthButton mode="signup" loading={loading} onClick={onNaver} />
+            {!agreedToTerms && (
+              <p className="text-[11px] text-center text-slate-500 px-0.5">
+                네이버로 가입하려면 위 약관에 동의해 주세요.
+              </p>
+            )}
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
+        </div>
+      )}
+
+      {/* 로그인: 네이버 원형 버튼 */}
+      {mode === 'login' && (
+        <div className="mb-5 space-y-3">
+          <NaverAuthButton mode="login" loading={loading} onClick={onNaver} />
+          {error && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+              {error}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-slate-200" />
+            <span className="text-[11px] font-bold text-slate-400">또는 이메일</span>
+            <div className="h-px flex-1 bg-slate-200" />
+          </div>
         </div>
       )}
 
       <form onSubmit={onSubmit} className="space-y-4">
         {mode === 'signup' && (
           <div>
-            <label className="block text-xs font-bold text-slate-600 mb-1.5">이름</label>
+            <label className="block text-xs font-bold text-slate-600 mb-1.5">
+              이름
+              <span className="text-slate-400 font-medium"> (네이버 가입 시 선택)</span>
+            </label>
             <div className="relative">
               <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
@@ -182,7 +226,13 @@ export function AuthFormCard({
           </div>
         )}
 
-        {error && (
+        {error && mode === 'forgot' && (
+          <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+            {error}
+          </div>
+        )}
+
+        {error && mode === 'signup' && (
           <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
             {error}
           </div>
@@ -200,8 +250,8 @@ export function AuthFormCard({
           className="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[44px]"
         >
           {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-          {mode === 'login' && '로그인'}
-          {mode === 'signup' && '가입하기'}
+          {mode === 'login' && '이메일로 로그인'}
+          {mode === 'signup' && '이메일로 가입하기'}
           {mode === 'forgot' && '재설정 링크 보내기'}
         </button>
       </form>

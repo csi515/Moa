@@ -10,6 +10,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, fullName: string) => Promise<void>;
   signInWithKakao: () => Promise<void>;
+  signInWithNaver: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -51,6 +52,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     await authService.signInWithKakao();
   };
 
+  const signInWithNaver = async () => {
+    await authService.signInWithNaver();
+  };
+
   const signOut = async () => {
     StorageService.clearOrganization();
     await authService.signOut();
@@ -66,6 +71,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         signIn,
         signUp,
         signInWithKakao,
+        signInWithNaver,
         signOut,
       }}
     >

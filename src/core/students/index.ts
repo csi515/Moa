@@ -10,3 +10,4 @@ export type {
   GuardianRegistrationInput,
 } from './services/studentRegistrationService';
 export { StudentService } from './services/studentService';
+export * from './bulkImport';

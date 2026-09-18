@@ -71,6 +71,19 @@ export async function signInWithKakao(): Promise<void> {
   if (error) throw error;
 }
 
+/** 네이버 OAuth — Custom Auth Provider `custom:naver` (Supabase Dashboard) */
+export async function signInWithNaver(): Promise<void> {
+  const { error } = await getCoreClient().auth.signInWithOAuth({
+    // SDK Provider 유니온에 custom:* 가 없을 때 타입 단언
+    provider: 'custom:naver' as 'kakao',
+    options: {
+      redirectTo: getAuthRedirectTo(),
+      skipBrowserRedirect: false,
+    },
+  });
+  if (error) throw error;
+}
+
 export async function signOut(): Promise<void> {
   const { error } = await getCoreClient().auth.signOut();
   if (error) throw error;

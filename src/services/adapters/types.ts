@@ -21,6 +21,8 @@ export interface IStorageAdapter {
 
   isHydrated(): boolean;
   isHydrating(): boolean;
+  /** 원격 hydrate 실패 후 로컬 스냅샷으로 기동 중 */
+  isOfflineHydrated?(): boolean;
 
   /** 지정 키의 debounce persist를 즉시 실행. false면 원격 반영 실패(또는 abort) */
   flushPersist?(keys: StorageKey[]): Promise<boolean>;

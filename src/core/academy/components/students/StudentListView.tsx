@@ -23,7 +23,9 @@ import {
   ChevronRight,
   Bus,
   SlidersHorizontal,
+  FileSpreadsheet,
 } from 'lucide-react';
+import { StudentBulkImportModal } from './StudentBulkImportModal';
 import {
   WEEKDAY_FILTER_OPTIONS,
   buildAttendanceByStudentToday,
@@ -108,6 +110,7 @@ export const StudentListView: React.FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
   const [detailStudent, setDetailStudent] = useState<Student | null>(null);
 
@@ -229,7 +232,15 @@ export const StudentListView: React.FC = () => {
   return (
     <div className={DENSITY.pageStack}>
       {!isScoped && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setIsBulkImportOpen(true)}
+            className="px-4 py-2.5 min-h-[44px] bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-bold rounded-xl transition-all border border-slate-200 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            엑셀/CSV 가져오기
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -625,6 +636,12 @@ export const StudentListView: React.FC = () => {
         onEdit={handleOpenEdit}
         initialTab={selectedStudentDetailTab || undefined}
         onInitialTabApplied={() => setSelectedStudentDetailTab(null)}
+      />
+
+      <StudentBulkImportModal
+        isOpen={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onCompleted={() => setIsBulkImportOpen(false)}
       />
     </div>
   );
