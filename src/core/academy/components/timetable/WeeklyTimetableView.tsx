@@ -263,11 +263,12 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
               value={teacherFilter}
               onChange={(e) => setTeacherFilter(e.target.value)}
               className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+              aria-label="선생님별 필터"
             >
               <option value="ALL">전체 선생님</option>
               {teachers.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name}
+                  {t.name} 선생님
                 </option>
               ))}
             </select>
@@ -277,6 +278,7 @@ export const WeeklyTimetableView: React.FC<WeeklyTimetableViewProps> = ({
             value={roomFilter}
             onChange={(e) => setRoomFilter(e.target.value)}
             className="px-3 py-2 min-h-[44px] text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+            aria-label="강의실 필터"
           >
             <option value="ALL">전체 강의실</option>
             {rooms.map((r) => (

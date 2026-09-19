@@ -23,7 +23,7 @@ const icon = (node: ReactNode) => node;
 
 /**
  * Core: 홈·학생·일정·출결(등원)·상담·수납 · 설정
- * 레슨은 일정 허브 / 모바일「오늘」· PIN 출석은 더보기
+ * 레슨은 모바일「오늘」· PIN 출석은 더보기
  */
 export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] {
   return [

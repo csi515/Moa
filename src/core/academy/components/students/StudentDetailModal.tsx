@@ -5,7 +5,7 @@ import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal'
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
-import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown } from 'lucide-react';
+import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown, Stamp } from 'lucide-react';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
 import { StudentDetailAttendanceTab } from './detail/StudentDetailAttendanceTab';
@@ -20,6 +20,9 @@ import type { DetailTab } from './detail/types';
 import { useApp } from '@/context/AppContext';
 import { useStaffGrants } from '@/hooks';
 import { useModuleLabels } from '@/core/labels';
+import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { TeacherDirectPassModal } from '@/modules/piano/components/songProgress';
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 export type { DetailTab } from './detail/types';
 
@@ -55,10 +58,12 @@ const StudentDetailModalContent: React.FC<
     onClose,
     onEdit,
   });
-  const { setActiveTab } = useApp();
+  const { setActiveTab, showToast } = useApp();
   const { allow } = useStaffGrants();
   const labels = useModuleLabels();
+  const { currentOrganization } = useOrganization();
   const skin = modal.industryPlugin.id === 'skin_clinic';
+  const isPiano = modal.industryPlugin.id === 'piano';
   const customerLabel = skin ? labels.customer.singular : '학생';
   const contactLabel = skin ? labels.contact.singular : '학부모';
   const canCall = allow('guardianPhone');
@@ -66,6 +71,7 @@ const StudentDetailModalContent: React.FC<
   const canWithdraw = allow('withdrawStudent');
   const canTuition = allow('tuition');
   const [showMoreTabs, setShowMoreTabs] = useState(false);
+  const [stampGrantOpen, setStampGrantOpen] = useState(false);
 
   const primaryTabs = useMemo(
     () =>
@@ -207,6 +213,16 @@ const StudentDetailModalContent: React.FC<
             <ClipboardCheck className="w-3.5 h-3.5" />
             출결 기록
           </button>
+          {isPiano && currentOrganization?.id && isSupabaseConfigured() && (
+            <button
+              type="button"
+              onClick={() => setStampGrantOpen(true)}
+              className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-900 hover:border-amber-400 inline-flex items-center gap-1.5"
+            >
+              <Stamp className="w-3.5 h-3.5" />
+              완곡 스탬프
+            </button>
+          )}
           {canEdit && (
           <button
             type="button"
@@ -539,6 +555,17 @@ const StudentDetailModalContent: React.FC<
         isOpen={modal.guardianLinkOpen}
         onClose={() => modal.setGuardianLinkOpen(false)}
       />
+
+      {isPiano && currentOrganization?.id && (
+        <TeacherDirectPassModal
+          isOpen={stampGrantOpen}
+          onClose={() => setStampGrantOpen(false)}
+          organizationId={currentOrganization.id}
+          customerId={student.id}
+          studentName={student.name}
+          onToast={showToast}
+        />
+      )}
     </div>
   );
 };

@@ -1,10 +1,15 @@
 import { useState, type FC, type FormEvent } from 'react';
 import { Loader2, Share2, Stamp } from 'lucide-react';
 import { Modal } from '@/shared/components';
-import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui';
+import { FORM_CONTROL_CLASS } from '@/shared/components/ui';
 import { songProgressService } from './songProgressService';
 import { fireSongCompletionConfetti, shareSongCelebration } from './songProgressEffects';
-import { SONG_BOOK_OPTIONS, SONG_PROGRESS_COPY } from './songProgressTypes';
+import {
+  SONG_BOOK_OPTIONS,
+  SONG_NUMBER_QUICK,
+  SONG_PROGRESS_COPY,
+  formatSongNumberTitle,
+} from './songProgressTypes';
 
 interface TeacherDirectPassModalProps {
   isOpen: boolean;
@@ -16,7 +21,7 @@ interface TeacherDirectPassModalProps {
   onGranted?: () => void;
 }
 
-/** 원장/강사 — 레슨 중 완곡 스탬프 즉시 수여 */
+/** 원장/강사 — 교재 칩 + 번호 + 원버튼 완곡 스탬프 수여 */
 export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
   isOpen,
   onClose,
@@ -26,17 +31,20 @@ export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
   onToast,
   onGranted,
 }) => {
-  const [bookName, setBookName] = useState<string>(SONG_BOOK_OPTIONS[4] || SONG_BOOK_OPTIONS[0]);
-  const [songTitle, setSongTitle] = useState('');
-  const [stamps, setStamps] = useState(1);
+  const [bookName, setBookName] = useState<string>(SONG_BOOK_OPTIONS[0]);
+  const [customBook, setCustomBook] = useState('');
+  const [songNumber, setSongNumber] = useState('');
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState<{ bookName: string; songTitle: string; stamps: number } | null>(
     null
   );
 
+  const isOther = bookName === '기타';
+  const resolvedBook = isOther ? customBook.trim() : bookName;
+
   const resetForm = () => {
-    setSongTitle('');
-    setStamps(1);
+    setCustomBook('');
+    setSongNumber('');
     setDone(null);
   };
 
@@ -48,8 +56,13 @@ export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    if (!songTitle.trim()) {
-      onToast?.('곡명·번호를 입력해 주세요.', 'warning');
+    if (!resolvedBook) {
+      onToast?.('교재를 선택해 주세요.', 'warning');
+      return;
+    }
+    const songTitle = formatSongNumberTitle(songNumber);
+    if (!songTitle) {
+      onToast?.('곡 번호를 입력하거나 선택해 주세요.', 'warning');
       return;
     }
     setSaving(true);
@@ -57,12 +70,12 @@ export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
       await songProgressService.grantDirect({
         organizationId,
         customerId,
-        bookName,
-        songTitle: songTitle.trim(),
-        stamps,
+        bookName: resolvedBook,
+        songTitle,
+        stamps: 1,
       });
       fireSongCompletionConfetti();
-      setDone({ bookName, songTitle: songTitle.trim(), stamps });
+      setDone({ bookName: resolvedBook, songTitle, stamps: 1 });
       onToast?.(`${studentName} 학생에게 스탬프를 수여했습니다.`, 'success');
       onGranted?.();
     } catch (err) {
@@ -102,7 +115,7 @@ export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
             <div>
               <p className="text-base font-black text-slate-900">스탬프 수여 완료!</p>
               <p className="text-sm text-slate-600 mt-1">
-                {done.bookName} · {done.songTitle} (+{done.stamps})
+                {done.bookName} · {done.songTitle}
               </p>
             </div>
             <button
@@ -122,64 +135,89 @@ export const TeacherDirectPassModal: FC<TeacherDirectPassModalProps> = ({
             </button>
           </div>
         ) : (
-          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
+          <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
             <p className="text-xs text-slate-500 leading-relaxed">
-              레슨 중 연주를 확인한 뒤 즉시 스탬프를 발급합니다. 학부모 폰(PWA)에 실시간으로 반영됩니다.
+              교재와 번호만 고른 뒤 한 번 누르면 끝. 학부모·학생 앱에 바로 반영됩니다.
             </p>
-            <FormField label="교재" required>
-              <select
-                className={FORM_CONTROL_CLASS}
-                value={bookName}
-                onChange={(e) => setBookName(e.target.value)}
-              >
-                {SONG_BOOK_OPTIONS.map((b) => (
-                  <option key={b} value={b}>
-                    {b}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <FormField label="곡명 / 번호" required>
-              <input
-                className={FORM_CONTROL_CLASS}
-                value={songTitle}
-                onChange={(e) => setSongTitle(e.target.value)}
-                placeholder="예: No. 5"
-                maxLength={100}
-                required
-              />
-            </FormField>
-            <FormField label="스탬프 개수">
-              <select
-                className={FORM_CONTROL_CLASS}
-                value={stamps}
-                onChange={(e) => setStamps(Number(e.target.value))}
-              >
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <option key={n} value={n}>
-                    {n}개
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={handleClose}
-                disabled={saving}
-                className="flex-1 min-h-[48px] rounded-xl border border-slate-200 text-sm font-bold text-slate-600"
-              >
-                취소
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-[1.4] min-h-[48px] rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-bold inline-flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Stamp className="w-4 h-4" />}
-                스탬프 수여
-              </button>
+
+            <div>
+              <p className="text-xs font-bold text-slate-600 mb-2">교재</p>
+              <div className="flex flex-wrap gap-1.5">
+                {SONG_BOOK_OPTIONS.map((b) => {
+                  const selected = bookName === b;
+                  return (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => setBookName(b)}
+                      className={`min-h-[40px] px-2.5 rounded-xl text-xs font-bold border ${
+                        selected
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-indigo-300'
+                      }`}
+                    >
+                      {b}
+                    </button>
+                  );
+                })}
+              </div>
+              {isOther && (
+                <input
+                  className={`mt-2 ${FORM_CONTROL_CLASS}`}
+                  value={customBook}
+                  onChange={(e) => setCustomBook(e.target.value)}
+                  placeholder="교재명 입력"
+                  maxLength={50}
+                />
+              )}
             </div>
+
+            <div>
+              <p className="text-xs font-bold text-slate-600 mb-2">번호</p>
+              <div className="flex flex-wrap gap-1.5 mb-2">
+                {SONG_NUMBER_QUICK.map((n) => {
+                  const selected = songNumber === String(n);
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setSongNumber(String(n))}
+                      className={`min-h-[40px] min-w-[40px] px-2 rounded-xl text-xs font-bold border tabular-nums ${
+                        selected
+                          ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-amber-300'
+                      }`}
+                    >
+                      {n}
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={999}
+                className={FORM_CONTROL_CLASS}
+                value={songNumber}
+                onChange={(e) => setSongNumber(e.target.value.replace(/\D/g, '').slice(0, 3))}
+                placeholder="또는 번호 직접 입력"
+              />
+              {formatSongNumberTitle(songNumber) && (
+                <p className="text-[11px] text-slate-500 mt-1">
+                  등록명: {resolvedBook || '교재'} · {formatSongNumberTitle(songNumber)}
+                </p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-full min-h-[56px] rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-base font-black inline-flex items-center justify-center gap-2 disabled:opacity-50 shadow-md shadow-amber-500/20"
+            >
+              {saving ? <Loader2 className="w-5 h-5 animate-spin" /> : <Stamp className="w-5 h-5" />}
+              {SONG_PROGRESS_COPY.grantSubmitCta}
+            </button>
           </form>
         )}
       </div>

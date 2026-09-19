@@ -2,8 +2,7 @@ import React from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { StaffDashboardView } from './StaffDashboardView';
-import { DirectorTodayHome } from './director/DirectorTodayHome';
-import { useDirectorTodayDashboard } from './director/useDirectorTodayDashboard';
+import { DirectorTodayHome, useDirectorTodayDashboard } from './director';
 
 /**
  * 피아노 홈

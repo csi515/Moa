@@ -55,9 +55,14 @@ export function isEditableSlotClass(
 export function findEditableSlotClass(
   classes: ClassItem[],
   day: DayOfWeek,
-  startTime: string
+  startTime: string,
+  preferredTeacherId?: string
 ): ClassItem | undefined {
-  return classes.find((cls) => isEditableSlotClass(cls, day, startTime));
+  const matches = classes.filter((cls) => isEditableSlotClass(cls, day, startTime));
+  if (preferredTeacherId) {
+    return matches.find((cls) => cls.teacherId === preferredTeacherId);
+  }
+  return matches[0];
 }
 
 export function classesMatchingSlot(
@@ -97,7 +102,14 @@ export function getPlacementsForSlot(
   );
 }
 
-function defaultTeacher(teachers: Teacher[]): Pick<Teacher, 'id' | 'name'> {
+function resolveTeacher(
+  teachers: Teacher[],
+  preferredTeacherId?: string
+): Pick<Teacher, 'id' | 'name'> {
+  if (preferredTeacherId) {
+    const preferred = teachers.find((t) => t.id === preferredTeacherId);
+    if (preferred) return { id: preferred.id, name: preferred.name };
+  }
   const active = teachers.find((t) => t.status === 'active') || teachers[0];
   return active ? { id: active.id, name: active.name } : { id: '', name: '미배정' };
 }
@@ -115,8 +127,14 @@ export function ensureEditableSlotClass(params: {
   startTime: string;
   teachers: Teacher[];
   minCapacity?: number;
+  preferredTeacherId?: string;
 }): ClassItem {
-  const existing = findEditableSlotClass(params.classes, params.day, params.startTime);
+  const existing = findEditableSlotClass(
+    params.classes,
+    params.day,
+    params.startTime,
+    params.preferredTeacherId
+  );
   const minCapacity = Math.max(params.minCapacity ?? 4, 1);
 
   if (existing) {
@@ -127,7 +145,7 @@ export function ensureEditableSlotClass(params: {
     });
   }
 
-  const teacher = defaultTeacher(params.teachers);
+  const teacher = resolveTeacher(params.teachers, params.preferredTeacherId);
   return StorageService.saveClass({
     name: `${params.day} ${params.startTime} 레슨`,
     teacherId: teacher.id,
@@ -158,8 +176,9 @@ export function assignStudentToSlot(params: {
   startTime: string;
   classes: ClassItem[];
   teachers: Teacher[];
+  preferredTeacherId?: string;
 }): { ok: true; classItem: ClassItem; student: Student } | { ok: false; message: string } {
-  const { student, day, startTime, teachers } = params;
+  const { student, day, startTime, teachers, preferredTeacherId } = params;
   let classes = [...params.classes];
 
   if (student.status !== 'active') {
@@ -182,7 +201,9 @@ export function assignStudentToSlot(params: {
 
   const currentInSlot = getPlacementsForSlot(
     StorageService.getStudents().filter((s) => s.id !== student.id),
-    classes,
+    preferredTeacherId
+      ? classes.filter((c) => c.teacherId === preferredTeacherId)
+      : classes,
     day,
     startTime
   ).length;
@@ -193,6 +214,7 @@ export function assignStudentToSlot(params: {
     startTime,
     teachers,
     minCapacity: currentInSlot + 1,
+    preferredTeacherId,
   });
 
   if (!nextIds.includes(slotClass.id)) {
@@ -228,6 +250,7 @@ export function moveStudentToSlot(params: {
   toStartTime: string;
   classes: ClassItem[];
   teachers: Teacher[];
+  preferredTeacherId?: string;
 }): { ok: true; student: Student } | { ok: false; message: string } {
   let student = params.student;
   let classes = params.classes;
@@ -250,6 +273,7 @@ export function moveStudentToSlot(params: {
     startTime: params.toStartTime,
     classes,
     teachers: params.teachers,
+    preferredTeacherId: params.preferredTeacherId,
   });
   if (!assigned.ok) return assigned;
   return { ok: true, student: assigned.student };

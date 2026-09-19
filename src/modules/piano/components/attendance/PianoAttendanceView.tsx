@@ -19,18 +19,26 @@ import {
   SearchField,
   SummaryMetricCard,
 } from '@/shared/components';
-import type { AttendanceRecord, Student } from '@/types';
-import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
+import type { Student } from '@/types';
+import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
+import { isAttendanceModuleEnabled } from '@/core/attendance/features';
+import {
+  EmptyState,
+  FilterBar,
+  PageHeader,
+  SearchField,
+  SummaryMetricCard,
+} from '@/shared/components';
 import { AbsentReasonModal } from './AbsentReasonModal';
 import { PianoAttendanceRow } from './PianoAttendanceRow';
 import {
   DAY_ATTENDANCE_CLASS_ID,
   DAY_ATTENDANCE_CLASS_NAME,
   STATUS_META,
+  persistDayAttendance,
   resolveDayStatus,
   shiftDateIso,
   todayIsoLocal,
-  toAttendanceStatus,
   type DayStatus,
   type StatusFilter,
 } from './pianoAttendanceHelpers';
@@ -112,57 +120,24 @@ export const PianoAttendanceView: FC = () => {
     return { total: students.length, present, absent, late, unchecked };
   }, [students, dayRecordMap, pinCheckInIds]);
 
-  const syncPinSession = (student: Student, status: DayStatus) => {
-    if (status !== 'present' && status !== 'late') return;
-    const existing = sessions.find(
-      (s) => s.sessionDate === selectedDate && s.customerId === student.id
-    );
-    const now = new Date().toISOString();
-    StorageService.saveAttendanceSession({
-      id: existing?.id || `att-sess-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      customerId: student.id,
-      customerName: student.name,
-      sessionDate: selectedDate,
-      checkInAt: existing?.checkInAt || now,
-      checkInMethod: existing?.checkInMethod || 'manual',
-      memo: existing?.memo,
-      createdAt: existing?.createdAt || now,
-      updatedAt: now,
-    });
-  };
-
   const persistStatus = (
     student: Student,
     status: Exclude<DayStatus, 'unchecked'>,
     memo?: string
   ) => {
     const existing = dayRecordMap.get(student.id);
-    const nextStatus = toAttendanceStatus(status);
-    const passResult = applySessionPassForAttendance({
+    const result = persistDayAttendance({
       student,
-      nextStatus,
-      previous: existing || null,
       date: selectedDate,
+      status,
+      createdBy: currentUser.name,
+      existing: existing || null,
+      memo,
     });
-    if (passResult.warning) {
-      showToast(passResult.warning, 'warning');
+    if (!result.ok) {
+      showToast(result.warning, 'warning');
       return false;
     }
-
-    StorageService.saveAttendanceRecord({
-      ...(existing ? { id: existing.id } : {}),
-      date: selectedDate,
-      studentId: student.id,
-      studentName: student.name,
-      classId: DAY_ATTENDANCE_CLASS_ID,
-      className: DAY_ATTENDANCE_CLASS_NAME,
-      status: nextStatus,
-      absentReason: status === 'absent' ? memo?.trim() || undefined : undefined,
-      memo: memo?.trim() || undefined,
-      createdBy: currentUser.name,
-      sessionPassId: passResult.sessionPassId,
-    });
-    syncPinSession(student, status);
 
     if (status === 'absent') {
       notifyParentAbsence({
@@ -212,7 +187,7 @@ export const PianoAttendanceView: FC = () => {
         density="compact"
         icon={<CheckSquare className="w-6 h-6" />}
         title="출결"
-        description="오늘 등원 현황을 확인하고 등원·결석·지각을 처리합니다. 레슨 노트는 일정 > 레슨에서 관리합니다."
+        description="오늘 등원 현황을 확인하고 등원·결석·지각을 처리합니다. 레슨 노트는 하단「오늘」에서 관리합니다."
         actions={
           pinEnabled ? (
             <button

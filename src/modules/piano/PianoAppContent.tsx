@@ -37,6 +37,7 @@ import {
 } from './index';
 import { PassManagementView } from '@/modules/pilates/components/passes/PassManagementView';
 import { PianoScheduleView } from './components/schedule';
+import { LessonsHubView } from './components/lessons/LessonsHubView';
 import { PianoConsultationHubView } from './components/consultations';
 import { SongProgressStaffView } from './components/songProgress';
 
@@ -69,8 +70,8 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   'enrollment-requests': customerHub,
   /** 등원 출결 (레슨과 분리) */
   attendance: () => <PianoAttendanceView />,
-  /** 오늘 레슨·레슨 일지 — 일정 허브 */
-  lessons: () => <PianoScheduleView />,
+  /** 오늘 레슨·레슨 일지 — 하단「오늘」 */
+  lessons: () => <LessonsHubView />,
   'check-in': () => <AttendanceManagementView />,
   timetable: () => <PianoScheduleView />,
   calendar: () => <PianoScheduleView />,

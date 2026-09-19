@@ -37,6 +37,7 @@ export const SONG_PROGRESS_COPY = {
   approveCta: '참 잘했어요 스탬프 꾹!',
   approveBulkCta: '선택 일괄 승인',
   grantCta: '완곡 수동 수여',
+  grantSubmitCta: '완곡 등록 & 스탬프 부여',
   shareCta: '축하 카드 공유하기',
   shareParentCta: '학부모 카톡으로 성취 카드 전송',
   pendingEmpty: '대기 중인 완곡 신청이 없습니다.',
@@ -44,6 +45,17 @@ export const SONG_PROGRESS_COPY = {
   mirrorTitle: '자녀 완곡 스탬프',
   reportTitle: '완곡 리포트',
 } as const;
+
+/** 빠른 번호 칩 (1–20) */
+export const SONG_NUMBER_QUICK = [
+  1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
+] as const;
+
+export function formatSongNumberTitle(n: number | string): string {
+  const num = typeof n === 'number' ? n : parseInt(String(n).replace(/\D/g, ''), 10);
+  if (!Number.isFinite(num) || num < 1) return '';
+  return `No. ${num}`;
+}
 
 export const DEFAULT_STAMP_BOARD_SIZE = 20;
 

@@ -1,9 +1,10 @@
-import { useMemo, useState, type FC } from 'react';
-import { Clock, Users } from 'lucide-react';
+import { useEffect, useMemo, useState, type FC } from 'react';
+import { Clock, Filter, Users } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useMediaQuery, useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { EmptyState } from '@/shared/components';
+import { FORM_CONTROL_CLASS } from '@/shared/components/ui';
 import type { DayOfWeek, Student } from '@/types';
 import {
   PianoTimetableDesktopGrid,
@@ -33,6 +34,8 @@ const DAY_MAP: Record<number, DayOfWeek> = {
   6: '토',
 };
 
+type LayoutMode = 'week' | 'byTeacher';
+
 /**
  * 피아노 수업 시간표 — 요일·시간대에 레슨 예정 학생 배치.
  * ClassItem + student.classIds 재사용. 출결 자동 처리 없음.
@@ -41,47 +44,93 @@ const DAY_MAP: Record<number, DayOfWeek> = {
 export const PianoLessonTimetableView: FC = () => {
   const { showToast, openConfirmDialog, triggerRefresh } = useApp();
   const refreshKey = useStorageRefresh();
-  const { scopeClasses, scopeStudents } = useStaffScope();
+  const { isScoped, staffId, scopeClasses, scopeStudents } = useStaffScope();
   /** 넓은 PC + 정밀 포인터에서만 DnD 그리드 (태블릿은 터치 목록) */
   const useDragGrid = useMediaQuery('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
 
   const todayDay = DAY_MAP[new Date().getDay()] ?? null;
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(todayDay ?? '월');
-  const [pickerSlot, setPickerSlot] = useState<{ day: DayOfWeek; startTime: TimetableSlot } | null>(
-    null
-  );
+  const [teacherFilter, setTeacherFilter] = useState('ALL');
+  const [layoutMode, setLayoutMode] = useState<LayoutMode>('week');
+  const [pickerSlot, setPickerSlot] = useState<{
+    day: DayOfWeek;
+    startTime: TimetableSlot;
+    preferredTeacherId?: string;
+  } | null>(null);
   const [pickerQuery, setPickerQuery] = useState('');
   const [pendingStudentId, setPendingStudentId] = useState<string | null>(null);
+  const [pendingTeacherId, setPendingTeacherId] = useState<string | undefined>(undefined);
 
   const classes = useMemo(
     () => scopeClasses(StorageService.getClasses()),
     [scopeClasses, refreshKey]
   );
-  const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);
+  const teachers = useMemo(() => {
+    const list = StorageService.getTeachers().filter((t) => t.status === 'active');
+    return list.length > 0 ? list : StorageService.getTeachers();
+  }, [refreshKey]);
   const students = useMemo(
     () => scopeStudents(StorageService.getStudents()).filter((s) => s.status === 'active'),
     [scopeStudents, refreshKey]
   );
 
+  useEffect(() => {
+    if (isScoped && staffId) setTeacherFilter(staffId);
+  }, [isScoped, staffId]);
+
+  const preferredTeacherId =
+    teacherFilter !== 'ALL' ? teacherFilter : undefined;
+
+  const visibleClasses = useMemo(() => {
+    if (teacherFilter === 'ALL') return classes;
+    return classes.filter((c) => c.teacherId === teacherFilter);
+  }, [classes, teacherFilter]);
+
+  const teacherSections = useMemo(() => {
+    const byId = new Map<string, { id: string; name: string; classes: typeof classes }>();
+    for (const cls of visibleClasses) {
+      const id = cls.teacherId || '__none__';
+      const name = cls.teacherName?.trim() || teachers.find((t) => t.id === id)?.name || '미배정';
+      const bucket = byId.get(id);
+      if (bucket) bucket.classes.push(cls);
+      else byId.set(id, { id, name, classes: [cls] });
+    }
+    // 필터 ALL이면 선생님이지만 아직 반이 없는 경우도 섹션에 포함 (빈 그리드로 배치 가능)
+    if (teacherFilter === 'ALL' && layoutMode === 'byTeacher') {
+      for (const t of teachers) {
+        if (!byId.has(t.id)) byId.set(t.id, { id: t.id, name: t.name, classes: [] });
+      }
+    }
+    return Array.from(byId.values()).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  }, [visibleClasses, teachers, teacherFilter, layoutMode]);
+
   const placedIds = useMemo(() => {
     const ids = new Set<string>();
     for (const day of TIMETABLE_DAYS) {
       for (const slot of TIMETABLE_SLOTS) {
-        getPlacementsForSlot(students, classes, day, slot).forEach((p) => ids.add(p.student.id));
+        getPlacementsForSlot(students, visibleClasses, day, slot).forEach((p) =>
+          ids.add(p.student.id)
+        );
       }
     }
     return ids;
-  }, [students, classes]);
+  }, [students, visibleClasses]);
 
   const refresh = () => triggerRefresh();
 
-  const placeStudent = (student: Student, day: DayOfWeek, startTime: TimetableSlot) => {
+  const placeStudent = (
+    student: Student,
+    day: DayOfWeek,
+    startTime: TimetableSlot,
+    teacherId?: string
+  ) => {
     const result = assignStudentToSlot({
       student,
       day,
       startTime,
       classes: StorageService.getClasses(),
       teachers,
+      preferredTeacherId: teacherId || preferredTeacherId,
     });
     if (!result.ok) {
       showToast(result.message, 'warning');
@@ -89,6 +138,7 @@ export const PianoLessonTimetableView: FC = () => {
     }
     showToast(`${student.name} 학생을 ${day}요일 ${startTime}에 배치했습니다.`, 'success');
     setPendingStudentId(null);
+    setPendingTeacherId(undefined);
     setPickerSlot(null);
     refresh();
   };
@@ -116,6 +166,7 @@ export const PianoLessonTimetableView: FC = () => {
       toStartTime: startTime,
       classes: StorageService.getClasses(),
       teachers,
+      preferredTeacherId,
     });
     if (!result.ok) {
       showToast(result.message, 'warning');
@@ -150,6 +201,75 @@ export const PianoLessonTimetableView: FC = () => {
     });
   };
 
+  const renderTimetable = (sectionClasses: typeof classes, sectionTeacherId?: string) => {
+    if (useDragGrid) {
+      return (
+        <PianoTimetableDesktopGrid
+          todayDay={todayDay}
+          classes={sectionClasses}
+          students={students}
+          onDropStudent={(studentId, day, startTime) => {
+            const student = students.find((s) => s.id === studentId);
+            if (student) placeStudent(student, day, startTime, sectionTeacherId);
+          }}
+          onDropPlacement={(payload, day, startTime) => {
+            if (payload.day === day && payload.startTime === startTime) return;
+            const student = students.find((s) => s.id === payload.studentId);
+            const fromClass = classes.find((c) => c.id === payload.classId);
+            if (!student || !fromClass) return;
+            const result = moveStudentToSlot({
+              student,
+              from: { classItem: fromClass, day: payload.day, startTime: payload.startTime },
+              toDay: day,
+              toStartTime: startTime,
+              classes: StorageService.getClasses(),
+              teachers,
+              preferredTeacherId: sectionTeacherId || preferredTeacherId,
+            });
+            if (!result.ok) {
+              showToast(result.message, 'warning');
+              return;
+            }
+            showToast(
+              `${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다.`,
+              'success'
+            );
+            refresh();
+          }}
+          onRemove={handleRemove}
+        />
+      );
+    }
+
+    return (
+      <PianoTimetableMobileList
+        selectedDay={selectedDay}
+        todayDay={todayDay}
+        classes={sectionClasses}
+        students={students}
+        pendingStudentId={pendingStudentId}
+        onSelectDay={setSelectedDay}
+        onPickSlotForAdd={(day, startTime) => {
+          setPendingStudentId(null);
+          setPendingTeacherId(sectionTeacherId);
+          setPickerQuery('');
+          setPickerSlot({ day, startTime, preferredTeacherId: sectionTeacherId });
+        }}
+        onPlacePending={(day, startTime) => {
+          const student = students.find((s) => s.id === pendingStudentId);
+          if (student) placeStudent(student, day, startTime, sectionTeacherId || pendingTeacherId);
+        }}
+        onRemove={handleRemove}
+        onStartPlaceStudent={(student) => {
+          setPickerSlot(null);
+          setPendingStudentId(student.id);
+          setPendingTeacherId(sectionTeacherId);
+          showToast(`${student.name} 학생을 배치할 시간대를 탭하세요.`, 'info');
+        }}
+      />
+    );
+  };
+
   if (students.length === 0) {
     return (
       <EmptyState
@@ -175,39 +295,109 @@ export const PianoLessonTimetableView: FC = () => {
         </p>
       </div>
 
-      {useDragGrid ? (
-        <>
-          <PianoTimetableStudentPool students={students} placedIds={placedIds} />
-          <PianoTimetableDesktopGrid
-            todayDay={todayDay}
-            classes={classes}
-            students={students}
-            onDropStudent={handleDropStudent}
-            onDropPlacement={handleDropPlacement}
-            onRemove={handleRemove}
-          />
-        </>
+      <div className="bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/80 shadow-xs flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1.5 text-xs font-bold text-slate-500">
+          <Filter className="w-4 h-4 text-indigo-600" />
+          <span>보기</span>
+        </div>
+
+        <div className="flex p-1 bg-slate-100 rounded-xl text-xs font-bold text-slate-500">
+          <button
+            type="button"
+            onClick={() => setLayoutMode('week')}
+            className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all ${
+              layoutMode === 'week' ? 'bg-white text-indigo-600 shadow-xs' : 'hover:text-slate-900'
+            }`}
+          >
+            전체
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayoutMode('byTeacher')}
+            className={`px-3 py-1.5 min-h-[40px] rounded-lg transition-all ${
+              layoutMode === 'byTeacher'
+                ? 'bg-white text-indigo-600 shadow-xs'
+                : 'hover:text-slate-900'
+            }`}
+          >
+            선생님별
+          </button>
+        </div>
+
+        {!isScoped && (
+          <select
+            value={teacherFilter}
+            onChange={(e) => setTeacherFilter(e.target.value)}
+            className={`${FORM_CONTROL_CLASS} !min-h-[40px] !py-2 !text-xs w-auto min-w-[9rem]`}
+            aria-label="선생님 필터"
+          >
+            <option value="ALL">전체 선생님</option>
+            {teachers.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        <span className="text-xs text-slate-500 font-semibold tabular-nums ml-auto">
+          반 {visibleClasses.length}
+          {layoutMode === 'byTeacher' ? ` · 선생님 ${teacherSections.length}` : ''}
+        </span>
+      </div>
+
+      {useDragGrid && <PianoTimetableStudentPool students={students} placedIds={placedIds} />}
+
+      {layoutMode === 'byTeacher' ? (
+        <div className="space-y-5">
+          {teacherSections.length === 0 ? (
+            <p className="text-sm text-slate-400 text-center py-8">표시할 수업이 없습니다.</p>
+          ) : (
+            teacherSections.map((section) => (
+              <section key={section.id} className="space-y-2">
+                <div className="flex items-center gap-2 px-0.5">
+                  <h3 className="text-sm font-black text-slate-900">{section.name} 선생님</h3>
+                  <span className="text-[11px] font-bold text-slate-400 tabular-nums">
+                    반 {section.classes.length}
+                  </span>
+                </div>
+                {renderTimetable(section.classes, section.id === '__none__' ? undefined : section.id)}
+              </section>
+            ))
+          )}
+        </div>
+      ) : useDragGrid ? (
+        <PianoTimetableDesktopGrid
+          todayDay={todayDay}
+          classes={visibleClasses}
+          students={students}
+          onDropStudent={handleDropStudent}
+          onDropPlacement={handleDropPlacement}
+          onRemove={handleRemove}
+        />
       ) : (
         <PianoTimetableMobileList
           selectedDay={selectedDay}
           todayDay={todayDay}
-          classes={classes}
+          classes={visibleClasses}
           students={students}
           pendingStudentId={pendingStudentId}
           onSelectDay={setSelectedDay}
           onPickSlotForAdd={(day, startTime) => {
             setPendingStudentId(null);
+            setPendingTeacherId(undefined);
             setPickerQuery('');
             setPickerSlot({ day, startTime });
           }}
           onPlacePending={(day, startTime) => {
             const student = students.find((s) => s.id === pendingStudentId);
-            if (student) placeStudent(student, day, startTime);
+            if (student) placeStudent(student, day, startTime, pendingTeacherId);
           }}
           onRemove={handleRemove}
           onStartPlaceStudent={(student) => {
             setPickerSlot(null);
             setPendingStudentId(student.id);
+            setPendingTeacherId(undefined);
             showToast(`${student.name} 학생을 배치할 시간대를 탭하세요.`, 'info');
           }}
         />
@@ -227,7 +417,7 @@ export const PianoLessonTimetableView: FC = () => {
             ? new Set(
                 getPlacementsForSlot(
                   students,
-                  classes,
+                  visibleClasses,
                   pickerSlot.day,
                   pickerSlot.startTime
                 ).map((p) => p.student.id)
@@ -237,7 +427,12 @@ export const PianoLessonTimetableView: FC = () => {
         onClose={() => setPickerSlot(null)}
         onSelect={(student) => {
           if (!pickerSlot) return;
-          placeStudent(student, pickerSlot.day, pickerSlot.startTime);
+          placeStudent(
+            student,
+            pickerSlot.day,
+            pickerSlot.startTime,
+            pickerSlot.preferredTeacherId
+          );
         }}
       />
     </div>

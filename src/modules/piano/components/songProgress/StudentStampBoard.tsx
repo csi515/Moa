@@ -55,9 +55,16 @@ export const StudentStampBoard: FC<StudentStampBoardProps> = ({
 
   useEffect(() => {
     void reload();
-    const t = window.setInterval(() => void reload(), 12_000);
+    const t = window.setInterval(() => void reload(), 30_000);
     return () => window.clearInterval(t);
   }, [reload]);
+
+  useEffect(() => {
+    if (!organizationId || !customerId || !isSupabaseConfigured()) return;
+    return songProgressService.subscribeForCustomer(organizationId, customerId, () => {
+      void reload();
+    });
+  }, [organizationId, customerId, reload]);
 
   const stampCount = useMemo(() => songProgressService.totalStamps(rows), [rows]);
   const pendingCount = useMemo(
