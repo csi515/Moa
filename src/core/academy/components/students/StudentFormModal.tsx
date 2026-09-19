@@ -12,14 +12,14 @@ import {
 } from '@/core/students';
 import { getStudentLevelOptions } from '@/core/students/levelOptions';
 import { getIndustryPlugin } from '@/core/industry/registry';
-import { getPlaceLabel, isSkinClinicIndustry } from '@/core/industry/industryUi';
+import { getPlaceLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { createPickupAddress, normalizePickupAddresses, sanitizePickupAddressesForSave } from '@/core/transport';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { Student, Parent } from '@/types';
-import { X, Save, User, RefreshCw } from 'lucide-react';
+import { X, Save, User, RefreshCw, StickyNote } from 'lucide-react';
 import { StudentBasicInfoSection } from './form/StudentBasicInfoSection';
 import { GuardianSection } from './form/GuardianSection';
 import { StudentPinSection } from './form/StudentPinSection';
@@ -45,13 +45,13 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
   onClose,
   onSaved,
 }) => {
-  const { showToast, openConfirmDialog } = useApp();
+  const { showToast, openConfirmDialog, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const labels = useModuleLabels();
-  const skin = isSkinClinicIndustry(industry);
-  const customerLabel = skin ? labels.customer.singular : '학생';
-  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
   const placeLabel = getPlaceLabel(industry);
+  const isPiano = industry === 'piano';
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id || 'local-org';
 
@@ -160,7 +160,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         leaveDate: '',
         status: 'active',
         teacherId: teachers[0]?.id || '',
-        classIds: classes.length > 0 ? [classes[0].id] : [],
+        classIds: [],
         level: defaultLevel,
         billingMode:
           settings.defaultBillingMode === 'session_pass' ? 'session_pass' : 'monthly',
@@ -204,7 +204,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
   const removeGuardian = (idx: number) => {
     if (guardians.length <= 1) {
-      showToast('최소 1명의 보호자를 등록해야 합니다', 'warning');
+      showToast(`최소 1명의 ${contactLabel}를 등록해야 합니다`, 'warning');
       return;
     }
 
@@ -219,8 +219,8 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
     if (isEdit && target.existingParentId) {
       openConfirmDialog({
-        title: '보호자 연결 해제',
-        message: `${target.name || '선택한 보호자'}와의 연결을 해제할까요?\n저장 시 이 ${customerLabel}과의 link만 제거됩니다.`,
+        title: `${contactLabel} 연결 해제`,
+        message: `${target.name || `선택한 ${contactLabel}`}와의 연결을 해제할까요?\n저장 시 이 ${customerLabel}과의 link만 제거됩니다.`,
         confirmText: '연결 해제',
         isDestructive: true,
         onConfirm: doRemove,
@@ -320,7 +320,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           : `phone:${g.phone.trim()}`
       );
       if (new Set(parentKeys).size !== parentKeys.length) {
-        showToast('중복 오류: 같은 보호자를 여러 번 등록할 수 없습니다', 'warning');
+        showToast(`중복 오류: 같은 ${contactLabel}를 여러 번 등록할 수 없습니다`, 'warning');
         return;
       }
     }
@@ -394,17 +394,15 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               <p className="text-xs text-slate-500">
                 {isEdit
                   ? '필요한 항목만 수정하세요'
-                  : '이름은 필수, 나머지는 나중에 보완할 수 있습니다'}
+                  : '기본정보 → 보호자 → 레슨·수강료 순으로 입력하세요'}
               </p>
             </div>
           </div>
           <button
             type="button"
-            onClick={() => {
-              if (postSaveStudent) onSaved(postSaveStudent);
-              onClose();
-            }}
+            onClick={onClose}
             className="text-slate-400 hover:text-slate-600 p-1.5 min-h-[44px] min-w-[44px]"
+            aria-label="닫기"
           >
             <X className="w-5 h-5" />
           </button>
@@ -419,9 +417,16 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
 
         {postSaveStudent && !inviteModal && (
           <div className="mx-6 mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl space-y-3">
-            <p className="text-sm font-bold text-emerald-900">
-              {postSaveStudent.name} 등록 완료 — 다음으로?
-            </p>
+            <div>
+              <p className="text-sm font-bold text-emerald-900">
+                {postSaveStudent.name} 등록 완료
+              </p>
+              <p className="text-[11px] text-emerald-800/80 mt-0.5">
+                {isPiano
+                  ? '학생을 확인하거나 일정·시간표에 배치할 수 있습니다.'
+                  : '다음 작업을 선택하세요.'}
+              </p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -433,32 +438,45 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               >
                 상세 보기
               </button>
+              {isPiano && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveTab('timetable');
+                    onClose();
+                  }}
+                  className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-indigo-600 text-white border border-indigo-600"
+                >
+                  시간표에 배치
+                </button>
+              )}
+              {!isPiano && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSaved(postSaveStudent, { openTab: 'attendance' });
+                      onClose();
+                    }}
+                    className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
+                  >
+                    출결 기록
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onSaved(postSaveStudent, { openTab: 'tuition' });
+                      onClose();
+                    }}
+                    className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
+                  >
+                    수납 확인
+                  </button>
+                </>
+              )}
               <button
                 type="button"
-                onClick={() => {
-                  onSaved(postSaveStudent, { openTab: 'attendance' });
-                  onClose();
-                }}
-                className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
-              >
-                출결 기록
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSaved(postSaveStudent, { openTab: 'tuition' });
-                  onClose();
-                }}
-                className="min-h-[44px] px-3 rounded-xl text-xs font-bold bg-white border border-emerald-200 text-emerald-800"
-              >
-                수납 확인
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSaved(postSaveStudent);
-                  onClose();
-                }}
+                onClick={onClose}
                 className="min-h-[44px] px-3 rounded-xl text-xs font-bold text-slate-600"
               >
                 닫기
@@ -471,42 +489,70 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
           onSubmit={handleSubmit}
           className={`p-6 space-y-5 max-h-[75vh] overflow-y-auto ${postSaveStudent ? 'opacity-60 pointer-events-none' : ''}`}
         >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
-            <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
+          <StudentBasicInfoSection formData={formData} onChange={updateFormData} />
 
-            <div className="space-y-3">
-              <label className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 cursor-pointer min-h-[52px]">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600"
-                  checked={isAdultSelf}
-                  onChange={(e) => setIsAdultSelf(e.target.checked)}
-                />
-                <span>
-                  <span className="block text-xs font-bold text-slate-800">성인 수강생 (보호자 없음)</span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">
-                    본인 계정으로 수강하는 경우 보호자 정보를 생략합니다.
-                  </span>
+          <div className="space-y-3">
+            <label className="flex items-start gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 cursor-pointer min-h-[52px]">
+              <input
+                type="checkbox"
+                className="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600"
+                checked={isAdultSelf}
+                onChange={(e) => setIsAdultSelf(e.target.checked)}
+              />
+              <span>
+                <span className="block text-xs font-bold text-slate-800">
+                  성인 {customerLabel} ({contactLabel} 없음)
                 </span>
-              </label>
+                <span className="block text-[11px] text-slate-500 mt-0.5">
+                  본인 계정으로 수강하는 경우 {contactLabel} 정보를 생략합니다.
+                </span>
+              </span>
+            </label>
 
-              {!isAdultSelf && (
-                <GuardianSection
-                  isEdit={isEdit}
-                  canInviteParent={canInviteParent}
-                  guardians={guardians}
-                  activeSearchIdx={activeSearchIdx}
-                  searchResults={searchResults}
-                  onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
-                  onUpdateGuardian={updateGuardian}
-                  onSetPrimary={setPrimaryGuardian}
-                  onRemoveGuardian={removeGuardian}
-                  onSelectExistingParent={selectExistingParent}
-                  onFocusSearch={setActiveSearchIdx}
-                />
-              )}
-            </div>
+            {!isAdultSelf && (
+              <GuardianSection
+                isEdit={isEdit}
+                canInviteParent={canInviteParent}
+                guardians={guardians}
+                activeSearchIdx={activeSearchIdx}
+                searchResults={searchResults}
+                onAddGuardian={() => setGuardians((prev) => [...prev, newGuardianEntry()])}
+                onUpdateGuardian={updateGuardian}
+                onSetPrimary={setPrimaryGuardian}
+                onRemoveGuardian={removeGuardian}
+                onSelectExistingParent={selectExistingParent}
+                onFocusSearch={setActiveSearchIdx}
+              />
+            )}
           </div>
+
+          <StudentAdvancedSection
+            formData={formData}
+            teachers={teachers}
+            classes={classes}
+            showAdvanced={showAdvanced}
+            onToggle={() => setShowAdvanced((v) => !v)}
+            onChange={updateFormData}
+          />
+
+          <section>
+            <h4 className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+              <StickyNote className="w-3.5 h-3.5" /> 추가 정보
+            </h4>
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              특이사항
+            </label>
+            <p className="text-[11px] text-slate-500 mb-2">
+              알레르기·주의사항·전달사항 등 수업에 필요한 내용을 남깁니다. (선택)
+            </p>
+            <textarea
+              rows={3}
+              value={formData.specialNotes}
+              onChange={(e) => updateFormData({ specialNotes: e.target.value, memo: '' })}
+              placeholder="예: 땅콩 알레르기, 왼손 주의, 학부모 전달사항…"
+              className="w-full px-3 py-2.5 text-sm bg-amber-50/60 border border-amber-100 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[88px]"
+            />
+          </section>
 
           {attendanceEnabled && !isEdit && (
             <StudentPinSection formData={formData} onChange={updateFormData} />
@@ -528,26 +574,6 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               onPickupAddressesChange={(pickupAddresses) => updateFormData({ pickupAddresses })}
             />
           )}
-
-          <section>
-            <label className="block text-xs font-semibold text-slate-700 mb-1">특이사항</label>
-            <textarea
-              rows={3}
-              value={formData.specialNotes}
-              onChange={(e) => updateFormData({ specialNotes: e.target.value, memo: '' })}
-              placeholder="알레르기, 건강 관련 주의사항, 기타 전달사항 등을 입력하세요."
-              className="w-full px-3 py-2 text-sm bg-amber-50/60 border border-amber-100 rounded-xl resize-none focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[88px]"
-            />
-          </section>
-
-          <StudentAdvancedSection
-            formData={formData}
-            teachers={teachers}
-            classes={classes}
-            showAdvanced={showAdvanced}
-            onToggle={() => setShowAdvanced((v) => !v)}
-            onChange={updateFormData}
-          />
 
           <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
             <button type="button" onClick={onClose} className="px-4 py-2.5 text-sm font-semibold text-slate-600 bg-slate-100 rounded-xl">

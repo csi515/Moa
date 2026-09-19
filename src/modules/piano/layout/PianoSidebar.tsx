@@ -5,6 +5,7 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavSections } from '@/core/auth/navUtils';
 import { ModuleSidebar } from '@/shared/components/layout/ModuleSidebar';
 import { getPianoSidebarSections } from '../config/nav';
+import { isPianoNavItemActive } from '../config/navHighlight';
 import { usePianoNavigate } from './usePianoNavigate';
 
 export const PianoSidebar: FC = () => {
@@ -21,6 +22,7 @@ export const PianoSidebar: FC = () => {
       sections={sections}
       activeTab={activeTab}
       onNavigate={onNavigate}
+      isItemActive={isPianoNavItemActive}
       user={{ name: currentUser.name, roleLabel, roleBadge }}
     />
   );

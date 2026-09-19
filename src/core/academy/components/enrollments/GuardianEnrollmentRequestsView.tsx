@@ -9,10 +9,14 @@ import {
   type GuardianEnrollmentRequest,
 } from '@/core/parent/services/enrollmentRequestService';
 import { GuardianEnrollmentRequestCard } from './GuardianEnrollmentRequestCard';
+import { useModuleLabels } from '@/core/labels';
 
 export const GuardianEnrollmentRequestsView: React.FC = () => {
   const { currentOrganization } = useOrganization();
   const { showToast } = useApp();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
   const [requests, setRequests] = useState<GuardianEnrollmentRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'pending' | 'approved' | 'rejected'>('pending');
@@ -68,10 +72,11 @@ export const GuardianEnrollmentRequestsView: React.FC = () => {
     <div id="guardian-enrollment-inbox" className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">학부모 자녀 등록</h2>
+          <h2 className="text-xl font-bold text-slate-900">{contactLabel} 자녀 등록</h2>
           <p className="text-xs text-slate-500 mt-1">
-            학부모가 자녀를 이 사업장에 연결 요청한 건입니다. 성인 자가가입과는 별도입니다.
-            이미 학생으로 등록된 경우는 학생 상세의 학부모 연결 QR을 사용하세요.
+            {contactLabel}가 자녀를 이 사업장에 연결 요청한 건입니다. 성인 자가가입과는 별도입니다.
+            이미 {customerLabel}으로 등록된 경우는 {customerLabel} 상세의 {contactLabel} 연결 QR을
+            사용하세요.
           </p>
         </div>
         <div className="flex gap-2 shrink-0">

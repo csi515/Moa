@@ -64,8 +64,8 @@ const StudentDetailModalContent: React.FC<
   const { currentOrganization } = useOrganization();
   const skin = modal.industryPlugin.id === 'skin_clinic';
   const isPiano = modal.industryPlugin.id === 'piano';
-  const customerLabel = skin ? labels.customer.singular : '학생';
-  const contactLabel = skin ? labels.contact.singular : '학부모';
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
   const canCall = allow('guardianPhone');
   const canEdit = allow('editStudent');
   const canWithdraw = allow('withdrawStudent');
@@ -91,7 +91,7 @@ const StudentDetailModalContent: React.FC<
     { label: '다음 수업', value: modal.summary.nextClass },
     { label: '최근 출결', value: modal.summary.recentAttendance },
     ...(canTuition ? [{ label: '이번 달 수납', value: modal.summary.tuition }] : []),
-    { label: '보호자', value: modal.summary.guardian },
+    { label: contactLabel, value: modal.summary.guardian },
   ];
 
   const selectPrimaryTab = (tabId: DetailTab) => {

@@ -1,6 +1,7 @@
 ﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { formatCurrency } from '@/utils/formatters';
 import { buildYearMonthOptions } from '@/core/finance/categories';
@@ -24,12 +25,12 @@ import {
 export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { setActiveTab, showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
+  const refreshKey = useStorageRefresh();
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [summaryTick, setSummaryTick] = useState(0);
 
   const summary = useMemo(
     () => StorageService.getFinanceSummary(industry),
-    [industry, summaryTick]
+    [industry, refreshKey]
   );
 
   const monthOptions = useMemo(
@@ -41,7 +42,7 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
           ...StorageService.getExpenses().map((e) => e.date?.slice(0, 7)),
         ],
       }),
-    [summary.monthlyTrend, summaryTick]
+    [summary.monthlyTrend, refreshKey]
   );
 
   const monthDetail = useMemo(() => {
@@ -57,7 +58,7 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
       incomeCount: incomeEntries.length,
       expenseCount: expenses.length,
     };
-  }, [selectedMonth, summary.monthlyTrend, summaryTick]);
+  }, [selectedMonth, summary.monthlyTrend, refreshKey]);
 
   const isPiano = industry === 'piano';
 
@@ -175,7 +176,6 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
             type="button"
             onClick={() => {
               const result = StorageService.backfillBillingLinkedIncome();
-              setSummaryTick((t) => t + 1);
               triggerRefresh();
               showToast(
                 `수납 수입 동기화 완료 (월회비 ${result.tuitionCreated}건 · 교재 ${result.textbookCreated}건)`,

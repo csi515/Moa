@@ -14,12 +14,7 @@ import { PianoSidebar } from './layout/PianoSidebar';
 import { PianoBottomNav } from './layout/PianoBottomNav';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import {
-  customerHubTabs,
-  financeViewEntries,
-  hubViewAliases,
-  settingsHubTabs,
-} from '@/core/industry/commonViewEntries';
+import { financeViewEntries, hubViewAliases } from '@/core/industry/commonViewEntries';
 import { AttendanceManagementView } from '@/core/attendance';
 import { PianoAttendanceView } from './components/attendance/PianoAttendanceView';
 import {
@@ -43,10 +38,27 @@ import { PianoScheduleView } from './components/schedule';
 import { PianoConsultationHubView } from './components/consultations';
 import { SongProgressStaffView } from './components/songProgress';
 import { PIANO_SETTINGS_EXTRAS } from './config/nav';
+import {
+  PIANO_ATTENDANCE_HUB_TABS,
+  PIANO_CUSTOMER_HUB_TABS,
+  PIANO_SCHEDULE_HUB_TABS,
+  PIANO_SETTINGS_HUB_TABS,
+} from './config/hubRoutes';
 import { usePianoOnboardingUi } from './hooks/usePianoOnboardingUi';
+import { AvailabilitySettingsView } from '@/core/schedules/components/AvailabilitySettingsView';
 
 const pianoSettingsHub = () => (
-  <SettingsHubView extras={PIANO_SETTINGS_EXTRAS} workplaceLabel="학원" staffLabel="강사" />
+  <SettingsHubView extras={PIANO_SETTINGS_EXTRAS} workplaceLabel="학원" staffLabel="선생님" />
+);
+
+/** 설정 → 부가 → 상담 가능시간 (tab: bookings — 타업종 예약 탭과 이름만 공유, 피아노 전용 화면) */
+const consultationAvailabilitySettings = () => (
+  <AvailabilitySettingsView
+    title="상담 가능시간"
+    description="상담 예약을 받을 수 있는 요일·시간대를 설정합니다."
+    defaultSlotTitle="상담"
+    defaultSlotMinutes={30}
+  />
 );
 
 const customerHub = () => <CustomerHubView enrollmentLabel="등록" />;
@@ -54,18 +66,19 @@ const scheduleHub = () => <PianoScheduleView />;
 const attendanceHub = () => <PianoAttendanceView />;
 
 /**
- * 탭 → 화면. 허브 딥링크는 hubViewAliases로 묶고,
- * lessons는 레거시 호환용으로 출결에 연결 (기능 삭제 없음).
+ * 탭 → 화면. 허브 딥링크 목록은 config/hubRoutes.ts 단일 출처.
+ * lessons → 출결: 레거시 딥링크 유지 (기능·URL 탭명 삭제 없음).
  */
 const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => <DashboardView />,
-  ...hubViewAliases(customerHub, customerHubTabs),
-  ...hubViewAliases(attendanceHub, ['attendance', 'lessons']),
+  ...hubViewAliases(customerHub, PIANO_CUSTOMER_HUB_TABS),
+  ...hubViewAliases(attendanceHub, PIANO_ATTENDANCE_HUB_TABS),
   'check-in': () => <AttendanceManagementView />,
-  ...hubViewAliases(scheduleHub, ['timetable', 'calendar', 'makeups', 'practice-rooms']),
+  ...hubViewAliases(scheduleHub, PIANO_SCHEDULE_HUB_TABS),
   ...financeViewEntries,
   classes: () => <ClassManagementView />,
   consultations: () => <PianoConsultationHubView />,
+  bookings: consultationAvailabilitySettings,
   practice: () => <PracticeRecordsView />,
   resources: () => <ResourceManagementView />,
   textbooks: () => <TextbookManagementView />,
@@ -76,7 +89,7 @@ const PIANO_VIEW_MAP: Record<string, () => ReactNode> = {
   achievements: () => <AchievementsManagementView />,
   'song-stamps': () => <SongProgressStaffView />,
   reports: () => <ReportsManagementView />,
-  ...hubViewAliases(pianoSettingsHub, settingsHubTabs),
+  ...hubViewAliases(pianoSettingsHub, PIANO_SETTINGS_HUB_TABS),
 };
 
 export const PianoAppContent: FC = () => {

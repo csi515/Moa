@@ -16,6 +16,7 @@ import {
   type StudentImportNormalizedRow,
   type StudentImportRowError,
 } from '@/core/students/bulkImport';
+import { useModuleLabels } from '@/core/labels';
 
 interface StudentBulkImportModalProps {
   isOpen: boolean;
@@ -33,6 +34,9 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
 }) => {
   const { showToast } = useApp();
   const org = useOptionalOrganization();
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
   const fileRef = useRef<HTMLInputElement>(null);
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -165,8 +169,8 @@ export const StudentBulkImportModal: React.FC<StudentBulkImportModalProps> = ({
     <Modal isOpen={isOpen} onClose={handleClose} title={STUDENT_IMPORT_UI.title} maxWidth="2xl">
       <div className="p-4 sm:p-6 space-y-4 overflow-y-auto">
         <p className="text-sm text-slate-600">
-          이름·생년월일·학부모 연락처·수강과목이 담긴 CSV/Excel을 올리면 행별 검증 후 Supabase
-          수강생으로 일괄 등록합니다. 보호자 칸을 비우면 성인 본인 등록으로 처리합니다.
+          이름·생년월일·{contactLabel} 연락처·수강과목이 담긴 CSV/Excel을 올리면 행별 검증 후 Supabase
+          {customerLabel}으로 일괄 등록합니다. {contactLabel} 칸을 비우면 성인 본인 등록으로 처리합니다.
         </p>
 
         <div className="flex flex-wrap gap-2">

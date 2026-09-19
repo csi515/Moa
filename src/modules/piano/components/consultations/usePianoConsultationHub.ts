@@ -21,11 +21,27 @@ export type ConsultationSegment =
   | 'records'
   | 'availability';
 
+/** 상담 업무(메인 탭) — 문의·예약·기록·오늘 */
+export const WORK_SEGMENTS: ConsultationSegment[] = [
+  'inquiries',
+  'reservations',
+  'records',
+  'home',
+];
+
+/** 설정·도구 성격 — 메인 탭과 분리 (가능시간은 설정 부가로 이동) */
+export const TOOL_SEGMENTS: ConsultationSegment[] = ['joins'];
+
+export function isConsultationWorkSegment(segment: ConsultationSegment): boolean {
+  return WORK_SEGMENTS.includes(segment);
+}
+
+/** 메인 탭 순서: 사업주 핵심 업무 우선 */
 export const CONSULTATION_OPTIONS: { value: ConsultationSegment; label: string }[] = [
-  { value: 'home', label: '오늘' },
-  { value: 'reservations', label: '예약' },
   { value: 'inquiries', label: '문의' },
+  { value: 'reservations', label: '예약' },
   { value: 'records', label: '기록' },
+  { value: 'home', label: '오늘' },
 ];
 
 function isSameLocalDay(iso: string, key: string): boolean {
@@ -75,11 +91,11 @@ export function usePianoConsultationHub() {
   const [todayError, setTodayError] = useState(false);
   const [pendingInquiryCount, setPendingInquiryCount] = useState(0);
 
-  /** UI 상태 */
+  /** UI 상태 — 딥링크 우선, 기본은 상담 문의 */
   const [segment, setSegment] = useState<ConsultationSegment>(() => {
     if (consumeOpenConsultationReservations()) return 'reservations';
     if (consumeOpenConsultationInquiries()) return 'inquiries';
-    return 'home';
+    return 'inquiries';
   });
 
   const keepReservation = useCallback(
@@ -98,11 +114,11 @@ export function usePianoConsultationHub() {
     [isScoped, staffId, assignedStudents]
   );
 
-  /** 권한 없는 세그먼트는 홈으로 */
+  /** 권한 없는·이전 가능시간 세그먼트는 업무로 */
   useEffect(() => {
-    if (segment === 'joins' && !canJoin) setSegment('home');
-    if (segment === 'availability' && !canAvailability) setSegment('home');
-  }, [segment, canJoin, canAvailability]);
+    if (segment === 'joins' && !canJoin) setSegment('inquiries');
+    if (segment === 'availability') setSegment('inquiries');
+  }, [segment, canJoin]);
 
   useEffect(() => {
     if (!isScoped || !staffId || !currentOrganization) {

@@ -13,7 +13,7 @@ export interface DirectorTodayTaskItem {
 
 interface DirectorTodayTasksSectionProps {
   items: DirectorTodayTaskItem[];
-  onOpen: (tab: NavTab) => void;
+  onOpen: (item: DirectorTodayTaskItem) => void;
 }
 
 const TONE: Record<NonNullable<DirectorTodayTaskItem['tone']>, string> = {
@@ -39,7 +39,7 @@ export const DirectorTodayTasksSection: FC<DirectorTodayTasksSectionProps> = ({
           처리할 업무
         </h3>
         <p className="text-[11px] text-slate-500 mt-0.5">
-          {total > 0 ? `${total}건 대기` : '대기 중인 업무 없음'}
+          {total > 0 ? `${total}건 대기 · 누르면 처리 화면으로` : '대기 중인 업무 없음'}
         </p>
       </div>
 
@@ -51,7 +51,7 @@ export const DirectorTodayTasksSection: FC<DirectorTodayTasksSectionProps> = ({
             <li key={item.id}>
               <button
                 type="button"
-                onClick={() => onOpen(item.tab)}
+                onClick={() => onOpen(item)}
                 className={`w-full text-left px-3 py-3 min-h-[52px] rounded-xl border flex items-center justify-between gap-2 ${
                   TONE[item.tone ?? 'indigo']
                 }`}

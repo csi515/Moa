@@ -32,11 +32,12 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
             required
             value={formData.name}
             onChange={(e) => onChange({ name: e.target.value })}
+            autoComplete="name"
             className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px]"
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">성별 (선택)</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">성별</label>
           <select
             value={formData.gender}
             onChange={(e) => onChange({ gender: e.target.value as StudentFormData['gender'] })}
@@ -55,18 +56,21 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-700 mb-1">연락처 (선택)</label>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">연락처</label>
           <input
             type="tel"
+            inputMode="tel"
             value={formData.phone}
             onChange={(e) => onChange({ phone: e.target.value })}
+            placeholder="선택"
+            autoComplete="tel"
             className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px]"
           />
         </div>
         {showSchool && (
           <>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">학교 (선택)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">학교</label>
               <input
                 type="text"
                 placeholder="예: ○○초등학교"
@@ -76,7 +80,7 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">학년 (선택)</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">학년</label>
               <input
                 type="text"
                 placeholder="예: 3학년"
@@ -87,6 +91,15 @@ export const StudentBasicInfoSection: React.FC<Props> = ({ formData, onChange })
             </div>
           </>
         )}
+        <div className={showSchool ? 'sm:col-span-2' : undefined}>
+          <label className="block text-xs font-semibold text-slate-700 mb-1">등록일</label>
+          <input
+            type="date"
+            value={formData.joinDate}
+            onChange={(e) => onChange({ joinDate: e.target.value })}
+            className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none min-h-[44px]"
+          />
+        </div>
       </div>
     </section>
   );

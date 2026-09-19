@@ -35,6 +35,11 @@ export function filterNavTabs<T extends { tab: NavTab }>(items: T[], allowedTabs
 /**
  * 허브 하위·레거시 딥링크 → 사이드바·하단 네비 하이라이트용 대표 탭
  * (화면은 VIEW_MAP 별칭으로 동일 허브에 연결)
+ *
+ * 피아노는 modules/piano/config/navHighlight.ts 가 이 함수를 확장한다.
+ * - lessons → attendance (레거시「레슨」딥링크)
+ * - calendar/makeups/practice-rooms → timetable
+ * - tuition/unpaid/… → finance
  */
 export function resolveNavHighlightTab(tab: NavTab): NavTab {
   switch (tab) {
@@ -53,7 +58,7 @@ export function resolveNavHighlightTab(tab: NavTab): NavTab {
     case 'makeups':
     case 'practice-rooms':
       return 'timetable';
-    /** 구「레슨」딥링크 — 출결 화면으로 통합됨 */
+    /** 구「레슨」딥링크 — 출결 화면으로 통합됨 (탭명 lessons 유지) */
     case 'lessons':
       return 'attendance';
     case 'check-in':

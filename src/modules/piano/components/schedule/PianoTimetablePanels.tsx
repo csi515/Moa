@@ -84,9 +84,15 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
 
           <div className="divide-y divide-slate-200">
             {TIMETABLE_SLOTS.map((slot) => (
-              <div key={slot} className="grid grid-cols-7 min-h-[72px]">
-                <div className="p-2 border-r border-slate-200 bg-slate-50/50 flex justify-center">
-                  <span className="font-mono text-xs font-bold text-slate-600">{slot}</span>
+              <div key={slot} className="grid grid-cols-7 min-h-[56px]">
+                <div className="p-1.5 border-r border-slate-200 bg-slate-50/50 flex justify-center items-start pt-2">
+                  <span
+                    className={`font-mono text-[11px] font-bold ${
+                      slot.endsWith(':30') ? 'text-slate-500' : 'text-slate-700'
+                    }`}
+                  >
+                    {slot}
+                  </span>
                 </div>
                 {TIMETABLE_DAYS.map((day) => {
                   const placements = getPlacementsForSlot(students, classes, day, slot);
@@ -95,7 +101,7 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
                       key={day}
                       onDragOver={handleDragOver}
                       onDrop={(e) => handleDrop(e, day, slot)}
-                      className={`p-1 border-r border-slate-200 last:border-r-0 space-y-1 min-h-[72px] ${
+                      className={`p-1 border-r border-slate-200 last:border-r-0 space-y-1 min-h-[56px] ${
                         day === todayDay ? 'bg-indigo-50/25' : ''
                       } hover:bg-indigo-50/40 transition-colors`}
                     >
@@ -116,7 +122,7 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
                               const payload: DragPlacementPayload = {
                                 studentId: p.student.id,
                                 day,
-                                startTime: slot,
+                                startTime: p.classItem.startTime || slot,
                                 classId: p.classItem.id,
                               };
                               e.dataTransfer.setData(DND_PLACEMENT_MIME, JSON.stringify(payload));
@@ -130,7 +136,7 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
                             title={
                               p.editable
                                 ? '드래그하여 다른 시간대로 이동'
-                                : '정시 외·여러 요일 반 — 정규 레슨에서 수정'
+                                : '여러 요일·슬롯과 다른 시작 시각 — 반 관리에서 수정'
                             }
                           >
                             <div className="flex items-start justify-between gap-1">

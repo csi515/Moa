@@ -11,20 +11,18 @@ import {
   FilterBar,
   PageHeader,
   SearchField,
-  SummaryMetricCard,
 } from '@/shared/components';
 import { AbsentReasonModal } from './AbsentReasonModal';
 import { PianoAttendanceRow } from './PianoAttendanceRow';
 import { usePianoAttendanceView } from './usePianoAttendanceView';
 import { shiftDateIso, todayIsoLocal, type StatusFilter } from './pianoAttendanceHelpers';
 
-const FILTER_CHIPS: { value: StatusFilter; label: string }[] = [
-  { value: 'ALL', label: '전체' },
-  { value: 'unchecked', label: '미등원' },
-  { value: 'present', label: '등원' },
-  { value: 'late', label: '지각' },
-  { value: 'absent', label: '결석' },
-];
+type StatChip = {
+  value: StatusFilter;
+  label: string;
+  count: number;
+  activeClass: string;
+};
 
 /**
  * 피아노 출결 — 일정에 배정된 「오늘 예정」학생의 등원·지각·결석만 처리.
@@ -53,13 +51,46 @@ export const PianoAttendanceView: FC = () => {
     goPinCheckIn,
   } = usePianoAttendanceView();
 
+  const statChips: StatChip[] = [
+    {
+      value: 'ALL',
+      label: isToday ? '오늘 예정' : '예정',
+      count: stats.expected,
+      activeClass: 'bg-indigo-600 text-white border-indigo-600',
+    },
+    {
+      value: 'unchecked',
+      label: '미등원',
+      count: stats.unchecked,
+      activeClass: 'bg-slate-700 text-white border-slate-700',
+    },
+    {
+      value: 'present',
+      label: '등원',
+      count: stats.present,
+      activeClass: 'bg-emerald-600 text-white border-emerald-600',
+    },
+    {
+      value: 'late',
+      label: '지각',
+      count: stats.late,
+      activeClass: 'bg-amber-500 text-white border-amber-500',
+    },
+    {
+      value: 'absent',
+      label: '결석',
+      count: stats.absent,
+      activeClass: 'bg-rose-600 text-white border-rose-600',
+    },
+  ];
+
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-3 sm:space-y-4 pb-4">
       <PageHeader
         density="compact"
         icon={<CheckSquare className="w-6 h-6" />}
         title="출결"
-        description="일정에 배정된 학생이 실제로 왔는지 등원·지각·결석으로 기록합니다."
+        description="오늘 예정 학생이 실제로 왔는지 기록합니다."
         actions={
           pinEnabled ? (
             <button
@@ -74,25 +105,39 @@ export const PianoAttendanceView: FC = () => {
         }
       />
 
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
-        <SummaryMetricCard
-          label={isToday ? '오늘 예정' : '예정'}
-          value={`${stats.expected}명`}
-          variant="indigo"
-        />
-        <SummaryMetricCard label="등원" value={`${stats.present}명`} variant="emerald" />
-        <SummaryMetricCard label="지각" value={`${stats.late}명`} />
-        <SummaryMetricCard label="결석" value={`${stats.absent}명`} />
-        <SummaryMetricCard
-          label="미등원"
-          value={`${stats.unchecked}명`}
-          className="col-span-2 sm:col-span-1"
-        />
+      {/* 요약 = 필터 (한 줄로 상태 확인·전환) */}
+      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+        {statChips.map((chip) => {
+          const active = statusFilter === chip.value;
+          return (
+            <button
+              key={chip.value}
+              type="button"
+              onClick={() => setStatusFilter(chip.value)}
+              className={`min-h-[56px] sm:min-h-[52px] rounded-xl border px-1 py-2 text-center transition-colors ${
+                active
+                  ? chip.activeClass
+                  : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+              }`}
+            >
+              <span
+                className={`block text-[10px] sm:text-[11px] font-bold ${
+                  active ? 'text-white/90' : 'text-slate-500'
+                }`}
+              >
+                {chip.label}
+              </span>
+              <span className="block text-base sm:text-lg font-black tabular-nums mt-0.5">
+                {chip.count}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
-        <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100">
-          <div className="flex items-center gap-2 w-full sm:w-auto">
+        <FilterBar className="border-0 shadow-none rounded-none border-b border-slate-100 gap-2">
+          <div className="flex items-center gap-1.5 w-full sm:w-auto">
             <button
               type="button"
               onClick={() => setSelectedDate((d) => shiftDateIso(d, -1))}
@@ -105,7 +150,7 @@ export const PianoAttendanceView: FC = () => {
               type="date"
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
-              className="flex-1 sm:flex-none px-3 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
+              className="flex-1 sm:flex-none min-w-0 px-2.5 py-2 min-h-[44px] text-sm font-bold border border-slate-200 rounded-xl"
             />
             <button
               type="button"
@@ -119,7 +164,7 @@ export const PianoAttendanceView: FC = () => {
               <button
                 type="button"
                 onClick={() => setSelectedDate(todayIsoLocal())}
-                className="px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold text-indigo-600 border border-indigo-100 bg-indigo-50"
+                className="px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold text-indigo-600 border border-indigo-100 bg-indigo-50 shrink-0"
               >
                 오늘
               </button>
@@ -128,27 +173,10 @@ export const PianoAttendanceView: FC = () => {
           <SearchField
             value={searchQuery}
             onChange={setSearchQuery}
-            placeholder="학생 이름 검색"
+            placeholder="이름 검색"
             className="w-full sm:flex-1 sm:max-w-xs"
           />
         </FilterBar>
-
-        <div className="flex flex-wrap gap-1.5 px-3 py-2 border-b border-slate-100">
-          {FILTER_CHIPS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setStatusFilter(value)}
-              className={`px-3 py-1.5 min-h-[44px] sm:min-h-[36px] rounded-lg text-[11px] font-bold border transition-colors ${
-                statusFilter === value
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
 
         {rows.length === 0 ? (
           <EmptyState
@@ -161,22 +189,23 @@ export const PianoAttendanceView: FC = () => {
             description={
               expectedCount === 0 && rosterCount === 0
                 ? '일정(시간표)에서 학생을 배치하면 출결 목록에 나타납니다.'
-                : '검색어나 상태 필터를 바꿔 보세요.'
+                : statusFilter !== 'ALL'
+                  ? '다른 상태 칩을 눌러 보세요.'
+                  : '검색어를 바꿔 보세요.'
             }
             className="border-0 shadow-none rounded-none"
           />
         ) : (
           <ul className="divide-y divide-slate-100">
-            {rows.map(({ student, status, record, scheduleLabel, fromSchedule }) => (
+            {rows.map(({ student, status, record, scheduleTime, scheduleDetail }) => (
               <PianoAttendanceRow
                 key={student.id}
                 student={student}
                 status={status}
                 pinCheckedIn={pinCheckInIds.has(student.id)}
                 hasDayRecord={Boolean(record)}
-                scheduleLabel={
-                  scheduleLabel || (!fromSchedule ? '일정 외(당일 기록)' : undefined)
-                }
+                scheduleTime={scheduleTime || undefined}
+                scheduleDetail={scheduleDetail || undefined}
                 onOpenStudent={() => openStudent(student.id)}
                 onSetStatus={(next) => handleSetStatus(student, next)}
               />

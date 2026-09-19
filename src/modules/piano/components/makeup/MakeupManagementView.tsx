@@ -360,7 +360,7 @@ export const MakeupManagementView: React.FC = () => {
               </select>
             )}
           </FormField>
-          <FormField label="담당 강사">
+          <FormField label="담당 선생님">
             <select
               value={teacherId}
               onChange={(e) => setTeacherId(e.target.value)}

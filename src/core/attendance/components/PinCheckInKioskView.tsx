@@ -11,7 +11,7 @@ import {
 } from '../utils/resolveKioskOrganizationId';
 import { Delete, RotateCcw, Settings } from 'lucide-react';
 import { getIndustryAccent } from '@/core/industry/industryUi';
-import { syncDayAttendanceFromPinCheckIn } from '@/modules/piano/services/pinDayAttendanceSync';
+import { runPinCheckInSideEffects } from '../pinCheckInSideEffects';
 
 const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'clear', '0', 'enter'] as const;
 const ADMIN_EXIT_HOLD_MS = 2000;
@@ -110,7 +110,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
               result.action === 'check_in' &&
               (industry === 'piano' || industry === 'daycare')
             ) {
-              const sync = syncDayAttendanceFromPinCheckIn(result.customerId);
+              const sync = runPinCheckInSideEffects(result.customerId);
               if (sync.warning) {
                 showToast(sync.warning, 'warning');
               }

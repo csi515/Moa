@@ -1,15 +1,47 @@
-import { useMemo, type FC } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useCallback, useMemo, type FC } from 'react';
 import { formatCurrency, formatKoreanDate } from '@/utils/formatters';
+import {
+  requestOpenConsultationInquiries,
+  requestOpenConsultationReservations,
+  requestOpenGuardianEnrollments,
+  requestOpenMembershipJoins,
+} from '@/core/customer/studentJoinInbox';
+import { usePianoNavigate } from '@/modules/piano/layout/usePianoNavigate';
 import { useDirectorTodayDashboard } from './useDirectorTodayDashboard';
 import { DirectorTodayAttendanceSection } from './DirectorTodayAttendanceSection';
 import { DirectorTodayScheduleSection } from './DirectorTodayScheduleSection';
 import { DirectorTodayTasksSection, type DirectorTodayTaskItem } from './DirectorTodayTasksSection';
 import { DirectorTodayUnpaidSection } from './DirectorTodayUnpaidSection';
+import { useApp } from '@/context/AppContext';
+
+/** 홈 업무 항목 → 기존 처리 화면 탭 + (필요 시) 딥링크 플래그 */
+function openDirectorTodayTask(
+  item: DirectorTodayTaskItem,
+  navigate: (tab: DirectorTodayTaskItem['tab']) => void
+) {
+  switch (item.id) {
+    case 'inquiry':
+      requestOpenConsultationInquiries();
+      break;
+    case 'enrollment':
+      requestOpenGuardianEnrollments();
+      break;
+    case 'join':
+      requestOpenMembershipJoins();
+      break;
+    case 'reservation':
+      requestOpenConsultationReservations();
+      break;
+    default:
+      break;
+  }
+  navigate(item.tab);
+}
 
 /** 원장 홈 — 오늘 일정·등원·미납·처리할 업무만 */
 export const DirectorTodayHome: FC = () => {
-  const { setActiveTab, currentUser } = useApp();
+  const { currentUser } = useApp();
+  const navigate = usePianoNavigate();
   const data = useDirectorTodayDashboard();
 
   const {
@@ -64,7 +96,7 @@ export const DirectorTodayHome: FC = () => {
         id: 'reservation',
         label: '예약 요청',
         count: pendingReservationCount,
-        tab: 'calendar',
+        tab: 'consultations',
         tone: 'emerald',
       },
     ];
@@ -75,6 +107,13 @@ export const DirectorTodayHome: FC = () => {
     makeupPendingCount,
     pendingReservationCount,
   ]);
+
+  const handleOpenTask = useCallback(
+    (item: DirectorTodayTaskItem) => {
+      openDirectorTodayTask(item, navigate);
+    },
+    [navigate]
+  );
 
   const pendingTaskTotal = taskItems.reduce((sum, item) => sum + item.count, 0);
 
@@ -103,7 +142,7 @@ export const DirectorTodayHome: FC = () => {
         {isEmpty && (
           <button
             type="button"
-            onClick={() => setActiveTab('students')}
+            onClick={() => navigate('students')}
             className="mt-3 min-h-[44px] px-4 rounded-xl bg-white text-indigo-900 text-sm font-bold"
           >
             학생 등록하기
@@ -115,18 +154,18 @@ export const DirectorTodayHome: FC = () => {
         <DirectorTodayScheduleSection
           todayClasses={todayClasses}
           students={students}
-          onOpenSchedule={() => setActiveTab('timetable')}
+          onOpenSchedule={() => navigate('timetable')}
         />
         <DirectorTodayAttendanceSection
           today={today}
           expectedDay={expectedDay}
-          onOpenAttendance={() => setActiveTab('attendance')}
+          onOpenAttendance={() => navigate('attendance')}
         />
         <DirectorTodayUnpaidSection
           invoices={unpaidInvoices}
-          onOpenUnpaid={() => setActiveTab('unpaid')}
+          onOpenUnpaid={() => navigate('unpaid')}
         />
-        <DirectorTodayTasksSection items={taskItems} onOpen={setActiveTab} />
+        <DirectorTodayTasksSection items={taskItems} onOpen={handleOpenTask} />
       </div>
     </div>
   );

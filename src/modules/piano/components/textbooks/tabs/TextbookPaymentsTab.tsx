@@ -52,7 +52,7 @@ export const TextbookPaymentsTab: React.FC<TextbookPaymentsTabProps> = ({
                     <div>
                       <span className="font-bold text-slate-900 text-sm">{sale.studentName}</span>
                       <span className="text-xs text-slate-500 block">
-                        보호자: {sale.parentName} ({sale.parentPhone})
+                        학부모: {sale.parentName} ({sale.parentPhone})
                       </span>
                     </div>
                     <span className="text-xs font-bold text-rose-600 bg-rose-100/80 px-2 py-0.5 rounded-md">

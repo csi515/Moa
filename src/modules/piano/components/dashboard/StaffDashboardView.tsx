@@ -35,7 +35,7 @@ export const StaffDashboardView: React.FC = () => {
   return (
     <div className="space-y-4 pb-4">
       <div className="bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-2xl px-4 py-3 text-white">
-        <p className="text-indigo-200 text-[11px] font-semibold">강사 홈</p>
+        <p className="text-indigo-200 text-[11px] font-semibold">선생님 홈</p>
         <div className="flex flex-wrap items-end justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">{currentUser.name} 선생님</h2>
           <p className="text-[11px] text-indigo-200">

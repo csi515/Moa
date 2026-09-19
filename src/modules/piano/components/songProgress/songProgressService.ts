@@ -20,7 +20,7 @@ function mapError(message: string, fallback: string): Error {
     return new Error('로그인이 필요합니다.');
   }
   if (/Customer not found/i.test(message)) {
-    return new Error('해당 조직의 수강생을 찾을 수 없습니다.');
+    return new Error('해당 조직의 학생을 찾을 수 없습니다.');
   }
   if (/book_name and song_title are required/i.test(message)) {
     return new Error('교재와 곡명을 입력해 주세요.');

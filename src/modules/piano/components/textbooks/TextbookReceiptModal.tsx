@@ -85,12 +85,12 @@ export const TextbookReceiptModal: React.FC<TextbookReceiptModalProps> = ({
               <span className="font-bold text-slate-900">{sale.studentName}</span>
             </div>
             <div>
-              <span className="text-slate-400">보호자:</span>{' '}
+              <span className="text-slate-400">학부모:</span>{' '}
               <span className="font-medium text-slate-700">{sale.parentName || '학부모'} ({sale.parentPhone || '-'})</span>
             </div>
             <div>
-              <span className="text-slate-400">담당 강사:</span>{' '}
-              <span className="font-medium text-slate-700">{sale.teacherName || '담당선생님'}</span>
+              <span className="text-slate-400">담당 선생님:</span>{' '}
+              <span className="font-medium text-slate-700">{sale.teacherName || '담당 선생님'}</span>
             </div>
             <div>
               <span className="text-slate-400">결제 방법:</span>{' '}

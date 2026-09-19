@@ -6,6 +6,7 @@ import {
   SHUTTLE_DIRECTION_OPTIONS,
 } from '@/core/transport/types';
 import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui/FormField';
+import { useModuleLabels } from '@/core/labels';
 
 interface StudentPickupSectionProps {
   address: string;
@@ -28,6 +29,10 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
   onUsesShuttleChange,
   onPickupAddressesChange,
 }) => {
+  const labels = useModuleLabels();
+  const customerLabel = labels.customer.singular;
+  const contactLabel = labels.contact.singular;
+
   const updateAddress = (id: string, patch: Partial<PickupAddress>) => {
     onPickupAddressesChange(
       pickupAddresses.map((a) => (a.id === id ? { ...a, ...patch } : a))
@@ -65,7 +70,7 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
         <div>
           <h4 className="text-sm font-bold text-slate-900">픽업·하원 셔틀</h4>
           <p className="text-xs text-slate-500 mt-0.5">
-            셔틀 이용 원생의 픽업·하원 주소를 등록합니다.
+            셔틀 이용 {customerLabel}의 픽업·하원 주소를 등록합니다.
           </p>
         </div>
       </div>
@@ -189,7 +194,7 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
                     type="text"
                     value={item.contactName || ''}
                     onChange={(e) => updateAddress(item.id, { contactName: e.target.value })}
-                    placeholder="보호자 이름"
+                    placeholder={`${contactLabel} 이름`}
                     className={FORM_CONTROL_CLASS}
                   />
                 </FormField>

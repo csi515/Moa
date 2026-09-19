@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PaymentMethod } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
@@ -16,6 +17,7 @@ import type { IncomeEntry } from '@/core/finance/types';
 export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
+  const refreshKey = useStorageRefresh();
   const categoryOptions = getIncomeCategories(industry);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -33,7 +35,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
     memo: '',
   });
 
-  const entries = StorageService.getIncomeEntries();
+  const entries = useMemo(() => StorageService.getIncomeEntries(), [refreshKey]);
 
   const monthOptions = useMemo(
     () =>

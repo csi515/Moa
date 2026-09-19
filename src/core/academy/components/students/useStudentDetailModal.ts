@@ -408,7 +408,10 @@ export function useStudentDetailModal({
 
   const handleCreateInvoice = () => {
     if (student.billingMode === 'session_pass') {
-      showToast('회차권 원생은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.', 'warning');
+      showToast(
+        `회차권 ${labels.customer.singular}은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.`,
+        'warning'
+      );
       return;
     }
     const created = TuitionService.createInvoiceForStudent(student);

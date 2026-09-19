@@ -48,7 +48,7 @@ export const ConsultationTodaySection: FC<{
         <p className="text-xs text-slate-500 mt-1">
           {isScoped
             ? '담당 학생이거나 본인 상담만 표시됩니다.'
-            : '가능시간을 설정하거나 상담 일정을 추가하세요.'}
+            : '설정에서 가능시간을 지정하거나 상담 일정을 추가하세요.'}
         </p>
       </div>
     ) : (

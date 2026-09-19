@@ -4,6 +4,7 @@ import { useApp } from '@/context/AppContext';
 import type { GuardianEnrollmentRequest } from '@/core/parent/services/enrollmentRequestService';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
 import { SHARED_CHILD_FIELD_LABELS, type SharedChildField } from '@/core/parent/services/parentChildService';
+import { useModuleLabels } from '@/core/labels';
 
 function sharedFieldValue(field: SharedChildField, request: GuardianEnrollmentRequest): string {
   if (field === 'display_name') return request.studentName;
@@ -50,6 +51,8 @@ export const GuardianEnrollmentRequestCard: React.FC<{
   onReject: (reason: string) => void | Promise<void>;
 }> = ({ request, onApprove, onReject }) => {
   const { showToast } = useApp();
+  const labels = useModuleLabels();
+  const contactLabel = labels.contact.singular;
   const [showRejectForm, setShowRejectForm] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -104,7 +107,7 @@ export const GuardianEnrollmentRequestCard: React.FC<{
             <div className="flex items-center gap-2 text-sm">
               <User className="w-4 h-4 text-slate-400 shrink-0" />
               <div>
-                <p className="text-xs text-slate-500">보호자</p>
+                <p className="text-xs text-slate-500">{contactLabel}</p>
                 <p className="font-bold text-slate-900">
                   {request.parentName} ({GUARDIAN_RELATIONSHIP_LABELS[request.relationship as keyof typeof GUARDIAN_RELATIONSHIP_LABELS]})
                 </p>

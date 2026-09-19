@@ -3,21 +3,10 @@ import { normalizeBillingMode } from '@/types';
 import { formatCurrency, getAttendanceBadge, getInvoiceStatusBadge } from '@/utils/formatters';
 import type { SessionPass } from '@/core/types/schedule';
 import { getPassRemaining } from '@/core/schedules/sessionPassUtils';
-import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
-
-const WEEKDAYS: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
-
-export function getTodayIsoDate(): string {
-  return todayIsoLocal();
-}
+import { yearMonthLocal } from '@/shared/utils/localDate';
 
 export function getCurrentYearMonth(): string {
   return yearMonthLocal();
-}
-
-/** 오늘 요일 (한글 DayOfWeek) */
-export function getTodayWeekday(): DayOfWeek {
-  return WEEKDAYS[new Date().getDay()];
 }
 
 export function studentHasWeekday(

@@ -1,6 +1,7 @@
 ﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
+import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PaymentMethod } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
@@ -27,6 +28,7 @@ const PAYROLL_RELATED_CATEGORIES = new Set(['teacher_salary', 'instructor_fee', 
 export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
+  const refreshKey = useStorageRefresh();
   const categoryOptions = getExpenseCategories(industry);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
@@ -44,7 +46,7 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     memo: '',
   });
 
-  const expenses = StorageService.getExpenses();
+  const expenses = useMemo(() => StorageService.getExpenses(), [refreshKey]);
 
   const monthOptions = useMemo(
     () =>

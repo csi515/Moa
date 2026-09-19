@@ -64,7 +64,9 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
         </div>
         <div className="py-1.5 border-b border-slate-200/60">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-500">보호자 ({guardians.length}명)</span>
+            <span className="text-slate-500">
+              {contactLabel} ({guardians.length}명)
+            </span>
             <div className="flex items-center gap-2">
               {isAdmin && isSupabaseConfigured && (
                 <button
@@ -73,7 +75,7 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
                   className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2 flex items-center gap-1"
                 >
                   <Link2 className="w-3 h-3" />
-                  학부모에게 MOA 연결 안내
+                  {contactLabel}에게 MOA 연결 안내
                 </button>
               )}
               {canEditStudent && (
@@ -82,13 +84,13 @@ export const StudentDetailInfoTab: React.FC<StudentDetailInfoTabProps> = ({
                 onClick={() => onEdit(student)}
                 className="text-[10px] font-bold text-indigo-600 hover:underline min-h-[44px] px-2"
               >
-                보호자 추가/수정
+                {contactLabel} 추가/수정
               </button>
               )}
             </div>
           </div>
           {guardians.length === 0 ? (
-            <span className="text-slate-400">등록된 보호자 없음</span>
+            <span className="text-slate-400">등록된 {contactLabel} 없음</span>
           ) : (
             <div className="space-y-2">
               {guardians.map((g) => (

@@ -9,7 +9,6 @@ import {
   DAY_ATTENDANCE_CLASS_NAME,
   STATUS_META,
   countDayStatuses,
-  formatExpectedScheduleLabel,
   persistDayAttendance,
   resolveDayStatus,
   todayIsoLocal,
@@ -82,11 +81,19 @@ export function usePianoAttendanceView() {
       .map((row) => {
         const record = dayRecordMap.get(row.student.id);
         const status = resolveDayStatus(record, pinCheckInIds.has(row.student.id));
+        const scheduleTime =
+          row.earliestStart && row.earliestStart !== '99:99' ? row.earliestStart : '';
+        const classNames = row.classes
+          .map((c) => c.name?.trim())
+          .filter(Boolean)
+          .join(' · ');
         return {
           student: row.student,
           record,
           status,
-          scheduleLabel: formatExpectedScheduleLabel(row.classes),
+          scheduleTime,
+          scheduleDetail: classNames,
+          scheduleSort: scheduleTime || '99:99',
           fromSchedule: expectedById.has(row.student.id),
         };
       })
@@ -94,6 +101,8 @@ export function usePianoAttendanceView() {
       .sort((a, b) => {
         const d = attendanceListRank(a.status) - attendanceListRank(b.status);
         if (d !== 0) return d;
+        const t = a.scheduleSort.localeCompare(b.scheduleSort);
+        if (t !== 0) return t;
         return a.student.name.localeCompare(b.student.name, 'ko');
       });
   }, [roster, searchQuery, dayRecordMap, pinCheckInIds, statusFilter, expectedById]);

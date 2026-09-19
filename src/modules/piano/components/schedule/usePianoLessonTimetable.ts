@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
 import { useMediaQuery, useStaffScope, useStorageRefresh } from '@/hooks';
@@ -30,7 +30,7 @@ export function usePianoLessonTimetable() {
 
   const todayDay = weekdayFromDate();
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(todayDay);
-  const [teacherFilter, setTeacherFilter] = useState('ALL');
+  const [teacherFilterDraft, setTeacherFilterDraft] = useState('ALL');
   const [layoutMode, setLayoutMode] = useState<TimetableLayoutMode>('week');
   const [pickerSlot, setPickerSlot] = useState<{
     day: DayOfWeek;
@@ -54,9 +54,9 @@ export function usePianoLessonTimetable() {
     [scopeStudents, refreshKey]
   );
 
-  useEffect(() => {
-    if (isScoped && staffId) setTeacherFilter(staffId);
-  }, [isScoped, staffId]);
+  /** 스코프 강사는 담당만 — draft와 동기화 effect 없이 파생 */
+  const teacherFilter = isScoped && staffId ? staffId : teacherFilterDraft;
+  const setTeacherFilter = setTeacherFilterDraft;
 
   const preferredTeacherId = teacherFilter !== 'ALL' ? teacherFilter : undefined;
 
@@ -104,7 +104,7 @@ export function usePianoLessonTimetable() {
       student,
       day,
       startTime,
-      classes: StorageService.getClasses(),
+      classes,
       teachers,
       preferredTeacherId: teacherId || preferredTeacherId,
     });
@@ -135,7 +135,7 @@ export function usePianoLessonTimetable() {
       from: { classItem: fromClass, day: payload.day, startTime: payload.startTime },
       toDay: day,
       toStartTime: startTime,
-      classes: StorageService.getClasses(),
+      classes,
       teachers,
       preferredTeacherId: sectionTeacherId || preferredTeacherId,
     });

@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useState, useMemo } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
@@ -11,6 +11,7 @@ import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
 import { ScheduleService } from '@/core/services/scheduleService';
 import type { DayOfWeek, Student } from '@/types';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import { StudentFormModal } from './StudentFormModal';
 import { StudentDetailModal } from './StudentDetailModal';
 import { getStudentStatusBadge } from '@/utils/formatters';
@@ -36,7 +37,6 @@ import {
   getPianoBillingModeLabel,
   getPianoSessionPassColumnLabel,
   getTodayAttendanceSignal,
-  getTodayIsoDate,
   studentHasWeekday,
 } from './studentListHelpers';
 
@@ -62,8 +62,10 @@ export const StudentListView: React.FC = () => {
   const endedLabel = skin ? '종료' : '퇴원';
   const { isScoped, staffId, scopeStudents } = useStaffScope();
 
-  const allStudents = StudentService.getStudents();
-  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents, refreshKey]);
+  const students = useMemo(
+    () => scopeStudents(StudentService.getStudents()),
+    [scopeStudents, refreshKey]
+  );
   const teachers = StorageService.getTeachers();
   const classes = useMemo(
     () =>
@@ -82,7 +84,7 @@ export const StudentListView: React.FC = () => {
     return map;
   }, [classes]);
 
-  const today = getTodayIsoDate();
+  const today = todayIsoLocal();
   const yearMonth = getCurrentYearMonth();
 
   const todayAttendanceByStudent = useMemo(
@@ -99,7 +101,7 @@ export const StudentListView: React.FC = () => {
   );
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [teacherFilter, setTeacherFilter] = useState('ALL');
+  const [teacherFilterDraft, setTeacherFilterDraft] = useState('ALL');
   const [classFilter, setClassFilter] = useState('ALL');
   const [weekdayFilter, setWeekdayFilter] = useState<DayOfWeek | 'ALL'>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('active');
@@ -112,28 +114,16 @@ export const StudentListView: React.FC = () => {
   const [isFormModalOpen, setIsFormModalOpen] = useState(false);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [detailStudent, setDetailStudent] = useState<Student | null>(null);
 
-  useEffect(() => {
-    if (isScoped && staffId) {
-      setTeacherFilter(staffId);
-    }
-  }, [isScoped, staffId]);
+  /** 스코프 강사는 담당만 — draft와 중복 저장하지 않음 */
+  const teacherFilter = isScoped && staffId ? staffId : teacherFilterDraft;
+  const setTeacherFilter = setTeacherFilterDraft;
 
-  useEffect(() => {
-    if (selectedStudentId) {
-      const found = students.find((s) => s.id === selectedStudentId);
-      if (found) setDetailStudent(found);
-    }
+  /** 상세 모달 대상은 selectedStudentId + students 파생 (동기화 effect 없음) */
+  const detailStudent = useMemo(() => {
+    if (!selectedStudentId) return null;
+    return students.find((s) => s.id === selectedStudentId) || null;
   }, [selectedStudentId, students]);
-
-  // 퇴원/복귀 등 저장 후 상세 상태 동기화
-  useEffect(() => {
-    setDetailStudent((prev) => {
-      if (!prev) return prev;
-      return students.find((s) => s.id === prev.id) || prev;
-    });
-  }, [refreshKey]);
 
   const filteredStudents = useMemo(() => {
     return students
@@ -198,7 +188,7 @@ export const StudentListView: React.FC = () => {
 
   const resetFilters = () => {
     setSearchQuery('');
-    setTeacherFilter(isScoped && staffId ? staffId : 'ALL');
+    setTeacherFilterDraft(isScoped && staffId ? staffId : 'ALL');
     setClassFilter('ALL');
     setWeekdayFilter('ALL');
     setStatusFilter('active');
@@ -206,17 +196,16 @@ export const StudentListView: React.FC = () => {
     setSortBy('joinDateDesc');
   };
 
-  const handleOpenDetail = (student: Student) => setDetailStudent(student);
+  const handleOpenDetail = (student: Student) => setSelectedStudentId(student.id);
 
   const handleCloseDetail = () => {
-    setDetailStudent(null);
     setSelectedStudentId(null);
   };
 
   const handleOpenEdit = (student: Student) => {
     setEditingStudent(student);
     setIsFormModalOpen(true);
-    setDetailStudent(null);
+    setSelectedStudentId(null);
   };
 
   const statusChips: Array<{ value: string; label: string; count: number }> = [
@@ -259,7 +248,7 @@ export const StudentListView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="이름 · 보호자 · 보호자 전화"
+          placeholder={`이름 · ${labels.contact.singular} · ${labels.contact.singular} 전화`}
           className="w-full"
         />
 
@@ -605,7 +594,9 @@ export const StudentListView: React.FC = () => {
                     <span className={signalClass(bill.tone)}>{bill.label}</span>
                   </div>
                   {guardian?.parentName && (
-                    <p className="text-[10px] text-slate-400 truncate">보호자 {guardian.parentName}</p>
+                    <p className="text-[10px] text-slate-400 truncate">
+                      {labels.contact.singular} {guardian.parentName}
+                    </p>
                   )}
                 </button>
               );
@@ -622,7 +613,7 @@ export const StudentListView: React.FC = () => {
           setEditingStudent(null);
         }}
         onSaved={(saved, options) => {
-          setDetailStudent(saved);
+          setSelectedStudentId(saved.id);
           if (options?.openTab) {
             setSelectedStudentDetailTab(options.openTab);
           }

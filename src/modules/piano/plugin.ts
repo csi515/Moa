@@ -1,5 +1,10 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import { withNoticesTabs } from '@/core/industry/pluginTypes';
+import { registerPinCheckInSideEffect } from '@/core/attendance/pinCheckInSideEffects';
+import { syncDayAttendanceFromPinCheckIn } from './services/pinDayAttendanceSync';
+
+/** 피아노 PIN 체크인 → 당일 등원(DAY_ATTENDANCE) 동기화 (Core 키오스크는 Module을 import하지 않음) */
+registerPinCheckInSideEffect(syncDayAttendanceFromPinCheckIn);
 
 /** 피아노학원 플러그인 매니페스트 (풀 기능) */
 export const pianoPluginManifest: IndustryPluginManifest = {
@@ -37,6 +42,8 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'lessons',
     'practice',
     'consultations',
+    /** 상담 가능시간 설정 (설정 → 부가) */
+    'bookings',
     // resources: UI 숨김(nav) — VIEW_MAP·ResourceManagementView·SONGS 데이터는 유지
     'finance',
     'income',
@@ -65,6 +72,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'lessons',
     'practice',
     'consultations',
+    'bookings',
     'calendar',
     'recitals',
     'curriculum',

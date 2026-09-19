@@ -9,11 +9,8 @@ import {
 import {
   getTodayClasses,
   getUpcomingWeekOccurrences,
-} from '@/modules/parent/utils/parentScheduleHelpers';
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+} from '@/core/academy/utils/classOccurrenceHelpers';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 function statusLabel(status: string): string {
   if (status === 'pending') return '승인 대기';
@@ -50,7 +47,7 @@ export function CustomerScheduleView({
   useEffect(() => {
     let cancelled = false;
     void practiceRoomReservationService
-      .listForCustomer(organizationId, customerId, { fromDate: todayIso(), limit: 10 })
+      .listForCustomer(organizationId, customerId, { fromDate: todayIsoLocal(), limit: 10 })
       .then((rows) => {
         if (!cancelled) setPracticeBookings(rows);
       })
@@ -62,7 +59,7 @@ export function CustomerScheduleView({
     };
   }, [organizationId, customerId]);
 
-  const today = todayIso();
+  const today = todayIsoLocal();
   const todayPractice = practiceBookings.filter((b) => seoulDateFromIso(b.starts_at) === today);
 
   if (classes.length === 0 && practiceBookings.length === 0) {

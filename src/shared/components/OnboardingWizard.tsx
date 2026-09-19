@@ -322,7 +322,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const openConsultationSettings = () => {
     StorageService.setOnboardingProgress({ status: 'in_progress', step: TOTAL_STEPS - 1 });
     onComplete();
-    setActiveTab('consultations');
+    setActiveTab('bookings');
     showToast('상담 가능 시간을 설정한 뒤, 홈에서 초기 설정을 마무리할 수 있습니다.', 'info');
   };
 
@@ -330,7 +330,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     StorageService.markOnboardingCompleted(TOTAL_STEPS - 1);
     onComplete();
     setActiveTab('students');
-    showToast('학원 설정이 완료되었습니다. 첫 원생을 등록해 보세요!', 'success');
+    showToast('학원 설정이 완료되었습니다. 첫 학생을 등록해 보세요!', 'success');
   };
 
   const finishToHome = () => {
@@ -605,7 +605,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {step === 3 && (
             <div className="p-6 space-y-4">
               <p className="text-sm text-slate-500">
-                월 수강료 기본값입니다. 교재 판매(일회성)와는 별도이며, 원생 등록 시 기본으로 채워집니다.
+                월 수강료 기본값입니다. 교재 판매(일회성)와는 별도이며, 학생 등록 시 기본으로 채워집니다.
               </p>
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">기본 월 수강료</label>
@@ -760,7 +760,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {step === 6 && (
             <div className="p-6 space-y-4">
               <p className="text-sm text-slate-500">
-                상담 예약 가능 시간은 기존 상담 메뉴에서 설정합니다. QR·예약 화면은 그대로 사용하며, 이
+                상담 예약 가능 시간은 설정에서 관리합니다. QR·예약 화면은 그대로 사용하며, 이
                 단계에서 새로 만들지 않습니다.
               </p>
               <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-2">
@@ -769,7 +769,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                   상담 · 가능 시간
                 </p>
                 <p className="text-[11px] text-indigo-800/80 leading-relaxed">
-                  상담 허브의 「가능시간」에서 요일·시간대를 설정할 수 있습니다.
+                  설정 → 부가 → 「상담 가능시간」에서 요일·시간대를 설정할 수 있습니다.
                 </p>
               </div>
               {footerNav({
@@ -789,7 +789,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <div>
                 <h3 className="font-bold text-lg text-slate-900">초기 설정이 준비되었습니다</h3>
                 <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                  이제 첫 원생을 등록하고 운영을 시작해 보세요. 강의실·정규 레슨은 설정·수업 메뉴에서
+                  이제 첫 학생을 등록하고 운영을 시작해 보세요. 강의실·정규 레슨은 설정·수업 메뉴에서
                   추가할 수 있습니다.
                 </p>
               </div>

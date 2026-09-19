@@ -13,7 +13,7 @@ export function hubViewAliases(
   return entries;
 }
 
-/** 재무 허브 — 요약·수입·지출·수납·미수금 (딥링크 탭도 동일 허브) */
+/** 재무 허브 — 수입·지출·수납·미납·정산 딥링크 탭도 동일 FinanceHubView */
 export const financeViewEntries = hubViewAliases(() => <FinanceHubView />, [
   'finance',
   'income',

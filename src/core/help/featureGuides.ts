@@ -175,7 +175,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         id: 'consultations',
         title: '상담',
         summary: '예약 관리, 상담 기록, 상담 가능 시간을 한곳에서 처리합니다.',
-        howTo: '가능시간 설정 → 예약 슬롯 동기화 → 공개 페이지에서 학부모가 신청 → 예약 관리에서 확정',
+        howTo: '설정 → 부가 → 상담 가능시간 → 예약 슬롯 동기화 → 공개 페이지에서 학부모가 신청 → 예약 관리에서 확정',
       },
     ],
   }),

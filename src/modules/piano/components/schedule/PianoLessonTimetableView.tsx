@@ -14,7 +14,7 @@ import { usePianoLessonTimetable } from './usePianoLessonTimetable';
 /**
  * 피아노 수업 시간표 — 요일·시간대에 「누가 오는지」배치·이동.
  * ClassItem + student.classIds 재사용. 출결(DAY_ATTENDANCE)은 절대 변경하지 않음.
- * 정시(09:00…) 그리드만 편집 가능. :30 시작 반은 표시만 되며 반 관리에서 수정.
+ * 30분 단위(09:00, 09:30…) 그리드에서 배치·이동. 여러 요일 반은 표시만 되며 반 관리에서 수정.
  */
 export const PianoLessonTimetableView: FC = () => {
   const {
@@ -98,9 +98,9 @@ export const PianoLessonTimetableView: FC = () => {
         <Clock className="w-4 h-4 text-indigo-600 mt-0.5 shrink-0" />
         <p className="text-xs text-indigo-900 leading-relaxed">
           시간표는 <strong className="font-bold">누가 언제 오는지</strong>를 정합니다. 실제로
-          왔는지는 <strong className="font-bold">출결</strong>에서 따로 기록합니다. 그리드는
-          정시(09:00…) 기준이며, <strong className="font-bold">:30 시작 반</strong>은 표시만 되고
-          편집은 「반 관리」에서 하세요.
+          왔는지는 <strong className="font-bold">출결</strong>에서 따로 기록합니다. 그리드는{' '}
+          <strong className="font-bold">30분 단위</strong>(15:00, 15:30…)이며, 여러 요일에 걸친 반은
+          표시만 되고 편집은 「반 관리」에서 하세요.
           {useDragGrid
             ? ' PC에서는 학생을 드래그해 시간대에 놓거나 칸 안에서 이동하세요.'
             : ' 「학생 추가」또는 학생을 탭한 뒤 시간대를 선택하세요.'}

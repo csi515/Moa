@@ -15,6 +15,9 @@ interface ModuleBottomNavProps {
   theme: ModuleTheme;
   moreMenuTitle?: string;
   moreMenuDescription?: string;
+  /** 업종별 하이라이트 (미지정 시 core resolveNavHighlightTab / isNavItemActive) */
+  resolveHighlightTab?: (tab: NavTab) => NavTab;
+  isItemActive?: (itemTab: NavTab, activeTab: NavTab) => boolean;
 }
 
 /** 모듈 공통 모바일 하단 네비 (메인 탭 + 더보기 시트) */
@@ -26,6 +29,8 @@ export function ModuleBottomNav({
   theme,
   moreMenuTitle = '전체 메뉴',
   moreMenuDescription,
+  resolveHighlightTab = resolveNavHighlightTab,
+  isItemActive = isNavItemActive,
 }: ModuleBottomNavProps) {
   const t = MODULE_THEMES[theme];
   const [moreOpen, setMoreOpen] = useState(false);
@@ -37,16 +42,16 @@ export function ModuleBottomNav({
     setMoreOpen(false);
   };
 
-  const highlightTab = resolveNavHighlightTab(activeTab);
+  const highlightTab = resolveHighlightTab(activeTab);
   const isMoreActive = moreTabs.some(
-    (item) => isNavItemActive(item.tab, activeTab) && !mainTabs.some((m) => m.tab === highlightTab)
+    (item) => isItemActive(item.tab, activeTab) && !mainTabs.some((m) => m.tab === highlightTab)
   );
 
   return (
     <>
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-1 py-1 flex items-center justify-around no-print safe-area-pb">
         {mainTabs.map((item) => {
-          const isActive = isNavItemActive(item.tab, activeTab) && !moreOpen;
+          const isActive = isItemActive(item.tab, activeTab) && !moreOpen;
           return (
             <button
               key={item.tab}
@@ -112,7 +117,7 @@ export function ModuleBottomNav({
 
               <div className="grid grid-cols-3 gap-2.5 mt-3 pb-4 safe-area-pb">
                 {moreTabs.map((item) => {
-                  const isActive = activeTab === item.tab;
+                  const isActive = isItemActive(item.tab, activeTab);
                   return (
                     <button
                       key={item.tab}

@@ -34,6 +34,7 @@ export const PIANO_MOBILE_MORE_TABS: readonly NavTab[] = [
 
 /** 설정 허브「부가」— 저빈도 기능 (더보기와 중복하지 않음) */
 export const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
+  { tab: 'bookings', label: '상담 가능시간' },
   { tab: 'classes', label: '반 관리' },
   { tab: 'check-in', label: 'PIN 출석' },
   { tab: 'assignments', label: '주간 과제' },

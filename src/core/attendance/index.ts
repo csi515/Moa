@@ -6,6 +6,7 @@ export { AttendanceFeatureToggle } from './components/AttendanceFeatureToggle';
 export * from './types';
 export * from './features';
 export * from './dayAttendance';
+export * from './pinCheckInSideEffects';
 export * from './services/attendanceService';
 export * from './services/pinService';
 export {

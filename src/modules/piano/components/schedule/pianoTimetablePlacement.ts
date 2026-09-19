@@ -3,19 +3,32 @@ import { StorageService } from '@/services/storage';
 
 export const TIMETABLE_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일'];
 
+/** 30분 단위 편집 슬롯 (09:00 ~ 20:30) */
 export const TIMETABLE_SLOTS = [
   '09:00',
+  '09:30',
   '10:00',
+  '10:30',
   '11:00',
+  '11:30',
   '12:00',
+  '12:30',
   '13:00',
+  '13:30',
   '14:00',
+  '14:30',
   '15:00',
+  '15:30',
   '16:00',
+  '16:30',
   '17:00',
+  '17:30',
   '18:00',
+  '18:30',
   '19:00',
+  '19:30',
   '20:00',
+  '20:30',
 ] as const;
 
 export type TimetableSlot = (typeof TIMETABLE_SLOTS)[number];
@@ -23,13 +36,17 @@ export type TimetableSlot = (typeof TIMETABLE_SLOTS)[number];
 export interface SlotPlacement {
   student: Student;
   classItem: ClassItem;
-  /** 단일 요일·정시 슬롯 클래스만 시간표에서 이동/제거 가능 */
+  /** 단일 요일·슬롯 시작시각이 일치하는 반만 시간표에서 이동/제거 가능 */
   editable: boolean;
 }
 
+export function timeToMinutes(time: string): number {
+  const [h, m] = time.split(':').map((n) => parseInt(n, 10) || 0);
+  return h * 60 + m;
+}
+
 export function slotEndTime(startTime: string): string {
-  const [h, m] = startTime.split(':').map((n) => parseInt(n, 10) || 0);
-  const total = h * 60 + m + 50;
+  const total = timeToMinutes(startTime) + 50;
   const eh = Math.floor(total / 60);
   const em = total % 60;
   return `${String(eh).padStart(2, '0')}:${String(em).padStart(2, '0')}`;
@@ -39,7 +56,7 @@ export function slotHour(time: string): number {
   return parseInt(time.split(':')[0], 10) || 0;
 }
 
-/** 시간표에서 직접 편집 가능한 슬롯용 클래스 (단일 요일 + 정시 시작) */
+/** 시간표에서 직접 편집 가능한 슬롯용 클래스 (단일 요일 + 슬롯 시작시각) */
 export function isEditableSlotClass(
   cls: ClassItem,
   day: DayOfWeek,
@@ -65,15 +82,22 @@ export function findEditableSlotClass(
   return matches[0];
 }
 
+/**
+ * 해당 슬롯(30분 구간)에 표시할 반.
+ * 시작시각이 [slot, slot+30) 이면 표시. 편집은 isEditableSlotClass(정확한 startTime).
+ */
 export function classesMatchingSlot(
   classes: ClassItem[],
   day: DayOfWeek,
   startTime: string
 ): ClassItem[] {
-  const hour = slotHour(startTime);
-  return classes.filter(
-    (cls) => cls.daysOfWeek.includes(day) && slotHour(cls.startTime) === hour
-  );
+  const slotStart = timeToMinutes(startTime);
+  const slotEnd = slotStart + 30;
+  return classes.filter((cls) => {
+    if (!cls.daysOfWeek.includes(day)) return false;
+    const t = timeToMinutes(cls.startTime || '00:00');
+    return t >= slotStart && t < slotEnd;
+  });
 }
 
 export function getPlacementsForSlot(
@@ -179,7 +203,7 @@ export function assignStudentToSlot(params: {
   preferredTeacherId?: string;
 }): { ok: true; classItem: ClassItem; student: Student } | { ok: false; message: string } {
   const { student, day, startTime, teachers, preferredTeacherId } = params;
-  let classes = [...params.classes];
+  const classes = [...params.classes];
 
   if (student.status !== 'active') {
     return { ok: false, message: '재원 학생만 시간표에 배치할 수 있습니다.' };
@@ -235,7 +259,7 @@ export function removeStudentFromSlot(params: {
   if (!isEditableSlotClass(classItem, day, startTime)) {
     return {
       ok: false,
-      message: '여러 요일·정시 외(:30 등) 반은 반 관리에서 수정해 주세요.',
+      message: '여러 요일·슬롯과 다른 시작 시각의 반은 반 관리에서 수정해 주세요.',
     };
   }
   const nextIds = (student.classIds || []).filter((id) => id !== classItem.id);

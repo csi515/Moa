@@ -93,8 +93,13 @@ export const StudentAdvancedSection: React.FC<Props> = ({
               </div>
               <div className="sm:col-span-2 space-y-2">
                 <label className="block text-[11px] font-semibold text-slate-500">
-                  {serviceLabel} 배정 {isPiano ? '(오늘 레슨 자동 표시)' : ''}
+                  {serviceLabel} 배정
                 </label>
+                {isPiano && (
+                  <p className="text-[10px] text-slate-400 -mt-1 mb-1">
+                    선택한 {serviceLabel}이(가) 시간표·일정에 반영됩니다. 나중에 추가해도 됩니다.
+                  </p>
+                )}
                 {classes.length === 0 ? (
                   <p className="text-xs text-slate-400 px-1">
                     등록된 {serviceLabel}이(가) 없습니다. 먼저 {serviceLabel}을(를) 추가하세요.

@@ -8,7 +8,6 @@ import { LessonService } from '@/core/lessons';
 import { TuitionService } from '@/core/finance';
 import { EmptyState, PageHeader } from '@/shared/components';
 import type { AttendanceRecord, AttendanceStatus, ClassItem, LessonRecord, Student } from '@/types';
-import { upsertById } from '@/shared/utils/listUpdate';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
@@ -59,16 +58,11 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     [scopeClasses, todayKorean, refreshKey]
   );
 
-  const [attendance, setAttendance] = useState<AttendanceRecord[]>(() => StorageService.getAttendance());
-  const [lessons, setLessons] = useState<LessonRecord[]>(() =>
-    scopeLessons(LessonService.getLessonRecords())
+  const attendance = useMemo(() => StorageService.getAttendance(), [refreshKey]);
+  const lessons = useMemo(
+    () => scopeLessons(LessonService.getLessonRecords()),
+    [scopeLessons, refreshKey]
   );
-
-  useEffect(() => {
-    setAttendance(StorageService.getAttendance());
-    setLessons(scopeLessons(LessonService.getLessonRecords()));
-  }, [refreshKey, scopeLessons]);
-
   const findAttendance = (studentId: string, classId: string): AttendanceRecord | undefined =>
     attendance.find((a) => a.date === today && a.studentId === studentId && a.classId === classId);
 
@@ -123,7 +117,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       return false;
     }
 
-    const saved = StorageService.saveAttendanceRecord({
+    StorageService.saveAttendanceRecord({
       ...(existingAtt ? { id: existingAtt.id } : {}),
       date: today,
       studentId: student.id,
@@ -135,7 +129,6 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       createdBy: currentUser.name,
       sessionPassId: passResult.sessionPassId,
     });
-    setAttendance((prev) => upsertById(prev, saved));
 
     if (status === 'absent') {
       notifyParentAbsence({
@@ -223,7 +216,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
 
     if (form.status !== 'absent') {
       const existingLesson = findLesson(student.id, classItem.id);
-      const savedLesson = LessonService.saveLessonRecord({
+      LessonService.saveLessonRecord({
         ...(existingLesson ? { id: existingLesson.id } : {}),
         studentId: student.id,
         studentName: student.name,
@@ -241,7 +234,6 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         nextPlan: form.nextPlan.trim(),
         memo: form.memo.trim(),
       });
-      setLessons((prev) => upsertById(prev, savedLesson));
 
       syncLessonHomeworkToWeeklyAssignment({
         studentId: student.id,

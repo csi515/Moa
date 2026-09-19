@@ -35,6 +35,8 @@ export const ParentManagementView: React.FC = () => {
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const contactLabel = labels.contact.singular;
+  const contactManagement = labels.contact.management;
   const { currentOrganization, currentRole } = useOrganization();
   const canInvite = currentRole === 'owner' || currentRole === 'admin' || currentRole === 'manager';
 
@@ -120,7 +122,7 @@ export const ParentManagementView: React.FC = () => {
         emailSent = emailResult.emailSent;
         emailMessage = emailResult.message;
       } else if (result.status === 'connected') {
-        showToast(`${parentName} 학부모 계정이 연결되었습니다.`, 'success');
+        showToast(`${parentName} ${contactLabel} 계정이 연결되었습니다.`, 'success');
       }
 
       setInviteResult(result);
@@ -132,8 +134,8 @@ export const ParentManagementView: React.FC = () => {
       if (result.status === 'invited') {
         showToast(
           emailSent
-            ? `${parentName} 학부모에게 초대 이메일을 보냈습니다.`
-            : `${parentName} 학부모 초대가 등록되었습니다. 연결 코드를 전달해 주세요.`,
+            ? `${parentName} ${contactLabel}에게 초대 이메일을 보냈습니다.`
+            : `${parentName} ${contactLabel} 초대가 등록되었습니다. 연결 코드를 전달해 주세요.`,
           'success'
         );
       }
@@ -166,8 +168,8 @@ export const ParentManagementView: React.FC = () => {
     <div className="space-y-4 pb-4">
       <PageHeader
         icon={<UserSquare2 className="w-6 h-6" />}
-        title="학부모 관리"
-        description="학부모 계정을 초대하면 출결·과제·리포트를 학부모 앱에서 확인할 수 있습니다."
+        title={contactManagement}
+        description={`${contactLabel} 계정을 초대하면 출결·과제·리포트를 ${contactLabel} 앱에서 확인할 수 있습니다.`}
       />
 
       {canInvite && parents.length > 0 && (
@@ -191,7 +193,7 @@ export const ParentManagementView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder={`학부모 이름, 연락처, ${customerLabel} 이름 검색...`}
+          placeholder={`${contactLabel} 이름, 연락처, ${customerLabel} 이름 검색...`}
           className="flex-1 min-w-[200px]"
         />
       </FilterBar>
@@ -284,10 +286,10 @@ export const ParentManagementView: React.FC = () => {
       {filteredParents.length === 0 && (
         <EmptyState
           icon={<Users className="w-10 h-10" />}
-          title={searchQuery.trim() ? "검색 결과가 없습니다" : "등록된 학부모가 없습니다"}
+          title={searchQuery.trim() ? "검색 결과가 없습니다" : `등록된 ${contactLabel}가 없습니다`}
           description={searchQuery.trim()
             ? "다른 이름이나 연락처로 검색해보세요. 또는 검색어를 지우고 전체 목록을 확인하세요."
-            : `${customerLabel} 등록 시 학부모 정보가 자동으로 생성됩니다. ${customerLabel} 관리에서 첫 ${customerLabel}을(를) 등록해보세요.`}
+            : `${customerLabel} 등록 시 ${contactLabel} 정보가 자동으로 생성됩니다. ${customerLabel} 관리에서 첫 ${customerLabel}을(를) 등록해보세요.`}
           action={
             searchQuery.trim() && (
               <button
@@ -305,7 +307,7 @@ export const ParentManagementView: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
           <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold">학부모 포털 초대</h3>
+              <h3 className="font-bold">{contactLabel} 포털 초대</h3>
               <button onClick={() => setInviteTarget(null)}><X className="w-5 h-5" /></button>
             </div>
             <p className="text-sm text-slate-600 mb-3">
@@ -335,7 +337,7 @@ export const ParentManagementView: React.FC = () => {
       {inviteResult && inviteResult.status === 'invited' && (
         <ParentInviteResultModal
           parentName={
-            parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || '학부모'
+            parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || contactLabel
           }
           email={inviteResult.email || ''}
           organizationName={inviteResult.organizationName || currentOrganization?.name || '사업장'}

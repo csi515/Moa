@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
@@ -7,7 +7,6 @@ import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
 import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
-import { upsertById } from '@/shared/utils/listUpdate';
 import {
   findClassConflicts,
   formatConflictSummary,
@@ -38,14 +37,10 @@ export const ClassManagementView: React.FC = () => {
   const placeLabel = getPlaceLabel(industry);
   const refreshKey = useStorageRefresh();
 
-  const [classes, setClasses] = useState<ClassItem[]>(() => StorageService.getClasses());
+  const classes = useMemo(() => StorageService.getClasses(), [refreshKey]);
   const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);
   const students = useMemo(() => StorageService.getStudents(), [refreshKey]);
   const textbooks = useMemo(() => StorageService.getTextbooks(), [refreshKey]);
-
-  useEffect(() => {
-    setClasses(StorageService.getClasses());
-  }, [refreshKey]);
 
   const roomNames = useMemo(
     () =>
@@ -122,7 +117,6 @@ export const ClassManagementView: React.FC = () => {
       confirmText: '삭제하기',
       onConfirm: () => {
         StorageService.deleteClass(cls.id);
-        setClasses((prev) => prev.filter((item) => item.id !== cls.id));
         showToast(`'${cls.name}' ${serviceLabel}이(가) 삭제되었습니다.`, 'info');
       }
     });
@@ -162,7 +156,7 @@ export const ClassManagementView: React.FC = () => {
     });
 
     const save = () => {
-      const saved = StorageService.saveClass({
+      StorageService.saveClass({
         ...(editingClass ? { id: editingClass.id } : {}),
         name: formData.name.trim(),
         targetLevel: formData.targetLevel,
@@ -177,17 +171,16 @@ export const ClassManagementView: React.FC = () => {
         textbook: formData.textbook.trim(),
         memo: formData.memo.trim(),
       } as any);
-      setClasses((prev) => upsertById(prev, saved));
 
       showToast(
         editingClass
           ? `'${formData.name}' ${serviceLabel}이(가) 수정되었습니다.`
-          : `'${formData.name}' ${serviceLabel}이(가) 개설되었습니다. 오늘 레슨에서 바로 출결할 수 있습니다.`,
+          : `'${formData.name}' ${serviceLabel}이(가) 개설되었습니다. 시간표에서 학생을 배치할 수 있습니다.`,
         'success'
       );
       setIsModalOpen(false);
       if (!editingClass) {
-        setActiveTab('attendance');
+        setActiveTab('timetable');
       }
     };
 

@@ -18,6 +18,8 @@ interface ModuleSidebarProps {
   user: ModuleSidebarUser;
   /** 기본: 모바일에서 숨김 */
   className?: string;
+  /** 업종별 하이라이트 (미지정 시 core isNavItemActive) */
+  isItemActive?: (itemTab: NavTab, activeTab: NavTab) => boolean;
 }
 
 /** 모듈 공통 데스크톱 사이드바 (섹션 + 역할 푸터) */
@@ -28,6 +30,7 @@ export function ModuleSidebar({
   theme,
   user,
   className = 'hidden md:flex',
+  isItemActive = isNavItemActive,
 }: ModuleSidebarProps) {
   const t = MODULE_THEMES[theme];
 
@@ -42,7 +45,7 @@ export function ModuleSidebar({
               {section.title}
             </p>
             {section.items.map((item) => {
-              const isActive = isNavItemActive(item.tab, activeTab);
+              const isActive = isItemActive(item.tab, activeTab);
               return (
                 <button
                   key={item.tab}

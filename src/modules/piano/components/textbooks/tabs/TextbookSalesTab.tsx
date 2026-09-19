@@ -83,7 +83,7 @@ export const TextbookSalesTab: React.FC<TextbookSalesTabProps> = ({
             <thead className="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200">
               <tr>
                 <th className="py-3 px-4">판매일</th>
-                <th className="py-3 px-4">학생 (보호자)</th>
+                <th className="py-3 px-4">학생 (학부모)</th>
                 <th className="py-3 px-4">교재명</th>
                 <th className="py-3 px-3 text-center">수량</th>
                 <th className="py-3 px-3 text-right">판매단가</th>

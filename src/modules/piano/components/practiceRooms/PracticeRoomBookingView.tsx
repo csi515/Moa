@@ -284,7 +284,7 @@ export const PracticeRoomBookingView: FC = () => {
     <div className="space-y-4 pb-4">
       {pendingRequests.length > 0 && (
         <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3.5 space-y-2">
-          <h3 className="text-xs font-black text-amber-900">수강생 예약 승인 대기</h3>
+          <h3 className="text-xs font-black text-amber-900">학생 예약 승인 대기</h3>
           {pendingRequests.map((r) => (
             <div
               key={r.id}
@@ -292,7 +292,7 @@ export const PracticeRoomBookingView: FC = () => {
             >
               <div className="text-xs min-w-0">
                 <p className="font-bold text-slate-900">
-                  {r.customers?.name || '수강생'} · {r.practice_rooms?.name || '연습실'}
+                  {r.customers?.name || '학생'} · {r.practice_rooms?.name || '연습실'}
                 </p>
                 <p className="text-slate-500 mt-0.5 font-mono">
                   {seoulDateFromIso(r.starts_at)}{' '}

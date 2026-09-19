@@ -52,7 +52,7 @@ export const CustomerHubView: FC<{
     segment === 'list'
       ? `${customerLabel} 명단을 검색·등록·관리합니다`
       : segment === 'parents'
-        ? `${contactLabel} 연락처와 연결 학생을 관리합니다`
+        ? `${contactLabel} 연락처와 연결 ${customerLabel}을 관리합니다`
         : '자가가입·자녀 등록 요청을 승인합니다';
 
   return (
@@ -80,12 +80,26 @@ export const CustomerHubView: FC<{
 
       {segment === 'list' && <ListView />}
       {segment === 'parents' && <ParentManagementView />}
-      {segment === 'enrollment' && <EnrollmentInbox placeLabel={placeLabel} />}
+      {segment === 'enrollment' && (
+        <EnrollmentInbox
+          placeLabel={placeLabel}
+          customerLabel={customerLabel}
+          contactLabel={contactLabel}
+        />
+      )}
     </div>
   );
 };
 
-function EnrollmentInbox({ placeLabel }: { placeLabel: string }) {
+function EnrollmentInbox({
+  placeLabel,
+  customerLabel,
+  contactLabel,
+}: {
+  placeLabel: string;
+  customerLabel: string;
+  contactLabel: string;
+}) {
   useEffect(() => {
     const openGuardian = consumeOpenGuardianEnrollments();
     const openMembership = consumeOpenMembershipJoins();
@@ -104,8 +118,8 @@ function EnrollmentInbox({ placeLabel }: { placeLabel: string }) {
         <CustomerJoinRequestsPanel
           embedded
           requestType="membership"
-          title="수강생 자가가입"
-          description={`성인이 본인 계정으로 보낸 가입 신청입니다. 승인하면 그 계정으로 이 ${placeLabel}을(를) 이용할 수 있습니다. 자녀 연결(학부모 요청)과는 별도입니다.`}
+          title={`${customerLabel} 자가가입`}
+          description={`성인이 본인 계정으로 보낸 가입 신청입니다. 승인하면 그 계정으로 이 ${placeLabel}을(를) 이용할 수 있습니다. 자녀 연결(${contactLabel} 요청)과는 별도입니다.`}
         />
       </div>
       <GuardianEnrollmentRequestsView />

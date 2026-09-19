@@ -16,8 +16,6 @@ import {
 import type { GuardianFormEntry } from './studentFormTypes';
 import { RELATIONSHIP_OPTIONS } from './studentFormTypes';
 import { useModuleLabels } from '@/core/labels';
-import { isSkinClinicIndustry } from '@/core/industry/industryUi';
-import { usePermissions } from '@/core/auth/usePermissions';
 
 interface Props {
   isEdit: boolean;
@@ -46,9 +44,8 @@ export const GuardianSection: React.FC<Props> = ({
   onSelectExistingParent,
   onFocusSearch,
 }) => {
-  const { industry } = usePermissions();
   const labels = useModuleLabels();
-  const contactLabel = isSkinClinicIndustry(industry) ? labels.contact.singular : '학부모';
+  const contactLabel = labels.contact.singular;
 
   return (
   <section>
@@ -59,7 +56,7 @@ export const GuardianSection: React.FC<Props> = ({
         </h4>
         {isEdit && (
           <p className="text-[11px] text-slate-500 mt-1">
-            부·모 각각 별도 계정으로 연결할 수 있습니다. 보호자 추가 후 저장하면 link가 반영됩니다.
+            부·모 각각 별도 계정으로 연결할 수 있습니다. {contactLabel} 추가 후 저장하면 link가 반영됩니다.
           </p>
         )}
       </div>
@@ -68,7 +65,7 @@ export const GuardianSection: React.FC<Props> = ({
         onClick={onAddGuardian}
         className="text-xs font-bold text-indigo-600 flex items-center gap-1 shrink-0 min-h-[44px] px-2"
       >
-        <UserPlus className="w-3.5 h-3.5" /> 보호자 추가
+        <UserPlus className="w-3.5 h-3.5" /> {contactLabel} 추가
       </button>
     </div>
 
@@ -77,10 +74,10 @@ export const GuardianSection: React.FC<Props> = ({
         <div key={g.key} className="p-4 bg-slate-50 rounded-2xl border border-slate-200 space-y-3">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-slate-700">
-              보호자 {idx + 1}
+              {contactLabel} {idx + 1}
               {g.isPrimary && (
                 <span className="ml-2 text-[10px] bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-md">
-                  주 보호자
+                  주 {contactLabel}
                 </span>
               )}
             </span>
@@ -91,7 +88,7 @@ export const GuardianSection: React.FC<Props> = ({
                   onClick={() => onSetPrimary(idx)}
                   className="text-[10px] text-indigo-600 font-bold"
                 >
-                  주 보호자로
+                  주 {contactLabel}로
                 </button>
               )}
               {guardians.length > 1 && (
@@ -100,7 +97,7 @@ export const GuardianSection: React.FC<Props> = ({
                   onClick={() => onRemoveGuardian(idx)}
                   className="text-rose-500 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   title="연결 해제"
-                  aria-label="보호자 연결 해제"
+                  aria-label={`${contactLabel} 연결 해제`}
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
