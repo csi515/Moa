@@ -23,9 +23,9 @@ export const pianoModuleLabels: ModuleLabels = {
     management: '선생님 관리',
   },
   service: {
-    singular: '정규 레슨',
-    plural: '정규 레슨',
-    management: '정규 레슨 관리',
+    singular: '반',
+    plural: '반',
+    management: '반 관리',
   },
   schedule: {
     singular: '일정',

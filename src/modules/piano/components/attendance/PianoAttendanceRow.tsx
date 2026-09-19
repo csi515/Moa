@@ -8,6 +8,8 @@ interface PianoAttendanceRowProps {
   status: DayStatus;
   pinCheckedIn: boolean;
   hasDayRecord: boolean;
+  /** 일정 시간·반 표시 */
+  scheduleLabel?: string;
   onOpenStudent: () => void;
   onSetStatus: (status: Exclude<DayStatus, 'unchecked'>) => void;
 }
@@ -23,6 +25,7 @@ export const PianoAttendanceRow: FC<PianoAttendanceRowProps> = ({
   status,
   pinCheckedIn,
   hasDayRecord,
+  scheduleLabel,
   onOpenStudent,
   onSetStatus,
 }) => (
@@ -32,7 +35,7 @@ export const PianoAttendanceRow: FC<PianoAttendanceRowProps> = ({
         <button
           type="button"
           onClick={onOpenStudent}
-          className="font-bold text-slate-900 text-sm hover:text-indigo-600"
+          className="font-bold text-slate-900 text-sm hover:text-indigo-600 min-h-[44px] sm:min-h-0"
         >
           {student.name}
         </button>
@@ -43,17 +46,19 @@ export const PianoAttendanceRow: FC<PianoAttendanceRowProps> = ({
           <span className="text-[10px] font-semibold text-indigo-500">PIN</span>
         )}
       </div>
-      <p className="text-[11px] text-slate-400 mt-0.5 truncate">
-        {[student.school, student.grade].filter(Boolean).join(' · ') || '학생'}
+      <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+        {scheduleLabel ||
+          [student.school, student.grade].filter(Boolean).join(' · ') ||
+          '학생'}
       </p>
     </div>
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
       {ACTION_BUTTONS.map(([key, Icon]) => (
         <button
           key={key}
           type="button"
           onClick={() => onSetStatus(key)}
-          className={`inline-flex items-center gap-1 px-3 py-2 min-h-[44px] rounded-xl border text-[11px] font-bold transition-colors ${
+          className={`inline-flex flex-1 sm:flex-none items-center justify-center gap-1 px-3 py-2 min-h-[44px] rounded-xl border text-[11px] font-bold transition-colors ${
             status === key ? STATUS_META[key].active : STATUS_META[key].button
           }`}
         >

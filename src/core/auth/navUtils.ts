@@ -33,7 +33,8 @@ export function filterNavTabs<T extends { tab: NavTab }>(items: T[], allowedTabs
 }
 
 /**
- * 허브 하위 탭(딥링크)을 사이드바·하단 네비 하이라이트용 대표 탭으로 정규화
+ * 허브 하위·레거시 딥링크 → 사이드바·하단 네비 하이라이트용 대표 탭
+ * (화면은 VIEW_MAP 별칭으로 동일 허브에 연결)
  */
 export function resolveNavHighlightTab(tab: NavTab): NavTab {
   switch (tab) {
@@ -41,6 +42,7 @@ export function resolveNavHighlightTab(tab: NavTab): NavTab {
     case 'expenses':
     case 'tuition':
     case 'unpaid':
+    case 'payroll':
       return 'finance';
     case 'parents':
     case 'enrollment-requests':
@@ -49,20 +51,21 @@ export function resolveNavHighlightTab(tab: NavTab): NavTab {
       return 'members';
     case 'calendar':
     case 'makeups':
+    case 'practice-rooms':
       return 'timetable';
-    case 'attendance':
-      return 'lessons';
+    /** 구「레슨」딥링크 — 출결 화면으로 통합됨 */
+    case 'lessons':
+      return 'attendance';
     case 'check-in':
-      return 'settings';
-    case 'services':
-      return 'bookings';
-    case 'medications':
-      return 'journals';
     case 'teachers':
     case 'instructors':
     case 'notices':
     case 'account':
       return 'settings';
+    case 'services':
+      return 'bookings';
+    case 'medications':
+      return 'journals';
     default:
       return tab;
   }

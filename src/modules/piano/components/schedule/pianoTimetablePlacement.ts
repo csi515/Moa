@@ -147,7 +147,7 @@ export function ensureEditableSlotClass(params: {
 
   const teacher = resolveTeacher(params.teachers, params.preferredTeacherId);
   return StorageService.saveClass({
-    name: `${params.day} ${params.startTime} 레슨`,
+    name: `${params.day} ${params.startTime}`,
     teacherId: teacher.id,
     teacherName: teacher.name,
     daysOfWeek: [params.day],
@@ -168,7 +168,7 @@ function saveStudentClassIds(student: Student, classIds: string[]): Student {
 
 /**
  * 같은 요일의 다른 편집 가능 슬롯에서 학생을 제거한 뒤 대상 슬롯에 배치.
- * 복수 요일 반(class) 소속은 유지한다.
+ * 복수 요일 반(class) 소속은 유지한다. 출결(DAY_ATTENDANCE)은 변경하지 않음.
  */
 export function assignStudentToSlot(params: {
   student: Student;
@@ -235,7 +235,7 @@ export function removeStudentFromSlot(params: {
   if (!isEditableSlotClass(classItem, day, startTime)) {
     return {
       ok: false,
-      message: '여러 요일·정시 외(:30 등) 반은 정규 레슨 관리에서 수정해 주세요.',
+      message: '여러 요일·정시 외(:30 등) 반은 반 관리에서 수정해 주세요.',
     };
   }
   const nextIds = (student.classIds || []).filter((id) => id !== classItem.id);

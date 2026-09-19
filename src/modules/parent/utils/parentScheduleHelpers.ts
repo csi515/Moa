@@ -1,9 +1,8 @@
 import type { DayOfWeek, ClassItem } from '@/types';
-
-const DAY_ORDER: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
+import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
 
 export function getKoreanDayOfWeek(date: Date = new Date()): DayOfWeek {
-  return DAY_ORDER[date.getDay()];
+  return weekdayFromDate(date);
 }
 
 export function formatDateKey(date: Date): string {

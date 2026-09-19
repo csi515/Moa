@@ -1,11 +1,22 @@
 import type { AttendanceRecord, AttendanceStatus, Student } from '@/types';
+import type { AttendanceSession } from '@/core/attendance/types';
 import { StorageService } from '@/services/storage';
 import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
+import {
+  DAY_ATTENDANCE_CLASS_ID,
+  DAY_ATTENDANCE_CLASS_NAME,
+} from '@/core/attendance/dayAttendance';
+
 export {
   DAY_ATTENDANCE_CLASS_ID,
   DAY_ATTENDANCE_CLASS_NAME,
 } from '@/core/attendance/dayAttendance';
 export { todayIsoLocal, shiftDateIso } from '@/shared/utils/localDate';
+export {
+  getExpectedStudentsOnDate,
+  formatExpectedScheduleLabel,
+  type ExpectedStudentOnDate,
+} from './pianoExpectedAttendance';
 
 export type DayStatus = 'unchecked' | 'present' | 'absent' | 'late';
 export type StatusFilter = 'ALL' | DayStatus;
@@ -49,6 +60,56 @@ export function resolveDayStatus(
   if (record?.status === 'absent') return 'absent';
   if (checkedInViaPin) return 'present';
   return 'unchecked';
+}
+
+/** DAY_ATTENDANCE(c-default) 일자별 학생→기록 맵 */
+export function buildDayAttendanceRecordMap(
+  dateIso: string,
+  records: AttendanceRecord[] = StorageService.getAttendance()
+): Map<string, AttendanceRecord> {
+  const map = new Map<string, AttendanceRecord>();
+  for (const r of records) {
+    if (r.date === dateIso && r.classId === DAY_ATTENDANCE_CLASS_ID) {
+      map.set(r.studentId, r);
+    }
+  }
+  return map;
+}
+
+/** 해당일 PIN 체크인 고객 ID 집합 */
+export function buildPinCheckInIdSet(
+  dateIso: string,
+  sessions: AttendanceSession[] = StorageService.getAttendanceSessions()
+): Set<string> {
+  const set = new Set<string>();
+  for (const s of sessions) {
+    if (s.sessionDate === dateIso && s.checkInAt) set.add(s.customerId);
+  }
+  return set;
+}
+
+export type DayStatusCounts = {
+  total: number;
+  present: number;
+  absent: number;
+  late: number;
+  unchecked: number;
+};
+
+export function countDayStatuses(statuses: Iterable<DayStatus>): DayStatusCounts {
+  let present = 0;
+  let absent = 0;
+  let late = 0;
+  let unchecked = 0;
+  let total = 0;
+  for (const status of statuses) {
+    total += 1;
+    if (status === 'present') present += 1;
+    else if (status === 'absent') absent += 1;
+    else if (status === 'late') late += 1;
+    else unchecked += 1;
+  }
+  return { total, present, absent, late, unchecked };
 }
 
 export function toAttendanceStatus(status: Exclude<DayStatus, 'unchecked'>): AttendanceStatus {

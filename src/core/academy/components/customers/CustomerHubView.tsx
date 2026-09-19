@@ -38,19 +38,22 @@ export const CustomerHubView: FC<{
 
   const options = useMemo(
     () => [
-      { value: 'list' as const, label: '목록' },
+      { value: 'list' as const, label: customerLabel },
       { value: 'parents' as const, label: contactLabel },
-      { value: 'enrollment' as const, label: enrollmentLabel },
+      {
+        value: 'enrollment' as const,
+        label: enrollmentLabel.length > 4 ? '등록' : enrollmentLabel,
+      },
     ],
-    [contactLabel, enrollmentLabel]
+    [contactLabel, customerLabel, enrollmentLabel]
   );
 
   const description =
     segment === 'list'
-      ? labels.customer.management
+      ? `${customerLabel} 명단을 검색·등록·관리합니다`
       : segment === 'parents'
-        ? labels.contact.management
-        : `성인 자가가입과 학부모 자녀 등록 요청을 구분해 검토합니다.`;
+        ? `${contactLabel} 연락처와 연결 학생을 관리합니다`
+        : '자가가입·자녀 등록 요청을 승인합니다';
 
   return (
     <div className="space-y-4 pb-4">
@@ -70,7 +73,7 @@ export const CustomerHubView: FC<{
             }}
             aria-label={`${customerLabel} 메뉴`}
             fullWidth
-            className="w-full sm:w-auto sm:min-w-[260px]"
+            className="w-full shadow-xs sm:w-auto sm:min-w-[220px]"
           />
         }
       />

@@ -10,6 +10,7 @@ import { EmptyState, PageHeader } from '@/shared/components';
 import type { AttendanceRecord, AttendanceStatus, ClassItem, LessonRecord, Student } from '@/types';
 import { upsertById } from '@/shared/utils/listUpdate';
 import { todayIsoLocal } from '@/shared/utils/localDate';
+import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
 import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
 import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
@@ -20,16 +21,6 @@ import {
   TodayLessonClassList,
   type TodayLessonSessionTarget,
 } from './TodayLessonClassList';
-
-const DAY_MAP: Record<number, string> = {
-  0: '일',
-  1: '월',
-  2: '화',
-  3: '수',
-  4: '목',
-  5: '금',
-  6: '토',
-};
 
 function nowHm(): string {
   const d = new Date();
@@ -53,7 +44,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   }, []);
 
   const today = todayIsoLocal();
-  const todayKorean = DAY_MAP[new Date().getDay()] || '월';
+  const todayKorean = weekdayFromDate();
   const currentHm = nowHm();
 
   const students = useMemo(

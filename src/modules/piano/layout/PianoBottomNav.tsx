@@ -5,11 +5,13 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavTabs } from '@/core/auth/navUtils';
 import { ModuleBottomNav } from '@/shared/components/layout/ModuleBottomNav';
 import { getPianoMainTabs, getPianoMoreTabs } from '../config/nav';
+import { usePianoNavigate } from './usePianoNavigate';
 
 export const PianoBottomNav: FC = () => {
-  const { activeTab, setActiveTab, setSelectedStudentId } = useApp();
+  const { activeTab } = useApp();
   const labels = useModuleLabels();
   const { allowedTabs } = usePermissions();
+  const onNavigate = usePianoNavigate();
 
   return (
     <ModuleBottomNav
@@ -17,12 +19,9 @@ export const PianoBottomNav: FC = () => {
       mainTabs={filterNavTabs(getPianoMainTabs(labels), allowedTabs)}
       moreTabs={filterNavTabs(getPianoMoreTabs(labels), allowedTabs)}
       activeTab={activeTab}
-      onNavigate={(tab) => {
-        if (tab === 'students') setSelectedStudentId(null);
-        setActiveTab(tab);
-      }}
+      onNavigate={onNavigate}
       moreMenuTitle="더보기"
-      moreMenuDescription="출결 · 상담 · 수납 · 설정 · PIN 출석 및 부가 기능"
+      moreMenuDescription="상담 · 수납·재무 · 설정 (부가 기능은 설정 안)"
     />
   );
 };

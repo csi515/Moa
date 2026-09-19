@@ -187,7 +187,7 @@ export const ClassManagementView: React.FC = () => {
       );
       setIsModalOpen(false);
       if (!editingClass) {
-        setActiveTab('lessons');
+        setActiveTab('attendance');
       }
     };
 

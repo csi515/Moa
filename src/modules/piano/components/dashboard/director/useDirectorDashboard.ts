@@ -18,6 +18,10 @@ export interface DirectorDashboardData {
   hasClassData: boolean;
 }
 
+/**
+ * @legacy 구 원장 대시보드(통계·차트). 현재 홈은 DirectorTodayHome + useDirectorTodayDashboard.
+ * 참조·회귀용으로 유지. 신규 UI는 Today* 경로를 사용한다.
+ */
 export function useDirectorDashboard(): DirectorDashboardData {
   const stats = StorageService.getDashboardStats();
   const tbStats = StorageService.getTextbookStats();

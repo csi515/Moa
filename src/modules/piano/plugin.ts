@@ -38,6 +38,9 @@ export const pianoPluginManifest: IndustryPluginManifest = {
     'practice',
     'consultations',
     // resources: UI 숨김(nav) — VIEW_MAP·ResourceManagementView·SONGS 데이터는 유지
+    'finance',
+    'income',
+    'expenses',
     'tuition',
     'unpaid',
     'payroll',

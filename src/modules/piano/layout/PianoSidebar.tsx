@@ -5,11 +5,13 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { filterNavSections } from '@/core/auth/navUtils';
 import { ModuleSidebar } from '@/shared/components/layout/ModuleSidebar';
 import { getPianoSidebarSections } from '../config/nav';
+import { usePianoNavigate } from './usePianoNavigate';
 
 export const PianoSidebar: FC = () => {
-  const { activeTab, setActiveTab, currentUser, setSelectedStudentId } = useApp();
+  const { activeTab, currentUser } = useApp();
   const labels = useModuleLabels();
   const { allowedTabs, roleLabel, roleBadge } = usePermissions();
+  const onNavigate = usePianoNavigate();
 
   const sections = filterNavSections(getPianoSidebarSections(labels), allowedTabs);
 
@@ -18,10 +20,7 @@ export const PianoSidebar: FC = () => {
       theme="indigo"
       sections={sections}
       activeTab={activeTab}
-      onNavigate={(tab) => {
-        if (tab === 'students') setSelectedStudentId(null);
-        setActiveTab(tab);
-      }}
+      onNavigate={onNavigate}
       user={{ name: currentUser.name, roleLabel, roleBadge }}
     />
   );

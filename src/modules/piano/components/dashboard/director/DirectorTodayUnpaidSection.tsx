@@ -1,34 +1,26 @@
-import { useMemo, useState, type FC } from 'react';
+import { useState, type FC } from 'react';
 import { AlertCircle, Share2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh } from '@/hooks';
-import { StorageService } from '@/services/storage';
 import { TuitionService } from '@/core/finance';
 import { shareInvoiceNotice } from '@/core/finance/invoiceShare';
 import { formatCurrency } from '@/utils/formatters';
 import type { TuitionInvoice } from '@/types';
+import { DirectorSectionEmpty } from './DirectorSectionEmpty';
 
 interface DirectorTodayUnpaidSectionProps {
+  invoices: TuitionInvoice[];
   onOpenUnpaid?: () => void;
 }
 
-/** 원장 홈 — 이번 달 미납 + 청구서 Web Share */
+/** 원장 홈 — 이번 달 미납 + 청구서 Web Share (목록은 부모 훅에서 전달) */
 export const DirectorTodayUnpaidSection: FC<DirectorTodayUnpaidSectionProps> = ({
+  invoices,
   onOpenUnpaid,
 }) => {
   const { showToast, triggerRefresh } = useApp();
-  const refreshKey = useStorageRefresh();
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const invoices = useMemo(() => {
-    void refreshKey;
-    return StorageService.getUnpaidInvoices().filter((inv) => inv.unpaidAmount > 0);
-  }, [refreshKey]);
-
-  const total = useMemo(
-    () => invoices.reduce((sum, inv) => sum + (inv.unpaidAmount || 0), 0),
-    [invoices]
-  );
+  const total = invoices.reduce((sum, inv) => sum + (inv.unpaidAmount || 0), 0);
 
   const handleSend = async (inv: TuitionInvoice) => {
     setBusyId(inv.id);
@@ -79,10 +71,10 @@ export const DirectorTodayUnpaidSection: FC<DirectorTodayUnpaidSectionProps> = (
       </div>
 
       {invoices.length === 0 ? (
-        <p className="text-xs text-slate-400 text-center py-6">미납 청구서가 없습니다.</p>
+        <DirectorSectionEmpty className="py-6">미납 청구서가 없습니다.</DirectorSectionEmpty>
       ) : (
-        <ul className="space-y-2 max-h-[280px] overflow-y-auto">
-          {invoices.slice(0, 12).map((inv) => (
+        <ul className="space-y-2 max-h-[240px] overflow-y-auto">
+          {invoices.slice(0, 8).map((inv) => (
             <li
               key={inv.id}
               className="flex flex-col sm:flex-row sm:items-center gap-2 px-3 py-2.5 rounded-xl border border-rose-100 bg-rose-50/50"

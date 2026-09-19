@@ -38,13 +38,24 @@ function tabToSegment(tab: string, preferTuitionDefault: boolean): FinanceHubSeg
   return 'overview';
 }
 
-/** 재무 업무 영역 허브 — 수입·지출·수납·미납 (피아노는 finance→수납 통합) */
+const PIANO_BILLING_OPTIONS: { value: FinanceHubSegment; label: string }[] = [
+  { value: 'tuition', label: '수납' },
+  { value: 'unpaid', label: '미납' },
+];
+
+const PIANO_BOOKS_OPTIONS: { value: FinanceHubSegment; label: string }[] = [
+  { value: 'income', label: '수입' },
+  { value: 'expenses', label: '지출' },
+  { value: 'payroll', label: '정산' },
+];
+
+/** 재무 업무 영역 허브 — 피아노는 수납·미납 중심, 수입·지출·정산은 별도 보기 */
 export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = true }) => {
   const { activeTab, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const billingEnabled = showBilling && !isAppointmentIndustry(industry);
   const isPiano = industry === 'piano';
-  const hubTitle = isPiano ? '수납' : '재무';
+  const hubTitle = isPiano ? '수납·재무' : '재무';
 
   const segment = useMemo(() => {
     const next = tabToSegment(activeTab, isPiano && billingEnabled);
@@ -52,22 +63,18 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
     return next;
   }, [activeTab, billingEnabled, isPiano]);
 
+  const isPianoBooks =
+    isPiano && (segment === 'income' || segment === 'expenses' || segment === 'payroll');
+
   const options = useMemo(() => {
-    // 피아노: finance 탭이 수납(tuition)과 동일 라우트라 요약 탭은 두지 않음
     if (billingEnabled && isPiano) {
-      return [
-        { value: 'tuition' as const, label: '수납' },
-        { value: 'unpaid' as const, label: '미납' },
-        { value: 'income' as const, label: '수입' },
-        { value: 'expenses' as const, label: '지출' },
-        { value: 'payroll' as const, label: '강사정산' },
-      ];
+      return isPianoBooks ? PIANO_BOOKS_OPTIONS : PIANO_BILLING_OPTIONS;
     }
     const base: { value: FinanceHubSegment; label: string }[] = [
       { value: 'overview', label: '요약' },
       { value: 'income', label: '수입' },
       { value: 'expenses', label: '지출' },
-      { value: 'payroll', label: '강사정산' },
+      { value: 'payroll', label: '정산' },
     ];
     if (billingEnabled) {
       base.push(
@@ -76,7 +83,13 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
       );
     }
     return base;
-  }, [billingEnabled, industry, isPiano]);
+  }, [billingEnabled, industry, isPiano, isPianoBooks]);
+
+  const description = isPiano
+    ? isPianoBooks
+      ? '수입·지출·강사 정산을 기록합니다'
+      : '월 수강료 청구와 미납을 확인합니다'
+    : undefined;
 
   return (
     <div className="space-y-4 pb-4">
@@ -84,18 +97,48 @@ export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = tr
         density="compact"
         icon={<BarChart3 className="w-6 h-6" />}
         title={hubTitle}
-        description={
-          industry === 'piano' ? '월 수강료·미납을 확인하고 수입·지출을 함께 관리합니다' : undefined
-        }
+        description={description}
         actions={
-          <SegmentedControl
-            value={segment}
-            options={options}
-            onChange={(next) => setActiveTab(SEGMENT_TO_TAB[next])}
-            aria-label={`${hubTitle} 메뉴`}
-            fullWidth
-            className="w-full sm:w-auto min-w-[260px]"
-          />
+          <div className="w-full sm:w-auto space-y-2 min-w-0 sm:min-w-[220px]">
+            {isPianoBooks && (
+              <button
+                type="button"
+                onClick={() => setActiveTab('tuition')}
+                className="text-[11px] font-bold text-indigo-600 hover:text-indigo-700 min-h-[44px] sm:min-h-0"
+              >
+                ← 수납으로
+              </button>
+            )}
+            <SegmentedControl
+              value={segment}
+              options={options}
+              onChange={(next) => setActiveTab(SEGMENT_TO_TAB[next])}
+              aria-label={`${hubTitle} 메뉴`}
+              fullWidth
+              className="w-full shadow-xs"
+            />
+            {isPiano && billingEnabled && !isPianoBooks && (
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                <span className="font-medium text-slate-400">재무</span>
+                {PIANO_BOOKS_OPTIONS.map((opt, i) => (
+                  <span key={opt.value} className="inline-flex items-center gap-x-3">
+                    {i > 0 && (
+                      <span aria-hidden className="text-slate-300">
+                        ·
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab(SEGMENT_TO_TAB[opt.value])}
+                      className="font-semibold text-slate-600 hover:text-indigo-600 min-h-[44px] sm:min-h-0 py-1"
+                    >
+                      {opt.label}
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
         }
       />
 

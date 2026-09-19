@@ -1,4 +1,8 @@
 import type { ClassItem, DayOfWeek, MakeupItem, PracticeRoomBooking } from '@/types';
+import { weekdayFromIsoDate } from './weekdayKo';
+
+/** @deprecated 신규 코드는 `@/core/academy/utils/weekdayKo` 직접 import */
+export { weekdayFromIsoDate };
 
 export type ScheduleConflictKind = 'teacher' | 'room';
 
@@ -92,21 +96,6 @@ export type PracticeRoomSlotCandidate = {
   teacherId?: string;
   excludeId?: string;
 };
-
-const JS_DAY_TO_KO: Record<number, DayOfWeek> = {
-  0: '일',
-  1: '월',
-  2: '화',
-  3: '수',
-  4: '목',
-  5: '금',
-  6: '토',
-};
-
-export function weekdayFromIsoDate(isoDate: string): DayOfWeek {
-  const d = new Date(`${isoDate}T12:00:00`);
-  return JS_DAY_TO_KO[d.getDay()] || '월';
-}
 
 /** 보강 슬롯 vs 정규 수업·다른 보강 충돌 */
 export function findMakeupSlotConflicts(params: {

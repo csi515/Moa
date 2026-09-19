@@ -1,116 +1,105 @@
 import type { ReactNode } from 'react';
+import type { NavTab } from '@/context/AppContext';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
 import { buildNavSection } from '@/core/auth/navBuilders';
 import {
-  Award,
   BarChart3,
-  BookOpen,
-  BookOpenCheck,
   CalendarDays,
   CheckSquare,
-  Fingerprint,
-  GraduationCap,
   LayoutDashboard,
   MessageSquareText,
-  Music2,
-  Piano,
   Settings,
   Users,
 } from 'lucide-react';
 
 const icon = (node: ReactNode) => node;
 
-/**
- * Core: 홈·학생·일정·출결(등원)·상담·수납 · 설정
- * 레슨은 모바일「오늘」· PIN 출석은 더보기
- */
-export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] {
-  return [
-    buildNavSection('업무', [
-      { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-4 h-4" />) },
-      {
-        tab: 'students',
-        label: labels.customer.singular,
-        icon: icon(<Users className="w-4 h-4" />),
-      },
-      {
-        tab: 'timetable',
-        label: '일정',
-        icon: icon(<CalendarDays className="w-4 h-4" />),
-      },
-      { tab: 'attendance', label: '출결', icon: icon(<CheckSquare className="w-4 h-4" />) },
-      {
-        tab: 'consultations',
-        label: '상담',
-        icon: icon(<MessageSquareText className="w-4 h-4" />),
-      },
-      { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-4 h-4" />) },
-      {
-        tab: 'song-stamps',
-        label: '완곡 스탬프',
-        icon: icon(<Music2 className="w-4 h-4" />),
-      },
-    ]),
-    buildNavSection('설정', [
-      { tab: 'settings', label: '설정', icon: icon(<Settings className="w-4 h-4" />) },
-    ]),
-  ];
-}
+const FINANCE_LABEL = '수납·재무';
 
-/** 모바일: 홈 · 학생 · 오늘(레슨) · 일정 (출결·수납·상담은 더보기) */
-export function getPianoMainTabs(labels: ModuleLabels): NavMenuItem[] {
-  return [
-    { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-5 h-5" />) },
-    { tab: 'students', label: labels.customer.singular, icon: icon(<Users className="w-5 h-5" />) },
-    { tab: 'lessons', label: '오늘', icon: icon(<Piano className="w-5 h-5" />) },
-    { tab: 'timetable', label: '일정', icon: icon(<CalendarDays className="w-5 h-5" />) },
-  ];
-}
+/** 모바일 하단 고정 탭 (더보기 제외) */
+export const PIANO_MOBILE_MAIN_TABS: readonly NavTab[] = [
+  'dashboard',
+  'students',
+  'timetable',
+  'attendance',
+] as const;
 
-/** 더보기: 출결·상담·수납·설정·정규 레슨·PIN 출석·교육 부가 */
-export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
+/** 모바일 더보기 — 하단 미노출 핵심 + 설정 */
+export const PIANO_MOBILE_MORE_TABS: readonly NavTab[] = [
+  'consultations',
+  'finance',
+  'settings',
+] as const;
+
+/** 설정 허브「부가」— 저빈도 기능 (더보기와 중복하지 않음) */
+export const PIANO_SETTINGS_EXTRAS: { tab: NavTab; label: string }[] = [
+  { tab: 'classes', label: '반 관리' },
+  { tab: 'check-in', label: 'PIN 출석' },
+  { tab: 'assignments', label: '주간 과제' },
+  { tab: 'practice', label: '연습 기록' },
+  { tab: 'practice-rooms', label: '연습실 예약' },
+  { tab: 'textbooks', label: '교재 관리' },
+  { tab: 'passes', label: '회차권 관리' },
+  // resources: UI 숨김 — VIEW_MAP·데이터 유지
+  { tab: 'recitals', label: '연주회·콩쿠르' },
+  { tab: 'curriculum', label: '커리큘럼·진도' },
+  { tab: 'achievements', label: '시험·등급' },
+  { tab: 'song-stamps', label: '완곡 스탬프' },
+  { tab: 'reports', label: '학습 리포트' },
+];
+
+/** 사이드바·하단 공통 — 홈/학생/일정/출결/상담/수납·재무 */
+function getPianoCoreNavItems(labels: ModuleLabels, size: 'sm' | 'md'): NavMenuItem[] {
+  const cls = size === 'md' ? 'w-5 h-5' : 'w-4 h-4';
   return [
-    { tab: 'attendance', label: '출결', icon: icon(<CheckSquare className="w-5 h-5" />) },
+    { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className={cls} />) },
+    {
+      tab: 'students',
+      label: labels.customer.singular,
+      icon: icon(<Users className={cls} />),
+    },
+    {
+      tab: 'timetable',
+      label: '일정',
+      icon: icon(<CalendarDays className={cls} />),
+    },
+    { tab: 'attendance', label: '출결', icon: icon(<CheckSquare className={cls} />) },
     {
       tab: 'consultations',
       label: '상담',
-      icon: icon(<MessageSquareText className="w-5 h-5" />),
+      icon: icon(<MessageSquareText className={cls} />),
     },
-    { tab: 'finance', label: '수납', icon: icon(<BarChart3 className="w-5 h-5" />) },
-    { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
-    {
-      tab: 'classes',
-      label: labels.service.singular,
-      icon: icon(<GraduationCap className="w-5 h-5" />),
-    },
-    {
-      tab: 'check-in',
-      label: 'PIN 출석',
-      icon: icon(<Fingerprint className="w-5 h-5" />),
-    },
-    {
-      tab: 'assignments',
-      label: '과제',
-      icon: icon(<BookOpenCheck className="w-5 h-5" />),
-    },
-    {
-      tab: 'practice',
-      label: '연습',
-      icon: icon(<BookOpenCheck className="w-5 h-5" />),
-    },
-    {
-      tab: 'practice-rooms',
-      label: '연습실 예약',
-      icon: icon(<Music2 className="w-5 h-5" />),
-    },
-    { tab: 'textbooks', label: '교재 관리', icon: icon(<BookOpen className="w-5 h-5" />) },
-    // 교재·곡 자료(resources): UI 숨김. Song(resourceType)과 textbooks(판매)는 별 도메인 — 통합 보류.
-    // ResourceManagementView·VIEW_MAP·SONGS 스토리지는 데이터 보존용으로 유지.
-    { tab: 'recitals', label: '연주회', icon: icon(<Award className="w-5 h-5" />) },
-    { tab: 'curriculum', label: '커리큘럼', icon: icon(<BookOpen className="w-5 h-5" />) },
-    { tab: 'achievements', label: '시험·등급', icon: icon(<Award className="w-5 h-5" />) },
-    { tab: 'song-stamps', label: '완곡 스탬프', icon: icon(<Music2 className="w-5 h-5" />) },
-    { tab: 'reports', label: '리포트', icon: icon(<BarChart3 className="w-5 h-5" />) },
+    { tab: 'finance', label: FINANCE_LABEL, icon: icon(<BarChart3 className={cls} />) },
   ];
+}
+
+function settingsNavItem(size: 'sm' | 'md'): NavMenuItem {
+  const cls = size === 'md' ? 'w-5 h-5' : 'w-4 h-4';
+  return { tab: 'settings', label: '설정', icon: icon(<Settings className={cls} />) };
+}
+
+/**
+ * 데스크탑 사이드바 — 사업주 핵심
+ * 홈 / 학생 / 일정 / 출결 / 상담 / 수납·재무 · 설정
+ */
+export function getPianoSidebarSections(labels: ModuleLabels): NavMenuSection[] {
+  return [
+    buildNavSection('업무', getPianoCoreNavItems(labels, 'sm')),
+    buildNavSection('설정', [settingsNavItem('sm')]),
+  ];
+}
+
+/** 모바일 하단 — 홈 · 학생 · 일정 · 출결 (+ 더보기) */
+export function getPianoMainTabs(labels: ModuleLabels): NavMenuItem[] {
+  const byTab = new Map(getPianoCoreNavItems(labels, 'md').map((item) => [item.tab, item]));
+  return PIANO_MOBILE_MAIN_TABS.map((tab) => byTab.get(tab)!).filter(Boolean);
+}
+
+/** 더보기 — 상담 · 수납·재무 · 설정 */
+export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
+  const byTab = new Map(getPianoCoreNavItems(labels, 'md').map((item) => [item.tab, item]));
+  return PIANO_MOBILE_MORE_TABS.map((tab) =>
+    tab === 'settings' ? settingsNavItem('md') : byTab.get(tab)!
+  ).filter(Boolean);
 }

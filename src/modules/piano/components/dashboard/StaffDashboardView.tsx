@@ -1,50 +1,36 @@
-﻿import React, { useMemo } from 'react';
+﻿import React from 'react';
 import { useApp } from '@/context/AppContext';
-import { useStaffScope } from '@/hooks';
-import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
-import { Users, Piano, Sparkles, BookOpen, ChevronRight, Stamp } from 'lucide-react';
+import {
+  Users,
+  Sparkles,
+  BookOpen,
+  ChevronRight,
+  Stamp,
+  CheckSquare,
+  CalendarDays,
+} from 'lucide-react';
 import { requestOpenPendingPractice } from '@/core/customer/studentJoinInbox';
-import { TodayLessonView } from '../lessons/TodayLessonView';
-import { todayIsoLocal } from '@/shared/utils/localDate';
+import {
+  STATUS_META,
+  formatExpectedScheduleLabel,
+  resolveDayStatus,
+} from '../attendance/pianoAttendanceHelpers';
+import { useStaffDashboardData } from './useStaffDashboardData';
 
-/** 강사 홈 — 오늘 레슨 작업면 + 담당 학생·교육 숏컷 */
+/** 강사 홈 — 오늘 일정·출결 중심 (레슨 업무면 제거) */
 export const StaffDashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
-  const { scopeStudents, scopeClasses, scopeMakeupItems, scopeByStudentIds } = useStaffScope();
-
-  const allStudents = StorageService.getStudents();
-  const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
-  const classes = useMemo(() => scopeClasses(StorageService.getClasses()), [scopeClasses]);
-  const makeups = useMemo(
-    () => scopeMakeupItems(StorageService.getMakeupItems(), allStudents),
-    [allStudents, scopeMakeupItems]
-  );
-  const pendingPracticeCount = useMemo(
-    () =>
-      scopeByStudentIds(StorageService.getPracticeRecords(), allStudents).filter(
-        (record) => record.source === 'parent' && !record.staffReviewed
-      ).length,
-    [allStudents, scopeByStudentIds]
-  );
-
-  const activeStudents = students.filter((s) => s.status === 'active');
-  const pendingMakeups = makeups.filter((m) => m.status === 'pending').length;
-  const today = todayIsoLocal();
-  const dayIndex = new Date().getDay();
-  const dayMap: Record<number, string> = {
-    0: '일',
-    1: '월',
-    2: '화',
-    3: '수',
-    4: '목',
-    5: '금',
-    6: '토',
-  };
-  const todayKorean = dayMap[dayIndex] || '월';
-  const todayClasses = classes.filter((c) =>
-    c.daysOfWeek.includes(todayKorean as (typeof c.daysOfWeek)[number])
-  );
+  const {
+    today,
+    activeStudents,
+    expected,
+    uncheckedCount,
+    pendingMakeups,
+    pendingPracticeCount,
+    dayRecordMap,
+    pinCheckInIds,
+  } = useStaffDashboardData();
 
   return (
     <div className="space-y-4 pb-4">
@@ -53,16 +39,16 @@ export const StaffDashboardView: React.FC = () => {
         <div className="flex flex-wrap items-end justify-between gap-2">
           <h2 className="text-lg font-bold tracking-tight">{currentUser.name} 선생님</h2>
           <p className="text-[11px] text-indigo-200">
-            {formatKoreanDate(today)} · 레슨 {todayClasses.length}
+            {formatKoreanDate(today)} · 예정 {expected.length}명
           </p>
         </div>
         <div className="mt-2 flex gap-1.5 overflow-x-auto">
           {[
             { label: '학생', value: String(activeStudents.length), tab: 'students' as const },
-            { label: '오늘', value: String(todayClasses.length), tab: 'lessons' as const },
+            { label: '예정', value: String(expected.length), tab: 'timetable' as const },
+            { label: '미등원', value: String(uncheckedCount), tab: 'attendance' as const },
             { label: '미보강', value: String(pendingMakeups), tab: 'makeups' as const },
             { label: '연습', value: String(pendingPracticeCount), tab: 'practice' as const },
-            { label: '완곡', value: '스탬프', tab: 'song-stamps' as const },
           ].map(({ label, value, tab }) => (
             <button
               key={label}
@@ -80,8 +66,71 @@ export const StaffDashboardView: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs">
-        <TodayLessonView embedded />
+      <section className="bg-white rounded-2xl border border-slate-200 p-3.5 shadow-xs space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-bold text-slate-900 flex items-center gap-2 text-sm">
+            <CalendarDays className="w-4 h-4 text-indigo-600" />
+            오늘 예정
+          </h3>
+          <button
+            type="button"
+            onClick={() => setActiveTab('timetable')}
+            className="text-xs font-bold text-indigo-600 min-h-[44px] px-1"
+          >
+            시간표
+          </button>
+        </div>
+        {expected.length === 0 ? (
+          <p className="text-xs text-slate-400 text-center py-4">오늘 배정된 학생이 없습니다.</p>
+        ) : (
+          <ul className="space-y-1.5 max-h-[220px] overflow-y-auto">
+            {expected.slice(0, 8).map((row) => {
+              const status = resolveDayStatus(
+                dayRecordMap.get(row.student.id),
+                pinCheckInIds.has(row.student.id)
+              );
+              return (
+                <li
+                  key={row.student.id}
+                  className="flex items-center justify-between gap-2 px-2.5 py-2 rounded-xl bg-slate-50 border border-slate-100 min-h-[48px]"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-slate-900 truncate">{row.student.name}</p>
+                    <p className="text-[10px] text-slate-500 truncate">
+                      {formatExpectedScheduleLabel(row.classes)}
+                    </p>
+                  </div>
+                  <span
+                    className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-md ${STATUS_META[status].tone}`}
+                  >
+                    {STATUS_META[status].label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => setActiveTab('attendance')}
+          className="min-h-[48px] px-2.5 py-2 rounded-xl border bg-indigo-600 border-indigo-600 text-white text-sm font-bold flex items-center justify-center gap-1.5 hover:bg-indigo-700"
+        >
+          <CheckSquare className="w-4 h-4" />
+          출결 처리
+          <ChevronRight className="w-3.5 h-3.5 text-white/70" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('timetable')}
+          className="min-h-[48px] px-2.5 py-2 rounded-xl border bg-white border-slate-200 text-slate-800 text-sm font-bold flex items-center justify-center gap-1.5 hover:border-indigo-300"
+        >
+          <CalendarDays className="w-4 h-4 text-indigo-600" />
+          일정
+          <ChevronRight className="w-3.5 h-3.5 text-slate-300" />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -105,7 +154,6 @@ export const StaffDashboardView: React.FC = () => {
           {activeStudents.length === 0 ? (
             <div className="py-3 text-center">
               <p className="text-sm text-slate-400">담당 학생이 없습니다</p>
-              <p className="text-xs text-slate-400 mt-1">원장이 학생의 담당 선생님을 지정하면 여기에 표시됩니다.</p>
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -128,7 +176,7 @@ export const StaffDashboardView: React.FC = () => {
         </div>
 
         <div className="bg-white rounded-2xl border border-slate-200 p-3.5">
-          <h3 className="font-bold text-slate-900 text-sm mb-2.5">교육 · 보강</h3>
+          <h3 className="font-bold text-slate-900 text-sm mb-2.5">부가</h3>
           <div className="grid grid-cols-2 gap-2">
             {[
               { tab: 'practice' as const, label: '연습 기록', icon: BookOpen },
@@ -149,28 +197,6 @@ export const StaffDashboardView: React.FC = () => {
             ))}
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2">
-        {[
-          { tab: 'lessons' as const, label: '오늘 레슨', icon: Piano, primary: true },
-          { tab: 'makeups' as const, label: '보강', icon: Sparkles, primary: false },
-        ].map(({ tab, label, icon: Icon, primary }) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => setActiveTab(tab)}
-            className={`min-h-[44px] px-2.5 py-2 rounded-xl border text-sm font-bold flex items-center justify-center gap-1.5 ${
-              primary
-                ? 'bg-indigo-600 border-indigo-600 text-white hover:bg-indigo-700'
-                : 'bg-white border-slate-200 text-slate-800 hover:border-indigo-300'
-            }`}
-          >
-            <Icon className="w-4 h-4" />
-            {label}
-            <ChevronRight className={`w-3.5 h-3.5 ${primary ? 'text-white/70' : 'text-slate-300'}`} />
-          </button>
-        ))}
       </div>
     </div>
   );

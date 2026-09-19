@@ -14,6 +14,7 @@ export {
   AcademySettingsView,
 } from '@/core/academy';
 export { DashboardView } from './components/dashboard/DashboardView';
+/** @legacy `lessons` 딥링크는 출결 허브로 연결. 화면 코드는 회귀·참조용 유지 */
 export { LessonsHubView } from './components/lessons/LessonsHubView';
 export { LessonRecordsView } from './components/lessons/LessonRecordsView';
 export { TodayLessonView } from './components/lessons/TodayLessonView';

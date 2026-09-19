@@ -7,8 +7,9 @@ import {
   consumeOpenConsultationInquiries,
   consumeOpenConsultationReservations,
 } from '@/core/customer/studentJoinInbox';
-import { useStaffGrants, useStaffScope } from '@/hooks';
+import { useStaffGrants, useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import type { CustomerJoinRequest, ReservationDetail } from '@/types';
 import { inquiryBelongsToStaff, reservationBelongsToStaff } from './staffConsultationScope';
 
@@ -23,19 +24,9 @@ export type ConsultationSegment =
 export const CONSULTATION_OPTIONS: { value: ConsultationSegment; label: string }[] = [
   { value: 'home', label: '오늘' },
   { value: 'reservations', label: '예약' },
-  { value: 'joins', label: '가입' },
   { value: 'inquiries', label: '문의' },
   { value: 'records', label: '기록' },
-  { value: 'availability', label: '가능시간' },
 ];
-
-function todayKey(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
-}
 
 function isSameLocalDay(iso: string, key: string): boolean {
   const d = new Date(iso);
@@ -65,29 +56,31 @@ export function consultationStatusLabel(status: string): { label: string; classN
 export function usePianoConsultationHub() {
   const { showToast } = useApp();
   const { currentOrganization } = useOrganization();
+  const refreshKey = useStorageRefresh();
   const { isScoped, staffId, scopeStudents } = useStaffScope();
   const { allow } = useStaffGrants();
   const canJoin = allow('joinApproval');
   const canAvailability = allow('consultationAvailability');
+
+  /** 스토리지 파생 */
   const assignedStudents = useMemo(
     () => scopeStudents(StorageService.getStudents()),
-    [scopeStudents]
+    [scopeStudents, refreshKey]
   );
+
+  /** 서버 상태 */
   const [myScheduleIds, setMyScheduleIds] = useState<Set<string>>(new Set());
-  const [segment, setSegment] = useState<ConsultationSegment>('home');
   const [todayRows, setTodayRows] = useState<ReservationDetail[]>([]);
   const [loadingToday, setLoadingToday] = useState(false);
+  const [todayError, setTodayError] = useState(false);
   const [pendingInquiryCount, setPendingInquiryCount] = useState(0);
 
-  const options = useMemo(
-    () =>
-      CONSULTATION_OPTIONS.filter((option) => {
-        if (option.value === 'joins' && !canJoin) return false;
-        if (option.value === 'availability' && !canAvailability) return false;
-        return true;
-      }),
-    [canJoin, canAvailability]
-  );
+  /** UI 상태 */
+  const [segment, setSegment] = useState<ConsultationSegment>(() => {
+    if (consumeOpenConsultationReservations()) return 'reservations';
+    if (consumeOpenConsultationInquiries()) return 'inquiries';
+    return 'home';
+  });
 
   const keepReservation = useCallback(
     (row: ReservationDetail) => {
@@ -105,18 +98,17 @@ export function usePianoConsultationHub() {
     [isScoped, staffId, assignedStudents]
   );
 
-  useEffect(() => {
-    if (consumeOpenConsultationReservations()) setSegment('reservations');
-    else if (consumeOpenConsultationInquiries()) setSegment('inquiries');
-  }, []);
-
+  /** 권한 없는 세그먼트는 홈으로 */
   useEffect(() => {
     if (segment === 'joins' && !canJoin) setSegment('home');
     if (segment === 'availability' && !canAvailability) setSegment('home');
   }, [segment, canJoin, canAvailability]);
 
   useEffect(() => {
-    if (!isScoped || !staffId || !currentOrganization) return;
+    if (!isScoped || !staffId || !currentOrganization) {
+      setMyScheduleIds(new Set());
+      return;
+    }
     let cancelled = false;
     coreScheduleService
       .getOrganizationSchedules(currentOrganization.id)
@@ -135,9 +127,10 @@ export function usePianoConsultationHub() {
   const loadToday = useCallback(async () => {
     if (!currentOrganization) return;
     setLoadingToday(true);
+    setTodayError(false);
     try {
       const all = await reservationService.getOrganizationReservations(currentOrganization.id);
-      const key = todayKey();
+      const key = todayIsoLocal();
       setTodayRows(
         all
           .filter((r) => r.status !== 'cancelled' && isSameLocalDay(r.schedule_starts_at, key))
@@ -147,6 +140,7 @@ export function usePianoConsultationHub() {
     } catch (err) {
       console.error(err);
       setTodayRows([]);
+      setTodayError(true);
       if (!isScoped) showToast('오늘 상담을 불러오지 못했습니다.', 'error');
     } finally {
       setLoadingToday(false);
@@ -158,7 +152,10 @@ export function usePianoConsultationHub() {
   }, [segment, loadToday]);
 
   useEffect(() => {
-    if (!currentOrganization?.id) return;
+    if (!currentOrganization?.id) {
+      setPendingInquiryCount(0);
+      return;
+    }
     let cancelled = false;
     customerJoinService
       .getOrgJoinRequests(currentOrganization.id, 'pending', 'consultation')
@@ -173,7 +170,7 @@ export function usePianoConsultationHub() {
     return () => {
       cancelled = true;
     };
-  }, [currentOrganization?.id, segment, isScoped, keepInquiry]);
+  }, [currentOrganization?.id, isScoped, keepInquiry, refreshKey]);
 
   const pendingToday = todayRows.filter((r) => r.status === 'requested').length;
 
@@ -184,9 +181,10 @@ export function usePianoConsultationHub() {
     canAvailability,
     segment,
     setSegment,
-    options,
+    options: CONSULTATION_OPTIONS,
     todayRows,
     loadingToday,
+    todayError,
     pendingInquiryCount,
     pendingToday,
     keepReservation,
