@@ -185,20 +185,26 @@ export function createTextbookCatalogStorage(api: StorageApi) {
           transactionType,
           memo,
         });
-        const prev = res.quantityAfter - quantityDelta;
         const tx: TextbookInventoryTransaction = {
-          id: `core-${Date.now()}`,
+          id: res.movement.id,
           textbookId: res.textbook.id,
           textbookTitle: res.textbook.title,
-          transactionType,
-          quantity: quantityDelta,
-          previousStock: Math.max(0, prev),
+          // Core 기준: UI "반품 입고"(판매 문서 없음) → inbound movement
+          transactionType:
+            transactionType === 'return'
+              ? 'inbound'
+              : transactionType === 'adjust'
+                ? 'adjust'
+                : 'inbound',
+          quantity: res.movement.quantity,
+          previousStock: res.previousStock,
           currentStock: res.quantityAfter,
+          referenceId: res.movement.referenceId || undefined,
           transactionDate: new Date().toISOString().slice(0, 10),
           memo:
             memo ||
             `${transactionType === 'inbound' ? '교재 입고' : transactionType === 'return' ? '반품 입고' : '재고 수동 조정'}`,
-          createdAt: new Date().toISOString(),
+          createdAt: res.movement.createdAt,
         };
         return { textbook: res.textbook, transaction: tx };
       }

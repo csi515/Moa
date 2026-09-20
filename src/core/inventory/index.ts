@@ -7,6 +7,10 @@ export type {
   StockMovement,
   StockMovementListQuery,
   StockMovementType,
+  StockReturnReferenceType,
+  StockReturnRestoreInput,
+  StockSaleDeductInput,
+  StockSaleReferenceType,
   StockShortfall,
 } from './types';
 export {
@@ -14,6 +18,12 @@ export {
   STOCK_ADJUSTMENT_REASONS,
   STOCK_MOVEMENT_TYPES,
   STOCK_MOVEMENT_TYPE_LABELS,
+  TEXTBOOK_SALE_MOVEMENT_REF,
 } from './types';
 export { inventoryService } from './inventoryService';
 export { stockSaleOps } from './stockSaleOps';
+export {
+  aggregateSaleStockLines,
+  findStockShortfalls,
+  saleStockAggKey,
+} from './saleStockAggregate';

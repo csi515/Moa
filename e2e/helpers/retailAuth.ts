@@ -14,11 +14,12 @@ export async function loginAsRetailOwner(page: Page) {
   await page.getByRole('button', { name: '이메일로 로그인' }).click();
 
   // 사업장 선택 또는 Retail 홈 (단일 멤버십은 자동 선택)
+  // heading 우선 — 홈 헤딩과 요약 문구가 동시에 존재해 .or() strict 위반 방지
   const ready = page
-    .getByText('오늘 매장 운영에 필요한 요약입니다')
-    .or(page.getByRole('heading', { name: '홈' }))
+    .getByRole('heading', { name: '홈' })
     .or(page.getByRole('heading', { name: '사업장 선택' }))
-    .or(page.getByRole('button', { name: '다시 시도' }));
+    .or(page.getByRole('button', { name: '다시 시도' }))
+    .first();
   await expect(ready).toBeVisible({ timeout: 60_000 });
 
   if (await page.getByRole('button', { name: '다시 시도' }).isVisible().catch(() => false)) {
@@ -31,9 +32,9 @@ export async function loginAsRetailOwner(page: Page) {
     await page.getByRole('button', { name: new RegExp(RETAIL_E2E.orgName, 'i') }).first().click();
   }
 
-  await expect(
-    page.getByText('오늘 매장 운영에 필요한 요약입니다').or(page.getByRole('heading', { name: '홈' })).first()
-  ).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole('heading', { name: '홈' }).first()).toBeVisible({
+    timeout: 60_000,
+  });
 }
 
 /** 일반 사용자(Customer) 로그인 — 고객 포털 */

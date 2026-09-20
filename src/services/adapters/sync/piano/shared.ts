@@ -9,6 +9,8 @@ export interface SaleMetadata {
   studentName?: string;
   teacherName?: string;
   billingInvoiceId?: string;
+  /** Core sales.id — 컬럼 core_sale_id 와 동기 */
+  coreSaleId?: string | null;
 }
 
 export const SALE_STATUS_TO_DB: Record<TextbookSale['status'], PianoTextbookPaymentStatus> = {

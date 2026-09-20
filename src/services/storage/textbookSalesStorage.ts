@@ -18,6 +18,10 @@ import {
 } from '../../core/finance/billingIncomeLink';
 import type { LinkedTextbookPaymentOptions } from '../../core/finance/linkedTextbookSettle';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+import {
+  buildLinkedTextbookSaleIds,
+  resolveTextbookCoreSaleId,
+} from '@/modules/piano/services/textbookCoreSaleLink';
 
 /** 교재 판매·수납·통합 청구 (재고 차감/복구는 Core Inventory) */
 export function createTextbookSalesStorage(api: StorageApi) {
@@ -103,30 +107,136 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const now = new Date();
       const nowIso = now.toISOString();
       const saleDate = data.saleDate || nowIso.slice(0, 10);
-      const saleId = generateEntityId('ts');
 
+      let saleId = generateEntityId('ts');
+      let coreSaleId: string | null = null;
       let prevStock = tb.stock;
       let currentStock = Math.max(0, prevStock - qty);
+
       if (textbookCoreStock.isAvailable()) {
-        const stockRes = await textbookCoreStock.applySaleDeduction({
-          textbookId: tb.id,
-          quantity: qty,
-          saleId,
-          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-        });
-        prevStock = stockRes.previousStock;
-        currentStock = stockRes.currentStock;
-      } else {
-        const tbIdx = textbooks.findIndex((t) => t.id === tb.id);
-        if (tbIdx >= 0) {
-          textbooks[tbIdx] = {
-            ...tb,
-            stock: currentStock,
-            currentStock,
-            updatedAt: nowIso,
-          };
-          setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
+        /**
+         * Core 원자 판매(create_sale) → 재고 차감까지 한 트랜잭션.
+         * 이후 Piano TextbookSale/Payment 는 local persist.
+         * local 실패 시 compensateCoreSale 로 Core 측을 되돌린다.
+         */
+        let linked: Awaited<ReturnType<typeof textbookCoreStock.createCoreLinkedSale>> | null =
+          null;
+        try {
+          linked = await textbookCoreStock.createCoreLinkedSale({
+            textbook: tb,
+            studentId: student.id,
+            quantity: qty,
+            unitPrice,
+            discount,
+            paymentMethod: data.paymentMethod,
+            memo: data.memo,
+          });
+          const ids = buildLinkedTextbookSaleIds(linked.coreSale.id);
+          saleId = ids.id;
+          coreSaleId = ids.coreSaleId;
+          prevStock = linked.previousStock;
+          currentStock = linked.currentStock;
+        } catch (err) {
+          throw err;
         }
+
+        const newSale: TextbookSale = {
+          id: saleId,
+          studentId: student.id,
+          studentName: student.name,
+          parentId: student.parentId,
+          parentName: student.parentName || '학부모',
+          parentPhone: student.parentPhone || '',
+          textbookId: tb.id,
+          textbookTitle: tb.title,
+          saleDate,
+          quantity: qty,
+          unitPrice,
+          discount,
+          totalAmount,
+          paidAmount: initialPaid,
+          unpaidAmount,
+          status,
+          paymentMethod: initialPaid > 0 ? data.paymentMethod || 'card' : null,
+          memo: data.memo || '',
+          teacherId: data.teacherId || student.teacherId,
+          teacherName: data.teacherName || student.teacherName,
+          coreSaleId,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+
+        try {
+          const salesList = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+          salesList.unshift(newSale);
+          setItem(STORAGE_KEYS.TEXTBOOK_SALES, salesList);
+
+          const tx: TextbookInventoryTransaction = {
+            id: `core-sale-${saleId}`,
+            textbookId: tb.id,
+            textbookTitle: tb.title,
+            transactionType: 'sale',
+            quantity: -qty,
+            previousStock: prevStock,
+            currentStock,
+            referenceId: saleId,
+            transactionDate: saleDate,
+            memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
+            createdAt: nowIso,
+          };
+
+          let payment: TextbookPayment | undefined;
+          if (initialPaid > 0) {
+            payment = (api.saveTextbookPaymentDirect as (
+              d: Omit<TextbookPayment, 'id' | 'createdAt' | 'receiptNumber'>
+            ) => TextbookPayment)({
+              textbookSaleId: saleId,
+              studentId: student.id,
+              studentName: student.name,
+              textbookTitle: tb.title,
+              paymentDate: saleDate,
+              amount: initialPaid,
+              paymentMethod: data.paymentMethod || 'card',
+              memo: '교재 판매 시 현장 수납',
+            });
+            upsertLinkedIncome({
+              sourceType: 'textbook',
+              paymentId: payment.id,
+              date: saleDate,
+              amount: initialPaid,
+              paymentMethod: data.paymentMethod || 'card',
+              description: `교재비 · ${tb.title} · ${student.name}`,
+              payer: student.name,
+              memo: '교재 판매 시 현장 수납',
+            });
+          }
+
+          return { sale: newSale, payment, transaction: tx };
+        } catch (persistError) {
+          if (coreSaleId) {
+            try {
+              await textbookCoreStock.compensateCoreSale(coreSaleId);
+            } catch (compensateError) {
+              console.error(
+                '[textbookSalesStorage.createSale] Core 보상 반품 실패',
+                compensateError
+              );
+            }
+          }
+          throw persistError;
+        }
+      }
+
+      // Core 불가: legacy 로컬 재고 차감 (TextbookSale만, Core Sale 없음)
+      const tbIdx = textbooks.findIndex((t) => t.id === tb.id);
+      if (tbIdx >= 0) {
+        textbooks[tbIdx] = {
+          ...tb,
+          stock: currentStock,
+          currentStock,
+          updatedAt: nowIso,
+        };
+        setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
       }
 
       const newSale: TextbookSale = {
@@ -158,36 +268,19 @@ export function createTextbookSalesStorage(api: StorageApi) {
       salesList.unshift(newSale);
       setItem(STORAGE_KEYS.TEXTBOOK_SALES, salesList);
 
-      let tx: TextbookInventoryTransaction;
-      if (textbookCoreStock.isAvailable()) {
-        tx = {
-          id: `core-sale-${saleId}`,
-          textbookId: tb.id,
-          textbookTitle: tb.title,
-          transactionType: 'sale',
-          quantity: -qty,
-          previousStock: prevStock,
-          currentStock,
-          referenceId: saleId,
-          transactionDate: saleDate,
-          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-          createdAt: nowIso,
-        };
-      } else {
-        tx = (api.recordInventoryTransaction as (
-          t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-        ) => TextbookInventoryTransaction)({
-          textbookId: tb.id,
-          textbookTitle: tb.title,
-          transactionType: 'sale',
-          quantity: -qty,
-          previousStock: prevStock,
-          currentStock,
-          referenceId: saleId,
-          transactionDate: saleDate,
-          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-        });
-      }
+      const tx = (api.recordInventoryTransaction as (
+        t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
+      ) => TextbookInventoryTransaction)({
+        textbookId: tb.id,
+        textbookTitle: tb.title,
+        transactionType: 'sale',
+        quantity: -qty,
+        previousStock: prevStock,
+        currentStock,
+        referenceId: saleId,
+        transactionDate: saleDate,
+        memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
+      });
 
       let payment: TextbookPayment | undefined;
       if (initialPaid > 0) {
@@ -226,10 +319,29 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const sale = sales[idx];
       const textbooks = (api.getTextbooks as () => Textbook[])();
       const tbIdx = textbooks.findIndex((t) => t.id === sale.textbookId);
+      const coreSaleId = resolveTextbookCoreSaleId(sale);
 
       if (tbIdx >= 0) {
         const tb = textbooks[tbIdx];
-        if (textbookCoreStock.isAvailable()) {
+        if (textbookCoreStock.isAvailable() && coreSaleId) {
+          const saleReturn = await textbookCoreStock.cancelCoreLinkedSale({
+            coreSaleId,
+            quantity: sale.quantity,
+            reason: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
+          });
+          if (saleReturn) {
+            await textbookCoreStock.syncStockMirror(tb.id);
+          } else {
+            // Core Sale 조회 실패 등 — legacy 복구 경로 (return + sale_return ref)
+            await textbookCoreStock.applySaleRestore({
+              textbookId: tb.id,
+              quantity: sale.quantity,
+              saleId: sale.id,
+              memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
+            });
+          }
+        } else if (textbookCoreStock.isAvailable()) {
+          // legacy: Core 재고만 연동된 판매 — return movement로 복구
           await textbookCoreStock.applySaleRestore({
             textbookId: tb.id,
             quantity: sale.quantity,

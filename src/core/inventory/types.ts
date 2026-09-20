@@ -79,6 +79,43 @@ export interface StockAdjustmentInput {
   reason: string;
 }
 
+/** sale movement: quantity 음수, reference_type=sale | textbook_sale */
+export type StockSaleReferenceType = 'sale' | 'textbook_sale';
+
+export interface StockSaleDeductInput {
+  organizationId: string;
+  productId: string;
+  variantId?: string | null;
+  /** 차감할 양수 수량 */
+  quantity: number;
+  /** Core Sale.id 또는 TextbookSale.id */
+  saleId: string;
+  /** 기본 'sale'. Piano 교재는 'textbook_sale' */
+  referenceType?: StockSaleReferenceType;
+  reason?: string | null;
+}
+
+/** return movement: quantity 양수, reference_type=sale_return | textbook_sale */
+export type StockReturnReferenceType = 'sale_return' | 'textbook_sale';
+
+export interface StockReturnRestoreInput {
+  organizationId: string;
+  productId: string;
+  variantId?: string | null;
+  /** 복구할 양수 수량 */
+  quantity: number;
+  /**
+   * Core SaleReturn.id 또는 TextbookSale.id
+   * referenceType=textbook_sale 이면 교재 판매 id
+   */
+  saleReturnId: string;
+  /** 기본 'sale_return'. Piano 교재 반품/취소는 'textbook_sale' */
+  referenceType?: StockReturnReferenceType;
+  reason?: string | null;
+}
+
+export const TEXTBOOK_SALE_MOVEMENT_REF = 'textbook_sale' as const;
+
 export interface SaleStockDeductLine {
   productId: string;
   variantId?: string | null;

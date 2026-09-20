@@ -22,3 +22,14 @@ export {
 } from './types';
 export { saleService } from './saleService';
 export { saleReturnService } from './saleReturnService';
+export { mapCreateSaleRpcError } from './mapCreateSaleRpcError';
+export {
+  aggregateReturnRequestLines,
+  assertReturnQuantitiesAllowed,
+  mapCreateSaleReturnRpcError,
+} from './saleReturnPlan';
+export {
+  aggregateSaleStockLines,
+  findStockShortfalls,
+  saleStockAggKey,
+} from '@/core/inventory/saleStockAggregate';

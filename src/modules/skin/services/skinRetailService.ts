@@ -1,9 +1,10 @@
 import { productService } from '@/core/product';
 import { inventoryService } from '@/core/inventory';
-import { saleService } from '@/core/sales';
-import type { SalePaymentMethod } from '@/core/sales';
+import { saleService, saleReturnService } from '@/core/sales';
+import type { SalePaymentMethod, SaleReturnWithItems } from '@/core/sales';
 import { customerLinkService } from '@/core/customer/services/customerLinkService';
 import type { CustomerSearchResult } from '@/core/customer/services/customerLinkService';
+import { recordRetailSaleReturnIncomeReversal } from '@/core/finance/billingIncomeLink';
 import { StorageService } from '@/services/storage';
 import type { PaymentMethod } from '@/types';
 import { migrateSkinRetailCatalogIfNeeded } from './skinRetailCatalogMigrate';
@@ -24,10 +25,20 @@ function toSalePaymentMethod(method: PaymentMethod): SalePaymentMethod {
 /**
  * Skin 상품·재고·판매 — Core commerce 위임.
  * 화면은 기존 SkinRetailView UX를 유지한다.
+ *
+ * ensureMigrated는 읽기/쓰기 전에 호출된다.
+ * 이관은 idempotent 하므로 반복 호출해도 재고가 늘지 않는다.
+ * 부분 실패 시 오류를 그대로 전달해 원인을 확인할 수 있게 한다.
  */
 export const skinRetailService = {
   async ensureMigrated(organizationId: string): Promise<void> {
-    await migrateSkinRetailCatalogIfNeeded(organizationId);
+    try {
+      await migrateSkinRetailCatalogIfNeeded(organizationId);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Skin 상품 이관 중 오류가 발생했습니다.';
+      throw new Error(message);
+    }
   },
 
   async listItems(organizationId: string): Promise<SkinRetailItem[]> {
@@ -158,5 +169,55 @@ export const skinRetailService = {
     });
 
     return { saleId: sale.id, amount, productName: product.name };
+  },
+
+  /**
+   * Skin 상품 반품.
+   * Core create_sale_return(재고) + Finance income 반전 기록.
+   * 원본 IncomeEntry(sourceId=saleId)는 삭제하지 않음.
+   * Skin은 포인트 ledger를 사용하지 않음.
+   */
+  async createReturn(input: {
+    organizationId: string;
+    saleId: string;
+    items: Array<{ saleItemId: string; quantity: number }>;
+    reason?: string;
+    paymentMethod?: PaymentMethod;
+  }): Promise<SaleReturnWithItems> {
+    const result = await saleReturnService.createReturn({
+      organizationId: input.organizationId,
+      saleId: input.saleId,
+      items: input.items,
+      reason: input.reason,
+    });
+
+    const sale = await saleService.getSaleWithItems(
+      input.organizationId,
+      input.saleId
+    );
+    const productLabel =
+      result.items.map((i) => `${i.productNameSnapshot} ${i.quantity}개`).join(', ') ||
+      '상품 반품';
+
+    let payer = '';
+    if (sale?.customerId) {
+      const customer = await customerLinkService.getCustomerById(
+        input.organizationId,
+        sale.customerId
+      );
+      payer = customer?.name || '';
+    }
+
+    recordRetailSaleReturnIncomeReversal({
+      saleId: input.saleId,
+      returnId: result.id,
+      amount: result.totalAmount,
+      date: new Date().toISOString().slice(0, 10),
+      paymentMethod: input.paymentMethod || 'card',
+      description: `반품 · ${productLabel}`,
+      payer,
+    });
+
+    return result;
   },
 };

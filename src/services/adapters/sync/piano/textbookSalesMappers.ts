@@ -38,6 +38,7 @@ export function saleToPianoRow(sale: TextbookSale, organizationId: string) {
     parentName: sale.parentName,
     parentPhone: sale.parentPhone,
     billingInvoiceId: sale.billingInvoiceId,
+    coreSaleId: sale.coreSaleId ?? null,
   };
 
   return {
@@ -57,6 +58,7 @@ export function saleToPianoRow(sale: TextbookSale, organizationId: string) {
       : null,
     memo: sale.memo || null,
     staff_id: sale.teacherId || null,
+    core_sale_id: sale.coreSaleId || null,
     metadata: metadata as Json,
   };
 }
@@ -75,6 +77,7 @@ export function pianoRowToSale(row: {
   payment_method: DbPaymentMethod | null;
   memo: string | null;
   staff_id: string | null;
+  core_sale_id?: string | null;
   metadata: Json;
   created_at: string;
   updated_at: string;
@@ -101,11 +104,12 @@ export function pianoRowToSale(row: {
     paidAmount: row.paid_amount,
     unpaidAmount: Math.max(0, row.total_amount - row.paid_amount),
     status: DB_TO_SALE_STATUS[row.status],
-    paymentMethod: paymentMethod ?? null,
+    paymentMethod,
     memo: row.memo || undefined,
     teacherId: row.staff_id || undefined,
     teacherName: meta.teacherName,
     billingInvoiceId: meta.billingInvoiceId,
+    coreSaleId: row.core_sale_id ?? meta.coreSaleId ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

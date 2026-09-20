@@ -1,5 +1,4 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { stockSaleOps, type SaleStockDeductLine } from '@/core/inventory';
 import type { SaleItem } from './types';
 import {
   computeReturnLineAmount,
@@ -9,6 +8,11 @@ import {
   type SaleReturnItem,
   type SaleReturnWithItems,
 } from './types';
+import {
+  aggregateReturnRequestLines,
+  assertReturnQuantitiesAllowed,
+  mapCreateSaleReturnRpcError,
+} from './saleReturnPlan';
 
 type ReturnRow = {
   id: string;
@@ -29,6 +33,16 @@ type ReturnItemRow = {
   quantity: number | string;
   unit_price: number | string;
   line_amount: number | string;
+};
+
+type CreateSaleReturnRpcResult = {
+  id: string;
+  organization_id: string;
+  sale_id: string;
+  total_amount: number | string;
+  reason: string | null;
+  created_at: string;
+  items: ReturnItemRow[];
 };
 
 function toNumber(value: number | string | null | undefined): number {
@@ -71,7 +85,11 @@ function mapReturnItem(row: ReturnItemRow): SaleReturnItem {
 
 /**
  * Core 반품 서비스.
- * 원본 Sale 불변. 재고는 stock_movements(return)로 복구.
+ * createReturn은 core.create_sale_return RPC로
+ * sale_returns + items + stock_movements(return) + inventory 를 원자 처리.
+ * sales/sale_items FOR UPDATE로 누적 반품 수량·동시 초과 반품을 DB에서 차단.
+ * 원본 Sale 불변. 포인트·Finance reversal은 Module 책임
+ * (Retail: loyalty pointReturnService / Skin: Finance income 반전).
  */
 export const saleReturnService = {
   async getReturnedQtyBySaleItem(
@@ -164,6 +182,12 @@ export const saleReturnService = {
     }));
   },
 
+  /**
+   * 반품 생성(원자): core.create_sale_return RPC
+   * → returns + items + movements + inventory 복구가 한 트랜잭션.
+   * 초과 반품·권한·중간 실패 시 전체 rollback (반품 문서만 남는 상태 불가).
+   * 클라이언트 다중 INSERT/UPDATE 경로를 사용하지 않는다.
+   */
   async createReturn(input: SaleReturnCreateInput): Promise<SaleReturnWithItems> {
     const client = ensureClient();
     const orgId = input.organizationId?.trim();
@@ -175,6 +199,12 @@ export const saleReturnService = {
       throw new Error('반품할 상품을 선택해 주세요.');
     }
 
+    const aggregated = aggregateReturnRequestLines(input.items);
+    if (!aggregated.length) {
+      throw new Error('반품 수량은 1 이상의 정수여야 합니다.');
+    }
+
+    // UX용 사전 검증(최종 권한은 RPC FOR UPDATE)
     const { data: saleRow, error: saleError } = await client
       .from('sales')
       .select('id, organization_id, status')
@@ -193,111 +223,63 @@ export const saleReturnService = {
     const itemById = new Map(
       ((saleItems as Array<{
         id: string;
-        product_id: string | null;
-        variant_id: string | null;
         product_name_snapshot: string;
         quantity: number | string;
         unit_price: number | string;
         discount_amount: number | string;
-        line_amount: number | string;
       }> | null) ?? []).map((row) => [row.id, row])
     );
 
     const returnedByItem = await this.getReturnedQtyBySaleItem(orgId, saleId);
+    assertReturnQuantitiesAllowed(
+      aggregated.map((line) => {
+        const src = itemById.get(line.saleItemId);
+        if (!src) {
+          throw new Error('원본 판매 상품을 찾을 수 없습니다.');
+        }
+        return {
+          saleItemId: line.saleItemId,
+          productNameSnapshot: src.product_name_snapshot,
+          soldQuantity: toNumber(src.quantity),
+          alreadyReturned: returnedByItem.get(line.saleItemId) ?? 0,
+          requestQuantity: line.quantity,
+        };
+      })
+    );
 
-    const prepared: Array<{
-      saleItemId: string;
-      productId: string | null;
-      variantId: string | null;
-      productNameSnapshot: string;
-      quantity: number;
-      unitPrice: number;
-      lineAmount: number;
-    }> = [];
-
-    for (const line of input.items) {
-      const qty = Math.floor(Number(line.quantity) || 0);
-      if (!Number.isFinite(qty) || qty <= 0) {
-        throw new Error('반품 수량은 1 이상의 정수여야 합니다.');
-      }
-      const src = itemById.get(line.saleItemId);
-      if (!src) {
-        throw new Error('원본 판매 상품을 찾을 수 없습니다.');
-      }
-      const soldQty = toNumber(src.quantity);
-      const already = returnedByItem.get(src.id) ?? 0;
-      const remaining = soldQty - already;
-      if (qty > remaining) {
-        throw new Error(
-          `"${src.product_name_snapshot}" 반품 가능 수량은 ${remaining}개입니다.`
-        );
-      }
-      const unitPrice = toNumber(src.unit_price);
-      const lineAmount = computeReturnLineAmount({
-        returnQty: qty,
-        soldQty,
-        unitPrice,
+    // 금액 규칙 유지용 — RPC도 동일 공식. 여기서는 사전 검증만.
+    for (const line of aggregated) {
+      const src = itemById.get(line.saleItemId)!;
+      computeReturnLineAmount({
+        returnQty: line.quantity,
+        soldQty: toNumber(src.quantity),
+        unitPrice: toNumber(src.unit_price),
         discountAmount: toNumber(src.discount_amount),
-      });
-      prepared.push({
-        saleItemId: src.id,
-        productId: src.product_id,
-        variantId: src.variant_id,
-        productNameSnapshot: src.product_name_snapshot,
-        quantity: qty,
-        unitPrice,
-        lineAmount,
       });
     }
 
-    const totalAmount = prepared.reduce((sum, row) => sum + row.lineAmount, 0);
+    const { data, error } = await client.rpc('create_sale_return' as never, {
+      p_organization_id: orgId,
+      p_sale_id: saleId,
+      p_reason: input.reason?.trim() || null,
+      p_items: aggregated.map((line) => ({
+        sale_item_id: line.saleItemId,
+        quantity: line.quantity,
+      })),
+    } as never);
 
-    const { data: returnRow, error: insertError } = await client
-      .from('sale_returns')
-      .insert({
-        organization_id: orgId,
-        sale_id: saleId,
-        total_amount: totalAmount,
-        reason: input.reason?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (insertError) throw insertError;
+    if (error) {
+      throw new Error(mapCreateSaleReturnRpcError(error.message));
+    }
 
-    const saleReturnId = (returnRow as ReturnRow).id;
-    const { data: returnItemRows, error: returnItemsError } = await client
-      .from('sale_return_items')
-      .insert(
-        prepared.map((row) => ({
-          sale_return_id: saleReturnId,
-          sale_item_id: row.saleItemId,
-          product_id: row.productId,
-          variant_id: row.variantId,
-          product_name_snapshot: row.productNameSnapshot,
-          quantity: row.quantity,
-          unit_price: row.unitPrice,
-          line_amount: row.lineAmount,
-        }))
-      )
-      .select('*');
-    if (returnItemsError) throw returnItemsError;
-
-    const stockLines: SaleStockDeductLine[] = prepared
-      .filter((row) => row.productId)
-      .map((row) => ({
-        productId: row.productId as string,
-        variantId: row.variantId,
-        quantity: row.quantity,
-        label: row.productNameSnapshot,
-      }));
-
-    if (stockLines.length > 0) {
-      await stockSaleOps.applyReturns(orgId, saleReturnId, stockLines);
+    const payload = data as CreateSaleReturnRpcResult | null;
+    if (!payload?.id) {
+      throw new Error('반품 처리에 실패했습니다.');
     }
 
     return {
-      ...mapReturn(returnRow as ReturnRow),
-      items: ((returnItemRows as ReturnItemRow[] | null) ?? []).map(mapReturnItem),
+      ...mapReturn(payload),
+      items: (payload.items ?? []).map(mapReturnItem),
     };
   },
 };

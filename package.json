@@ -25,6 +25,11 @@
     "test:invoice-dedupe": "tsx src/core/finance/invoiceDedupe.test.ts",
     "test:today-lesson-teacher": "tsx src/modules/piano/components/lessons/todayLessonSaveTeacherId.test.ts",
     "test:manual-attendance-class": "tsx src/core/academy/components/students/detail/studentManualAttendanceClass.test.ts",
+    "test:create-sale-atomic": "tsx src/core/sales/createSaleAtomic.test.ts",
+    "test:create-sale-return-atomic": "tsx src/core/sales/createSaleReturnAtomic.test.ts",
+    "test:textbook-core-sale-link": "tsx src/modules/piano/services/textbookCoreSaleLink.test.ts",
+    "test:skin-retail-migrate": "tsx src/modules/skin/services/skinRetailCatalogMigrate.test.ts",
+    "test:sale-return-points": "tsx src/core/loyalty/saleReturnPointReverse.test.ts",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"
   },
   "dependencies": {

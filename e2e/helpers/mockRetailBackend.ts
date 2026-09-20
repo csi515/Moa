@@ -353,7 +353,331 @@ function handleRpc(store: Store, name: string, body: Row | null): unknown {
     });
     return id;
   }
+  if (name === 'create_sale') {
+    return handleCreateSaleRpc(store, body);
+  }
+  if (name === 'create_sale_return') {
+    return handleCreateSaleReturnRpc(store, body);
+  }
   return null;
+}
+
+/** core.create_sale 목 — 합산 검증 후 sales/items/movements/inventory를 원자적으로 반영 */
+function handleCreateSaleRpc(store: Store, body: Row | null): unknown {
+  const orgId = String(body?.p_organization_id ?? '');
+  const customerId = body?.p_customer_id ? String(body.p_customer_id) : null;
+  const paymentMethod = String(body?.p_payment_method ?? 'cash');
+  const pointsUsed = Math.max(0, Math.floor(Number(body?.p_points_used) || 0));
+  const items = Array.isArray(body?.p_items) ? (body!.p_items as Row[]) : [];
+  if (!items.length) throw new Error('판매할 상품을 담아 주세요.');
+
+  type Agg = { productId: string; variantId: string | null; required: number; label: string };
+  const aggMap = new Map<string, Agg>();
+  const normalized: Array<{
+    product_id: string;
+    variant_id: string | null;
+    product_name_snapshot: string;
+    quantity: number;
+    unit_price: number;
+    discount_amount: number;
+    line_amount: number;
+  }> = [];
+
+  let total = 0;
+  for (const item of items) {
+    const productId = String(item.product_id ?? '').trim();
+    if (!productId) throw new Error('판매 상품이 없습니다.');
+    const variantRaw = item.variant_id;
+    const variantId =
+      variantRaw == null || variantRaw === '' || variantRaw === 'null'
+        ? null
+        : String(variantRaw);
+    const quantity = Number(item.quantity);
+    const unitPrice = Number(item.unit_price);
+    const discountAmount = Math.max(0, Number(item.discount_amount) || 0);
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isInteger(quantity)) {
+      throw new Error('수량은 1 이상의 정수여야 합니다.');
+    }
+    if (!Number.isFinite(unitPrice) || unitPrice < 0) {
+      throw new Error('단가가 올바르지 않습니다.');
+    }
+    const product = store.tables.products.find(
+      (p) => p.id === productId && p.organization_id === orgId
+    );
+    if (!product) throw new Error('product organization_id mismatch');
+    if (variantId) {
+      const variant = store.tables.product_variants.find((v) => v.id === variantId);
+      if (!variant || String(variant.product_id) !== productId) {
+        throw new Error('variant does not belong to product');
+      }
+    }
+    const snapshot = String(item.product_name_snapshot ?? '').trim() || '상품';
+    const lineAmount = Math.max(0, quantity * unitPrice - discountAmount);
+    total += lineAmount;
+    normalized.push({
+      product_id: productId,
+      variant_id: variantId,
+      product_name_snapshot: snapshot,
+      quantity,
+      unit_price: unitPrice,
+      discount_amount: discountAmount,
+      line_amount: lineAmount,
+    });
+    const key = `${productId}::${variantId ?? '__none__'}`;
+    const prev = aggMap.get(key);
+    if (prev) prev.required += quantity;
+    else {
+      aggMap.set(key, {
+        productId,
+        variantId,
+        required: quantity,
+        label: snapshot,
+      });
+    }
+  }
+
+  if (pointsUsed > total) throw new Error('사용 포인트는 결제금액을 초과할 수 없습니다.');
+  if (pointsUsed > 0 && !customerId) {
+    throw new Error('포인트를 사용하려면 고객을 선택해 주세요.');
+  }
+
+  for (const agg of aggMap.values()) {
+    const inv = store.tables.inventory.find(
+      (r) =>
+        r.organization_id === orgId &&
+        r.product_id === agg.productId &&
+        (agg.variantId
+          ? r.variant_id === agg.variantId
+          : r.variant_id == null || r.variant_id === '')
+    );
+    const available = Number(inv?.quantity ?? 0);
+    if (available < agg.required) {
+      throw new Error(
+        `재고가 부족합니다: ${agg.label}(필요 ${agg.required}, 재고 ${available})`
+      );
+    }
+  }
+
+  const saleId = uuid();
+  const createdAt = nowIso();
+  store.tables.sales.push({
+    id: saleId,
+    organization_id: orgId,
+    customer_id: customerId,
+    total_amount: total,
+    points_used: pointsUsed,
+    payment_method: paymentMethod,
+    status: 'completed',
+    created_at: createdAt,
+    updated_at: createdAt,
+  });
+
+  const itemRows = normalized.map((row) => {
+    const id = uuid();
+    const out = { id, sale_id: saleId, ...row };
+    store.tables.sale_items.push(out);
+    return out;
+  });
+
+  for (const row of normalized) {
+    store.tables.stock_movements.push({
+      id: uuid(),
+      organization_id: orgId,
+      product_id: row.product_id,
+      variant_id: row.variant_id,
+      movement_type: 'sale',
+      quantity: -row.quantity,
+      reference_type: 'sale',
+      reference_id: saleId,
+      reason: null,
+      created_at: createdAt,
+    });
+  }
+
+  for (const agg of aggMap.values()) {
+    const inv = store.tables.inventory.find(
+      (r) =>
+        r.organization_id === orgId &&
+        r.product_id === agg.productId &&
+        (agg.variantId
+          ? r.variant_id === agg.variantId
+          : r.variant_id == null || r.variant_id === '')
+    );
+    if (!inv) throw new Error('재고가 부족합니다');
+    inv.quantity = Number(inv.quantity) - agg.required;
+    if (Number(inv.quantity) < 0) throw new Error('재고가 부족합니다');
+    inv.updated_at = createdAt;
+  }
+
+  return {
+    id: saleId,
+    organization_id: orgId,
+    customer_id: customerId,
+    total_amount: total,
+    points_used: pointsUsed,
+    payment_method: paymentMethod,
+    status: 'completed',
+    created_at: createdAt,
+    items: itemRows,
+  };
+}
+
+/** core.create_sale_return 목 — 누적 반품 검증 후 returns/items/movements/inventory 원자 반영 */
+function handleCreateSaleReturnRpc(store: Store, body: Row | null): unknown {
+  const orgId = String(body?.p_organization_id ?? '');
+  const saleId = String(body?.p_sale_id ?? '');
+  const reason = body?.p_reason ? String(body.p_reason).trim() : null;
+  const items = Array.isArray(body?.p_items) ? (body!.p_items as Row[]) : [];
+  if (!orgId || !saleId) throw new Error('사업장·판매 정보가 필요합니다.');
+  if (!items.length) throw new Error('반품할 상품을 선택해 주세요.');
+
+  const sale = store.tables.sales.find(
+    (s) => s.id === saleId && s.organization_id === orgId
+  );
+  if (!sale) throw new Error('판매 내역을 찾을 수 없습니다.');
+
+  const qtyByItem = new Map<string, number>();
+  for (const item of items) {
+    const saleItemId = String(item.sale_item_id ?? '').trim();
+    if (!saleItemId) throw new Error('원본 판매 상품을 찾을 수 없습니다.');
+    const quantity = Math.floor(Number(item.quantity) || 0);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      throw new Error('반품 수량은 1 이상의 정수여야 합니다.');
+    }
+    qtyByItem.set(saleItemId, (qtyByItem.get(saleItemId) ?? 0) + quantity);
+  }
+
+  const existingReturns = store.tables.sale_returns.filter((r) => r.sale_id === saleId);
+  const existingReturnIds = new Set(existingReturns.map((r) => r.id));
+  const alreadyByItem = new Map<string, number>();
+  for (const ri of store.tables.sale_return_items) {
+    if (!existingReturnIds.has(String(ri.sale_return_id))) continue;
+    const sid = String(ri.sale_item_id);
+    alreadyByItem.set(sid, (alreadyByItem.get(sid) ?? 0) + Number(ri.quantity));
+  }
+
+  const prepared: Array<{
+    sale_item_id: string;
+    product_id: string | null;
+    variant_id: string | null;
+    product_name_snapshot: string;
+    quantity: number;
+    unit_price: number;
+    line_amount: number;
+  }> = [];
+  let total = 0;
+
+  for (const [saleItemId, quantity] of [...qtyByItem.entries()].sort((a, b) =>
+    a[0].localeCompare(b[0])
+  )) {
+    const src = store.tables.sale_items.find(
+      (si) => si.id === saleItemId && si.sale_id === saleId
+    );
+    if (!src) throw new Error('원본 판매 상품을 찾을 수 없습니다.');
+    const soldQty = Number(src.quantity);
+    const already = alreadyByItem.get(saleItemId) ?? 0;
+    const remaining = soldQty - already;
+    if (quantity > remaining) {
+      throw new Error(
+        `"${String(src.product_name_snapshot)}" 반품 가능 수량은 ${Math.max(0, remaining)}개입니다.`
+      );
+    }
+    const unitPrice = Number(src.unit_price);
+    const discountAmount = Number(src.discount_amount ?? 0);
+    const proportionalDiscount =
+      soldQty > 0 ? (Math.max(0, discountAmount) * quantity) / soldQty : 0;
+    const lineAmount = Math.max(0, quantity * unitPrice - proportionalDiscount);
+    total += lineAmount;
+    prepared.push({
+      sale_item_id: saleItemId,
+      product_id: src.product_id == null ? null : String(src.product_id),
+      variant_id: src.variant_id == null || src.variant_id === '' ? null : String(src.variant_id),
+      product_name_snapshot: String(src.product_name_snapshot),
+      quantity,
+      unit_price: unitPrice,
+      line_amount: lineAmount,
+    });
+  }
+
+  const returnId = uuid();
+  const createdAt = nowIso();
+  store.tables.sale_returns.push({
+    id: returnId,
+    organization_id: orgId,
+    sale_id: saleId,
+    total_amount: total,
+    reason: reason || null,
+    created_at: createdAt,
+  });
+
+  const itemRows = prepared.map((row) => {
+    const id = uuid();
+    const out = { id, sale_return_id: returnId, ...row };
+    store.tables.sale_return_items.push(out);
+    return out;
+  });
+
+  const stockAgg = new Map<string, { productId: string; variantId: string | null; qty: number }>();
+  for (const row of prepared) {
+    if (!row.product_id) continue;
+    store.tables.stock_movements.push({
+      id: uuid(),
+      organization_id: orgId,
+      product_id: row.product_id,
+      variant_id: row.variant_id,
+      movement_type: 'return',
+      quantity: row.quantity,
+      reference_type: 'sale_return',
+      reference_id: returnId,
+      reason: null,
+      created_at: createdAt,
+    });
+    const key = `${row.product_id}::${row.variant_id ?? '__none__'}`;
+    const prev = stockAgg.get(key);
+    if (prev) prev.qty += row.quantity;
+    else {
+      stockAgg.set(key, {
+        productId: row.product_id,
+        variantId: row.variant_id,
+        qty: row.quantity,
+      });
+    }
+  }
+
+  for (const agg of stockAgg.values()) {
+    let inv = store.tables.inventory.find(
+      (r) =>
+        r.organization_id === orgId &&
+        r.product_id === agg.productId &&
+        (agg.variantId
+          ? r.variant_id === agg.variantId
+          : r.variant_id == null || r.variant_id === '')
+    );
+    if (!inv) {
+      inv = {
+        id: uuid(),
+        organization_id: orgId,
+        product_id: agg.productId,
+        variant_id: agg.variantId,
+        quantity: 0,
+        created_at: createdAt,
+        updated_at: createdAt,
+      };
+      store.tables.inventory.push(inv);
+    }
+    inv.quantity = Number(inv.quantity) + agg.qty;
+    inv.updated_at = createdAt;
+  }
+
+  return {
+    id: returnId,
+    organization_id: orgId,
+    sale_id: saleId,
+    total_amount: total,
+    reason: reason || null,
+    created_at: createdAt,
+    items: itemRows,
+  };
 }
 
 function tableMutateDefaults(table: string, row: Row): Row {

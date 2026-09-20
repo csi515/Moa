@@ -22,6 +22,43 @@ export function findIncomeByPaymentSource(
   );
 }
 
+/**
+ * Skin 등 retail IncomeEntry 판매에 대한 반품 반전 기록.
+ * - 원본 판매 income(sourceId=saleId)은 삭제·수정하지 않음
+ * - sourceId=returnId 로 idempotent (동일 반품 재처리 시 중복 생성 없음)
+ * - amount는 음수(반전)
+ */
+export function recordRetailSaleReturnIncomeReversal(params: {
+  saleId: string;
+  returnId: string;
+  /** 반품 금액(양수) → 음수 income으로 기록 */
+  amount: number;
+  date: string;
+  paymentMethod: PaymentMethod;
+  description: string;
+  payer?: string;
+}): IncomeEntry | null {
+  const returnId = String(params.returnId || '').trim();
+  const saleId = String(params.saleId || '').trim();
+  const amount = Math.abs(Number(params.amount) || 0);
+  if (!returnId || !saleId || amount <= 0) return null;
+
+  const existing = findIncomeByPaymentSource('retail', returnId);
+  if (existing) return existing;
+
+  return upsertLinkedIncome({
+    sourceType: 'retail',
+    paymentId: returnId,
+    date: params.date,
+    amount: -amount,
+    paymentMethod: params.paymentMethod,
+    description: params.description,
+    payer: params.payer || '',
+    memo: `saleId=${saleId};returnId=${returnId}`,
+    category: 'product',
+  });
+}
+
 export function upsertLinkedIncome(params: {
   sourceType: LinkedIncomeSource;
   paymentId: string;

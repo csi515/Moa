@@ -1,5 +1,6 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
 import { stockSaleOps, type SaleStockDeductLine, type StockShortfall } from '@/core/inventory';
+import { mapCreateSaleRpcError } from './mapCreateSaleRpcError';
 import {
   buildProductNameSnapshot,
   type Sale,
@@ -50,6 +51,18 @@ type VariantRow = {
   is_active: boolean;
 };
 
+type CreateSaleRpcResult = {
+  id: string;
+  organization_id: string;
+  customer_id: string | null;
+  total_amount: number | string;
+  points_used?: number | string | null;
+  payment_method: SalePaymentMethod;
+  status: SaleStatus;
+  created_at: string;
+  items: SaleItemRow[];
+};
+
 function toNumber(value: number | string | null | undefined): number {
   if (value == null || value === '') return 0;
   const n = typeof value === 'number' ? value : Number(value);
@@ -92,7 +105,7 @@ function mapSaleItem(row: SaleItemRow): SaleItem {
 
 /**
  * Core 판매 서비스.
- * 저장 전 재고 부족 검증 → sale/items 기록 → stock_movements(sale) + inventory 차감.
+ * createSale은 core.create_sale RPC로 sales+items+movement+inventory를 원자 처리.
  * 포인트 ledger·Finance는 호출하지 않음(Module 책임).
  */
 export const saleService = {
@@ -198,7 +211,11 @@ export const saleService = {
   },
 
   /**
-   * 판매 생성: 재고 부족 시 거부 → 헤더/라인 저장 → 재고 차감.
+   * 판매 생성(원자): core.create_sale RPC
+   * → sales + sale_items + stock_movements(sale) + inventory 차감이 한 트랜잭션.
+   * 재고 부족·권한·타조직 상품·중간 실패 시 전체 rollback (판매 문서만 남는 상태 불가).
+   * 동일 product/variant 다수 라인은 RPC에서 합산 후 FOR UPDATE로 검증·차감한다.
+   * 클라이언트 다중 INSERT/UPDATE 경로를 사용하지 않는다.
    */
   async createSale(input: SaleCreateInput): Promise<SaleWithItems> {
     const client = ensureClient();
@@ -206,7 +223,7 @@ export const saleService = {
       throw new Error('판매할 상품을 담아 주세요.');
     }
 
-    const lineRows = input.items.map((item) => {
+    const rpcItems = input.items.map((item) => {
       const quantity = Number(item.quantity);
       const unitPrice = Number(item.unitPrice);
       const discountAmount = Math.max(0, Number(item.discountAmount ?? 0));
@@ -218,7 +235,6 @@ export const saleService = {
       }
       const snapshot =
         item.productNameSnapshot.trim() || buildProductNameSnapshot('상품', null);
-      const lineAmount = Math.max(0, quantity * unitPrice - discountAmount);
       return {
         product_id: item.productId,
         variant_id: item.variantId || null,
@@ -226,11 +242,12 @@ export const saleService = {
         quantity,
         unit_price: unitPrice,
         discount_amount: discountAmount,
-        line_amount: lineAmount,
       };
     });
 
-    const totalAmount = lineRows.reduce((sum, row) => sum + row.line_amount, 0);
+    const totalAmount = rpcItems.reduce((sum, row) => {
+      return sum + Math.max(0, row.quantity * row.unit_price - row.discount_amount);
+    }, 0);
     const pointsUsed = Math.max(0, Math.floor(Number(input.pointsUsed) || 0));
     if (pointsUsed > totalAmount) {
       throw new Error('사용 포인트는 결제금액을 초과할 수 없습니다.');
@@ -239,6 +256,7 @@ export const saleService = {
       throw new Error('포인트를 사용하려면 고객을 선택해 주세요.');
     }
 
+    // UX용 사전 검증(최종 권한은 RPC FOR UPDATE). 부족이면 RPC 호출 전에 거부.
     const shortfalls = await this.checkStockShortfalls(input.organizationId, input.items);
     if (shortfalls.length > 0) {
       const detail = shortfalls
@@ -247,38 +265,26 @@ export const saleService = {
       throw new Error(`재고가 부족합니다: ${detail}`);
     }
 
-    const { data: saleRow, error: saleError } = await client
-      .from('sales')
-      .insert({
-        organization_id: input.organizationId,
-        customer_id: input.customerId || null,
-        total_amount: totalAmount,
-        points_used: pointsUsed,
-        payment_method: input.paymentMethod,
-        status: 'completed',
-      })
-      .select('*')
-      .single();
-    if (saleError) throw saleError;
+    const { data, error } = await client.rpc('create_sale' as never, {
+      p_organization_id: input.organizationId,
+      p_customer_id: input.customerId || null,
+      p_payment_method: input.paymentMethod,
+      p_points_used: pointsUsed,
+      p_items: rpcItems,
+    } as never);
 
-    const saleId = (saleRow as SaleRow).id;
-    const { data: itemRows, error: itemsError } = await client
-      .from('sale_items')
-      .insert(lineRows.map((row) => ({ ...row, sale_id: saleId })))
-      .select('*');
-    if (itemsError) throw itemsError;
+    if (error) {
+      throw new Error(mapCreateSaleRpcError(error.message));
+    }
 
-    const deductLines: SaleStockDeductLine[] = input.items.map((item) => ({
-      productId: item.productId,
-      variantId: item.variantId,
-      quantity: item.quantity,
-      label: item.productNameSnapshot,
-    }));
-    await stockSaleOps.applyDeductions(input.organizationId, saleId, deductLines);
+    const payload = data as CreateSaleRpcResult | null;
+    if (!payload?.id) {
+      throw new Error('판매 처리에 실패했습니다.');
+    }
 
     return {
-      ...mapSale(saleRow as SaleRow),
-      items: ((itemRows as SaleItemRow[] | null) ?? []).map(mapSaleItem),
+      ...mapSale(payload),
+      items: (payload.items ?? []).map(mapSaleItem),
     };
   },
 };

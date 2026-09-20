@@ -6,6 +6,8 @@ import type {
   StockInboundInput,
   StockMovement,
   StockMovementListQuery,
+  StockReturnRestoreInput,
+  StockSaleDeductInput,
 } from './types';
 
 type ProductRow = {
@@ -99,7 +101,7 @@ async function assertProductInOrg(
 }
 
 /**
- * Core 재고 조회·입고·조정·이력.
+ * Core 재고 조회·입고·판매·반품·조정·이력.
  * 잔량 변경은 항상 StockMovement 기록 후 Inventory 가감.
  */
 export const inventoryService = {
@@ -320,6 +322,158 @@ export const inventoryService = {
         movement_type: 'adjustment',
         quantity: delta,
         reason,
+      })
+      .select('*')
+      .single();
+    if (movementError) throw movementError;
+
+    if (existing) {
+      const { error: updateError } = await client
+        .from('inventory')
+        .update({ quantity: quantityAfter })
+        .eq('id', existing.id)
+        .eq('organization_id', input.organizationId);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await client.from('inventory').insert({
+        organization_id: input.organizationId,
+        product_id: input.productId,
+        variant_id: variantId,
+        quantity: quantityAfter,
+      });
+      if (insertError) throw insertError;
+    }
+
+    return {
+      movement: mapMovement(movementRow as MovementRow),
+      quantityAfter,
+    };
+  },
+
+  /**
+   * 판매 출고.
+   * stock_movements_sale_sign_ref_chk: quantity < 0,
+   * reference_type IN ('sale','textbook_sale'), reference_id 필수.
+   */
+  async applySaleDeduct(input: StockSaleDeductInput): Promise<{
+    movement: StockMovement;
+    quantityAfter: number;
+  }> {
+    const client = ensureClient();
+    const qty = Math.floor(Number(input.quantity) || 0);
+    if (qty <= 0) {
+      throw new Error('판매 차감 수량은 0보다 커야 합니다.');
+    }
+    const saleId = String(input.saleId || '').trim();
+    if (!saleId) {
+      throw new Error('판매 참조(saleId)가 필요합니다.');
+    }
+    if (!input.productId) {
+      throw new Error('상품을 선택해 주세요.');
+    }
+    const referenceType =
+      input.referenceType === 'textbook_sale' ? 'textbook_sale' : 'sale';
+
+    const variantId = input.variantId || null;
+    await assertProductInOrg(input.organizationId, input.productId, variantId);
+
+    const existing = await findInventoryRow(
+      input.organizationId,
+      input.productId,
+      variantId
+    );
+    const currentQty = existing ? toNumber(existing.quantity) : 0;
+    if (currentQty < qty) {
+      throw new Error(`재고가 부족합니다. (현재 ${currentQty})`);
+    }
+    const delta = -qty;
+    const quantityAfter = currentQty + delta;
+
+    const { data: movementRow, error: movementError } = await client
+      .from('stock_movements')
+      .insert({
+        organization_id: input.organizationId,
+        product_id: input.productId,
+        variant_id: variantId,
+        movement_type: 'sale',
+        quantity: delta,
+        reference_type: referenceType,
+        reference_id: saleId,
+        reason: input.reason?.trim() || null,
+      })
+      .select('*')
+      .single();
+    if (movementError) throw movementError;
+
+    if (existing) {
+      const { error: updateError } = await client
+        .from('inventory')
+        .update({ quantity: quantityAfter })
+        .eq('id', existing.id)
+        .eq('organization_id', input.organizationId);
+      if (updateError) throw updateError;
+    } else {
+      const { error: insertError } = await client.from('inventory').insert({
+        organization_id: input.organizationId,
+        product_id: input.productId,
+        variant_id: variantId,
+        quantity: quantityAfter,
+      });
+      if (insertError) throw insertError;
+    }
+
+    return {
+      movement: mapMovement(movementRow as MovementRow),
+      quantityAfter,
+    };
+  },
+
+  /**
+   * 반품/판매취소 입고.
+   * stock_movements_return_sign_ref_chk: quantity > 0,
+   * reference_type IN ('sale_return','textbook_sale'), reference_id 필수.
+   */
+  async applyReturnRestore(input: StockReturnRestoreInput): Promise<{
+    movement: StockMovement;
+    quantityAfter: number;
+  }> {
+    const client = ensureClient();
+    const qty = Math.floor(Number(input.quantity) || 0);
+    if (qty <= 0) {
+      throw new Error('반품 복구 수량은 0보다 커야 합니다.');
+    }
+    const saleReturnId = String(input.saleReturnId || '').trim();
+    if (!saleReturnId) {
+      throw new Error('반품 참조(saleReturnId)가 필요합니다.');
+    }
+    if (!input.productId) {
+      throw new Error('상품을 선택해 주세요.');
+    }
+    const referenceType =
+      input.referenceType === 'textbook_sale' ? 'textbook_sale' : 'sale_return';
+
+    const variantId = input.variantId || null;
+    await assertProductInOrg(input.organizationId, input.productId, variantId);
+
+    const existing = await findInventoryRow(
+      input.organizationId,
+      input.productId,
+      variantId
+    );
+    const currentQty = existing ? toNumber(existing.quantity) : 0;
+    const quantityAfter = currentQty + qty;
+
+    const { data: movementRow, error: movementError } = await client
+      .from('stock_movements')
+      .insert({
+        organization_id: input.organizationId,
+        product_id: input.productId,
+        variant_id: variantId,
+        movement_type: 'return',
+        quantity: qty,
+        reference_type: referenceType,
+        reference_id: saleReturnId,
+        reason: input.reason?.trim() || null,
       })
       .select('*')
       .single();

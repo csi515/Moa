@@ -442,6 +442,13 @@ export interface TextbookSale {
   updatedAt?: string;
   /** 월 청구서에 합산된 경우 해당 청구서 id — 별도 미납/중복 집계 제외 */
   billingInvoiceId?: string;
+  /**
+   * Core sales.id 연결.
+   * 신규 Core 연동 판매는 보통 id === coreSaleId.
+   * NULL이면 legacy TextbookSale(재고만 Core 또는 로컬) — 삭제하지 않고 read fallback.
+   * Core SaleStatus(completed 등)와 TextbookPaymentStatus(unpaid/partial/paid)는 별개.
+   */
+  coreSaleId?: string | null;
 }
 
 export interface TextbookPayment {
@@ -719,9 +726,17 @@ export interface AcademySettings {
   retailCatalog?: RetailProduct[];
   /**
    * Skin 상품·재고 Core 이관 완료 시각(ISO).
-   * 설정되면 UI는 Core를 사용. retailCatalog JSON은 삭제하지 않고 보존.
+   * 단독으로 완료를 단정하지 않음 — Core Product/Inventory 상태를 함께 검증.
+   * retailCatalog JSON은 삭제하지 않고 보존.
    */
   skinRetailCoreMigratedAt?: string | null;
+  /** organizationId → 이관 완료 시각 (로컬 다사업장 격리) */
+  skinRetailCoreMigratedAtByOrg?: Record<string, string>;
+  /**
+   * organizationId → 이관 완료된 Core product id 목록.
+   * Product+Inventory 반영 후에만 추가. 매진(coreQty=0) 후 중복 inbound 방지.
+   */
+  skinRetailMigratedProductIdsByOrg?: Record<string, string[]>;
   /** 피부관리 예약금. 끄면 신청만 받는다 */
   depositEnabled?: boolean;
   depositAmount?: number;
