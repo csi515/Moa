@@ -1,11 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import type { Student } from '@/types';
-import { SkinChartTab } from '@/modules/skin/components/charts/SkinChartTab';
-import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal';
 import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
-import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
-import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
-import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown, Stamp } from 'lucide-react';
+import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown } from 'lucide-react';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
 import { StudentDetailAttendanceTab } from './detail/StudentDetailAttendanceTab';
@@ -17,12 +13,9 @@ import { StudentDetailVideosTab } from './detail/StudentDetailVideosTab';
 import { StudentDetailMemoTab } from './detail/StudentDetailMemoTab';
 import { useStudentDetailModal } from './useStudentDetailModal';
 import type { DetailTab } from './detail/types';
-import { useApp } from '@/context/AppContext';
+import { getStudentDetailExtension } from './detail/studentDetailExtensions';
 import { useStaffGrants } from '@/hooks';
 import { useModuleLabels } from '@/core/labels';
-import { useOrganization } from '@/core/organizations/OrganizationProvider';
-import { TeacherDirectPassModal } from '@/modules/piano/components/songProgress';
-import { isSupabaseConfigured } from '@/lib/supabase';
 
 export type { DetailTab } from './detail/types';
 
@@ -58,12 +51,9 @@ const StudentDetailModalContent: React.FC<
     onClose,
     onEdit,
   });
-  const { setActiveTab, showToast } = useApp();
   const { allow } = useStaffGrants();
   const labels = useModuleLabels();
-  const { currentOrganization } = useOrganization();
-  const skin = modal.industryPlugin.id === 'skin_clinic';
-  const isPiano = modal.industryPlugin.id === 'piano';
+  const detailExtension = getStudentDetailExtension(modal.industryPlugin.id);
   const customerLabel = labels.customer.singular;
   const contactLabel = labels.contact.singular;
   const canCall = allow('guardianPhone');
@@ -71,7 +61,6 @@ const StudentDetailModalContent: React.FC<
   const canWithdraw = allow('withdrawStudent');
   const canTuition = allow('tuition');
   const [showMoreTabs, setShowMoreTabs] = useState(false);
-  const [stampGrantOpen, setStampGrantOpen] = useState(false);
 
   const primaryTabs = useMemo(
     () =>
@@ -213,16 +202,7 @@ const StudentDetailModalContent: React.FC<
             <ClipboardCheck className="w-3.5 h-3.5" />
             출결 기록
           </button>
-          {isPiano && currentOrganization?.id && isSupabaseConfigured() && (
-            <button
-              type="button"
-              onClick={() => setStampGrantOpen(true)}
-              className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-amber-50 border border-amber-200 text-amber-900 hover:border-amber-400 inline-flex items-center gap-1.5"
-            >
-              <Stamp className="w-3.5 h-3.5" />
-              완곡 스탬프
-            </button>
-          )}
+          {detailExtension?.renderHeaderActions?.({ student })}
           {canEdit && (
           <button
             type="button"
@@ -230,7 +210,7 @@ const StudentDetailModalContent: React.FC<
             className="min-h-[40px] px-3 rounded-xl text-[11px] font-bold bg-white border border-slate-200 text-slate-700 hover:border-indigo-300 hover:text-indigo-700 inline-flex items-center gap-1.5"
           >
             <Edit className="w-3.5 h-3.5" />
-            레슨·정보 변경
+            수업·정보 변경
           </button>
           )}
           {canTuition && (
@@ -509,45 +489,18 @@ const StudentDetailModalContent: React.FC<
               )}
 
               {modal.currentTab === 'memo' && <StudentDetailMemoTab student={student} />}
-              {modal.currentTab === 'charts' && <SkinChartTab customerId={student.id} />}
+              {detailExtension?.renderExtraTab?.({ tab: modal.currentTab, student })}
             </div>
           </div>
         </div>
       </div>
 
-      {modal.textbooks.isStudentSaleModalOpen && (
-        <NewSaleModal
-          initialStudentId={student.id}
-          onSuccess={() => {
-            modal.textbooks.setIsStudentSaleModalOpen(false);
-            modal.triggerRefresh();
-          }}
-          onClose={() => modal.textbooks.setIsStudentSaleModalOpen(false)}
-          onRegisterTextbooks={() => {
-            modal.textbooks.setIsStudentSaleModalOpen(false);
-            onClose();
-            setActiveTab('textbooks');
-          }}
-        />
-      )}
-
-      {modal.textbooks.isStudentTbPaymentModalOpen && modal.textbooks.selectedStudentSaleForPay && (
-        <TextbookPaymentModal
-          sale={modal.textbooks.selectedStudentSaleForPay}
-          onSuccess={() => {
-            modal.textbooks.setIsStudentTbPaymentModalOpen(false);
-            modal.triggerRefresh();
-          }}
-          onClose={() => modal.textbooks.setIsStudentTbPaymentModalOpen(false)}
-        />
-      )}
-
-      {modal.textbooks.isTbReceiptOpen && modal.textbooks.tbReceiptSale && (
-        <TextbookReceiptModal
-          sale={modal.textbooks.tbReceiptSale}
-          onClose={() => modal.textbooks.setIsTbReceiptOpen(false)}
-        />
-      )}
+      {detailExtension?.renderModals?.({
+        student,
+        textbooks: modal.textbooks,
+        triggerRefresh: modal.triggerRefresh,
+        onCloseDetail: onClose,
+      })}
 
       <GuardianLinkInviteModal
         studentId={student.id}
@@ -555,17 +508,6 @@ const StudentDetailModalContent: React.FC<
         isOpen={modal.guardianLinkOpen}
         onClose={() => modal.setGuardianLinkOpen(false)}
       />
-
-      {isPiano && currentOrganization?.id && (
-        <TeacherDirectPassModal
-          isOpen={stampGrantOpen}
-          onClose={() => setStampGrantOpen(false)}
-          organizationId={currentOrganization.id}
-          customerId={student.id}
-          studentName={student.name}
-          onToast={showToast}
-        />
-      )}
     </div>
   );
 };

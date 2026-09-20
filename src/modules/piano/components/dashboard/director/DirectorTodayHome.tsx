@@ -38,7 +38,7 @@ function openDirectorTodayTask(
   navigate(item.tab);
 }
 
-/** 원장 홈 — 오늘 일정·등원·미납·처리할 업무만 */
+/** 원장 홈 — 오늘 일정 → 출결 → 처리할 업무 → 미납 */
 export const DirectorTodayHome: FC = () => {
   const { currentUser } = useApp();
   const navigate = usePianoNavigate();
@@ -130,11 +130,13 @@ export const DirectorTodayHome: FC = () => {
           {isEmpty
             ? '먼저 학생을 등록한 뒤, 일정에 배치하고 출결·수납을 관리하세요.'
             : [
-                todayClasses.length > 0 ? `수업 ${todayClasses.length}` : null,
+                todayClasses.length > 0
+                  ? `오늘 수업 ${todayClasses.length}`
+                  : '오늘 수업 없음',
+                pendingTaskTotal > 0 ? `처리할 업무 ${pendingTaskTotal}건` : null,
                 unpaidStudentCount > 0
                   ? `미납 ${unpaidStudentCount}명(${formatCurrency(unpaidTotal)})`
                   : '미납 없음',
-                pendingTaskTotal > 0 ? `할 일 ${pendingTaskTotal}건` : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}
@@ -161,11 +163,11 @@ export const DirectorTodayHome: FC = () => {
           expectedDay={expectedDay}
           onOpenAttendance={() => navigate('attendance')}
         />
+        <DirectorTodayTasksSection items={taskItems} onOpen={handleOpenTask} />
         <DirectorTodayUnpaidSection
           invoices={unpaidInvoices}
           onOpenUnpaid={() => navigate('unpaid')}
         />
-        <DirectorTodayTasksSection items={taskItems} onOpen={handleOpenTask} />
       </div>
     </div>
   );

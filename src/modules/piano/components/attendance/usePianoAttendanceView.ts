@@ -13,6 +13,7 @@ import {
   resolveDayStatus,
   todayIsoLocal,
   type DayStatus,
+  type ExpectedStudentOnDate,
   type StatusFilter,
 } from './pianoAttendanceHelpers';
 
@@ -55,7 +56,9 @@ export function usePianoAttendanceView() {
 
   /** 예정 학생 + (일정 변경 후에도) 당일 출결/PIN이 남은 학생 */
   const roster = useMemo(() => {
-    const byId = new Map(expected.map((row) => [row.student.id, row]));
+    const byId = new Map<string, ExpectedStudentOnDate>(
+      expected.map((row) => [row.student.id, row])
+    );
     for (const student of students) {
       if (byId.has(student.id)) continue;
       const hasRecord = dayRecordMap.has(student.id);
@@ -130,7 +133,7 @@ export function usePianoAttendanceView() {
       existing: existing || null,
       memo,
     });
-    if (!result.ok) {
+    if (result.ok === false) {
       showToast(result.warning, 'warning');
       return false;
     }

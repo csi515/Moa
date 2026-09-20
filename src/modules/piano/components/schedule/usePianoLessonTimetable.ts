@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
+import { consumePlaceStudentOnTimetable, peekPlaceStudentOnTimetable } from '@/core/customer/studentJoinInbox';
 import { useMediaQuery, useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import type { DayOfWeek, Student } from '@/types';
@@ -94,29 +95,84 @@ export function usePianoLessonTimetable() {
     return ids;
   }, [students, visibleClasses]);
 
+  const newClassConfirmMessage = (
+    studentName: string,
+    day: DayOfWeek,
+    startTime: string,
+    teacherId?: string
+  ) => {
+    const teacher = teacherId ? teachers.find((t) => t.id === teacherId) : undefined;
+    const teacherLine = teacher ? `\n담당 강사: ${teacher.name}` : '';
+    return (
+      `${day}요일 ${startTime}에는 아직 반이 없습니다.\n` +
+      `「${day} ${startTime}」 반을 새로 만들고 ${studentName} 학생을 배치할까요?` +
+      teacherLine +
+      `\n\n확인하면 반 관리 목록에도 이 반이 추가됩니다.`
+    );
+  };
+
+  const finishPlaceSuccess = (
+    studentName: string,
+    day: DayOfWeek,
+    startTime: string,
+    createdClass: boolean
+  ) => {
+    showToast(
+      createdClass
+        ? `${studentName} 학생을 ${day}요일 ${startTime}에 배치했습니다. (새 반 「${day} ${startTime}」 생성)`
+        : `${studentName} 학생을 ${day}요일 ${startTime}에 배치했습니다.`,
+      'success'
+    );
+    setPendingStudentId(null);
+    setPendingTeacherId(undefined);
+    setPickerSlot(null);
+    triggerRefresh();
+  };
+
   const placeStudent = (
     student: Student,
     day: DayOfWeek,
     startTime: TimetableSlot,
     teacherId?: string
   ) => {
+    const preferred = teacherId || preferredTeacherId;
     const result = assignStudentToSlot({
       student,
       day,
       startTime,
       classes,
       teachers,
-      preferredTeacherId: teacherId || preferredTeacherId,
+      preferredTeacherId: preferred,
+      createClassIfMissing: false,
     });
-    if (!result.ok) {
+    if (result.ok === true) {
+      finishPlaceSuccess(student.name, day, startTime, result.createdClass);
+    } else if (result.needsNewClass === true) {
+      openConfirmDialog({
+        title: '새 반을 만들어 배치',
+        message: newClassConfirmMessage(student.name, day, startTime, preferred),
+        confirmText: '반 만들고 배치',
+        cancelText: '취소',
+        onConfirm: () => {
+          const created = assignStudentToSlot({
+            student,
+            day,
+            startTime,
+            classes: StorageService.getClasses(),
+            teachers,
+            preferredTeacherId: preferred,
+            createClassIfMissing: true,
+          });
+          if (created.ok === false) {
+            showToast(created.message, 'warning');
+            return;
+          }
+          finishPlaceSuccess(student.name, day, startTime, created.createdClass);
+        },
+      });
+    } else {
       showToast(result.message, 'warning');
-      return;
     }
-    showToast(`${student.name} 학생을 ${day}요일 ${startTime}에 배치했습니다.`, 'success');
-    setPendingStudentId(null);
-    setPendingTeacherId(undefined);
-    setPickerSlot(null);
-    triggerRefresh();
   };
 
   const movePlacement = (
@@ -130,21 +186,60 @@ export function usePianoLessonTimetable() {
     const fromClass = classes.find((c) => c.id === payload.classId);
     if (!student || !fromClass) return;
 
+    const preferred = sectionTeacherId || preferredTeacherId;
+    const from = { classItem: fromClass, day: payload.day, startTime: payload.startTime };
+
     const result = moveStudentToSlot({
       student,
-      from: { classItem: fromClass, day: payload.day, startTime: payload.startTime },
+      from,
       toDay: day,
       toStartTime: startTime,
       classes,
       teachers,
-      preferredTeacherId: sectionTeacherId || preferredTeacherId,
+      preferredTeacherId: preferred,
+      createClassIfMissing: false,
     });
-    if (!result.ok) {
+    if (result.ok === true) {
+      showToast(
+        result.createdClass
+          ? `${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다. (새 반 「${day} ${startTime}」 생성)`
+          : `${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다.`,
+        'success'
+      );
+      triggerRefresh();
+    } else if (result.needsNewClass === true) {
+      openConfirmDialog({
+        title: '새 반을 만들어 이동',
+        message: newClassConfirmMessage(student.name, day, startTime, preferred),
+        confirmText: '반 만들고 이동',
+        cancelText: '취소',
+        onConfirm: () => {
+          const moved = moveStudentToSlot({
+            student,
+            from,
+            toDay: day,
+            toStartTime: startTime,
+            classes: StorageService.getClasses(),
+            teachers,
+            preferredTeacherId: preferred,
+            createClassIfMissing: true,
+          });
+          if (moved.ok === false) {
+            showToast(moved.message, 'warning');
+            return;
+          }
+          showToast(
+            moved.createdClass
+              ? `${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다. (새 반 「${day} ${startTime}」 생성)`
+              : `${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다.`,
+            'success'
+          );
+          triggerRefresh();
+        },
+      });
+    } else {
       showToast(result.message, 'warning');
-      return;
     }
-    showToast(`${student.name} 학생을 ${day}요일 ${startTime}(으)로 이동했습니다.`, 'success');
-    triggerRefresh();
   };
 
   const handleDropStudent = (studentId: string, day: DayOfWeek, startTime: TimetableSlot) => {
@@ -165,7 +260,7 @@ export function usePianoLessonTimetable() {
           day,
           startTime,
         });
-        if (!result.ok) {
+        if (result.ok === false) {
           showToast(result.message, 'warning');
           return;
         }
@@ -192,6 +287,22 @@ export function usePianoLessonTimetable() {
     setPendingTeacherId(sectionTeacherId);
     showToast(`${student.name} 학생을 배치할 시간대를 탭하세요.`, 'info');
   };
+
+  /** 신규 등록 →「시간표에 배치」: 목록에 학생이 보이면 배치 대기 상태로 연다 */
+  useEffect(() => {
+    const studentId = peekPlaceStudentOnTimetable();
+    if (!studentId) return;
+    const student = students.find((s) => s.id === studentId);
+    if (!student) return;
+    consumePlaceStudentOnTimetable();
+    setPickerSlot(null);
+    setPendingStudentId(student.id);
+    setPendingTeacherId(undefined);
+    showToast(
+      `${student.name} 학생은 아직 미배치입니다. 배치할 시간대를 탭하거나 드래그하세요.`,
+      'info'
+    );
+  }, [students, showToast]);
 
   const placePending = (day: DayOfWeek, startTime: TimetableSlot, sectionTeacherId?: string) => {
     const student = students.find((s) => s.id === pendingStudentId);

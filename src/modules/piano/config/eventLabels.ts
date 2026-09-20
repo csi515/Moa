@@ -13,7 +13,7 @@ export const ACADEMY_EVENT_TYPE_LABEL: Record<AcademyEvent['type'], string> = {
 export const PERFORMANCE_VIDEO_TYPE_LABEL: Record<PerformanceVideo['eventType'], string> = {
   recital: '연주회',
   competition: '콩쿠르',
-  lesson: '레슨',
+  lesson: '수업',
   practice: '연습',
   other: '기타',
 };

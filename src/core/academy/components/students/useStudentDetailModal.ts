@@ -4,8 +4,6 @@ import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
 import { TuitionService } from '@/core/finance';
 import { LessonService } from '@/core/lessons';
-import { RecitalService } from '@/modules/piano/services/recitalService';
-import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import type { PerformanceVideo, Student, TextbookSale, TuitionInvoice, PaymentMethod } from '@/types';
 import { isValidYouTubeUrl } from '@/utils/youtube';
 import { getGuardiansForStudent, getPrimaryGuardian } from '@/core/parent';
@@ -13,7 +11,6 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
-import { applySessionPassForAttendance } from '@/modules/piano/services/lessonPassConsume';
 import { DAY_ATTENDANCE_CLASS_ID } from '@/core/attendance/dayAttendance';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
@@ -23,31 +20,25 @@ import {
   getStudentStatusBadge,
 } from '@/utils/formatters';
 import type { AttendanceStatus, ClassItem, DayOfWeek } from '@/types';
-import { Sparkles } from 'lucide-react';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
-import { DetailTab, getDetailTabConfig, type DetailTabConfigItem } from './detail/types';
+import { DetailTab, getDetailTabConfig } from './detail/types';
+import {
+  getStudentDetailExtension,
+  resolveStudentDetailTabs,
+  runStudentDetailAttendanceSideEffect,
+} from './detail/studentDetailExtensions';
+import { RecitalService } from '@/modules/piano/services/recitalService';
 
 const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
 
-const SKIN_HIDDEN_DETAIL_TABS = new Set<DetailTab>(['classes', 'practice', 'videos', 'textbooks']);
-
-function filterCustomerDetailTabs(
-  tabs: DetailTabConfigItem[],
-  industry: string
-): DetailTabConfigItem[] {
-  if (!isSkinClinicIndustry(industry)) return tabs;
-  const visible = tabs.filter((tab) => !SKIN_HIDDEN_DETAIL_TABS.has(tab.id));
-  const charts: DetailTabConfigItem = {
-    id: 'charts',
-    label: '시술 기록',
-    icon: React.createElement(Sparkles, { className: 'w-3.5 h-3.5' }),
-    group: 'primary',
-  };
-  const infoIndex = visible.findIndex((tab) => tab.id === 'info');
-  visible.splice(infoIndex + 1, 0, charts);
-  return visible;
-}
+const DEFAULT_VIDEO_TYPE_LABEL: Record<string, string> = {
+  recital: '연주회',
+  competition: '콩쿠르',
+  lesson: '수업',
+  practice: '연습',
+  other: '기타',
+};
 
 /** 등록된 반 기준으로 가장 가까운 다음 수업 라벨 */
 function getNextClassLabel(classes: ClassItem[]): string {
@@ -168,7 +159,7 @@ export function useStudentDetailModal({
   const allPractice = StorageService.getPracticeRecords().filter((p) => p.studentId === student.id);
   const allLessons = LessonService.getLessonRecordsByStudent(student.id);
   const allVideos = StorageService.getPerformanceVideosByStudentId(student.id);
-  const recitalEvents = RecitalService.getRecitalEvents();
+  const recitalEvents = StorageService.getRecitalEvents();
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(
     student.id,
@@ -235,13 +226,13 @@ export function useStudentDetailModal({
   const handleSaveAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const targetClass = enrolledClasses[0] || allClasses[0];
-    const className = targetClass ? targetClass.name : '일반 레슨';
+    const className = targetClass ? targetClass.name : '일반 수업';
     const classId = targetClass ? targetClass.id : DAY_ATTENDANCE_CLASS_ID;
     const status = newAttStatus as AttendanceStatus;
     const existing = StorageService.getAttendance().find(
       (r) => r.date === newAttDate && r.studentId === student.id && r.classId === classId
     );
-    const passResult = applySessionPassForAttendance({
+    const passResult = runStudentDetailAttendanceSideEffect(industryPlugin.id, {
       student,
       nextStatus: status,
       previous: existing || null,
@@ -389,7 +380,9 @@ export function useStudentDetailModal({
     });
   };
 
-  const videoTypeLabel = PERFORMANCE_VIDEO_TYPE_LABEL;
+  const videoTypeLabel =
+    getStudentDetailExtension(industryPlugin.id)?.performanceVideoTypeLabel ||
+    DEFAULT_VIDEO_TYPE_LABEL;
 
   const handleOpenPayModal = (inv: TuitionInvoice) => {
     setPayInvoiceId(inv.id);
@@ -424,18 +417,24 @@ export function useStudentDetailModal({
 
   const statusBadge = getStudentStatusBadge(student.status);
 
-  const tabConfig = filterCustomerDetailTabs(
-    getDetailTabConfig({
-      enrolledClasses: enrolledClasses.length,
-      attRate,
-      invoiceCount: allInvoices.length,
-      salesCount: studentSales.length,
-      consultationCount: allConsultations.length,
-      practiceCount: allPractice.length,
-      videoCount: allVideos.length,
-    }),
-    industry
-  );
+  const baseTabConfig = getDetailTabConfig({
+    enrolledClasses: enrolledClasses.length,
+    attRate,
+    invoiceCount: allInvoices.length,
+    salesCount: studentSales.length,
+    consultationCount: allConsultations.length,
+    practiceCount: allPractice.length,
+    videoCount: allVideos.length,
+  });
+  const tabConfig = resolveStudentDetailTabs(industryPlugin.id, baseTabConfig, {
+    enrolledClasses: enrolledClasses.length,
+    attRate,
+    invoiceCount: allInvoices.length,
+    salesCount: studentSales.length,
+    consultationCount: allConsultations.length,
+    practiceCount: allPractice.length,
+    videoCount: allVideos.length,
+  });
 
   const latestAttendance = [...allAttendance].sort((a, b) =>
     (b.date || '').localeCompare(a.date || '')

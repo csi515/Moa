@@ -5,9 +5,11 @@ import { invoiceToPaymentRow } from './entityMappers';
 import {
   expenseToCoreRow,
   incomeToCoreRow,
+  settlementToCoreRow,
   tuitionPaymentToTransactionRow,
 } from './financeEntityMappers';
 import type { FinanceExpense, IncomeEntry } from '../../../core/finance/types';
+import type { TeacherPayrollSettlement } from '../../../core/finance/teacherPayroll/settlements';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import { requireCacheList } from './persistHelpers';
 import type { CoreClient } from './corePersistSyncTable';
@@ -137,4 +139,39 @@ export async function persistIncomeEntries(
 
   if (isAborted()) return;
   writeLocal(STORAGE_KEYS.INCOME_ENTRIES, entries);
+}
+
+export async function persistTeacherPayrollSettlements(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache,
+  isAborted: PersistAbortGuard
+): Promise<void> {
+  if (isAborted()) return;
+  const settlements = requireCacheList<TeacherPayrollSettlement>(
+    cache,
+    STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS,
+    'teacher_payroll_settlements'
+  );
+  if (!settlements) return;
+
+  await syncTable(
+    client,
+    'teacher_payroll_settlements',
+    orgId,
+    settlements.map((s) => s.id),
+    async () => {
+      for (const settlement of settlements) {
+        if (isAborted()) return;
+        const { error } = await client
+          .from('teacher_payroll_settlements')
+          .upsert(settlementToCoreRow(settlement, orgId));
+        if (error) console.error('Failed to upsert teacher_payroll_settlement:', error);
+      }
+    },
+    { cachePresent: true, context: 'teacher_payroll_settlements', isAborted }
+  );
+
+  if (isAborted()) return;
+  writeLocal(STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS, settlements);
 }

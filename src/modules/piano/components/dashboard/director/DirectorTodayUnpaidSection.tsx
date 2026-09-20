@@ -12,7 +12,7 @@ interface DirectorTodayUnpaidSectionProps {
   onOpenUnpaid?: () => void;
 }
 
-/** 원장 홈 — 이번 달 미납 + 청구서 Web Share (목록은 부모 훅에서 전달) */
+/** 원장 홈 — 미납 확인 · 청구서 공유 */
 export const DirectorTodayUnpaidSection: FC<DirectorTodayUnpaidSectionProps> = ({
   invoices,
   onOpenUnpaid,
@@ -53,10 +53,12 @@ export const DirectorTodayUnpaidSection: FC<DirectorTodayUnpaidSectionProps> = (
         <div>
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-rose-600" />
-            이번 달 미납
+            미납
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {invoices.length}명 · {formatCurrency(total)}
+            {invoices.length === 0
+              ? '이번 달 미납 없음'
+              : `이번 달 ${invoices.length}명 · ${formatCurrency(total)}`}
           </p>
         </div>
         {onOpenUnpaid && (
@@ -65,13 +67,13 @@ export const DirectorTodayUnpaidSection: FC<DirectorTodayUnpaidSectionProps> = (
             onClick={onOpenUnpaid}
             className="text-xs font-bold text-indigo-600 min-h-[44px] px-1"
           >
-            전체
+            미납 전체
           </button>
         )}
       </div>
 
       {invoices.length === 0 ? (
-        <DirectorSectionEmpty className="py-6">미납 청구서가 없습니다.</DirectorSectionEmpty>
+        <DirectorSectionEmpty className="py-6">확인할 미납 청구서가 없습니다.</DirectorSectionEmpty>
       ) : (
         <ul className="space-y-2 max-h-[240px] overflow-y-auto">
           {invoices.slice(0, 8).map((inv) => (

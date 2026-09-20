@@ -44,7 +44,7 @@ const iconClass = 'w-3.5 h-3.5';
 
 /**
  * 학생 상세 탭
- * - primary: 정보 · 레슨 · 출결 · 상담 · 수납
+ * - primary: 정보 · 수업 · 출결 · 상담 · 수납
  * - more: 활동(메모) · 연습 · 연주영상 · 교재
  */
 export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem[] {
@@ -57,7 +57,7 @@ export function getDetailTabConfig(counts: DetailTabCounts): DetailTabConfigItem
     },
     {
       id: 'classes',
-      label: `레슨 (${counts.enrolledClasses})`,
+      label: `수업 (${counts.enrolledClasses})`,
       icon: React.createElement(Clock, { className: iconClass }),
       group: 'primary',
     },

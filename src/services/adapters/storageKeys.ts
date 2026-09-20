@@ -11,7 +11,7 @@ export const STORAGE_KEYS = {
   INVOICES: 'piano_app_invoices',
   TUITION_PAYMENTS: 'piano_app_tuition_payments',
   EXPENSES: 'core_expenses',
-  /** 강사 정산 확정 기록 (local only — 지출 등록 전 상태) */
+  /** 강사 정산 확정 기록 (core.teacher_payroll_settlements 동기화) */
   TEACHER_PAYROLL_SETTLEMENTS: 'core_teacher_payroll_settlements',
   INCOME_ENTRIES: 'core_income_entries',
   CONSULTATIONS: 'piano_app_consultations',
@@ -82,6 +82,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.SERVICE_OFFERINGS,
   STORAGE_KEYS.EXPENSES,
   STORAGE_KEYS.INCOME_ENTRIES,
+  STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS,
   STORAGE_KEYS.ATTENDANCE_SESSIONS,
   STORAGE_KEYS.CUSTOMER_PINS,
   STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS,
@@ -132,7 +133,6 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.CARE_MEAL_SAMPLES,
   STORAGE_KEYS.CARE_CCTV_REQUESTS,
   STORAGE_KEYS.CARE_PICKUP_LOGS,
-  STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS,
 ]);
 
 /** 전체 Supabase sync 키 (Core + Piano + Daycare) */

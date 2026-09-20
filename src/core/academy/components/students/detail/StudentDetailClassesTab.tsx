@@ -15,7 +15,7 @@ export const StudentDetailClassesTab: React.FC<StudentDetailClassesTabProps> = (
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h4 className="text-sm font-bold text-slate-900">정규 레슨 일정</h4>
+        <h4 className="text-sm font-bold text-slate-900">정규 수업 일정</h4>
         <button
           type="button"
           onClick={() => setActiveTab('makeups')}

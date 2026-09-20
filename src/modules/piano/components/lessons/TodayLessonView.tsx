@@ -26,7 +26,7 @@ function nowHm(): string {
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
-/** 오늘 레슨 타임라인 — 원탭 출결 + 레슨 노트 */
+/** 오늘 수업 타임라인 — 원탭 출결 + 수업 노트 */
 export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }> = ({
   compactHeader = false,
   embedded = false,
@@ -162,7 +162,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       return;
     }
     openConfirmDialog({
-      title: '레슨 노트',
+      title: '수업 노트',
       message: `${student.name} 학생 출석이 저장되었습니다. 이어서 노트·과제를 작성할까요?`,
       confirmText: '노트 작성',
       cancelText: '나중에',
@@ -208,7 +208,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     const { student, classItem } = target;
 
     if (form.status !== 'absent' && !form.songTitle.trim()) {
-      showToast('레슨 곡/교재를 입력해주세요.', 'warning');
+      showToast('수업 곡/교재를 입력해주세요.', 'warning');
       return;
     }
 
@@ -252,7 +252,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     showToast(
       form.status === 'absent'
         ? `${student.name} 학생 결석 처리되었습니다.`
-        : `${student.name} 학생 레슨이 저장되었습니다.`,
+        : `${student.name} 학생 수업이 저장되었습니다.`,
       'success'
     );
     setTarget(null);
@@ -266,7 +266,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
           {todayKorean}요일 · {today}
         </p>
         <h2 className={`font-extrabold text-slate-900 tracking-tight ${embedded ? 'text-sm' : 'text-lg'}`}>
-          오늘 레슨
+          오늘 수업
         </h2>
       </div>
       <p className="text-xs font-bold text-slate-500 tabular-nums">
@@ -276,8 +276,8 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   ) : (
     <PageHeader
       icon={<Piano className="w-6 h-6" />}
-      title="오늘 레슨"
-      description="출석 · 레슨 노트 · 과제 · 다음곡을 한 화면에서 저장합니다."
+      title="오늘 수업"
+      description="출석 · 수업 노트 · 과제 · 다음곡을 한 화면에서 저장합니다."
     />
   );
 
@@ -295,7 +295,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
               <div>
                 <p className="text-xs font-semibold text-slate-500">처리 현황</p>
                 <p className="text-sm font-bold text-slate-900">
-                  레슨 {classes.length}개 · 학생 {stats.total}명
+                  수업 {classes.length}개 · 학생 {stats.total}명
                 </p>
               </div>
             </div>
@@ -314,7 +314,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
               className="mt-3 w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-amber-200 bg-amber-50 text-xs font-bold text-amber-900"
             >
               <CreditCard className="w-4 h-4" />
-              오늘 레슨 학생 중 미납 {unpaidTodayStudents}명 · 수강료
+              오늘 수업 학생 중 미납 {unpaidTodayStudents}명 · 수강료
             </button>
           )}
         </div>
@@ -323,15 +323,15 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       {classes.length === 0 ? (
         <EmptyState
           icon={<Clock className="w-8 h-8" />}
-          title="오늘 예정된 레슨이 없습니다"
-          description="정규 레슨 일정에 오늘 요일이 포함되어 있는지 확인해 주세요."
+          title="오늘 예정된 수업이 없습니다"
+          description="정규 일정에 오늘 요일이 포함되어 있는지 확인해 주세요."
           action={
             <button
               type="button"
               onClick={() => setActiveTab('classes')}
               className="text-xs font-bold text-indigo-600 min-h-[44px]"
             >
-              정규 레슨 관리로 이동
+              반·일정 관리로 이동
             </button>
           }
         />

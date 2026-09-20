@@ -2,9 +2,12 @@ import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import { withNoticesTabs } from '@/core/industry/pluginTypes';
 import { registerPinCheckInSideEffect } from '@/core/attendance/pinCheckInSideEffects';
 import { syncDayAttendanceFromPinCheckIn } from './services/pinDayAttendanceSync';
+import { registerPianoStudentDetailExtension } from './studentDetailExtension';
 
 /** 피아노 PIN 체크인 → 당일 등원(DAY_ATTENDANCE) 동기화 (Core 키오스크는 Module을 import하지 않음) */
 registerPinCheckInSideEffect(syncDayAttendanceFromPinCheckIn);
+/** 학생 상세 — 교재·완곡·회차권 등 (Core는 Module을 import하지 않음) */
+registerPianoStudentDetailExtension();
 
 /** 피아노학원 플러그인 매니페스트 (풀 기능) */
 export const pianoPluginManifest: IndustryPluginManifest = {

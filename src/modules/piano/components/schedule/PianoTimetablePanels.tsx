@@ -179,12 +179,25 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
 interface StudentPoolProps {
   students: Student[];
   placedIds: Set<string>;
+  /** 등록 직후 배치 대기 학생 — 목록에서 강조 */
+  highlightStudentId?: string | null;
 }
 
 /** 미배치·전체 학생 드래그 소스 */
-export const PianoTimetableStudentPool: FC<StudentPoolProps> = ({ students, placedIds }) => {
+export const PianoTimetableStudentPool: FC<StudentPoolProps> = ({
+  students,
+  placedIds,
+  highlightStudentId,
+}) => {
   const unplaced = students.filter((s) => !placedIds.has(s.id));
   const list = unplaced.length > 0 ? unplaced : students;
+  const ordered = highlightStudentId
+    ? [...list].sort((a, b) => {
+        if (a.id === highlightStudentId) return -1;
+        if (b.id === highlightStudentId) return 1;
+        return a.name.localeCompare(b.name, 'ko');
+      })
+    : list;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-3 space-y-2">
@@ -194,25 +207,37 @@ export const PianoTimetableStudentPool: FC<StudentPoolProps> = ({ students, plac
           {unplaced.length > 0 ? `미배치 ${unplaced.length}` : `전체 ${students.length}`}
         </span>
       </div>
-      <p className="text-[10px] text-slate-400">드래그하여 시간표 칸에 놓으세요</p>
+      <p className="text-[10px] text-slate-400">
+        {highlightStudentId
+          ? '강조된 학생을 드래그하여 시간표 칸에 놓으세요'
+          : '드래그하여 시간표 칸에 놓으세요'}
+      </p>
       <div className="flex flex-wrap gap-1.5 max-h-[140px] overflow-y-auto">
-        {list.length === 0 ? (
+        {ordered.length === 0 ? (
           <p className="text-xs text-slate-400 py-2">등록된 학생이 없습니다</p>
         ) : (
-          list.map((s) => (
-            <div
-              key={s.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData(DND_STUDENT_MIME, s.id);
-                e.dataTransfer.setData('text/plain', s.id);
-                e.dataTransfer.effectAllowed = 'copyMove';
-              }}
-              className="px-2.5 py-1.5 rounded-lg bg-slate-100 text-slate-800 text-[11px] font-bold cursor-grab active:cursor-grabbing border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50"
-            >
-              {s.name}
-            </div>
-          ))
+          ordered.map((s) => {
+            const highlighted = s.id === highlightStudentId;
+            return (
+              <div
+                key={s.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData(DND_STUDENT_MIME, s.id);
+                  e.dataTransfer.setData('text/plain', s.id);
+                  e.dataTransfer.effectAllowed = 'copyMove';
+                }}
+                className={`px-2.5 py-1.5 rounded-lg text-[11px] font-bold cursor-grab active:cursor-grabbing border ${
+                  highlighted
+                    ? 'bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-200'
+                    : 'bg-slate-100 text-slate-800 border-slate-200 hover:border-indigo-300 hover:bg-indigo-50'
+                }`}
+              >
+                {s.name}
+                {highlighted ? ' · 배치 대기' : ''}
+              </div>
+            );
+          })
         )}
       </div>
     </div>

@@ -34,7 +34,7 @@ const COMMON_FINANCE: FeatureGuideSection = {
     {
       id: 'payroll',
       title: '강사 정산',
-      summary: '강사별 지급 기준(레슨·출근·근무시간·월급)으로 금액을 계산·확정하고 지출로 등록합니다.',
+      summary: '강사별 지급 기준(수업·출근·근무시간·월급)으로 금액을 계산·확정하고 지출로 등록합니다.',
       howTo: '강사 정보에 정산 방식·지급 기준을 넣은 뒤, 수납(재무) > 강사정산에서 월별 실적을 확인하고 정산 확정 → 지출 등록하세요. 출근·근무시간은 자동 집계가 없어 정산 시 직접 입력합니다.',
     },
   ],
@@ -133,7 +133,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
   buildGuideSection({
     id: 'attendance',
     title: '수업',
-    description: '출입·오늘 레슨·보강을 처리합니다.',
+    description: '출입·오늘 수업·보강을 처리합니다.',
     items: [
       {
         id: 'attendance',
@@ -142,8 +142,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       },
       {
         id: 'lessons',
-        title: '오늘 레슨',
-        summary: '출석·레슨 노트·과제를 한 화면에서 저장합니다.',
+        title: '오늘 수업',
+        summary: '출석·수업 노트·과제를 한 화면에서 저장합니다.',
         howTo: '오늘 수업 학생을 선택한 뒤 출석·노트·과제·다음곡을 한 화면에서 저장합니다. 과제는 학부모 앱에, 다음곡은 커리큘럼 진도에 반영됩니다.',
       },
       {
@@ -189,14 +189,14 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
   buildGuideSection({
     id: 'passes',
     title: '회차권',
-    description: '횟수제 레슨권을 발급·차감합니다.',
+    description: '횟수제 회차권을 발급·차감합니다.',
     items: [
       {
         id: 'passes',
         title: '회차권 관리',
         summary: '학생별 회차권을 등록하고 잔여 횟수를 확인합니다.',
         howTo:
-          '학생 수강 형태를 회차권으로 두고 「회차권」메뉴에서 발급하세요. 오늘 레슨 출석 시 1회 자동 차감됩니다.',
+          '학생 수강 형태를 회차권으로 두고 「회차권」메뉴에서 발급하세요. 수업 출석 시 1회 자동 차감됩니다.',
       },
     ],
   }),
@@ -256,7 +256,7 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       {
         id: 'parent-home',
         title: '홈·과제·진도',
-        summary: '레슨 피드백, 주간 과제, 진도·연습 일지, 학습 리포트를 봅니다.',
+        summary: '수업 피드백, 주간 과제, 진도·연습 일지, 학습 리포트를 봅니다.',
         howTo: '하단 메뉴와 홈 바로가기로 과제·진도·리포트로 이동합니다.',
       },
       {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useStorageRefresh } from '@/hooks';
@@ -52,7 +52,7 @@ export function SkinRetailView() {
     setIsProductOpen(true);
   };
 
-  const saveProduct = async (e: React.FormEvent) => {
+  const saveProduct = async (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     const nextItem: RetailProduct = {
@@ -70,7 +70,7 @@ export function SkinRetailView() {
     showToast(editing ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.', 'success');
   };
 
-  const sell = async (e: React.FormEvent) => {
+  const sell = async (e: FormEvent) => {
     e.preventDefault();
     const product = catalog.find((item) => item.id === saleProductId);
     if (!product) {

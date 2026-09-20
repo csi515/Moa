@@ -96,14 +96,14 @@ export function formatPerformanceSummary(totals: TeacherPayrollTotals): {
   detail?: string;
 } {
   const parts = [
-    totals.lessonTotal > 0 ? `레슨 ${totals.lessonTotal}` : null,
+    totals.lessonTotal > 0 ? `수업 ${totals.lessonTotal}` : null,
     totals.attendanceTotal > 0 ? `출근 ${totals.attendanceTotal}` : null,
     totals.workHoursTotal > 0 ? `근무 ${totals.workHoursTotal}h` : null,
   ].filter(Boolean) as string[];
 
   const primary =
     totals.lessonTotal > 0
-      ? `레슨 ${totals.lessonTotal}회`
+      ? `수업 ${totals.lessonTotal}회`
       : totals.attendanceTotal > 0
         ? `출근 ${totals.attendanceTotal}회`
         : totals.workHoursTotal > 0

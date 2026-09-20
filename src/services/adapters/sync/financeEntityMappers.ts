@@ -1,5 +1,6 @@
 import type { Json } from '@/lib/supabase/database.types';
 import type { FinanceExpense, IncomeEntry } from '@/core/finance/types';
+import type { TeacherPayrollSettlement } from '@/core/finance/teacherPayroll/settlements';
 import type { Expense, TuitionInvoice, TuitionPayment } from '@/types';
 
 type DbPaymentMethod =
@@ -154,6 +155,65 @@ export function coreRowToIncome(row: {
     sourceType: (row.source_type as IncomeEntry['sourceType']) || 'manual',
     sourceId: row.source_id || undefined,
   };
+}
+
+/** 강사 정산 확정 → core.teacher_payroll_settlements */
+export function settlementToCoreRow(
+  settlement: TeacherPayrollSettlement,
+  organizationId: string
+) {
+  return {
+    id: settlement.id,
+    organization_id: organizationId,
+    teacher_id: settlement.teacherId,
+    year_month: settlement.yearMonth,
+    pay_type: settlement.payType,
+    quantity: settlement.quantity,
+    rate: settlement.rate,
+    calculated_amount: settlement.calculatedAmount,
+    adjustment_amount: settlement.adjustmentAmount || 0,
+    adjustment_reason: settlement.adjustmentReason || null,
+    final_amount: settlement.finalAmount,
+    confirmed_at: settlement.confirmedAt,
+    expense_id: isUuid(settlement.expenseId) ? settlement.expenseId! : null,
+  };
+}
+
+export function coreRowToSettlement(row: {
+  id: string;
+  teacher_id: string;
+  year_month: string;
+  pay_type: string;
+  quantity: number;
+  rate: number;
+  calculated_amount: number;
+  adjustment_amount: number;
+  adjustment_reason: string | null;
+  final_amount: number;
+  confirmed_at: string;
+  expense_id: string | null;
+}): TeacherPayrollSettlement {
+  return {
+    id: row.id,
+    teacherId: row.teacher_id,
+    yearMonth: row.year_month,
+    payType: row.pay_type as TeacherPayrollSettlement['payType'],
+    quantity: Number(row.quantity),
+    rate: Number(row.rate),
+    calculatedAmount: Number(row.calculated_amount),
+    adjustmentAmount: Number(row.adjustment_amount) || 0,
+    adjustmentReason: row.adjustment_reason || undefined,
+    finalAmount: Number(row.final_amount),
+    confirmedAt: row.confirmed_at,
+    expenseId: row.expense_id || undefined,
+  };
+}
+
+function isUuid(value?: string | null): boolean {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  );
 }
 
 /** 수납 원장 → core.payment_transactions */

@@ -7,7 +7,7 @@ import {
   consumeOpenConsultationInquiries,
   consumeOpenConsultationReservations,
 } from '@/core/customer/studentJoinInbox';
-import { useStaffGrants, useStaffScope, useStorageRefresh } from '@/hooks';
+import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import type { CustomerJoinRequest, ReservationDetail } from '@/types';
@@ -29,8 +29,8 @@ export const WORK_SEGMENTS: ConsultationSegment[] = [
   'home',
 ];
 
-/** 설정·도구 성격 — 메인 탭과 분리 (가능시간은 설정 부가로 이동) */
-export const TOOL_SEGMENTS: ConsultationSegment[] = ['joins'];
+/** 설정·도구 성격 — 메인 탭과 분리. 가입은 학생「등록」, 가능시간은 설정→부가 */
+export const TOOL_SEGMENTS: ConsultationSegment[] = [];
 
 export function isConsultationWorkSegment(segment: ConsultationSegment): boolean {
   return WORK_SEGMENTS.includes(segment);
@@ -70,13 +70,10 @@ export function consultationStatusLabel(status: string): { label: string; classN
 }
 
 export function usePianoConsultationHub() {
-  const { showToast } = useApp();
+  const { showToast, setActiveTab } = useApp();
   const { currentOrganization } = useOrganization();
   const refreshKey = useStorageRefresh();
   const { isScoped, staffId, scopeStudents } = useStaffScope();
-  const { allow } = useStaffGrants();
-  const canJoin = allow('joinApproval');
-  const canAvailability = allow('consultationAvailability');
 
   /** 스토리지 파생 */
   const assignedStudents = useMemo(
@@ -114,11 +111,17 @@ export function usePianoConsultationHub() {
     [isScoped, staffId, assignedStudents]
   );
 
-  /** 권한 없는·이전 가능시간 세그먼트는 업무로 */
+  /** 레거시 세그먼트 — 대표 진입점으로 넘김 (타입·딥링크 호환) */
   useEffect(() => {
-    if (segment === 'joins' && !canJoin) setSegment('inquiries');
-    if (segment === 'availability') setSegment('inquiries');
-  }, [segment, canJoin]);
+    if (segment === 'joins') {
+      setActiveTab('enrollment-requests');
+      setSegment('inquiries');
+      return;
+    }
+    if (segment === 'availability') {
+      setSegment('inquiries');
+    }
+  }, [segment, setActiveTab]);
 
   useEffect(() => {
     if (!isScoped || !staffId || !currentOrganization) {
@@ -193,8 +196,6 @@ export function usePianoConsultationHub() {
   return {
     currentOrganization,
     isScoped,
-    canJoin,
-    canAvailability,
     segment,
     setSegment,
     options: CONSULTATION_OPTIONS,

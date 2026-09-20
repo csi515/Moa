@@ -60,7 +60,7 @@ export function consumeOpenPendingPractice(): boolean {
   return true;
 }
 
-/** 원장 홈에서 오늘 레슨의 미체크 원생만 먼저 보기 */
+/** 원장 홈에서 오늘 출결 미체크 원생만 먼저 보기 */
 export function requestOpenUncheckedLessons(): void {
   sessionStorage.setItem(OPEN_UNCHECKED_LESSONS_KEY, '1');
 }
@@ -69,4 +69,24 @@ export function consumeOpenUncheckedLessons(): boolean {
   if (sessionStorage.getItem(OPEN_UNCHECKED_LESSONS_KEY) !== '1') return false;
   sessionStorage.removeItem(OPEN_UNCHECKED_LESSONS_KEY);
   return true;
+}
+
+const PLACE_STUDENT_ON_TIMETABLE_KEY = 'moa_place_student_on_timetable';
+
+/** 신규 등록 후 시간표에서 해당 학생 배치 시작 (반 자동 배정 없음) */
+export function requestPlaceStudentOnTimetable(studentId: string): void {
+  if (!studentId) return;
+  sessionStorage.setItem(PLACE_STUDENT_ON_TIMETABLE_KEY, studentId);
+}
+
+/** 아직 소비하지 않고 조회 (학생 목록 로드 대기용) */
+export function peekPlaceStudentOnTimetable(): string | null {
+  return sessionStorage.getItem(PLACE_STUDENT_ON_TIMETABLE_KEY);
+}
+
+export function consumePlaceStudentOnTimetable(): string | null {
+  const id = sessionStorage.getItem(PLACE_STUDENT_ON_TIMETABLE_KEY);
+  if (!id) return null;
+  sessionStorage.removeItem(PLACE_STUDENT_ON_TIMETABLE_KEY);
+  return id;
 }

@@ -94,7 +94,7 @@ export const DirectorTodayStampSection: FC<DirectorTodayStampSectionProps> = ({ 
       ) : pending.length === 0 ? (
         <div className="text-center py-6 space-y-1">
           <p className="text-xs text-slate-400">{SONG_PROGRESS_COPY.pendingEmpty}</p>
-          <p className="text-[11px] text-slate-400">레슨 중 수여는 학생 상세 · 완곡 스탬프에서</p>
+          <p className="text-[11px] text-slate-400">수업 중 수여는 학생 상세 · 완곡 스탬프에서</p>
         </div>
       ) : (
         <ul className="space-y-2 max-h-[280px] overflow-y-auto">

@@ -28,6 +28,7 @@ import { normalizeIndustryType } from '../../../core/industry/types';
 import {
   coreRowToExpense,
   coreRowToIncome,
+  coreRowToSettlement,
   transactionRowToTuitionPayment,
 } from './financeEntityMappers';
 import {
@@ -58,6 +59,7 @@ export async function hydrateCoreEntities(
     paymentTxResult,
     expensesResult,
     incomeResult,
+    payrollSettlementsResult,
     consultationsResult,
     notificationsResult,
     attendanceSessionsResult,
@@ -73,6 +75,7 @@ export async function hydrateCoreEntities(
     client.from('payment_transactions').select('*').eq('organization_id', organizationId),
     client.from('expenses').select('*').eq('organization_id', organizationId),
     client.from('income_entries').select('*').eq('organization_id', organizationId),
+    client.from('teacher_payroll_settlements').select('*').eq('organization_id', organizationId),
     client.from('consultations').select('*').eq('organization_id', organizationId),
     client.from('notifications').select('*').eq('organization_id', organizationId),
     client.from('attendance_sessions').select('*').eq('organization_id', organizationId),
@@ -91,6 +94,7 @@ export async function hydrateCoreEntities(
       paymentTx: paymentTxResult.error,
       expenses: expensesResult.error,
       income: incomeResult.error,
+      payrollSettlements: payrollSettlementsResult.error,
       consultations: consultationsResult.error,
       notifications: notificationsResult.error,
       attendanceSessions: attendanceSessionsResult.error,
@@ -183,6 +187,10 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.TUITION_PAYMENTS, tuitionPayments],
     [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(coreRowToExpense)],
     [STORAGE_KEYS.INCOME_ENTRIES, (incomeResult.data || []).map(coreRowToIncome)],
+    [
+      STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS,
+      (payrollSettlementsResult.data || []).map(coreRowToSettlement),
+    ],
     [STORAGE_KEYS.CONSULTATIONS, consultations],
     [STORAGE_KEYS.NOTIFICATIONS, notifications],
     [STORAGE_KEYS.ATTENDANCE_SESSIONS, attendanceSessions],

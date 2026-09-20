@@ -202,7 +202,7 @@ export const ClassManagementView: React.FC = () => {
       <PageHeader
         icon={<GraduationCap className="w-6 h-6" />}
         title={labels.service.management}
-        description={`등록된 ${serviceLabel} ${classes.length}개 · 요일·시간에 맞춰 오늘 레슨이 자동 표시됩니다`}
+        description={`등록된 ${serviceLabel} ${classes.length}개 · 요일·시간에 맞춰 오늘 일정에 자동 표시됩니다`}
         actions={
           <button
             onClick={handleOpenCreate}
@@ -220,7 +220,7 @@ export const ClassManagementView: React.FC = () => {
           <GraduationCap className="w-12 h-12 text-slate-300 mx-auto mb-3" />
           <p className="font-bold text-slate-700 mb-2">등록된 {serviceLabel}이(가) 없습니다</p>
           <p className="text-sm text-slate-500 mb-4">
-            예: 월·수 16:00 — 학생을 배정하면 해당 요일에 오늘 레슨이 나타납니다
+            예: 월·수 16:00 — 학생을 배정하면 해당 요일에 오늘 일정에 나타납니다
           </p>
           <button
             onClick={handleOpenCreate}

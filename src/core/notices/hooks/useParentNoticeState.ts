@@ -43,8 +43,10 @@ export function useParentNoticeState() {
   const notices = useMemo(() => {
     const all = filterParentNotices(StorageService.getNotifications());
     if (!isStaff) return all;
-    const studentIds = getMyStudentIds(StorageService.getStudents());
-    const classIds = new Set(classes.map((item) => item.id));
+    const studentIds = new Set<string>(
+      Array.from(getMyStudentIds(StorageService.getStudents()) as Set<string>)
+    );
+    const classIds = new Set<string>(classes.map((item) => item.id));
     return all.filter((item) => noticeTargetsStaff(item, studentIds, classIds));
   }, [isStaff, getMyStudentIds, classes, refreshKey]);
 

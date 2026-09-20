@@ -17,6 +17,7 @@ export async function syncTable(
     | 'payment_transactions'
     | 'expenses'
     | 'income_entries'
+    | 'teacher_payroll_settlements'
     | 'consultations'
     | 'notifications'
     | 'attendance_sessions',

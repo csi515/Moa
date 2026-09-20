@@ -145,7 +145,7 @@ export const TodayLessonClassList: FC<TodayLessonClassListProps> = ({
                             <p className="text-xs text-slate-500 truncate mt-0.5">
                               {done
                                 ? STATUS_LABEL[att!.status]
-                                : lesson?.songTitle || '미처리 · 탭하여 레슨'}
+                                : lesson?.songTitle || '미처리 · 탭하여 기록'}
                             </p>
                           </div>
                           {done ? (

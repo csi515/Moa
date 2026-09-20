@@ -47,7 +47,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
       >
         <span className="flex items-center gap-1.5">
           <BookOpen className="w-3.5 h-3.5" />
-          {isPiano ? `레슨 · 수강료` : '수업·수강료 (선택)'}
+          {isPiano ? `수업 · 수강료` : '수업·수강료 (선택)'}
         </span>
         {showAdvanced ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
       </button>
@@ -55,7 +55,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
         <div className="mt-3 space-y-4 pt-3 border-t border-slate-100">
           <div>
             <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">
-              레슨 정보
+              수업 정보
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
@@ -145,7 +145,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
                   {(
                     [
                       { value: 'monthly' as const, label: '일반', hint: '매월 청구' },
-                      { value: 'session_pass' as const, label: '회차권', hint: '레슨 시 차감' },
+                      { value: 'session_pass' as const, label: '회차권', hint: '출석 시 차감' },
                     ] as const
                   ).map((opt) => {
                     const active = formData.billingMode === opt.value;
@@ -178,7 +178,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
                 <>
                   <div>
                     <label className="block text-[11px] font-semibold text-slate-500 mb-1">
-                      정규 레슨 수강료
+                      정규 수업 수강료
                     </label>
                     <CurrencyInput
                       value={formData.tuitionFee}
@@ -205,7 +205,7 @@ export const StudentAdvancedSection: React.FC<Props> = ({
               ) : (
                 <p className="sm:col-span-2 text-xs text-slate-500 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
                   회차권 {labels.customer.singular}은 월 청구서가 자동 생성되지 않습니다. 설정 &gt;
-                  회차권 관리에서 이용권을 발급하세요. 출석(레슨) 시 1회 차감됩니다.
+                  회차권 관리에서 이용권을 발급하세요. 출석 시 1회 차감됩니다.
                 </p>
               )}
             </div>

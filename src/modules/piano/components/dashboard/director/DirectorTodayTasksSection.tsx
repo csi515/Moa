@@ -39,12 +39,14 @@ export const DirectorTodayTasksSection: FC<DirectorTodayTasksSectionProps> = ({
           처리할 업무
         </h3>
         <p className="text-[11px] text-slate-500 mt-0.5">
-          {total > 0 ? `${total}건 대기 · 누르면 처리 화면으로` : '대기 중인 업무 없음'}
+          {total > 0
+            ? `${total}건 대기 중 · 항목을 누르면 처리 화면으로 이동합니다`
+            : '지금 대기 중인 요청이 없습니다'}
         </p>
       </div>
 
       {actionable.length === 0 ? (
-        <DirectorSectionEmpty className="py-5">지금은 처리할 요청이 없습니다.</DirectorSectionEmpty>
+        <DirectorSectionEmpty className="py-5">처리할 업무가 없습니다.</DirectorSectionEmpty>
       ) : (
         <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {actionable.map((item) => (

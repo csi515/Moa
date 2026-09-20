@@ -101,9 +101,11 @@ export const PianoLessonTimetableView: FC = () => {
           왔는지는 <strong className="font-bold">출결</strong>에서 따로 기록합니다. 그리드는{' '}
           <strong className="font-bold">30분 단위</strong>(15:00, 15:30…)이며, 여러 요일에 걸친 반은
           표시만 되고 편집은 「반 관리」에서 하세요.
-          {useDragGrid
-            ? ' PC에서는 학생을 드래그해 시간대에 놓거나 칸 안에서 이동하세요.'
-            : ' 「학생 추가」또는 학생을 탭한 뒤 시간대를 선택하세요.'}
+          {pendingStudentId
+            ? ' 선택한 학생을 시간대에 놓으면 그 시각의 반에 배정됩니다(새 시각이면 확인 후 반이 만들어질 수 있습니다).'
+            : useDragGrid
+              ? ' PC에서는 학생을 드래그해 시간대에 놓거나 칸 안에서 이동하세요.'
+              : ' 「학생 추가」또는 학생을 탭한 뒤 시간대를 선택하세요.'}
         </p>
       </div>
 
@@ -158,7 +160,13 @@ export const PianoLessonTimetableView: FC = () => {
         </span>
       </div>
 
-      {useDragGrid && <PianoTimetableStudentPool students={students} placedIds={placedIds} />}
+      {useDragGrid && (
+        <PianoTimetableStudentPool
+          students={students}
+          placedIds={placedIds}
+          highlightStudentId={pendingStudentId}
+        />
+      )}
 
       {layoutMode === 'byTeacher' ? (
         <div className="space-y-5">

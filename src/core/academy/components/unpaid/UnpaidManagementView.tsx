@@ -92,15 +92,35 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
   return (
     <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {embedded ? (
-        <div className="flex justify-end">
-          <button
-            onClick={handleExportCsv}
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
-          >
-            <Download className="w-4 h-4" />
-            CSV 내보내기
-          </button>
-        </div>
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <SummaryMetricCard label={`미납 ${customerLabel}`} value={`${stats.studentCount}명`} />
+            <SummaryMetricCard
+              label="총 미납액"
+              value={formatCurrency(stats.grandTotal)}
+              variant="rose"
+            />
+            <SummaryMetricCard
+              label="수강료 미납"
+              value={formatCurrency(stats.tuitionTotal)}
+              variant="indigo"
+            />
+            <SummaryMetricCard
+              label="교재비 미납"
+              value={formatCurrency(stats.textbookTotal)}
+              variant="amber"
+            />
+          </div>
+          <div className="flex justify-end">
+            <button
+              onClick={handleExportCsv}
+              className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+            >
+              <Download className="w-4 h-4" />
+              CSV 내보내기
+            </button>
+          </div>
+        </>
       ) : (
         <PageHeader
           icon={<AlertCircle className="w-6 h-6" />}
@@ -110,7 +130,7 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
           actions={
             <button
               onClick={handleExportCsv}
-              className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
+              className="px-4 py-2.5 min-h-[44px] bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-bold rounded-xl flex items-center gap-2 self-start"
             >
               <Download className="w-4 h-4" />
               CSV 내보내기
@@ -119,12 +139,14 @@ export const UnpaidManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
         />
       )}
 
+      {!embedded && (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <SummaryMetricCard label={`미납 ${customerLabel}`} value={`${stats.studentCount}명`} />
         <SummaryMetricCard label="총 미납액" value={formatCurrency(stats.grandTotal)} variant="rose" />
         <SummaryMetricCard label="수강료 미납" value={formatCurrency(stats.tuitionTotal)} variant="indigo" />
         <SummaryMetricCard label="교재비 미납" value={formatCurrency(stats.textbookTotal)} variant="amber" />
       </div>
+      )}
 
       <FilterBar>
         <FilterTabs tabs={filterTabs} active={filterMode} onChange={setFilterMode} />

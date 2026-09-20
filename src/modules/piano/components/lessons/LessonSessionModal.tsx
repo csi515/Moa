@@ -86,7 +86,7 @@ export const LessonSessionModal: FC<LessonSessionModalProps> = ({
   const suggestionChips = songSuggestions.slice(0, 6);
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`${student.name} · 오늘 레슨`} maxWidth="lg">
+    <Modal isOpen={isOpen} onClose={onClose} title={`${student.name} · 오늘 수업`} maxWidth="lg">
       <form
         onSubmit={(e: FormEvent) => {
           e.preventDefault();
@@ -139,9 +139,9 @@ export const LessonSessionModal: FC<LessonSessionModalProps> = ({
           <>
             <section className="space-y-3">
               <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wide">
-                2 · 레슨 노트
+                2 · 수업 노트
               </p>
-              <FormField label="레슨 곡 / 교재" required>
+              <FormField label="수업 곡 / 교재" required>
                 <input
                   className={FORM_CONTROL_CLASS}
                   list={datalistId}
@@ -230,7 +230,7 @@ export const LessonSessionModal: FC<LessonSessionModalProps> = ({
                   list={datalistId}
                   value={form.nextPlan}
                   onChange={(e) => setForm((prev) => ({ ...prev, nextPlan: e.target.value }))}
-                  placeholder="다음 레슨에서 할 곡"
+                  placeholder="다음 수업에서 할 곡"
                 />
               </FormField>
               {suggestionChips.length > 0 && (

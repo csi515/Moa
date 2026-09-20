@@ -21,7 +21,7 @@ export function syncLessonHomeworkToWeeklyAssignment(params: {
   const existing = StorageService.getWeeklyAssignments(params.studentId).find(
     (a) => a.weekStart === weekStart
   );
-  const songTitle = params.songTitle.trim() || '레슨 과제';
+  const songTitle = params.songTitle.trim() || '수업 과제';
   const items = [...(existing?.items || [])];
   const sameSongIdx = items.findIndex(
     (it) => it.songTitle.trim().toLowerCase() === songTitle.toLowerCase()

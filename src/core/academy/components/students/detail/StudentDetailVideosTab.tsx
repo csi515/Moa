@@ -59,7 +59,7 @@ export const StudentDetailVideosTab: React.FC<StudentDetailVideosTabProps> = ({
     <div className="flex items-center justify-between">
       <div>
         <h4 className="text-sm font-bold text-slate-900">연주 영상 아카이브</h4>
-        <p className="text-xs text-slate-500">YouTube 링크로 연주회·콩쿠르·레슨 영상을 관리합니다</p>
+        <p className="text-xs text-slate-500">YouTube 링크로 연주회·콩쿠르·수업 영상을 관리합니다</p>
       </div>
       <button
         onClick={() => setIsAddVideoOpen(true)}
@@ -128,7 +128,7 @@ export const StudentDetailVideosTab: React.FC<StudentDetailVideosTabProps> = ({
             >
               <option value="recital">연주회</option>
               <option value="competition">콩쿠르</option>
-              <option value="lesson">레슨</option>
+              <option value="lesson">수업</option>
               <option value="practice">연습</option>
               <option value="other">기타</option>
             </select>

@@ -1,5 +1,9 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import { withNoticesTabs } from '@/core/industry/pluginTypes';
+import { registerSkinStudentDetailExtension } from './studentDetailExtension';
+
+/** 학생 상세 — 시술 기록 탭 (Core는 Module을 import하지 않음) */
+registerSkinStudentDetailExtension();
 
 /** 피부관리샵 플러그인 매니페스트 (예약·시술 중심) */
 export const skinPluginManifest: IndustryPluginManifest = {

@@ -134,7 +134,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
 
   return (
     <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {!embedded && (
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -146,9 +146,18 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
             </p>
           </div>
         )}
+        {embedded && (
+          <div className="flex-1 min-w-0 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2.5">
+            <p className="text-[10px] font-bold text-emerald-700">{selectedMonth} 수입 합계</p>
+            <p className="text-base font-black text-emerald-700 tabular-nums mt-0.5">
+              {formatCurrency(totalAmount)}
+            </p>
+            <p className="text-[10px] text-emerald-600/80 mt-0.5">등록 {filteredEntries.length}건</p>
+          </div>
+        )}
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto sm:ml-auto"
+          className="px-4 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 self-start sm:self-auto sm:ml-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           신규 수입 등록

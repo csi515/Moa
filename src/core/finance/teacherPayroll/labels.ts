@@ -8,7 +8,7 @@ export function payTypeUsesUnitRate(payType: TeacherPayType): boolean {
 export function payTypeLabel(payType: TeacherPayType): string {
   switch (payType) {
     case 'hourly':
-      return '레슨 실적';
+      return '수업 실적';
     case 'attendance':
       return '출근 횟수';
     case 'work_hours':

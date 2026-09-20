@@ -88,7 +88,7 @@ export function ParentPortalTabs({
         <ParentProgressView
           student={student}
           organizationId={organizationId}
-          industryType={industryType}
+          industryType={industry}
           readOnly={readOnly}
           showToast={showToast}
           onRefresh={onRefresh}
@@ -132,7 +132,6 @@ export function ParentPortalTabs({
     case 'pickups':
       return (
         <ParentPickupListView
-          key={student.id}
           student={student}
           readOnly={readOnly}
           showToast={showToast}

@@ -29,7 +29,7 @@ export function getClassLabel(
   const names = student.classIds
     .map((id) => classNameById.get(id))
     .filter(Boolean) as string[];
-  if (names.length === 0) return `${student.classIds.length}개 레슨`;
+  if (names.length === 0) return `${student.classIds.length}개 반`;
   if (names.length === 1) return names[0];
   return `${names[0]} 외 ${names.length - 1}`;
 }

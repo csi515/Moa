@@ -21,6 +21,7 @@
     "test:auth-hijack-audit": "tsx scripts/auth-providers-hijack-audit.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
+    "test:timetable-placement": "node --experimental-test-module-mocks --import tsx src/modules/piano/components/schedule/pianoTimetablePlacement.test.ts",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"
   },
   "dependencies": {

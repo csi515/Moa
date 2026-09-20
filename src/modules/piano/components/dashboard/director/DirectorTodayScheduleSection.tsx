@@ -32,14 +32,16 @@ export const DirectorTodayScheduleSection: FC<DirectorTodayScheduleSectionProps>
             <Clock className="w-4 h-4 text-indigo-600 shrink-0" />
             오늘 일정
           </h3>
-          <p className="text-[11px] text-slate-500 mt-0.5">{rows.length}개 수업</p>
+          <p className="text-[11px] text-slate-500 mt-0.5">
+            {rows.length > 0 ? `오늘 정규 수업 ${rows.length}개` : '오늘 예정 수업 없음'}
+          </p>
         </div>
         <button
           type="button"
           onClick={onOpenSchedule}
           className="text-xs font-bold text-indigo-600 min-h-[44px] px-1 shrink-0"
         >
-          시간표
+          시간표 보기
         </button>
       </div>
 

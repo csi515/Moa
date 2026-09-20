@@ -18,7 +18,7 @@ import {
 } from '../attendance/pianoAttendanceHelpers';
 import { useStaffDashboardData } from './useStaffDashboardData';
 
-/** 강사 홈 — 오늘 일정·출결 중심 (레슨 업무면 제거) */
+/** 강사 홈 — 오늘 일정·출결 중심 (구 수업 업무면 제거) */
 export const StaffDashboardView: React.FC = () => {
   const { setActiveTab, setSelectedStudentId, currentUser } = useApp();
   const {

@@ -40,7 +40,7 @@ export const StudentDetailPracticeTab: React.FC<StudentDetailPracticeTabProps> =
       <div className="flex items-center justify-between mb-3">
         <div>
           <h4 className="text-sm font-bold text-slate-900">연습 · 진도</h4>
-          <p className="text-xs text-slate-500">누적 연습시간: {totalPracticeMinutes}분 · 레슨 노트는 아래에서 확인</p>
+          <p className="text-xs text-slate-500">누적 연습시간: {totalPracticeMinutes}분 · 수업 노트는 아래에서 확인</p>
         </div>
         <button
           onClick={() => setIsAddPrOpen(true)}
@@ -132,15 +132,15 @@ export const StudentDetailPracticeTab: React.FC<StudentDetailPracticeTabProps> =
     </div>
 
     <div className="pt-4 border-t border-slate-200">
-      <h4 className="text-sm font-bold text-slate-900 mb-3">선생님 레슨 기록</h4>
+      <h4 className="text-sm font-bold text-slate-900 mb-3">선생님 수업 기록</h4>
       {allLessons.length === 0 ? (
-        <p className="text-xs text-slate-500 p-4 text-center bg-slate-50 rounded-2xl">레슨 일지가 없습니다.</p>
+        <p className="text-xs text-slate-500 p-4 text-center bg-slate-50 rounded-2xl">수업 일지가 없습니다.</p>
       ) : (
         <div className="space-y-3">
           {allLessons.map((ls) => (
             <div key={ls.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-900">{ls.date} 레슨</span>
+                <span className="font-bold text-slate-900">{ls.date} 수업</span>
                 <span className="text-slate-500">{ls.teacherName}</span>
               </div>
               <p className="font-bold text-indigo-700">진도: {ls.songTitle} ({ls.progress})</p>

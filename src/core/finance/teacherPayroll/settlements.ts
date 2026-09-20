@@ -1,8 +1,8 @@
-import { getItem, setItem } from '@/services/storage/helpers';
+import { getItem, setItem, generateEntityId } from '@/services/storage/helpers';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import type { TeacherPayType } from '@/types';
 
-/** 강사 월별 정산 확정 기록 (localStorage only — Supabase 미동기화, 기기 간 미공유) */
+/** 강사 월별 정산 확정 기록 (SoT: core.teacher_payroll_settlements) */
 export interface TeacherPayrollSettlement {
   id: string;
   teacherId: string;
@@ -19,8 +19,17 @@ export interface TeacherPayrollSettlement {
   expenseId?: string;
 }
 
-function generateSettlementId(): string {
-  return `tps_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value?: string): boolean {
+  return !!value && UUID_RE.test(value);
+}
+
+function resolveSettlementId(existingId?: string, inputId?: string): string {
+  if (inputId && isUuid(inputId)) return inputId;
+  if (existingId && isUuid(existingId)) return existingId;
+  return generateEntityId('tps');
 }
 
 export function getTeacherPayrollSettlements(): TeacherPayrollSettlement[] {
@@ -40,8 +49,9 @@ export function saveTeacherPayrollSettlement(
       (s.teacherId === input.teacherId && s.yearMonth === input.yearMonth)
   );
 
+  const existing = existingIdx >= 0 ? list[existingIdx] : undefined;
   const saved: TeacherPayrollSettlement = {
-    id: input.id || (existingIdx >= 0 ? list[existingIdx].id : generateSettlementId()),
+    id: resolveSettlementId(existing?.id, input.id),
     teacherId: input.teacherId,
     yearMonth: input.yearMonth,
     payType: input.payType,
@@ -51,8 +61,10 @@ export function saveTeacherPayrollSettlement(
     adjustmentAmount: input.adjustmentAmount || 0,
     adjustmentReason: input.adjustmentReason,
     finalAmount: Math.max(0, Math.round(input.finalAmount)),
-    confirmedAt: input.confirmedAt || new Date().toISOString(),
-    expenseId: input.expenseId ?? (existingIdx >= 0 ? list[existingIdx].expenseId : undefined),
+    confirmedAt: input.confirmedAt || existing?.confirmedAt || new Date().toISOString(),
+    expenseId:
+      input.expenseId ??
+      (existing?.expenseId && isUuid(existing.expenseId) ? existing.expenseId : undefined),
   };
 
   if (existingIdx >= 0) {
@@ -72,7 +84,11 @@ export function linkPayrollSettlementExpense(
   const list = getTeacherPayrollSettlements();
   const idx = list.findIndex((s) => s.teacherId === teacherId && s.yearMonth === yearMonth);
   if (idx < 0) return null;
-  list[idx] = { ...list[idx], expenseId };
+  list[idx] = {
+    ...list[idx],
+    id: resolveSettlementId(list[idx].id),
+    expenseId: isUuid(expenseId) ? expenseId : list[idx].expenseId,
+  };
   setItem(STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS, list);
   return list[idx];
 }

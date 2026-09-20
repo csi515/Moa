@@ -17,7 +17,7 @@ export function registerPinCheckInSideEffect(effect: PinCheckInSideEffect): () =
 export function runPinCheckInSideEffects(customerId: string): { warning?: string } {
   for (const effect of sideEffects) {
     const result = effect(customerId);
-    if (result?.warning) return { warning: result.warning };
+    if (result && result.warning) return { warning: result.warning };
   }
   return {};
 }

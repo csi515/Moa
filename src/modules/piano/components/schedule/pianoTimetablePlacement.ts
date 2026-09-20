@@ -144,7 +144,7 @@ function defaultRoom(): string {
   return room || '연습실';
 }
 
-/** 슬롯용 ClassItem 확보 (없으면 생성). 학생 데이터는 복제하지 않음. */
+/** 슬롯용 ClassItem 확보. createIfMissing=false이면 없으면 null (자동 생성 안 함). */
 export function ensureEditableSlotClass(params: {
   classes: ClassItem[];
   day: DayOfWeek;
@@ -152,7 +152,9 @@ export function ensureEditableSlotClass(params: {
   teachers: Teacher[];
   minCapacity?: number;
   preferredTeacherId?: string;
-}): ClassItem {
+  /** false면 기존 반만 반환·용량 조정. 없으면 null */
+  createIfMissing?: boolean;
+}): ClassItem | null {
   const existing = findEditableSlotClass(
     params.classes,
     params.day,
@@ -168,6 +170,8 @@ export function ensureEditableSlotClass(params: {
       capacity: minCapacity,
     });
   }
+
+  if (!params.createIfMissing) return null;
 
   const teacher = resolveTeacher(params.teachers, params.preferredTeacherId);
   return StorageService.saveClass({
@@ -190,9 +194,15 @@ function saveStudentClassIds(student: Student, classIds: string[]): Student {
   });
 }
 
+export type AssignStudentToSlotResult =
+  | { ok: true; classItem: ClassItem; student: Student; createdClass: boolean }
+  | { ok: false; message: string; needsNewClass?: false }
+  | { ok: false; needsNewClass: true; message: string };
+
 /**
  * 같은 요일의 다른 편집 가능 슬롯에서 학생을 제거한 뒤 대상 슬롯에 배치.
  * 복수 요일 반(class) 소속은 유지한다. 출결(DAY_ATTENDANCE)은 변경하지 않음.
+ * createClassIfMissing=false(기본)이면 반이 없을 때 생성하지 않고 needsNewClass를 반환한다.
  */
 export function assignStudentToSlot(params: {
   student: Student;
@@ -201,8 +211,11 @@ export function assignStudentToSlot(params: {
   classes: ClassItem[];
   teachers: Teacher[];
   preferredTeacherId?: string;
-}): { ok: true; classItem: ClassItem; student: Student } | { ok: false; message: string } {
+  /** true일 때만 슬롯 반이 없을 때 ClassItem을 생성한다 */
+  createClassIfMissing?: boolean;
+}): AssignStudentToSlotResult {
   const { student, day, startTime, teachers, preferredTeacherId } = params;
+  const createClassIfMissing = params.createClassIfMissing === true;
   const classes = [...params.classes];
 
   if (student.status !== 'active') {
@@ -232,6 +245,15 @@ export function assignStudentToSlot(params: {
     startTime
   ).length;
 
+  const hadExisting = !!findEditableSlotClass(classes, day, startTime, preferredTeacherId);
+  if (!hadExisting && !createClassIfMissing) {
+    return {
+      ok: false,
+      needsNewClass: true,
+      message: '이 시간대에 반이 없습니다. 새 반을 만들어 배치할 수 있습니다.',
+    };
+  }
+
   const slotClass = ensureEditableSlotClass({
     classes,
     day,
@@ -239,14 +261,23 @@ export function assignStudentToSlot(params: {
     teachers,
     minCapacity: currentInSlot + 1,
     preferredTeacherId,
+    createIfMissing: createClassIfMissing,
   });
+
+  if (!slotClass) {
+    return {
+      ok: false,
+      needsNewClass: true,
+      message: '이 시간대에 반이 없습니다. 새 반을 만들어 배치할 수 있습니다.',
+    };
+  }
 
   if (!nextIds.includes(slotClass.id)) {
     nextIds = [...nextIds, slotClass.id];
   }
 
   const saved = saveStudentClassIds(student, nextIds);
-  return { ok: true, classItem: slotClass, student: saved };
+  return { ok: true, classItem: slotClass, student: saved, createdClass: !hadExisting };
 }
 
 export function removeStudentFromSlot(params: {
@@ -267,6 +298,11 @@ export function removeStudentFromSlot(params: {
   return { ok: true, student: saved };
 }
 
+export type MoveStudentToSlotResult =
+  | { ok: true; student: Student; createdClass: boolean }
+  | { ok: false; message: string; needsNewClass?: false }
+  | { ok: false; needsNewClass: true; message: string };
+
 export function moveStudentToSlot(params: {
   student: Student;
   from?: { classItem: ClassItem; day: DayOfWeek; startTime: string };
@@ -275,7 +311,27 @@ export function moveStudentToSlot(params: {
   classes: ClassItem[];
   teachers: Teacher[];
   preferredTeacherId?: string;
-}): { ok: true; student: Student } | { ok: false; message: string } {
+  createClassIfMissing?: boolean;
+}): MoveStudentToSlotResult {
+  const createClassIfMissing = params.createClassIfMissing === true;
+
+  // 대상 슬롯에 반이 없으면, 원 슬롯에서 제거하기 전에 확인을 받도록 needsNewClass 반환
+  if (
+    !createClassIfMissing &&
+    !findEditableSlotClass(
+      params.classes,
+      params.toDay,
+      params.toStartTime,
+      params.preferredTeacherId
+    )
+  ) {
+    return {
+      ok: false,
+      needsNewClass: true,
+      message: '이 시간대에 반이 없습니다. 새 반을 만들어 배치할 수 있습니다.',
+    };
+  }
+
   let student = params.student;
   let classes = params.classes;
 
@@ -286,7 +342,9 @@ export function moveStudentToSlot(params: {
       day: params.from.day,
       startTime: params.from.startTime,
     });
-    if (!removed.ok) return removed;
+    if (removed.ok === false) {
+      return { ok: false, message: removed.message };
+    }
     student = removed.student;
     classes = StorageService.getClasses();
   }
@@ -298,7 +356,8 @@ export function moveStudentToSlot(params: {
     classes,
     teachers: params.teachers,
     preferredTeacherId: params.preferredTeacherId,
+    createClassIfMissing,
   });
   if (!assigned.ok) return assigned;
-  return { ok: true, student: assigned.student };
+  return { ok: true, student: assigned.student, createdClass: assigned.createdClass };
 }

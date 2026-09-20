@@ -141,7 +141,7 @@ export function useTeacherPayroll() {
       return;
     }
     if (row.payType === 'hourly' && quantity <= 0) {
-      showToast('이번 달 레슨 기록이 없습니다. 레슨 저장 후 다시 시도하세요.', 'warning');
+      showToast('이번 달 수업 기록이 없습니다. 수업 기록을 저장한 뒤 다시 시도하세요.', 'warning');
       return;
     }
     if (row.requiresManualQuantity && quantity <= 0) {

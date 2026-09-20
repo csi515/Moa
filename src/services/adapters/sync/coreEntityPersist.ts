@@ -19,6 +19,7 @@ import {
   persistExpenses,
   persistIncomeEntries,
   persistPayments,
+  persistTeacherPayrollSettlements,
   persistTuitionPayments,
 } from './corePersistFinance';
 
@@ -64,6 +65,9 @@ export async function persistCoreEntity(
       break;
     case STORAGE_KEYS.INCOME_ENTRIES:
       await persistIncomeEntries(client, organizationId, cache, isAborted);
+      break;
+    case STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS:
+      await persistTeacherPayrollSettlements(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.CONSULTATIONS:
       await persistConsultations(client, organizationId, cache, isAborted);

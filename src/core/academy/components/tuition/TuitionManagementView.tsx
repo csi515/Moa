@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo } from 'react';
+﻿import React, { useState, useMemo, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerLabel } from '@/core/industry/industryUi';
@@ -392,17 +392,21 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   return (
     <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
       {embedded ? (
-        <div className="flex flex-wrap justify-end gap-2">{billingActions}</div>
+        <>
+          <TuitionSummaryCards selectedMonth={formatYearMonthLabel(selectedMonth)} stats={stats} />
+          <div className="flex flex-wrap justify-end gap-2">{billingActions}</div>
+        </>
       ) : (
-        <PageHeader
-          icon={<CreditCard className="w-6 h-6" />}
-          title="수강료 및 수납 관리"
-          description={`${customerLabel}별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급`}
-          actions={billingActions}
-        />
+        <>
+          <PageHeader
+            icon={<CreditCard className="w-6 h-6" />}
+            title="수강료 및 수납 관리"
+            description={`${customerLabel}별 수강료 청구서 발행, 수납 처리, 미납 관리 및 영수증 발급`}
+            actions={billingActions}
+          />
+          <TuitionSummaryCards selectedMonth={formatYearMonthLabel(selectedMonth)} stats={stats} />
+        </>
       )}
-
-      <TuitionSummaryCards selectedMonth={formatYearMonthLabel(selectedMonth)} stats={stats} />
 
       <TuitionFilterBar
         customerLabel={customerLabel}

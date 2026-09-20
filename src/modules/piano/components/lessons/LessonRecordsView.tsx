@@ -109,14 +109,14 @@ export const LessonRecordsView: React.FC = () => {
 
   const handleDelete = (lesson: LessonRecord) => {
     openConfirmDialog({
-      title: '레슨 일지 삭제',
-      message: `${lesson.studentName} 학생의 ${lesson.date} 레슨 일지를 삭제하시겠습니까?`,
+      title: '수업 일지 삭제',
+      message: `${lesson.studentName} 학생의 ${lesson.date} 수업 일지를 삭제하시겠습니까?`,
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
         LessonService.deleteLessonRecord(lesson.id);
         setLessons((prev) => removeById(prev, lesson.id));
-        showToast('레슨 일지가 삭제되었습니다.', 'info');
+        showToast('수업 일지가 삭제되었습니다.', 'info');
       }
     });
   };
@@ -129,7 +129,7 @@ export const LessonRecordsView: React.FC = () => {
       return;
     }
     if (!formData.songTitle.trim()) {
-      showToast('레슨 곡/진도를 입력해주세요.', 'warning');
+      showToast('수업 곡/진도를 입력해주세요.', 'warning');
       return;
     }
 
@@ -159,10 +159,10 @@ export const LessonRecordsView: React.FC = () => {
 
     showToast(
       editingLesson
-        ? '레슨 일지가 수정되었습니다.'
+        ? '수업 일지가 수정되었습니다.'
         : formData.homework.trim()
-          ? '레슨 일지와 주간 과제가 등록되었습니다.'
-          : '새 레슨 일지가 등록되었습니다.',
+          ? '수업 일지와 주간 과제가 등록되었습니다.'
+          : '새 수업 일지가 등록되었습니다.',
       'success'
     );
     setIsModalOpen(false);
@@ -172,15 +172,15 @@ export const LessonRecordsView: React.FC = () => {
     <div className="space-y-4 pb-4">
       <PageHeader
         icon={<Piano className="w-6 h-6" />}
-        title="레슨 일지 및 진도 관리"
-        description="학생별 피아노 레슨 진도, 강점 및 보완점, 과제 기록"
+        title="수업 일지 및 진도 관리"
+        description="학생별 피아노 수업 진도, 강점 및 보완점, 과제 기록"
         actions={
           <button
             onClick={handleOpenCreate}
             className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            레슨 일지 작성
+            수업 일지 작성
           </button>
         }
       />
@@ -201,7 +201,7 @@ export const LessonRecordsView: React.FC = () => {
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder="학생, 레슨 곡명, 내용 검색..."
+          placeholder="학생, 수업 곡명, 내용 검색..."
           className="flex-1 min-w-[200px]"
         />
         <span className="text-xs text-slate-500 font-medium shrink-0">
@@ -295,7 +295,7 @@ export const LessonRecordsView: React.FC = () => {
           <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
               <h3 className="font-bold text-slate-900 text-base">
-                {editingLesson ? '레슨 일지 수정' : '새 레슨 일지 작성'}
+                {editingLesson ? '수업 일지 수정' : '새 수업 일지 작성'}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
@@ -322,7 +322,7 @@ export const LessonRecordsView: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">레슨 일자</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">수업 일자</label>
                   <input
                     type="date"
                     required
@@ -335,7 +335,7 @@ export const LessonRecordsView: React.FC = () => {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">레슨 곡 / 교재</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">수업 곡 / 교재</label>
                   <input
                     type="text"
                     required
@@ -358,7 +358,7 @@ export const LessonRecordsView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">레슨 지도 내용</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">수업 지도 내용</label>
                 <textarea
                   rows={3}
                   required

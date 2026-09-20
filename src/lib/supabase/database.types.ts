@@ -741,6 +741,44 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['income_entries']['Insert']>;
         Relationships: [];
       };
+      teacher_payroll_settlements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          teacher_id: string;
+          year_month: string;
+          pay_type: string;
+          quantity: number;
+          rate: number;
+          calculated_amount: number;
+          adjustment_amount: number;
+          adjustment_reason: string | null;
+          final_amount: number;
+          confirmed_at: string;
+          expense_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          teacher_id: string;
+          year_month: string;
+          pay_type: string;
+          quantity?: number;
+          rate?: number;
+          calculated_amount: number;
+          adjustment_amount?: number;
+          adjustment_reason?: string | null;
+          final_amount: number;
+          confirmed_at?: string;
+          expense_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['teacher_payroll_settlements']['Insert']>;
+        Relationships: [];
+      };
       consultations: {
         Row: {
           id: string;

@@ -16,6 +16,7 @@ import { getPlaceLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { createPickupAddress, normalizePickupAddresses, sanitizePickupAddressesForSave } from '@/core/transport';
 import { searchParents, getGuardiansForStudent } from '@/core/parent/guardianHelpers';
+import { requestPlaceStudentOnTimetable } from '@/core/customer/studentJoinInbox';
 import { StorageService } from '@/services/storage';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { Student, Parent } from '@/types';
@@ -394,7 +395,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               <p className="text-xs text-slate-500">
                 {isEdit
                   ? '필요한 항목만 수정하세요'
-                  : '기본정보 → 보호자 → 레슨·수강료 순으로 입력하세요'}
+                  : '기본정보 → 보호자 → 수업·수강료 순으로 입력하세요'}
               </p>
             </div>
           </div>
@@ -423,7 +424,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
               </p>
               <p className="text-[11px] text-emerald-800/80 mt-0.5">
                 {isPiano
-                  ? '학생을 확인하거나 일정·시간표에 배치할 수 있습니다.'
+                  ? '아직은 반·시간표에 배정되지 않았습니다. 상세를 보거나 시간표에서 직접 배치하세요.'
                   : '다음 작업을 선택하세요.'}
               </p>
             </div>
@@ -442,6 +443,7 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
                 <button
                   type="button"
                   onClick={() => {
+                    requestPlaceStudentOnTimetable(postSaveStudent.id);
                     setActiveTab('timetable');
                     onClose();
                   }}

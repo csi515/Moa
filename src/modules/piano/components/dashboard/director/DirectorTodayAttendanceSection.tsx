@@ -27,7 +27,7 @@ function homeAttendanceRank(st: DayStatus): number {
   return 3;
 }
 
-/** 원장 홈 — 오늘 일정 예정 학생 등원 요약 + 미등원 빠른 처리 */
+/** 원장 홈 — 오늘 출결 요약 + 미등원 빠른 처리 */
 export const DirectorTodayAttendanceSection: FC<DirectorTodayAttendanceSectionProps> = ({
   today,
   expectedDay,
@@ -62,7 +62,7 @@ export const DirectorTodayAttendanceSection: FC<DirectorTodayAttendanceSectionPr
           createdBy: currentUser.name,
           existing: dayRecordMap.get(student.id) || null,
         });
-        if (!result.ok) {
+        if (result.ok === false) {
           showToast(result.warning, 'warning');
           return;
         }
@@ -108,11 +108,16 @@ export const DirectorTodayAttendanceSection: FC<DirectorTodayAttendanceSectionPr
         <div>
           <h3 className="text-sm font-black text-slate-900 flex items-center gap-2">
             <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-            오늘 등원
+            오늘 출결
           </h3>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {counts.absent > 0 ? `결석 ${counts.absent}명 · ` : ''}
-            일정 예정 {counts.total}명
+            {counts.total === 0
+              ? '오늘 수업 배정 학생 없음'
+              : counts.unchecked > 0
+                ? `미등원 ${counts.unchecked}명 · 예정 ${counts.total}명`
+                : counts.absent > 0
+                  ? `결석 ${counts.absent}명 · 예정 ${counts.total}명`
+                  : `출결 완료 · 예정 ${counts.total}명`}
           </p>
         </div>
         {onOpenAttendance && (
@@ -121,7 +126,7 @@ export const DirectorTodayAttendanceSection: FC<DirectorTodayAttendanceSectionPr
             onClick={onOpenAttendance}
             className="text-xs font-bold text-indigo-600 min-h-[44px] px-1 shrink-0"
           >
-            전체
+            출결 전체
           </button>
         )}
       </div>

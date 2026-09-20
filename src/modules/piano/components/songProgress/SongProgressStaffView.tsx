@@ -74,7 +74,7 @@ export const SongProgressStaffView: FC = () => {
       <PageHeader
         icon={<Music2 className="w-6 h-6" />}
         title="완곡 스탬프"
-        description="레슨 중 즉시 수여하거나, 학생 신청을 승인합니다."
+        description="수업 중 즉시 수여하거나, 학생 신청을 승인합니다."
       />
 
       {!supabaseReady && (
@@ -86,7 +86,7 @@ export const SongProgressStaffView: FC = () => {
       <section className="bg-white rounded-2xl border border-slate-200 p-4 space-y-3">
         <h3 className="text-sm font-black text-slate-900">{SONG_PROGRESS_COPY.grantCta}</h3>
         <p className="text-xs text-slate-500 leading-relaxed">
-          스마트폰이 없는 초등 학생도 레슨 직후 스탬프를 받을 수 있습니다. 학부모 PWA에 실시간
+          스마트폰이 없는 초등 학생도 수업 직후 스탬프를 받을 수 있습니다. 학부모 PWA에 실시간
           반영됩니다.
         </p>
         <label className="block text-xs font-bold text-slate-600">

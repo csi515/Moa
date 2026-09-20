@@ -177,7 +177,7 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
   return (
     <div className={embedded ? 'space-y-4 pb-2' : 'space-y-4 pb-4'}>
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         {!embedded && (
           <div>
             <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center gap-2">
@@ -189,16 +189,29 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
             </p>
           </div>
         )}
+        {embedded && (
+          <div className="flex-1 min-w-0 rounded-xl border border-rose-100 bg-rose-50 px-3 py-2.5">
+            <p className="text-[10px] font-bold text-rose-700">{selectedMonth} 지출 합계</p>
+            <p className="text-base font-black text-rose-700 tabular-nums mt-0.5">
+              {formatCurrency(totalExpenseAmount)}
+            </p>
+            <p className="text-[10px] text-rose-600/80 mt-0.5">등록 {filteredExpenses.length}건</p>
+          </div>
+        )}
         <button
           onClick={handleOpenCreate}
-          className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto sm:ml-auto"
+          className="px-4 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold rounded-xl transition-all shadow-md flex items-center gap-2 cursor-pointer self-start sm:self-auto sm:ml-auto shrink-0"
         >
           <Plus className="w-4 h-4" />
           신규 지출 등록
         </button>
       </div>
 
-      <div className={`grid grid-cols-1 gap-4 ${embedded ? '' : 'lg:grid-cols-3'}`}>
+      <div
+        className={`${embedded ? 'hidden sm:grid' : 'grid'} grid-cols-1 gap-4 ${
+          embedded ? '' : 'lg:grid-cols-3'
+        }`}
+      >
         {!embedded && (
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs">
             <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
@@ -211,7 +224,9 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           </div>
         )}
 
-        <div className={`${embedded ? '' : 'lg:col-span-2'} bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs`}>
+        <div
+          className={`${embedded ? '' : 'lg:col-span-2'} bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs`}
+        >
           <h4 className="font-bold text-slate-900 text-sm mb-2">항목별 지출 구성</h4>
           {categoryData.length === 0 ? (
             <p className="text-xs text-slate-400 p-6 text-center">지출 데이터가 없습니다.</p>

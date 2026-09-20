@@ -208,6 +208,18 @@ export const StudentListView: React.FC = () => {
     setSelectedStudentId(null);
   };
 
+  const searchPlaceholder = isPiano
+    ? '학생·학부모 이름 또는 전화번호'
+    : `이름 · ${labels.contact.singular} · ${labels.contact.singular} 전화`;
+
+  const advancedFilterColumns = [
+    !isScoped,
+    true, // 반
+    true, // 요일
+    showPickupFields, // 셔틀 — plugin(showPickupFields) 기준
+    true, // 정렬
+  ].filter(Boolean).length;
+
   const statusChips: Array<{ value: string; label: string; count: number }> = [
     { value: 'active', label: '재원', count: activeCount },
     { value: 'leave', label: '휴원', count: leaveCount },
@@ -245,10 +257,11 @@ export const StudentListView: React.FC = () => {
       )}
 
       <FilterBar className="flex-col items-stretch gap-3">
+        {/* 기본: 이름 검색 + 재원/휴원/퇴원(전체)만 노출 */}
         <SearchField
           value={searchQuery}
           onChange={setSearchQuery}
-          placeholder={`이름 · ${labels.contact.singular} · ${labels.contact.singular} 전화`}
+          placeholder={searchPlaceholder}
           className="w-full"
         />
 
@@ -260,7 +273,9 @@ export const StudentListView: React.FC = () => {
                 key={chip.value}
                 type="button"
                 onClick={() => setStatusFilter(chip.value)}
-                className={`min-h-[36px] px-3 rounded-lg text-xs font-bold transition-colors ${
+                className={`${
+                  isPiano ? 'min-h-[44px]' : 'min-h-[36px]'
+                } px-3 rounded-lg text-xs font-bold transition-colors ${
                   isActive
                     ? 'bg-indigo-600 text-white'
                     : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -273,12 +288,19 @@ export const StudentListView: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowAdvancedFilters((prev) => !prev)}
-            className={`min-h-[36px] ml-auto px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-colors ${
+            className={`${
+              isPiano ? 'min-h-[44px]' : 'min-h-[36px]'
+            } ml-auto px-3 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-colors ${
               showAdvancedFilters || advancedFilterCount > 0
                 ? 'bg-slate-800 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
             aria-expanded={showAdvancedFilters}
+            aria-label={
+              isPiano
+                ? '추가 필터 (담당 선생님, 반, 요일, 정렬)'
+                : '추가 필터'
+            }
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             필터
@@ -289,72 +311,111 @@ export const StudentListView: React.FC = () => {
         </div>
 
         {showAdvancedFilters && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 pt-2 border-t border-slate-100">
+          <div
+            className={`grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100 ${
+              isPiano
+                ? advancedFilterColumns >= 5
+                  ? 'lg:grid-cols-5'
+                  : advancedFilterColumns === 4
+                    ? 'lg:grid-cols-4'
+                    : 'lg:grid-cols-3'
+                : 'lg:grid-cols-5'
+            }`}
+          >
             {!isScoped && (
+              <label className="block min-w-0 space-y-1">
+                {isPiano ? (
+                  <span className="text-[10px] font-bold text-slate-500 px-0.5">담당 선생님</span>
+                ) : null}
+                <select
+                  value={teacherFilter}
+                  onChange={(e) => setTeacherFilter(e.target.value)}
+                  className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                  aria-label={isPiano ? '담당 선생님' : labels.staff.singular}
+                >
+                  <option value="ALL">
+                    {isPiano ? '담당 선생님 전체' : `${labels.staff.singular} 전체`}
+                  </option>
+                  {teachers.map((t) => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+
+            <label className="block min-w-0 space-y-1">
+              {isPiano ? (
+                <span className="text-[10px] font-bold text-slate-500 px-0.5">반</span>
+              ) : null}
               <select
-                value={teacherFilter}
-                onChange={(e) => setTeacherFilter(e.target.value)}
+                value={classFilter}
+                onChange={(e) => setClassFilter(e.target.value)}
                 className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                aria-label={isPiano ? '반' : labels.service.singular}
               >
-                <option value="ALL">{labels.staff.singular} 전체</option>
-                {teachers.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name}
+                <option value="ALL">반 전체</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
                   </option>
                 ))}
               </select>
-            )}
+            </label>
 
-            <select
-              value={classFilter}
-              onChange={(e) => setClassFilter(e.target.value)}
-              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            >
-              <option value="ALL">레슨 전체</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              value={weekdayFilter}
-              onChange={(e) => setWeekdayFilter(e.target.value as DayOfWeek | 'ALL')}
-              className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
-            >
-              <option value="ALL">요일 전체</option>
-              {WEEKDAY_FILTER_OPTIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}요일
-                </option>
-              ))}
-            </select>
+            <label className="block min-w-0 space-y-1">
+              {isPiano ? (
+                <span className="text-[10px] font-bold text-slate-500 px-0.5">요일</span>
+              ) : null}
+              <select
+                value={weekdayFilter}
+                onChange={(e) => setWeekdayFilter(e.target.value as DayOfWeek | 'ALL')}
+                className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none"
+                aria-label="요일"
+              >
+                <option value="ALL">요일 전체</option>
+                {WEEKDAY_FILTER_OPTIONS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}요일
+                  </option>
+                ))}
+              </select>
+            </label>
 
             {showPickupFields && (
-              <select
-                value={shuttleFilter}
-                onChange={(e) => setShuttleFilter(e.target.value as 'ALL' | 'SHUTTLE')}
-                className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
-              >
-                <option value="ALL">셔틀 전체</option>
-                <option value="SHUTTLE">셔틀 이용 ({shuttleCount})</option>
-              </select>
+              <label className="block min-w-0 space-y-1">
+                <select
+                  value={shuttleFilter}
+                  onChange={(e) => setShuttleFilter(e.target.value as 'ALL' | 'SHUTTLE')}
+                  className="w-full px-3 py-2 min-h-[44px] text-xs sm:text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-semibold"
+                  aria-label="셔틀"
+                >
+                  <option value="ALL">셔틀 전체</option>
+                  <option value="SHUTTLE">셔틀 이용 ({shuttleCount})</option>
+                </select>
+              </label>
             )}
 
-            <div className="flex items-center gap-1.5 px-3 min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
-              <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                className="bg-transparent w-full font-semibold focus:outline-none cursor-pointer"
-              >
-                <option value="joinDateDesc">등록일 최신순</option>
-                <option value="joinDateAsc">등록일 과거순</option>
-                <option value="name">이름 가나다순</option>
-                <option value="paymentDay">수납일순</option>
-              </select>
-            </div>
+            <label className="block min-w-0 space-y-1">
+              {isPiano ? (
+                <span className="text-[10px] font-bold text-slate-500 px-0.5">정렬</span>
+              ) : null}
+              <div className="flex items-center gap-1.5 px-3 min-h-[44px] bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600">
+                <ArrowUpDown className="w-3.5 h-3.5 shrink-0" />
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="bg-transparent w-full font-semibold focus:outline-none cursor-pointer"
+                  aria-label="정렬"
+                >
+                  <option value="joinDateDesc">등록일 최신순</option>
+                  <option value="joinDateAsc">등록일 과거순</option>
+                  <option value="name">이름 가나다순</option>
+                  <option value="paymentDay">수납일순</option>
+                </select>
+              </div>
+            </label>
           </div>
         )}
 
@@ -424,7 +485,7 @@ export const StudentListView: React.FC = () => {
                 <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
                   <tr>
                     <th className="py-2.5 px-3">{labels.customer.singular}</th>
-                    <th className="py-2.5 px-3">{isPiano ? '레슨' : labels.service.singular}</th>
+                    <th className="py-2.5 px-3">{isPiano ? '반' : labels.service.singular}</th>
                     <th className="py-2.5 px-3">담당</th>
                     {isPiano && <th className="py-2.5 px-3">수강 형태</th>}
                     {isPiano && <th className="py-2.5 px-3">회차권</th>}
