@@ -31,6 +31,8 @@ export type PaymentMethod =
   | 'other'
   | 'local_currency'
   | 'onsite_card';
+export type SaleStatus = 'completed' | 'cancelled' | 'refunded';
+export type PointTransactionType = 'earn' | 'redeem' | 'adjust';
 export type NotificationStatus = 'pending' | 'sent' | 'failed' | 'cancelled';
 export type NotificationChannel = 'app' | 'email' | 'sms' | 'kakao';
 export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
@@ -779,6 +781,278 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['teacher_payroll_settlements']['Insert']>;
         Relationships: [];
       };
+      product_categories: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['product_categories']['Insert']>;
+        Relationships: [];
+      };
+      products: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          category_id: string | null;
+          product_code: string | null;
+          price: number;
+          cost: number | null;
+          image_url: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          category_id?: string | null;
+          product_code?: string | null;
+          price: number;
+          cost?: number | null;
+          image_url?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['products']['Insert']>;
+        Relationships: [];
+      };
+      product_variants: {
+        Row: {
+          id: string;
+          product_id: string;
+          name: string;
+          sku: string | null;
+          price: number | null;
+          cost: number | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          product_id: string;
+          name: string;
+          sku?: string | null;
+          price?: number | null;
+          cost?: number | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['product_variants']['Insert']>;
+        Relationships: [];
+      };
+      inventory: {
+        Row: {
+          id: string;
+          organization_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          quantity: number;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          quantity?: number;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['inventory']['Insert']>;
+        Relationships: [];
+      };
+      stock_movements: {
+        Row: {
+          id: string;
+          organization_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          movement_type: Database['core']['Enums']['stock_movement_type'];
+          quantity: number;
+          reference_type: string | null;
+          reference_id: string | null;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          movement_type: Database['core']['Enums']['stock_movement_type'];
+          quantity: number;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['stock_movements']['Insert']>;
+        Relationships: [];
+      };
+      sales: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string | null;
+          total_amount: number;
+          points_used: number;
+          payment_method: PaymentMethod;
+          status: SaleStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id?: string | null;
+          total_amount?: number;
+          points_used?: number;
+          payment_method?: PaymentMethod;
+          status?: SaleStatus;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['sales']['Insert']>;
+        Relationships: [];
+      };
+      sale_items: {
+        Row: {
+          id: string;
+          sale_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          product_name_snapshot: string;
+          quantity: number;
+          unit_price: number;
+          discount_amount: number;
+          line_amount: number;
+        };
+        Insert: {
+          id?: string;
+          sale_id: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          product_name_snapshot: string;
+          quantity: number;
+          unit_price: number;
+          discount_amount?: number;
+          line_amount: number;
+        };
+        Update: Partial<Database['core']['Tables']['sale_items']['Insert']>;
+        Relationships: [];
+      };
+      sale_returns: {
+        Row: {
+          id: string;
+          organization_id: string;
+          sale_id: string;
+          total_amount: number;
+          reason: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          sale_id: string;
+          total_amount?: number;
+          reason?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['sale_returns']['Insert']>;
+        Relationships: [];
+      };
+      sale_return_items: {
+        Row: {
+          id: string;
+          sale_return_id: string;
+          sale_item_id: string;
+          product_id: string | null;
+          variant_id: string | null;
+          product_name_snapshot: string;
+          quantity: number;
+          unit_price: number;
+          line_amount: number;
+        };
+        Insert: {
+          id?: string;
+          sale_return_id: string;
+          sale_item_id: string;
+          product_id?: string | null;
+          variant_id?: string | null;
+          product_name_snapshot: string;
+          quantity: number;
+          unit_price: number;
+          line_amount: number;
+        };
+        Update: Partial<Database['core']['Tables']['sale_return_items']['Insert']>;
+        Relationships: [];
+      };
+      point_accounts: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          balance: number;
+          updated_at: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          balance?: number;
+          updated_at?: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['point_accounts']['Insert']>;
+        Relationships: [];
+      };
+      point_transactions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          type: PointTransactionType;
+          amount: number;
+          balance_after: number;
+          earn_rate_percent: number | null;
+          base_amount: number | null;
+          reference_type: string | null;
+          reference_id: string | null;
+          description: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          type: PointTransactionType;
+          amount: number;
+          balance_after: number;
+          earn_rate_percent?: number | null;
+          base_amount?: number | null;
+          reference_type?: string | null;
+          reference_id?: string | null;
+          description?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['point_transactions']['Insert']>;
+        Relationships: [];
+      };
       consultations: {
         Row: {
           id: string;
@@ -1171,8 +1445,11 @@ export interface Database {
       schedule_status: ScheduleStatus;
       payment_status: PaymentStatus;
       payment_method: PaymentMethod;
+      sale_status: SaleStatus;
+      point_transaction_type: PointTransactionType;
       notification_status: NotificationStatus;
       notification_channel: NotificationChannel;
+      stock_movement_type: 'inbound' | 'sale' | 'return' | 'adjustment';
     };
     CompositeTypes: Record<string, never>;
   };
@@ -1890,3 +2167,7 @@ export type Payment = CoreTables<'payments'>;
 export type PaymentTransaction = CoreTables<'payment_transactions'>;
 export type Consultation = CoreTables<'consultations'>;
 export type Notification = CoreTables<'notifications'>;
+export type SaleRow = CoreTables<'sales'>;
+export type SaleItemRow = CoreTables<'sale_items'>;
+export type PointAccountRow = CoreTables<'point_accounts'>;
+export type PointTransactionRow = CoreTables<'point_transactions'>;

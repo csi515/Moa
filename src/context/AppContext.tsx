@@ -38,6 +38,8 @@ export type NavTab =
   | 'instructors'
   | 'passes'
   | 'retail'
+  | 'sales'
+  | 'inventory'
   | 'shuttle'
   | 'journals'
   | 'medications'

@@ -85,13 +85,17 @@ function run(): void {
   assert.ok(selectable.some((d) => d.id === 'gym'));
   assert.ok(selectable.some((d) => d.id === 'daycare'));
   assert.ok(selectable.some((d) => d.id === 'skin_clinic'));
+  assert.ok(selectable.some((d) => d.id === 'retail'));
   assert.equal(INDUSTRY_DEFINITIONS.piano.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.daycare.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.selectable, true);
+  assert.equal(INDUSTRY_DEFINITIONS.retail.selectable, true);
   assert.equal(hasIndustryModule('skin_clinic'), true);
   assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.moduleId, 'skin_clinic');
+  assert.equal(hasIndustryModule('retail'), true);
+  assert.equal(INDUSTRY_DEFINITIONS.retail.moduleId, 'retail');
 
   // 모듈 업종은 공개·모듈 정의 유지
   assert.equal(hasIndustryModule('pilates'), true);

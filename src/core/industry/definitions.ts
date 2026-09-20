@@ -1,7 +1,14 @@
 import type { IndustryCategory } from './categories';
 
 /** 전용 Module이 있는 업종 (플러그인 레지스트리와 동기화) */
-export const MODULE_INDUSTRY_IDS = ['piano', 'pilates', 'gym', 'daycare', 'skin_clinic'] as const;
+export const MODULE_INDUSTRY_IDS = [
+  'piano',
+  'pilates',
+  'gym',
+  'daycare',
+  'skin_clinic',
+  'retail',
+] as const;
 export type ModuleIndustryId = (typeof MODULE_INDUSTRY_IDS)[number];
 
 type DefinitionSeed = {
@@ -118,6 +125,8 @@ const DEFINITION_LIST = [
   def('cafe', '카페', '카페·디저트', 'food'),
   def('bakery', '베이커리', '빵집·베이커리', 'food'),
 
+  def('retail', '소매업', '상품·재고·판매·고객·포인트 중심 운영', 'other', 'retail'),
+
   def('general_service', '기타 서비스', '목록에 없는 업종', 'other'),
 ] as const satisfies readonly DefinitionSeed[];
 
@@ -144,6 +153,7 @@ export const PUBLIC_SELECTABLE_INDUSTRY_IDS = [
   'gym',
   'daycare',
   'skin_clinic',
+  'retail',
 ] as const satisfies readonly IndustryType[];
 
 const PUBLIC_SELECTABLE_SET = new Set<string>(PUBLIC_SELECTABLE_INDUSTRY_IDS);

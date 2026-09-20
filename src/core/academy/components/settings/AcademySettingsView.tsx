@@ -446,7 +446,7 @@ export const AcademySettingsView: FC = () => {
                     {(
                       [
                         { value: 'monthly' as const, label: '월회비', hint: '매월 청구' },
-                        { value: 'session_pass' as const, label: '회차권', hint: '레슨 시 차감' },
+                        { value: 'session_pass' as const, label: '회차권', hint: '출석 시 차감' },
                       ] as const
                     ).map((opt) => {
                       const active =
@@ -545,7 +545,7 @@ export const AcademySettingsView: FC = () => {
                 </>
               ) : (
                 <div className="rounded-xl border border-slate-200 bg-slate-50/80 p-3.5 text-[11px] text-slate-500 leading-relaxed">
-                  회차권 모드에서는 월 청구·결제일·교재 합산 옵션을 쓰지 않습니다. 출석(레슨)
+                  회차권 모드에서는 월 청구·결제일·교재 합산 옵션을 쓰지 않습니다. 출석
                   시 회차권에서 1회가 차감됩니다.
                 </div>
               )}

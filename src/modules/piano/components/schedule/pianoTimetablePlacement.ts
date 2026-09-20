@@ -126,6 +126,7 @@ export function getPlacementsForSlot(
   );
 }
 
+/** preferredTeacherId가 있으면 해당 강사, 없으면 미배정. 임의 자동 배정하지 않음. */
 function resolveTeacher(
   teachers: Teacher[],
   preferredTeacherId?: string
@@ -134,8 +135,7 @@ function resolveTeacher(
     const preferred = teachers.find((t) => t.id === preferredTeacherId);
     if (preferred) return { id: preferred.id, name: preferred.name };
   }
-  const active = teachers.find((t) => t.status === 'active') || teachers[0];
-  return active ? { id: active.id, name: active.name } : { id: '', name: '미배정' };
+  return { id: '', name: '미배정' };
 }
 
 function defaultRoom(): string {
@@ -144,7 +144,9 @@ function defaultRoom(): string {
   return room || '연습실';
 }
 
-/** 슬롯용 ClassItem 확보. createIfMissing=false이면 없으면 null (자동 생성 안 함). */
+/** 슬롯용 ClassItem 확보. createIfMissing=false이면 없으면 null (자동 생성 안 함).
+ * 기존 반의 capacity는 변경하지 않는다. (학생 배치로 정원 자동 증가 금지)
+ */
 export function ensureEditableSlotClass(params: {
   classes: ClassItem[];
   day: DayOfWeek;
@@ -152,7 +154,7 @@ export function ensureEditableSlotClass(params: {
   teachers: Teacher[];
   minCapacity?: number;
   preferredTeacherId?: string;
-  /** false면 기존 반만 반환·용량 조정. 없으면 null */
+  /** false면 기존 반만 반환. 없으면 null */
   createIfMissing?: boolean;
 }): ClassItem | null {
   const existing = findEditableSlotClass(
@@ -164,11 +166,7 @@ export function ensureEditableSlotClass(params: {
   const minCapacity = Math.max(params.minCapacity ?? 4, 1);
 
   if (existing) {
-    if (existing.capacity >= minCapacity) return existing;
-    return StorageService.saveClass({
-      ...existing,
-      capacity: minCapacity,
-    });
+    return existing;
   }
 
   if (!params.createIfMissing) return null;
@@ -245,12 +243,24 @@ export function assignStudentToSlot(params: {
     startTime
   ).length;
 
-  const hadExisting = !!findEditableSlotClass(classes, day, startTime, preferredTeacherId);
-  if (!hadExisting && !createClassIfMissing) {
+  const existingSlotClass = findEditableSlotClass(
+    classes,
+    day,
+    startTime,
+    preferredTeacherId
+  );
+  if (!existingSlotClass && !createClassIfMissing) {
     return {
       ok: false,
       needsNewClass: true,
       message: '이 시간대에 반이 없습니다. 새 반을 만들어 배치할 수 있습니다.',
+    };
+  }
+
+  if (existingSlotClass && currentInSlot >= existingSlotClass.capacity) {
+    return {
+      ok: false,
+      message: `반 정원(${existingSlotClass.capacity}명)이 가득 찼습니다. 반 관리에서 정원을 늘린 뒤 다시 배치해 주세요.`,
     };
   }
 
@@ -277,7 +287,12 @@ export function assignStudentToSlot(params: {
   }
 
   const saved = saveStudentClassIds(student, nextIds);
-  return { ok: true, classItem: slotClass, student: saved, createdClass: !hadExisting };
+  return {
+    ok: true,
+    classItem: slotClass,
+    student: saved,
+    createdClass: !existingSlotClass,
+  };
 }
 
 export function removeStudentFromSlot(params: {
@@ -330,6 +345,31 @@ export function moveStudentToSlot(params: {
       needsNewClass: true,
       message: '이 시간대에 반이 없습니다. 새 반을 만들어 배치할 수 있습니다.',
     };
+  }
+
+  // 대상 반 정원 초과면 원 슬롯 제거 전에 거부 (부분 이동 방지)
+  const targetClass = findEditableSlotClass(
+    params.classes,
+    params.toDay,
+    params.toStartTime,
+    params.preferredTeacherId
+  );
+  if (targetClass) {
+    const scopedClasses = params.preferredTeacherId
+      ? params.classes.filter((c) => c.teacherId === params.preferredTeacherId)
+      : params.classes;
+    const currentInTarget = getPlacementsForSlot(
+      StorageService.getStudents().filter((s) => s.id !== params.student.id),
+      scopedClasses,
+      params.toDay,
+      params.toStartTime
+    ).length;
+    if (currentInTarget >= targetClass.capacity) {
+      return {
+        ok: false,
+        message: `반 정원(${targetClass.capacity}명)이 가득 찼습니다. 반 관리에서 정원을 늘린 뒤 다시 배치해 주세요.`,
+      };
+    }
   }
 
   let student = params.student;

@@ -378,6 +378,9 @@ const StudentDetailModalContent: React.FC<
                   setNewAttStatus={modal.attendance.setNewAttStatus}
                   newAttMemo={modal.attendance.newAttMemo}
                   setNewAttMemo={modal.attendance.setNewAttMemo}
+                  newAttClassId={modal.attendance.newAttClassId}
+                  setNewAttClassId={modal.attendance.setNewAttClassId}
+                  attendanceClassOptions={modal.attendance.attendanceClassOptions}
                   onSaveAttendance={modal.attendance.onSave}
                 />
               )}

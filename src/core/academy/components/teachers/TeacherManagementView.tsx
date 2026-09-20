@@ -482,7 +482,7 @@ export const TeacherManagementView: React.FC = () => {
                     }
                     className="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl font-bold min-h-[44px]"
                   >
-                    <option value="hourly">레슨 실적 (레슨 횟수 × 회당 지급액)</option>
+                    <option value="hourly">수업 실적 (수업 횟수 × 회당 지급액)</option>
                     <option value="attendance">출근 횟수 (출근 × 1회 지급액)</option>
                     <option value="work_hours">근무 시간 (시간 × 시간당 지급액)</option>
                     <option value="monthly">월급 (월 고정)</option>

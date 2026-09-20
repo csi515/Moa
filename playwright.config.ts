@@ -14,6 +14,8 @@ export default defineConfig({
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://127.0.0.1:4173',
     trace: 'on-first-retry',
+    // PWA SW가 /rest·/auth GET을 가로채면 page.route 목이 우회됨
+    serviceWorkers: 'block',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },

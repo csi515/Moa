@@ -82,9 +82,9 @@ export function ParentAssignmentsView({
         ))
       )}
 
-      <Section title="레슨 피드백">
+      <Section title="수업 피드백">
         {lessonFeedback.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">아직 레슨 피드백이 없습니다.</p>
+          <p className="text-sm text-slate-400 text-center py-6">아직 수업 피드백이 없습니다.</p>
         ) : (
           <div className="space-y-3">
             {lessonFeedback.map((l) => (

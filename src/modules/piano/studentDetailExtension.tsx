@@ -12,6 +12,7 @@ import {
 import type { DetailTabConfigItem, DetailTabCounts } from '@/core/academy/components/students/detail/types';
 import { PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
 import { applySessionPassForAttendance } from '@/modules/piano/services/lessonPassConsume';
+import { RecitalService } from '@/modules/piano/services/recitalService';
 import { NewSaleModal } from '@/modules/piano/components/textbooks/NewSaleModal';
 import { TextbookPaymentModal } from '@/modules/piano/components/textbooks/TextbookPaymentModal';
 import { TextbookReceiptModal } from '@/modules/piano/components/textbooks/TextbookReceiptModal';
@@ -99,6 +100,7 @@ const pianoStudentDetailExtension: StudentDetailExtension = {
   renderModals: (props) => React.createElement(PianoStudentDetailModals, props),
   applyAttendanceSideEffect: applySessionPassForAttendance,
   performanceVideoTypeLabel: PERFORMANCE_VIDEO_TYPE_LABEL,
+  mapEventTypeToVideoType: RecitalService.eventTypeToVideoType,
 };
 
 /** Core 학생 상세가 piano Module을 import하지 않도록 plugin에서 등록 */

@@ -5,7 +5,7 @@ import { upsertThenDiffDelete } from './persistHelpers';
 
 export type CoreClient = SupabaseClient<Database, 'core'>;
 
-/** Core org 테이블 upsert 후 id diff-delete */
+/** Core org 테이블 upsert 후 id diff-delete. false면 soft-fail(outbox 유지). */
 export async function syncTable(
   client: CoreClient,
   table:
@@ -25,8 +25,8 @@ export async function syncTable(
   currentIds: string[],
   upsertAll: () => Promise<void>,
   options: { cachePresent: boolean; context: string; isAborted?: PersistAbortGuard }
-): Promise<void> {
-  await upsertThenDiffDelete({
+): Promise<boolean> {
+  return upsertThenDiffDelete({
     context: options.context,
     cachePresent: options.cachePresent,
     currentIds,

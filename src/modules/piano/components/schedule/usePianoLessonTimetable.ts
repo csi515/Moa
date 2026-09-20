@@ -102,7 +102,8 @@ export function usePianoLessonTimetable() {
     teacherId?: string
   ) => {
     const teacher = teacherId ? teachers.find((t) => t.id === teacherId) : undefined;
-    const teacherLine = teacher ? `\n담당 강사: ${teacher.name}` : '';
+    // 실제 생성 시 resolveTeacher와 동일: preferred 없으면 미배정
+    const teacherLine = `\n담당 강사: ${teacher?.name || '미배정'}`;
     return (
       `${day}요일 ${startTime}에는 아직 반이 없습니다.\n` +
       `「${day} ${startTime}」 반을 새로 만들고 ${studentName} 학생을 배치할까요?` +

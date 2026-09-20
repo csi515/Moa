@@ -182,7 +182,7 @@ export async function persistNotifications(
 
   let upsertOk = true;
 
-  await syncTable(
+  const syncOk = await syncTable(
     client,
     'notifications',
     orgId,
@@ -202,7 +202,7 @@ export async function persistNotifications(
 
   if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.NOTIFICATIONS, notifications);
-  return upsertOk;
+  return upsertOk && syncOk;
 }
 
 export async function persistAttendanceSessions(

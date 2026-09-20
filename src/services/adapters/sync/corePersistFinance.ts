@@ -146,16 +146,18 @@ export async function persistTeacherPayrollSettlements(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const settlements = requireCacheList<TeacherPayrollSettlement>(
     cache,
     STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS,
     'teacher_payroll_settlements'
   );
-  if (!settlements) return;
+  if (!settlements) return false;
 
-  await syncTable(
+  let upsertOk = true;
+
+  const syncOk = await syncTable(
     client,
     'teacher_payroll_settlements',
     orgId,
@@ -166,12 +168,17 @@ export async function persistTeacherPayrollSettlements(
         const { error } = await client
           .from('teacher_payroll_settlements')
           .upsert(settlementToCoreRow(settlement, orgId));
-        if (error) console.error('Failed to upsert teacher_payroll_settlement:', error);
+        if (error) {
+          upsertOk = false;
+          console.error('Failed to upsert teacher_payroll_settlement:', error);
+        }
       }
     },
     { cachePresent: true, context: 'teacher_payroll_settlements', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
+  // local-first: 로컬은 유지, 원격 실패 시 false → outbox soft-fail
   writeLocal(STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS, settlements);
+  return upsertOk && syncOk;
 }

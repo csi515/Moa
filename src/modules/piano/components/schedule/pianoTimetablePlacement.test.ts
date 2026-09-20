@@ -359,6 +359,240 @@ async function run(): Promise<void> {
   assert.equal(store.saveAttendanceCalls, 0);
   assert.equal(JSON.stringify(store.attendance), attendanceBefore);
 
+  // --- 위험 케이스 1~2. 정원 4 → 5명 자동 증가 금지, 초과 배치 실패 ---
+  const fullClass = makeClass({
+    id: 'cls-sat-1000',
+    daysOfWeek: ['토'],
+    startTime: '10:00',
+    endTime: '10:50',
+    capacity: 4,
+  });
+  const seated = [1, 2, 3, 4].map((n) =>
+    makeStudent({
+      id: `s-full-${n}`,
+      name: `만석${n}`,
+      classIds: [fullClass.id],
+    })
+  );
+  const fifth = makeStudent({ id: 's-full-5', name: '다섯째', classIds: [] });
+  store.classes = [fullClass];
+  store.students = [...seated, fifth];
+
+  const overCapacity = assignStudentToSlot({
+    student: fifth,
+    day: '토',
+    startTime: '10:00',
+    classes: store.classes,
+    teachers,
+  });
+  assert.equal(overCapacity.ok, false, '위험2: 정원 초과 배치는 실패해야 함');
+  if (!overCapacity.ok) {
+    assert.match(overCapacity.message, /정원/);
+    assert.match(overCapacity.message, /반 관리/);
+  }
+  assert.equal(
+    store.classes.find((c) => c.id === 'cls-sat-1000')?.capacity,
+    4,
+    '위험1: 정원 4명 반이 5명으로 자동 증가하면 안 됨'
+  );
+  assert.notEqual(
+    store.classes.find((c) => c.id === 'cls-sat-1000')?.capacity,
+    5,
+    '위험1: capacity가 5로 바뀌면 안 됨'
+  );
+  assert.equal(fifth.classIds.includes('cls-sat-1000'), false);
+  assert.equal(
+    store.students.find((s) => s.id === 's-full-5')?.classIds.includes('cls-sat-1000'),
+    false
+  );
+
+  // ensureEditableSlotClass도 기존 반 capacity를 올리지 않음
+  const ensuredNoBump = ensureEditableSlotClass({
+    classes: store.classes,
+    day: '토',
+    startTime: '10:00',
+    teachers,
+    minCapacity: 10,
+    createIfMissing: false,
+  });
+  assert.ok(ensuredNoBump);
+  assert.equal(ensuredNoBump.capacity, 4);
+  assert.equal(store.classes.find((c) => c.id === 'cls-sat-1000')?.capacity, 4);
+
+  // 정원 여유 있으면 4명까지 정상 배치
+  const roomy = makeClass({
+    id: 'cls-sun-1100',
+    daysOfWeek: ['일'],
+    startTime: '11:00',
+    endTime: '11:50',
+    capacity: 4,
+  });
+  store.classes = [roomy];
+  store.students = [];
+  for (let n = 1; n <= 4; n++) {
+    const s = makeStudent({ id: `s-roomy-${n}`, name: `여유${n}`, classIds: [] });
+    store.students.push(s);
+    const r = assignStudentToSlot({
+      student: s,
+      day: '일',
+      startTime: '11:00',
+      classes: store.classes,
+      teachers,
+    });
+    assert.equal(r.ok, true, `${n}번째 학생은 정원 내 배치되어야 함`);
+  }
+  assert.equal(store.classes.find((c) => c.id === 'cls-sun-1100')?.capacity, 4);
+
+  // 이동: 만석 대상 슬롯으로는 이동 불가, 원 슬롯 소속·capacity 유지
+  const moveFrom = makeClass({
+    id: 'cls-mon-0900-from',
+    daysOfWeek: ['월'],
+    startTime: '09:00',
+    endTime: '09:50',
+    capacity: 4,
+  });
+  const moveToFull = makeClass({
+    id: 'cls-mon-1000-full',
+    daysOfWeek: ['월'],
+    startTime: '10:00',
+    endTime: '10:50',
+    capacity: 2,
+  });
+  const moverA = makeStudent({ id: 's-cap-move', name: '이동자', classIds: [moveFrom.id] });
+  const toSeated = [
+    makeStudent({ id: 's-cap-a', classIds: [moveToFull.id] }),
+    makeStudent({ id: 's-cap-b', classIds: [moveToFull.id] }),
+  ];
+  store.classes = [moveFrom, moveToFull];
+  store.students = [moverA, ...toSeated];
+  const moveBlocked = moveStudentToSlot({
+    student: moverA,
+    from: { classItem: moveFrom, day: '월', startTime: '09:00' },
+    toDay: '월',
+    toStartTime: '10:00',
+    classes: store.classes,
+    teachers,
+  });
+  assert.equal(moveBlocked.ok, false);
+  if (!moveBlocked.ok) {
+    assert.match(moveBlocked.message, /정원/);
+  }
+  assert.equal(
+    store.students.find((s) => s.id === 's-cap-move')?.classIds.includes(moveFrom.id),
+    true,
+    '만석으로 이동 실패 시 원 슬롯 소속이 유지되어야 함'
+  );
+  assert.equal(store.classes.find((c) => c.id === moveToFull.id)?.capacity, 2);
+
+  // 여유 있는 슬롯으로 이동은 정상
+  const moveToOpen = makeClass({
+    id: 'cls-mon-1100-open',
+    daysOfWeek: ['월'],
+    startTime: '11:00',
+    endTime: '11:50',
+    capacity: 4,
+  });
+  store.classes = [moveFrom, moveToOpen];
+  store.students = [makeStudent({ id: 's-cap-move', name: '이동자', classIds: [moveFrom.id] })];
+  const moveOk = moveStudentToSlot({
+    student: store.students[0],
+    from: { classItem: moveFrom, day: '월', startTime: '09:00' },
+    toDay: '월',
+    toStartTime: '11:00',
+    classes: store.classes,
+    teachers,
+  });
+  assert.equal(moveOk.ok, true);
+  if (moveOk.ok) {
+    assert.equal(moveOk.student.classIds.includes(moveFrom.id), false);
+    assert.equal(moveOk.student.classIds.includes(moveToOpen.id), true);
+  }
+
+  // --- 위험 케이스 3. preferredTeacherId 없음 → 첫 강사 자동 지정 금지(미배정) ---
+  const teacher2 = makeTeacher({ id: 't2', name: '이선생' });
+  const teachersWithTwo = [teacher, teacher2];
+  store.classes = [];
+  store.students = [makeStudent({ id: 's-unassigned', name: '미배정반학생', classIds: [] })];
+  const createdUnassigned = assignStudentToSlot({
+    student: store.students[0],
+    day: '화',
+    startTime: '09:00',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    createClassIfMissing: true,
+  });
+  assert.equal(createdUnassigned.ok, true);
+  if (createdUnassigned.ok) {
+    assert.equal(createdUnassigned.createdClass, true);
+    assert.equal(createdUnassigned.classItem.teacherId, '');
+    assert.equal(createdUnassigned.classItem.teacherName, '미배정');
+    assert.notEqual(
+      createdUnassigned.classItem.teacherId,
+      teachersWithTwo[0].id,
+      '위험3: 첫 번째 활성 강사로 자동 지정되면 안 됨'
+    );
+    assert.notEqual(createdUnassigned.classItem.teacherName, teachersWithTwo[0].name);
+  }
+
+  // --- 위험 케이스 4. preferredTeacherId 있으면 해당 강사 지정 ---
+  store.classes = [];
+  store.students = [makeStudent({ id: 's-pref-t', name: '지정강사학생', classIds: [] })];
+  const createdPreferred = assignStudentToSlot({
+    student: store.students[0],
+    day: '화',
+    startTime: '10:00',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    preferredTeacherId: 't2',
+    createClassIfMissing: true,
+  });
+  assert.equal(createdPreferred.ok, true);
+  if (createdPreferred.ok) {
+    assert.equal(createdPreferred.classItem.teacherId, 't2', '위험4: preferred 강사 id');
+    assert.equal(createdPreferred.classItem.teacherName, '이선생', '위험4: preferred 강사 이름');
+  }
+
+  // --- 위험 케이스 5. 기존 반 재사용 시 담당 강사 유지 ---
+  const reuseWithTeacher = makeClass({
+    id: 'cls-reuse-teacher',
+    daysOfWeek: ['수'],
+    startTime: '12:00',
+    endTime: '12:50',
+    teacherId: 't-keep',
+    teacherName: '유지선생',
+  });
+  store.classes = [reuseWithTeacher];
+  store.students = [makeStudent({ id: 's-reuse-t', classIds: [] })];
+  const reused = ensureEditableSlotClass({
+    classes: store.classes,
+    day: '수',
+    startTime: '12:00',
+    teachers: teachersWithTwo,
+    minCapacity: 1,
+    createIfMissing: true,
+  });
+  assert.ok(reused);
+  assert.equal(reused.id, 'cls-reuse-teacher');
+  assert.equal(reused.teacherId, 't-keep', '위험5: 재사용 시 teacherId 유지');
+  assert.equal(reused.teacherName, '유지선생', '위험5: 재사용 시 teacherName 유지');
+  assert.equal(store.classes.length, 1);
+
+  const assignedReuseTeacher = assignStudentToSlot({
+    student: store.students[0],
+    day: '수',
+    startTime: '12:00',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    createClassIfMissing: true,
+  });
+  assert.equal(assignedReuseTeacher.ok, true);
+  if (assignedReuseTeacher.ok) {
+    assert.equal(assignedReuseTeacher.classItem.teacherId, 't-keep');
+    assert.equal(assignedReuseTeacher.classItem.teacherName, '유지선생');
+  }
+  assert.equal(store.classes.find((c) => c.id === 'cls-reuse-teacher')?.teacherId, 't-keep');
+  assert.equal(store.classes.find((c) => c.id === 'cls-reuse-teacher')?.teacherName, '유지선생');
+
   console.log('pianoTimetablePlacement.test.ts: all assertions passed');
 }
 

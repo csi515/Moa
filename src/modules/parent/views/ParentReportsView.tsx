@@ -21,7 +21,7 @@ export function ParentReportsView({ student }: { student: Student }) {
             <div className="grid grid-cols-2 gap-2 mt-4">
               <MiniStat label="출석률" value={`${r.attendanceRate ?? 0}%`} />
               <MiniStat label="연습 시간" value={`${r.practiceMinutes ?? 0}분`} />
-              <MiniStat label="레슨" value={`${r.lessonsCount ?? 0}회`} />
+              <MiniStat label="수업" value={`${r.lessonsCount ?? 0}회`} />
               <MiniStat label="완료 곡" value={`${r.songsCompleted ?? 0}곡`} />
             </div>
             {r.strengths && (

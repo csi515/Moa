@@ -263,7 +263,7 @@ export function PianoParentHome({
 
       {latestLesson && (
         <Section
-          title="최근 레슨 피드백"
+          title="최근 수업 피드백"
           action={
             <button
               type="button"

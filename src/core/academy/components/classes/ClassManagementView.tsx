@@ -357,7 +357,7 @@ export const ClassManagementView: React.FC = () => {
                 <input
                   type="text"
                   required
-                  placeholder="예: 월수 16시 개인레슨"
+                  placeholder="예: 월수 16시 개인반"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
@@ -366,7 +366,7 @@ export const ClassManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  레슨 요일 <span className="text-rose-500">*</span>
+                  수업 요일 <span className="text-rose-500">*</span>
                 </label>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                   {DAYS_OF_WEEK.map((d) => {
@@ -521,10 +521,10 @@ export const ClassManagementView: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">레슨 메모</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">반 메모</label>
                 <textarea
                   rows={2}
-                  placeholder="레슨 특성 및 유의사항..."
+                  placeholder="반 특성 및 유의사항..."
                   value={formData.memo}
                   onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none resize-none"

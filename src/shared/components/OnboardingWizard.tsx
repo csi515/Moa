@@ -216,7 +216,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
       await persistLocalAndOrg({ defaultLessonMinutes: lessonMinutes });
       goNext();
     } catch (err) {
-      showToast(err instanceof Error ? err.message : '레슨 기본값 저장 중 오류가 발생했습니다.', 'error');
+      showToast(err instanceof Error ? err.message : '수업 기본값 저장 중 오류가 발생했습니다.', 'error');
     } finally {
       setIsSaving(false);
     }
@@ -577,7 +577,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {step === 2 && (
             <div className="p-6 space-y-4">
               <p className="text-sm text-slate-500">
-                기본 레슨 시간(분)입니다. 보강·일정 생성 시 기본값으로 쓰이며, 매일 수업을 등록하는 단계가
+                기본 수업 시간(분)입니다. 보강·일정 생성 시 기본값으로 쓰이며, 매일 수업을 등록하는 단계가
                 아닙니다.
               </p>
               <div className="grid grid-cols-2 gap-2">
@@ -789,7 +789,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <div>
                 <h3 className="font-bold text-lg text-slate-900">초기 설정이 준비되었습니다</h3>
                 <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                  이제 첫 학생을 등록하고 운영을 시작해 보세요. 강의실·정규 레슨은 설정·수업 메뉴에서
+                  이제 첫 학생을 등록하고 운영을 시작해 보세요. 강의실·정규 반은 설정·수업 메뉴에서
                   추가할 수 있습니다.
                 </p>
               </div>

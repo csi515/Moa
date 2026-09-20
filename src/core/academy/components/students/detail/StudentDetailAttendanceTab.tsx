@@ -1,5 +1,5 @@
 import React from 'react';
-import { AttendanceRecord } from '@/types';
+import { AttendanceRecord, ClassItem } from '@/types';
 import { getAttendanceBadge } from '@/utils/formatters';
 import { Plus } from 'lucide-react';
 
@@ -16,7 +16,16 @@ interface StudentDetailAttendanceTabProps {
   setNewAttStatus: (status: AttendanceRecord['status']) => void;
   newAttMemo: string;
   setNewAttMemo: (memo: string) => void;
+  newAttClassId: string;
+  setNewAttClassId: (classId: string) => void;
+  attendanceClassOptions: ClassItem[];
   onSaveAttendance: (e: React.FormEvent) => void;
+}
+
+function classOptionLabel(cls: ClassItem): string {
+  const days = (cls.daysOfWeek || []).join('');
+  const time = cls.startTime || '';
+  return [cls.name, days && time ? `${days} ${time}` : days || time].filter(Boolean).join(' · ');
 }
 
 export const StudentDetailAttendanceTab: React.FC<StudentDetailAttendanceTabProps> = ({
@@ -32,6 +41,9 @@ export const StudentDetailAttendanceTab: React.FC<StudentDetailAttendanceTabProp
   setNewAttStatus,
   newAttMemo,
   setNewAttMemo,
+  newAttClassId,
+  setNewAttClassId,
+  attendanceClassOptions,
   onSaveAttendance,
 }) => (
   <div className="space-y-4">
@@ -88,6 +100,34 @@ export const StudentDetailAttendanceTab: React.FC<StudentDetailAttendanceTabProp
             />
           </div>
         </div>
+
+        {attendanceClassOptions.length === 0 ? (
+          <p className="text-[11px] text-slate-500">
+            이 날짜에 등록된 반 일정이 없어 「일반 수업」으로 기록됩니다.
+          </p>
+        ) : attendanceClassOptions.length === 1 ? (
+          <p className="text-[11px] text-slate-600">
+            대상 반: <span className="font-bold text-slate-800">{classOptionLabel(attendanceClassOptions[0])}</span>
+          </p>
+        ) : (
+          <div>
+            <label className="text-[11px] font-semibold text-slate-700 block mb-1">대상 반</label>
+            <select
+              value={newAttClassId}
+              onChange={(e) => setNewAttClassId(e.target.value)}
+              required
+              className="w-full px-2.5 py-1.5 text-xs bg-white border border-slate-200 rounded-lg font-bold"
+            >
+              <option value="">반을 선택하세요</option>
+              {attendanceClassOptions.map((cls) => (
+                <option key={cls.id} value={cls.id}>
+                  {classOptionLabel(cls)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div className="flex justify-end gap-2">
           <button
             type="button"

@@ -1,5 +1,11 @@
 import type { ReactNode } from 'react';
-import type { Student, AttendanceRecord, AttendanceStatus } from '@/types';
+import type {
+  Student,
+  AttendanceRecord,
+  AttendanceStatus,
+  AcademyEvent,
+  PerformanceVideo,
+} from '@/types';
 import type { DetailTab, DetailTabConfigItem, DetailTabCounts } from './types';
 
 /** 출결 저장 전 업종별 부가 처리 (회차권 차감 등) */
@@ -9,6 +15,11 @@ export type StudentDetailAttendanceSideEffect = (params: {
   previous: AttendanceRecord | null;
   date: string;
 }) => { warning?: string; sessionPassId?: string };
+
+/** 연주 영상 폼: 행사 타입 → 영상 분류 (Module이 제공) */
+export type StudentDetailMapEventToVideoType = (
+  eventType: AcademyEvent['type']
+) => PerformanceVideo['eventType'];
 
 export interface StudentDetailHeaderActionsProps {
   student: Student;
@@ -57,6 +68,8 @@ export interface StudentDetailExtension {
   applyAttendanceSideEffect?: StudentDetailAttendanceSideEffect;
   /** 연주 영상 타입 라벨 (없으면 Core 기본) */
   performanceVideoTypeLabel?: Record<string, string>;
+  /** 행사 선택 시 영상 eventType 매핑 (없으면 'other') */
+  mapEventTypeToVideoType?: StudentDetailMapEventToVideoType;
 }
 
 const extensions = new Map<string, StudentDetailExtension>();
@@ -94,4 +107,13 @@ export function runStudentDetailAttendanceSideEffect(
   const effect = getStudentDetailExtension(industryId)?.applyAttendanceSideEffect;
   if (!effect) return {};
   return effect(params) || {};
+}
+
+export function mapStudentDetailEventToVideoType(
+  industryId: string | null | undefined,
+  eventType: AcademyEvent['type']
+): PerformanceVideo['eventType'] {
+  const map = getStudentDetailExtension(industryId)?.mapEventTypeToVideoType;
+  if (map) return map(eventType);
+  return 'other';
 }

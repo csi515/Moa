@@ -725,6 +725,15 @@ export interface AcademySettings {
     attendance?: {
       enabled?: boolean;
     };
+    /** 소매 포인트 (사업장 단위). 1P=1원은 앱 상수 */
+    points?: {
+      /** 포인트 사용 ON/OFF */
+      enabled?: boolean;
+      /** 포인트 적립 ON/OFF */
+      earnEnabled?: boolean;
+      /** 기본 적립률(%) — 예: 1 = 1% */
+      earnRatePercent?: number;
+    };
   };
 }
 

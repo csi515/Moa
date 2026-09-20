@@ -2,7 +2,7 @@
 export const PWA_INSTALL_COPY = {
   title: (shortName: string) => `${shortName}를 홈 화면에 추가`,
   body: (shortName: string) =>
-    `${shortName}(Moa)를 홈 화면에 추가하면 레슨 및 등하원 알림을 무료로 받아보실 수 있습니다.`,
+    `${shortName}(Moa)를 홈 화면에 추가하면 수업 및 등하원 알림을 무료로 받아보실 수 있습니다.`,
   installCta: '홈 화면에 추가',
   laterCta: '나중에',
   gotItCta: '확인했어요',

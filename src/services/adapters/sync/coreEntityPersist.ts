@@ -67,8 +67,7 @@ export async function persistCoreEntity(
       await persistIncomeEntries(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS:
-      await persistTeacherPayrollSettlements(client, organizationId, cache, isAborted);
-      break;
+      return persistTeacherPayrollSettlements(client, organizationId, cache, isAborted);
     case STORAGE_KEYS.CONSULTATIONS:
       await persistConsultations(client, organizationId, cache, isAborted);
       break;

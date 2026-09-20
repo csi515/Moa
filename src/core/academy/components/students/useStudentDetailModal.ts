@@ -27,10 +27,23 @@ import {
   getStudentDetailExtension,
   resolveStudentDetailTabs,
   runStudentDetailAttendanceSideEffect,
+  mapStudentDetailEventToVideoType,
 } from './detail/studentDetailExtensions';
-import { RecitalService } from '@/modules/piano/services/recitalService';
 
 const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
+
+/** YYYY-MM-DD → 로컬 요일 (UTC 파싱 오차 방지) */
+function weekdayKoFromIsoDate(dateIso: string): DayOfWeek {
+  const [y, m, d] = dateIso.split('-').map((n) => parseInt(n, 10));
+  const date = new Date(y, (m || 1) - 1, d || 1);
+  return WEEKDAY_KO[date.getDay()];
+}
+
+/** 선택한 날짜에 수업이 있는 등록 반만 (수동 출결 대상) */
+function getEnrolledClassesOnDate(classes: ClassItem[], dateIso: string): ClassItem[] {
+  const day = weekdayKoFromIsoDate(dateIso);
+  return classes.filter((cls) => (cls.daysOfWeek || []).includes(day));
+}
 
 const DEFAULT_VIDEO_TYPE_LABEL: Record<string, string> = {
   recital: '연주회',
@@ -116,6 +129,7 @@ export function useStudentDetailModal({
   const [newAttStatus, setNewAttStatus] = useState<any>('present');
   const [newAttDate, setNewAttDate] = useState(todayIsoLocal);
   const [newAttMemo, setNewAttMemo] = useState('');
+  const [newAttClassId, setNewAttClassId] = useState('');
 
   const [isAddCstOpen, setIsAddCstOpen] = useState(false);
   const [newCstType, setNewCstType] = useState<any>('learning');
@@ -153,6 +167,26 @@ export function useStudentDetailModal({
 
   const allClasses = StorageService.getClasses();
   const enrolledClasses = allClasses.filter((c) => student.classIds?.includes(c.id));
+  const attendanceClassOptions = React.useMemo(
+    () => getEnrolledClassesOnDate(enrolledClasses, newAttDate),
+    [enrolledClasses, newAttDate]
+  );
+
+  React.useEffect(() => {
+    if (!isAddAttOpen) return;
+    if (attendanceClassOptions.length === 1) {
+      setNewAttClassId(attendanceClassOptions[0].id);
+      return;
+    }
+    if (attendanceClassOptions.length === 0) {
+      setNewAttClassId(DAY_ATTENDANCE_CLASS_ID);
+      return;
+    }
+    setNewAttClassId((prev) =>
+      attendanceClassOptions.some((c) => c.id === prev) ? prev : ''
+    );
+  }, [isAddAttOpen, attendanceClassOptions]);
+
   const allAttendance = StorageService.getAttendance().filter((a) => a.studentId === student.id);
   const allInvoices = TuitionService.getInvoicesByStudent(student.id);
   const allConsultations = StorageService.getConsultations().filter((c) => c.studentId === student.id);
@@ -225,9 +259,28 @@ export function useStudentDetailModal({
 
   const handleSaveAttendance = (e: React.FormEvent) => {
     e.preventDefault();
-    const targetClass = enrolledClasses[0] || allClasses[0];
-    const className = targetClass ? targetClass.name : '일반 수업';
-    const classId = targetClass ? targetClass.id : DAY_ATTENDANCE_CLASS_ID;
+    const options = getEnrolledClassesOnDate(enrolledClasses, newAttDate);
+
+    let classId: string;
+    let className: string;
+
+    if (options.length === 0) {
+      // 해당 날짜 일정 없음 → 기존 DAY_ATTENDANCE 정책
+      classId = DAY_ATTENDANCE_CLASS_ID;
+      className = '일반 수업';
+    } else if (options.length === 1) {
+      classId = options[0].id;
+      className = options[0].name;
+    } else {
+      const selected = options.find((c) => c.id === newAttClassId);
+      if (!selected) {
+        showToast('출결을 기록할 반을 선택해 주세요.', 'warning');
+        return;
+      }
+      classId = selected.id;
+      className = selected.name;
+    }
+
     const status = newAttStatus as AttendanceStatus;
     const existing = StorageService.getAttendance().find(
       (r) => r.date === newAttDate && r.studentId === student.id && r.classId === classId
@@ -267,6 +320,7 @@ export function useStudentDetailModal({
     showToast('출결 기록이 저장되었습니다.', 'success');
     setIsAddAttOpen(false);
     setNewAttMemo('');
+    setNewAttClassId('');
   };
 
   const handleSaveConsultation = (e: React.FormEvent) => {
@@ -360,7 +414,7 @@ export function useStudentDetailModal({
     const ev = recitalEvents.find((item) => item.id === eventId);
     if (!ev) return;
     setNewVideoDate(ev.startDate);
-    setNewVideoType(RecitalService.eventTypeToVideoType(ev.type));
+    setNewVideoType(mapStudentDetailEventToVideoType(industryPlugin.id, ev.type));
     if (!newVideoTitle.trim()) {
       setNewVideoTitle(`${ev.title} - ${student.name}`);
     }
@@ -521,6 +575,9 @@ export function useStudentDetailModal({
       setNewAttStatus,
       newAttMemo,
       setNewAttMemo,
+      newAttClassId,
+      setNewAttClassId,
+      attendanceClassOptions,
       onSave: handleSaveAttendance,
     },
     tuition: {

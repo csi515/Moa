@@ -25,7 +25,7 @@ export type LessonDurationPreset = (typeof LESSON_DURATION_PRESETS)[number];
 export const ONBOARDING_STEP_LABELS = [
   '학원 정보',
   '운영 시간',
-  '레슨 기본',
+  '수업 기본',
   '수납 기본',
   '교재',
   '출결',
