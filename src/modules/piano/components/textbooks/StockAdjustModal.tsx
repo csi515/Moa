@@ -26,7 +26,7 @@ export const StockAdjustModal: React.FC<StockAdjustModalProps> = ({
     previousStock + (transactionType === 'inbound' || transactionType === 'return' ? deltaQuantity : deltaQuantity)
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (deltaQuantity === 0) {
@@ -35,7 +35,7 @@ export const StockAdjustModal: React.FC<StockAdjustModalProps> = ({
     }
 
     try {
-      const res = StorageService.adjustStock(
+      const res = await StorageService.adjustStock(
         textbook.id,
         deltaQuantity,
         transactionType,

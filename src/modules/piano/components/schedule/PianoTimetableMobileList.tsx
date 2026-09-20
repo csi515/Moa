@@ -3,8 +3,8 @@ import { Plus, X } from 'lucide-react';
 import type { ClassItem, DayOfWeek, Student } from '@/types';
 import {
   TIMETABLE_DAYS,
-  TIMETABLE_SLOTS,
   getPlacementsForSlot,
+  resolveTimetableSlots,
   type SlotPlacement,
   type TimetableSlot,
 } from './pianoTimetablePlacement';
@@ -36,12 +36,13 @@ export const PianoTimetableMobileList: FC<PianoTimetableMobileListProps> = ({
   onStartPlaceStudent,
 }) => {
   const pending = students.find((s) => s.id === pendingStudentId);
+  const slots = resolveTimetableSlots(classes);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
         {TIMETABLE_DAYS.map((day) => {
-          const count = TIMETABLE_SLOTS.reduce(
+          const count = slots.reduce(
             (n, slot) => n + getPlacementsForSlot(students, classes, day, slot).length,
             0
           );
@@ -82,7 +83,7 @@ export const PianoTimetableMobileList: FC<PianoTimetableMobileListProps> = ({
       )}
 
       <ul className="space-y-2">
-        {TIMETABLE_SLOTS.map((slot) => {
+        {slots.map((slot) => {
           const placements = getPlacementsForSlot(students, classes, selectedDay, slot);
           return (
             <li

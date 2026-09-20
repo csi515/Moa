@@ -11,6 +11,9 @@ import type {
   TuitionInvoice,
   TuitionPayment,
 } from '@/types';
+import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
+
+export { findExistingStudentMonthInvoice };
 
 /**
  * 수강료·청구 도메인 파사드.
@@ -27,6 +30,14 @@ export const TuitionService = {
 
   getInvoiceById(id: string): TuitionInvoice | undefined {
     return StorageService.getInvoices().find((i) => i.id === id);
+  },
+
+  /** 동일 학생·연월 청구서 (있으면 반환) */
+  findInvoiceForStudentMonth(
+    studentId: string,
+    yearMonth: string
+  ): TuitionInvoice | undefined {
+    return findExistingStudentMonthInvoice(this.getInvoices(), studentId, yearMonth);
   },
 
   getSettings(): AcademySettings {

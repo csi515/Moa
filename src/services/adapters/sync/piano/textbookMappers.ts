@@ -38,7 +38,9 @@ export function textbookToPianoRow(tb: Textbook, organizationId: string) {
     min_stock: tb.minStock,
     is_for_sale: tb.isForSale,
     memo: tb.memo || null,
-    metadata: {} as Json,
+    metadata: {
+      productId: tb.productId || tb.id,
+    } as Json,
   };
 }
 
@@ -55,9 +57,11 @@ export function pianoRowToTextbook(row: {
   min_stock: number;
   is_for_sale: boolean;
   memo: string | null;
+  metadata?: Json | null;
   created_at: string;
   updated_at: string;
 }): Textbook {
+  const meta = (row.metadata || {}) as { productId?: string };
   return {
     id: row.id,
     title: row.title,
@@ -73,6 +77,7 @@ export function pianoRowToTextbook(row: {
     minStock: row.min_stock,
     isForSale: row.is_for_sale,
     memo: row.memo || undefined,
+    productId: meta.productId || row.id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

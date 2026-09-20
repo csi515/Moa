@@ -22,6 +22,9 @@
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
     "test:timetable-placement": "node --experimental-test-module-mocks --import tsx src/modules/piano/components/schedule/pianoTimetablePlacement.test.ts",
+    "test:invoice-dedupe": "tsx src/core/finance/invoiceDedupe.test.ts",
+    "test:today-lesson-teacher": "tsx src/modules/piano/components/lessons/todayLessonSaveTeacherId.test.ts",
+    "test:manual-attendance-class": "tsx src/core/academy/components/students/detail/studentManualAttendanceClass.test.ts",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"
   },
   "dependencies": {

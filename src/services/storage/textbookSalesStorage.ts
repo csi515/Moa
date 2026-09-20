@@ -17,8 +17,9 @@ import {
   upsertLinkedIncome,
 } from '../../core/finance/billingIncomeLink';
 import type { LinkedTextbookPaymentOptions } from '../../core/finance/linkedTextbookSettle';
+import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
 
-/** 교재 판매·수납·통합 청구 */
+/** 교재 판매·수납·통합 청구 (재고 차감/복구는 Core Inventory) */
 export function createTextbookSalesStorage(api: StorageApi) {
   return {
     getTextbookSales(): TextbookSale[] {
@@ -61,7 +62,7 @@ export function createTextbookSalesStorage(api: StorageApi) {
       return (api.getTextbookSales as () => TextbookSale[])().filter((s) => s.studentId === studentId);
     },
 
-    createSale(data: {
+    async createSale(data: {
       studentId: string;
       textbookId: string;
       quantity: number;
@@ -73,11 +74,11 @@ export function createTextbookSalesStorage(api: StorageApi) {
       memo?: string;
       teacherId?: string;
       teacherName?: string;
-    }): {
+    }): Promise<{
       sale: TextbookSale;
       payment?: TextbookPayment;
       transaction: TextbookInventoryTransaction;
-    } {
+    }> {
       const students = (api.getStudents as () => Student[])();
       const student = students.find((s) => s.id === data.studentId);
       const textbooks = (api.getTextbooks as () => Textbook[])();
@@ -103,6 +104,30 @@ export function createTextbookSalesStorage(api: StorageApi) {
       const nowIso = now.toISOString();
       const saleDate = data.saleDate || nowIso.slice(0, 10);
       const saleId = generateEntityId('ts');
+
+      let prevStock = tb.stock;
+      let currentStock = Math.max(0, prevStock - qty);
+      if (textbookCoreStock.isAvailable()) {
+        const stockRes = await textbookCoreStock.applySaleDeduction({
+          textbookId: tb.id,
+          quantity: qty,
+          saleId,
+          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
+        });
+        prevStock = stockRes.previousStock;
+        currentStock = stockRes.currentStock;
+      } else {
+        const tbIdx = textbooks.findIndex((t) => t.id === tb.id);
+        if (tbIdx >= 0) {
+          textbooks[tbIdx] = {
+            ...tb,
+            stock: currentStock,
+            currentStock,
+            updatedAt: nowIso,
+          };
+          setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
+        }
+      }
 
       const newSale: TextbookSale = {
         id: saleId,
@@ -133,27 +158,36 @@ export function createTextbookSalesStorage(api: StorageApi) {
       salesList.unshift(newSale);
       setItem(STORAGE_KEYS.TEXTBOOK_SALES, salesList);
 
-      const prevStock = tb.stock;
-      const currentStock = Math.max(0, prevStock - qty);
-      const tbIdx = textbooks.findIndex((t) => t.id === tb.id);
-      if (tbIdx >= 0) {
-        textbooks[tbIdx] = { ...tb, stock: currentStock, updatedAt: nowIso };
-        setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
+      let tx: TextbookInventoryTransaction;
+      if (textbookCoreStock.isAvailable()) {
+        tx = {
+          id: `core-sale-${saleId}`,
+          textbookId: tb.id,
+          textbookTitle: tb.title,
+          transactionType: 'sale',
+          quantity: -qty,
+          previousStock: prevStock,
+          currentStock,
+          referenceId: saleId,
+          transactionDate: saleDate,
+          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
+          createdAt: nowIso,
+        };
+      } else {
+        tx = (api.recordInventoryTransaction as (
+          t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
+        ) => TextbookInventoryTransaction)({
+          textbookId: tb.id,
+          textbookTitle: tb.title,
+          transactionType: 'sale',
+          quantity: -qty,
+          previousStock: prevStock,
+          currentStock,
+          referenceId: saleId,
+          transactionDate: saleDate,
+          memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
+        });
       }
-
-      const tx = (api.recordInventoryTransaction as (
-        t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-      ) => TextbookInventoryTransaction)({
-        textbookId: tb.id,
-        textbookTitle: tb.title,
-        transactionType: 'sale',
-        quantity: -qty,
-        previousStock: prevStock,
-        currentStock,
-        referenceId: saleId,
-        transactionDate: saleDate,
-        memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-      });
 
       let payment: TextbookPayment | undefined;
       if (initialPaid > 0) {
@@ -184,7 +218,7 @@ export function createTextbookSalesStorage(api: StorageApi) {
       return { sale: newSale, payment, transaction: tx };
     },
 
-    cancelSale(saleId: string, reason?: string): boolean {
+    async cancelSale(saleId: string, reason?: string): Promise<boolean> {
       const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
       const idx = sales.findIndex((s) => s.id === saleId);
       if (idx === -1) return false;
@@ -195,24 +229,38 @@ export function createTextbookSalesStorage(api: StorageApi) {
 
       if (tbIdx >= 0) {
         const tb = textbooks[tbIdx];
-        const prevStock = tb.stock;
-        const currentStock = prevStock + sale.quantity;
-        textbooks[tbIdx] = { ...tb, stock: currentStock, updatedAt: new Date().toISOString() };
-        setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
+        if (textbookCoreStock.isAvailable()) {
+          await textbookCoreStock.applySaleRestore({
+            textbookId: tb.id,
+            quantity: sale.quantity,
+            saleId: sale.id,
+            memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
+          });
+        } else {
+          const prevStock = tb.stock;
+          const currentStock = prevStock + sale.quantity;
+          textbooks[tbIdx] = {
+            ...tb,
+            stock: currentStock,
+            currentStock,
+            updatedAt: new Date().toISOString(),
+          };
+          setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
 
-        (api.recordInventoryTransaction as (
-          t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-        ) => TextbookInventoryTransaction)({
-          textbookId: tb.id,
-          textbookTitle: tb.title,
-          transactionType: 'return',
-          quantity: sale.quantity,
-          previousStock: prevStock,
-          currentStock,
-          referenceId: sale.id,
-          transactionDate: new Date().toISOString().slice(0, 10),
-          memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
-        });
+          (api.recordInventoryTransaction as (
+            t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
+          ) => TextbookInventoryTransaction)({
+            textbookId: tb.id,
+            textbookTitle: tb.title,
+            transactionType: 'return',
+            quantity: sale.quantity,
+            previousStock: prevStock,
+            currentStock,
+            referenceId: sale.id,
+            transactionDate: new Date().toISOString().slice(0, 10),
+            memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
+          });
+        }
       }
 
       sales.splice(idx, 1);

@@ -359,8 +359,10 @@ function handleRpc(store: Store, name: string, body: Row | null): unknown {
 function tableMutateDefaults(table: string, row: Row): Row {
   const id = (row.id as string) || uuid();
   const ts = nowIso();
-  const base = { ...row, id, updated_at: ts };
-  if (!base.created_at) base.created_at = ts;
+  const base: Row = { ...row, id, updated_at: ts };
+  if (base.created_at == null || base.created_at === '') {
+    base.created_at = ts;
+  }
   if (table === 'products') {
     return {
       is_active: true,

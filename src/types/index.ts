@@ -399,11 +399,18 @@ export interface Textbook {
   price: number; // alias for salePrice
   salePrice: number; // 판매가격
   costPrice: number; // 매입가격
-  stock: number; // 현재 재고
+  /**
+   * 현재 재고 미러.
+   * 실제 source of truth는 Core Inventory(productId).
+   * Core 연동 후 재고 변경은 Core 반영 뒤 이 필드를 동기화한다.
+   */
+  stock: number;
   currentStock?: number; // alias for stock
   minStock: number; // 최소 재고
   isForSale: boolean; // 판매 여부
   memo?: string;
+  /** Core products.id — 재고 연동 키. 없으면 이관 시 textbook.id로 생성 */
+  productId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -710,6 +717,11 @@ export interface AcademySettings {
   rooms?: AcademyRoom[];
   /** 피부관리 상품 카탈로그 */
   retailCatalog?: RetailProduct[];
+  /**
+   * Skin 상품·재고 Core 이관 완료 시각(ISO).
+   * 설정되면 UI는 Core를 사용. retailCatalog JSON은 삭제하지 않고 보존.
+   */
+  skinRetailCoreMigratedAt?: string | null;
   /** 피부관리 예약금. 끄면 신청만 받는다 */
   depositEnabled?: boolean;
   depositAmount?: number;

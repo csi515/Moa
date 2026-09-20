@@ -3,8 +3,8 @@ import { X } from 'lucide-react';
 import type { ClassItem, DayOfWeek, Student } from '@/types';
 import {
   TIMETABLE_DAYS,
-  TIMETABLE_SLOTS,
   getPlacementsForSlot,
+  resolveTimetableSlots,
   type SlotPlacement,
   type TimetableSlot,
 } from './pianoTimetablePlacement';
@@ -47,6 +47,8 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
   onDropPlacement,
   onRemove,
 }) => {
+  const slots = resolveTimetableSlots(classes);
+
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -83,7 +85,7 @@ export const PianoTimetableDesktopGrid: FC<PianoTimetableDesktopGridProps> = ({
           </div>
 
           <div className="divide-y divide-slate-200">
-            {TIMETABLE_SLOTS.map((slot) => (
+            {slots.map((slot) => (
               <div key={slot} className="grid grid-cols-7 min-h-[56px]">
                 <div className="p-1.5 border-r border-slate-200 bg-slate-50/50 flex justify-center items-start pt-2">
                   <span

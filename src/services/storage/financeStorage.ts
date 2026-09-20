@@ -29,6 +29,7 @@ import {
   saveTuitionPaymentDirect,
   upsertLinkedIncome,
 } from '../../core/finance/billingIncomeLink';
+import { findExistingStudentMonthInvoice } from '../../core/finance/invoiceDedupe';
 import {
   reverseLinkedTextbookPaymentsForTuition,
   settleLinkedTextbookSalesOnTuitionPaid,
@@ -336,6 +337,15 @@ export function createFinanceStorage(api: StorageApi) {
         return null;
       }
       const ym = yearMonth || new Date().toISOString().slice(0, 7);
+
+      // 동일 학생·동일 연월: 초안/발송 모두 중복 생성 금지 — 기존 건 반환
+      const existing = findExistingStudentMonthInvoice(
+        (api.getInvoices as () => TuitionInvoice[])(),
+        student.id,
+        ym
+      );
+      if (existing) return existing;
+
       const dueDay = String(student.paymentDay || 10).padStart(2, '0');
       const dueDate = `${ym}-${dueDay}`;
       const settings = getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, {

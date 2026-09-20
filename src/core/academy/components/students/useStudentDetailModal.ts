@@ -11,7 +11,6 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
-import { DAY_ATTENDANCE_CLASS_ID } from '@/core/attendance/dayAttendance';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   getAttendanceBadge,
@@ -29,21 +28,13 @@ import {
   runStudentDetailAttendanceSideEffect,
   mapStudentDetailEventToVideoType,
 } from './detail/studentDetailExtensions';
+import {
+  getEnrolledClassesOnDate,
+  nextManualAttendanceClassId,
+  resolveManualAttendanceClass,
+} from './detail/studentManualAttendanceClass';
 
 const WEEKDAY_KO: DayOfWeek[] = ['일', '월', '화', '수', '목', '금', '토'];
-
-/** YYYY-MM-DD → 로컬 요일 (UTC 파싱 오차 방지) */
-function weekdayKoFromIsoDate(dateIso: string): DayOfWeek {
-  const [y, m, d] = dateIso.split('-').map((n) => parseInt(n, 10));
-  const date = new Date(y, (m || 1) - 1, d || 1);
-  return WEEKDAY_KO[date.getDay()];
-}
-
-/** 선택한 날짜에 수업이 있는 등록 반만 (수동 출결 대상) */
-function getEnrolledClassesOnDate(classes: ClassItem[], dateIso: string): ClassItem[] {
-  const day = weekdayKoFromIsoDate(dateIso);
-  return classes.filter((cls) => (cls.daysOfWeek || []).includes(day));
-}
 
 const DEFAULT_VIDEO_TYPE_LABEL: Record<string, string> = {
   recital: '연주회',
@@ -174,17 +165,7 @@ export function useStudentDetailModal({
 
   React.useEffect(() => {
     if (!isAddAttOpen) return;
-    if (attendanceClassOptions.length === 1) {
-      setNewAttClassId(attendanceClassOptions[0].id);
-      return;
-    }
-    if (attendanceClassOptions.length === 0) {
-      setNewAttClassId(DAY_ATTENDANCE_CLASS_ID);
-      return;
-    }
-    setNewAttClassId((prev) =>
-      attendanceClassOptions.some((c) => c.id === prev) ? prev : ''
-    );
+    setNewAttClassId((prev) => nextManualAttendanceClassId(attendanceClassOptions, prev));
   }, [isAddAttOpen, attendanceClassOptions]);
 
   const allAttendance = StorageService.getAttendance().filter((a) => a.studentId === student.id);
@@ -260,26 +241,15 @@ export function useStudentDetailModal({
   const handleSaveAttendance = (e: React.FormEvent) => {
     e.preventDefault();
     const options = getEnrolledClassesOnDate(enrolledClasses, newAttDate);
-
-    let classId: string;
-    let className: string;
-
-    if (options.length === 0) {
-      // 해당 날짜 일정 없음 → 기존 DAY_ATTENDANCE 정책
-      classId = DAY_ATTENDANCE_CLASS_ID;
-      className = '일반 수업';
-    } else if (options.length === 1) {
-      classId = options[0].id;
-      className = options[0].name;
-    } else {
-      const selected = options.find((c) => c.id === newAttClassId);
-      if (!selected) {
-        showToast('출결을 기록할 반을 선택해 주세요.', 'warning');
-        return;
-      }
-      classId = selected.id;
-      className = selected.name;
+    const resolved = resolveManualAttendanceClass({
+      options,
+      selectedClassId: newAttClassId,
+    });
+    if (!resolved.ok) {
+      showToast('출결을 기록할 반을 선택해 주세요.', 'warning');
+      return;
     }
+    const { classId, className } = resolved;
 
     const status = newAttStatus as AttendanceStatus;
     const existing = StorageService.getAttendance().find(
@@ -461,9 +431,20 @@ export function useStudentDetailModal({
       );
       return;
     }
-    const created = TuitionService.createInvoiceForStudent(student);
+    const yearMonth = new Date().toISOString().slice(0, 7);
+    const existing = TuitionService.findInvoiceForStudentMonth(student.id, yearMonth);
+    const created = TuitionService.createInvoiceForStudent(student, yearMonth);
     if (!created) {
       showToast('청구서를 발행할 수 없습니다.', 'warning');
+      return;
+    }
+    if (existing && existing.id === created.id) {
+      showToast(
+        existing.invoiceSent
+          ? `${yearMonth} 청구서가 이미 발송되어 있습니다.`
+          : `${yearMonth} 청구서 초안이 이미 있습니다. 수강료 화면에서 확인하세요.`,
+        'info'
+      );
       return;
     }
     showToast('청구서 초안이 생성되었습니다. 수강료 화면에서 [발송]하세요.', 'success');

@@ -1,5 +1,10 @@
 ﻿import type { ClassItem, DayOfWeek, Student, Teacher } from '@/types';
 import { StorageService } from '@/services/storage';
+import {
+  findClassConflicts,
+  formatConflictSummary,
+  type ClassSlotCandidate,
+} from '@/core/academy/utils/scheduleConflicts';
 
 export const TIMETABLE_DAYS: DayOfWeek[] = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -31,7 +36,28 @@ export const TIMETABLE_SLOTS = [
   '20:30',
 ] as const;
 
-export type TimetableSlot = (typeof TIMETABLE_SLOTS)[number];
+/** 기본 슬롯 또는 등록 반 시작시각(동적 확장) — 리터럴 유니온에 묶지 않음 */
+export type TimetableSlot = string;
+
+const BASE_SLOT_SET: ReadonlySet<string> = new Set(
+  TIMETABLE_SLOTS as readonly string[]
+);
+
+/**
+ * 기본 09:00~20:30(30분) + 실제 등록된 ClassItem 시작시각만 추가.
+ * 범위 밖(예: 21:00)·비 30분 시작시각도 행으로 남겨 반이 사라지지 않게 한다.
+ */
+export function resolveTimetableSlots(classes: ClassItem[]): string[] {
+  const result: string[] = [...(TIMETABLE_SLOTS as readonly string[])];
+  const seen = new Set(result);
+  for (const cls of classes) {
+    const st = (cls.startTime || '').trim();
+    if (!st || seen.has(st)) continue;
+    seen.add(st);
+    result.push(st);
+  }
+  return result.sort((a, b) => timeToMinutes(a) - timeToMinutes(b));
+}
 
 export interface SlotPlacement {
   student: Student;
@@ -83,19 +109,27 @@ export function findEditableSlotClass(
 }
 
 /**
- * 해당 슬롯(30분 구간)에 표시할 반.
- * 시작시각이 [slot, slot+30) 이면 표시. 편집은 isEditableSlotClass(정확한 startTime).
+ * 해당 슬롯에 표시할 반.
+ * - 시작시각이 슬롯과 일치하면 표시
+ * - 아니면 [slot, slot+30) 구간에 속하되, 그 시작시각이 시간표에 전용 행으로 있으면 해당 행에만 표시
+ * 편집은 isEditableSlotClass(정확한 startTime).
  */
 export function classesMatchingSlot(
   classes: ClassItem[],
   day: DayOfWeek,
-  startTime: string
+  startTime: string,
+  slotList?: readonly string[]
 ): ClassItem[] {
+  const slots = slotList ?? resolveTimetableSlots(classes);
   const slotStart = timeToMinutes(startTime);
   const slotEnd = slotStart + 30;
   return classes.filter((cls) => {
     if (!cls.daysOfWeek.includes(day)) return false;
-    const t = timeToMinutes(cls.startTime || '00:00');
+    const st = cls.startTime || '00:00';
+    if (st === startTime) return true;
+    // 전용 슬롯 행이 있으면 30분 창 중복 표시 방지
+    if (slots.includes(st)) return false;
+    const t = timeToMinutes(st);
     return t >= slotStart && t < slotEnd;
   });
 }
@@ -106,7 +140,8 @@ export function getPlacementsForSlot(
   day: DayOfWeek,
   startTime: string
 ): SlotPlacement[] {
-  const matching = classesMatchingSlot(classes, day, startTime);
+  const slots = resolveTimetableSlots(classes);
+  const matching = classesMatchingSlot(classes, day, startTime, slots);
   const byStudent = new Map<string, SlotPlacement>();
 
   for (const cls of matching) {
@@ -142,6 +177,32 @@ function defaultRoom(): string {
   const settings = StorageService.getSettings();
   const room = settings.rooms?.find((r) => r.name)?.name;
   return room || '연습실';
+}
+
+/** 시간표에서 새로 만들 반 후보 (반 관리 생성과 동일 필드) */
+function buildNewSlotClassCandidate(
+  day: DayOfWeek,
+  startTime: string,
+  teachers: Teacher[],
+  preferredTeacherId?: string
+): ClassSlotCandidate {
+  const teacher = resolveTeacher(teachers, preferredTeacherId);
+  return {
+    teacherId: teacher.id,
+    room: defaultRoom(),
+    daysOfWeek: [day],
+    startTime,
+    endTime: slotEndTime(startTime),
+  };
+}
+
+function newClassConflictMessage(
+  conflicts: ReturnType<typeof findClassConflicts>
+): string {
+  return (
+    `새 반을 만들 수 없습니다. 강사 또는 연습실 일정이 겹칩니다.\n\n` +
+    formatConflictSummary(conflicts)
+  );
 }
 
 /** 슬롯용 ClassItem 확보. createIfMissing=false이면 없으면 null (자동 생성 안 함).
@@ -264,6 +325,17 @@ export function assignStudentToSlot(params: {
     };
   }
 
+  // 새 반 생성 시에만 강사·연습실 충돌 검사 (기존 반 재사용 경로는 유지)
+  if (!existingSlotClass && createClassIfMissing) {
+    const conflicts = findClassConflicts(
+      classes,
+      buildNewSlotClassCandidate(day, startTime, teachers, preferredTeacherId)
+    );
+    if (conflicts.length > 0) {
+      return { ok: false, message: newClassConflictMessage(conflicts) };
+    }
+  }
+
   const slotClass = ensureEditableSlotClass({
     classes,
     day,
@@ -369,6 +441,20 @@ export function moveStudentToSlot(params: {
         ok: false,
         message: `반 정원(${targetClass.capacity}명)이 가득 찼습니다. 반 관리에서 정원을 늘린 뒤 다시 배치해 주세요.`,
       };
+    }
+  } else if (createClassIfMissing) {
+    // 새 반 생성 전 충돌 검사 — 원 슬롯 제거보다 먼저
+    const conflicts = findClassConflicts(
+      params.classes,
+      buildNewSlotClassCandidate(
+        params.toDay,
+        params.toStartTime,
+        params.teachers,
+        params.preferredTeacherId
+      )
+    );
+    if (conflicts.length > 0) {
+      return { ok: false, message: newClassConflictMessage(conflicts) };
     }
   }
 

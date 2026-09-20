@@ -1,26 +1,27 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
-import { useStorageRefresh } from '@/hooks';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
-import { StorageService } from '@/services/storage';
 import { EmptyState, Modal, PageHeader } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
-import type { PaymentMethod, RetailProduct } from '@/types';
-import * as orgService from '@/core/organizations/services/organizationService';
-
-function saveCatalog(catalog: RetailProduct[]) {
-  const settings = StorageService.updateSettings({ retailCatalog: catalog });
-  return settings.retailCatalog || [];
-}
+import type { PaymentMethod } from '@/types';
+import type { CustomerSearchResult } from '@/core/customer/services/customerLinkService';
+import {
+  skinRetailService,
+  type SkinRetailItem,
+} from '../../services/skinRetailService';
 
 export function SkinRetailView() {
   const { showToast } = useApp();
-  const refreshKey = useStorageRefresh();
   const org = useOrganization();
+  const orgId = org.currentOrganization?.id;
+
+  const [catalog, setCatalog] = useState<SkinRetailItem[]>([]);
+  const [customers, setCustomers] = useState<CustomerSearchResult[]>([]);
+  const [loading, setLoading] = useState(true);
   const [isProductOpen, setIsProductOpen] = useState(false);
   const [isSaleOpen, setIsSaleOpen] = useState(false);
-  const [editing, setEditing] = useState<RetailProduct | null>(null);
+  const [editing, setEditing] = useState<SkinRetailItem | null>(null);
   const [name, setName] = useState('');
   const [price, setPrice] = useState(30000);
   const [stock, setStock] = useState(0);
@@ -28,21 +29,36 @@ export function SkinRetailView() {
   const [saleQty, setSaleQty] = useState(1);
   const [customerId, setCustomerId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
+  const [saving, setSaving] = useState(false);
 
-  const catalog = useMemo(
-    () => StorageService.getSettings().retailCatalog || [],
-    [refreshKey]
-  );
-  const customers = useMemo(
-    () => StorageService.getStudents().filter((s) => s.status === 'active'),
-    [refreshKey]
-  );
+  const reload = useCallback(async () => {
+    if (!orgId) {
+      setCatalog([]);
+      setCustomers([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const [items, customerRows] = await Promise.all([
+        skinRetailService.listItems(orgId),
+        skinRetailService.listCustomers(orgId),
+      ]);
+      setCatalog(items);
+      setCustomers(customerRows);
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : '상품 목록을 불러오지 못했습니다.',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [orgId, showToast]);
 
-  const persistRemote = async (next: RetailProduct[]) => {
-    const orgId = org.currentOrganization?.id;
-    if (!orgId) return;
-    await orgService.updateOrganization(orgId, { settings: { retailCatalog: next } });
-  };
+  useEffect(() => {
+    void reload();
+  }, [reload]);
 
   const openCreate = () => {
     setEditing(null);
@@ -54,52 +70,45 @@ export function SkinRetailView() {
 
   const saveProduct = async (e: FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
-    const nextItem: RetailProduct = {
-      id: editing?.id || crypto.randomUUID(),
-      name: name.trim(),
-      price,
-      stock: Math.max(0, stock),
-    };
-    const next = editing
-      ? catalog.map((item) => (item.id === editing.id ? nextItem : item))
-      : [nextItem, ...catalog];
-    saveCatalog(next);
-    await persistRemote(next);
-    setIsProductOpen(false);
-    showToast(editing ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.', 'success');
+    if (!orgId || !name.trim()) return;
+    setSaving(true);
+    try {
+      await skinRetailService.saveItem(orgId, {
+        id: editing?.id,
+        name: name.trim(),
+        price,
+        stock: Math.max(0, stock),
+      });
+      setIsProductOpen(false);
+      await reload();
+      showToast(editing ? '상품이 수정되었습니다.' : '상품이 등록되었습니다.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '상품 저장에 실패했습니다.', 'error');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const sell = async (e: FormEvent) => {
     e.preventDefault();
-    const product = catalog.find((item) => item.id === saleProductId);
-    if (!product) {
-      showToast('상품을 선택해 주세요.', 'warning');
-      return;
+    if (!orgId) return;
+    setSaving(true);
+    try {
+      await skinRetailService.sell({
+        organizationId: orgId,
+        productId: saleProductId,
+        quantity: saleQty,
+        customerId: customerId || null,
+        paymentMethod,
+      });
+      setIsSaleOpen(false);
+      await reload();
+      showToast('판매가 등록되었습니다.', 'success');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '판매 등록에 실패했습니다.', 'warning');
+    } finally {
+      setSaving(false);
     }
-    if (saleQty < 1 || saleQty > product.stock) {
-      showToast('재고가 부족합니다.', 'warning');
-      return;
-    }
-    const customer = customers.find((c) => c.id === customerId);
-    const amount = product.price * saleQty;
-    const next = catalog.map((item) =>
-      item.id === product.id ? { ...item, stock: item.stock - saleQty } : item
-    );
-    saveCatalog(next);
-    StorageService.saveIncomeEntry({
-      date: new Date().toISOString().slice(0, 10),
-      category: 'product',
-      amount,
-      paymentMethod,
-      description: `${product.name} ${saleQty}개`,
-      payer: customer?.name,
-      sourceType: 'retail',
-      sourceId: product.id,
-    });
-    await persistRemote(next);
-    setIsSaleOpen(false);
-    showToast('판매가 등록되었습니다.', 'success');
   };
 
   return (
@@ -119,14 +128,16 @@ export function SkinRetailView() {
                 setCustomerId('');
                 setIsSaleOpen(true);
               }}
-              className="px-3 py-2.5 min-h-[44px] bg-white border border-rose-200 text-rose-700 text-sm font-bold rounded-xl"
+              disabled={loading || catalog.length === 0}
+              className="px-3 py-2.5 min-h-[44px] bg-white border border-rose-200 text-rose-700 text-sm font-bold rounded-xl disabled:opacity-50"
             >
               판매
             </button>
             <button
               type="button"
               onClick={openCreate}
-              className="px-3 py-2.5 min-h-[44px] bg-rose-600 text-white text-sm font-bold rounded-xl"
+              disabled={!orgId || loading}
+              className="px-3 py-2.5 min-h-[44px] bg-rose-600 text-white text-sm font-bold rounded-xl disabled:opacity-50"
             >
               + 상품
             </button>
@@ -134,7 +145,9 @@ export function SkinRetailView() {
         }
       />
 
-      {catalog.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-slate-500 py-8 text-center">불러오는 중…</p>
+      ) : catalog.length === 0 ? (
         <EmptyState title="등록된 상품이 없습니다" description="판매할 상품을 먼저 등록해 주세요" />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -162,7 +175,11 @@ export function SkinRetailView() {
         </div>
       )}
 
-      <Modal isOpen={isProductOpen} onClose={() => setIsProductOpen(false)} title={editing ? '상품 수정' : '상품 등록'}>
+      <Modal
+        isOpen={isProductOpen}
+        onClose={() => setIsProductOpen(false)}
+        title={editing ? '상품 수정' : '상품 등록'}
+      >
         <form onSubmit={saveProduct} className="p-6 space-y-4">
           <label className="block text-xs font-semibold">
             상품명 *
@@ -195,7 +212,11 @@ export function SkinRetailView() {
               />
             </label>
           </div>
-          <button type="submit" className="w-full py-2.5 bg-rose-600 text-white font-bold rounded-xl min-h-[44px]">
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-2.5 bg-rose-600 text-white font-bold rounded-xl min-h-[44px] disabled:opacity-50"
+          >
             저장
           </button>
         </form>
@@ -240,6 +261,7 @@ export function SkinRetailView() {
               {customers.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
+                  {c.phone ? ` · ${c.phone}` : ''}
                 </option>
               ))}
             </select>
@@ -256,7 +278,11 @@ export function SkinRetailView() {
               <option value="transfer">계좌이체</option>
             </select>
           </label>
-          <button type="submit" className="w-full py-2.5 bg-rose-600 text-white font-bold rounded-xl min-h-[44px]">
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-2.5 bg-rose-600 text-white font-bold rounded-xl min-h-[44px] disabled:opacity-50"
+          >
             판매 등록
           </button>
         </form>

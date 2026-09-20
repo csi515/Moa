@@ -256,7 +256,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
     setDraftTextbook({ title: '', price: '15000' });
   };
 
-  const handleSaveTextbooks = () => {
+  const handleSaveTextbooks = async () => {
     const pending =
       draftTextbook.title.trim().length > 0
         ? [
@@ -283,7 +283,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         (x) => x.title.toLowerCase() === key
       );
       if (existing) continue;
-      StorageService.saveTextbook({
+      await StorageService.saveTextbook({
         title: tb.title,
         publisher: '학원 등록',
         level: '기초',

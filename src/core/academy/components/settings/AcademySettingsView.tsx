@@ -225,6 +225,7 @@ export const AcademySettingsView: FC = () => {
             features: settings.features,
             rooms: getConfiguredRooms(settings),
             retailCatalog: settings.retailCatalog,
+            skinRetailCoreMigratedAt: settings.skinRetailCoreMigratedAt,
           },
         });
 

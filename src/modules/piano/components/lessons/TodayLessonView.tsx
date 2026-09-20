@@ -20,6 +20,7 @@ import {
   TodayLessonClassList,
   type TodayLessonSessionTarget,
 } from './TodayLessonClassList';
+import { resolveTodayLessonSaveTeacherId } from './todayLessonSaveTeacherId';
 
 function nowHm(): string {
   const d = new Date();
@@ -222,7 +223,10 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         studentName: student.name,
         classId: classItem.id,
         className: classItem.name,
-        teacherId: staffId || classItem.teacherId || StorageService.getTeachers()[0]?.id || '',
+        teacherId: resolveTodayLessonSaveTeacherId({
+          staffId,
+          classTeacherId: classItem.teacherId,
+        }),
         teacherName: currentUser.name,
         date: today,
         songTitle: form.songTitle.trim(),

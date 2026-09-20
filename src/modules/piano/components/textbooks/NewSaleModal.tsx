@@ -74,7 +74,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
 
   const isStockLow = selectedTextbook ? selectedTextbook.stock < quantity : false;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedStudentId) {
@@ -91,7 +91,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
     }
 
     try {
-      const res = StorageService.createSale({
+      const res = await StorageService.createSale({
         studentId: selectedStudentId,
         textbookId: selectedTextbookId,
         quantity,

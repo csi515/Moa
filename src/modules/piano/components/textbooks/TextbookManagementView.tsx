@@ -9,6 +9,7 @@ import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
 import { BookOpen, ShoppingBag, Plus } from 'lucide-react';
 import { PageHeader } from '@/shared/components';
+import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
 
 import { TextbookFormModal } from './TextbookFormModal';
 import { NewSaleModal } from './NewSaleModal';
@@ -53,16 +54,32 @@ export const TextbookManagementView: React.FC = () => {
   const [receiptSale, setReceiptSale] = useState<TextbookSale | null>(null);
   const [receiptPayment, setReceiptPayment] = useState<TextbookPayment | undefined>();
 
-  const loadData = () => {
+  const loadData = async () => {
+    if (typeof StorageService.listTextbookStockHistory === 'function') {
+      try {
+        if (textbookCoreStock.isAvailable()) {
+          await textbookCoreStock.syncAllStockMirrors();
+        }
+      } catch {
+        // 미러 실패 시 로컬 값으로 표시
+      }
+    }
     setTextbooks(StorageService.getTextbooks());
     setSales(StorageService.getTextbookSales());
     setPayments(StorageService.getTextbookPayments());
-    setTransactions(StorageService.getTextbookInventoryTransactions());
+    try {
+      const history = await StorageService.listTextbookStockHistory();
+      setTransactions(history);
+    } catch {
+      setTransactions(StorageService.getTextbookInventoryTransactions());
+    }
   };
 
   useEffect(() => {
-    loadData();
-    const unsubscribe = StorageService.subscribe(loadData);
+    void loadData();
+    const unsubscribe = StorageService.subscribe(() => {
+      void loadData();
+    });
     return () => unsubscribe();
   }, [refreshKey]);
 
@@ -107,11 +124,13 @@ export const TextbookManagementView: React.FC = () => {
       confirmText: '판매 취소 (재고 원복)',
       isDestructive: true,
       onConfirm: () => {
-        const ok = StorageService.cancelSale(sale.id, '사용자 판매 취소/반품');
-        if (ok) {
-          showToast(`판매가 취소되고 재고가 복구되었습니다.`, 'success');
-          triggerRefresh();
-        }
+        void (async () => {
+          const ok = await StorageService.cancelSale(sale.id, '사용자 판매 취소/반품');
+          if (ok) {
+            showToast(`판매가 취소되고 재고가 복구되었습니다.`, 'success');
+            triggerRefresh();
+          }
+        })();
       },
     });
   };
@@ -226,10 +245,15 @@ export const TextbookManagementView: React.FC = () => {
         <TextbookFormModal
           textbook={editingTextbook}
           onSave={(data) => {
-            StorageService.saveTextbook(data);
-            showToast(editingTextbook ? '교재가 수정되었습니다.' : '신규 교재가 등록되었습니다.', 'success');
-            setIsFormModalOpen(false);
-            triggerRefresh();
+            void (async () => {
+              await StorageService.saveTextbook(data);
+              showToast(
+                editingTextbook ? '교재가 수정되었습니다.' : '신규 교재가 등록되었습니다.',
+                'success'
+              );
+              setIsFormModalOpen(false);
+              triggerRefresh();
+            })();
           }}
           onClose={() => setIsFormModalOpen(false)}
         />

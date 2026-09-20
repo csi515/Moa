@@ -130,6 +130,7 @@ async function run(): Promise<void> {
 
   installStorageMock(store);
 
+  const placementMod = await import('./pianoTimetablePlacement');
   const {
     assignStudentToSlot,
     moveStudentToSlot,
@@ -137,7 +138,12 @@ async function run(): Promise<void> {
     findEditableSlotClass,
     getPlacementsForSlot,
     isEditableSlotClass,
-  } = await import('./pianoTimetablePlacement');
+    TIMETABLE_SLOTS,
+  } = placementMod;
+  // 동적 import 타입 축소 방지 — 슬롯 목록은 string[]로 취급
+  const resolveTimetableSlots = placementMod.resolveTimetableSlots as (
+    classes: ClassItem[]
+  ) => string[];
 
   const teacher = makeTeacher();
   const teachers = [teacher];
@@ -593,7 +599,192 @@ async function run(): Promise<void> {
   assert.equal(store.classes.find((c) => c.id === 'cls-reuse-teacher')?.teacherId, 't-keep');
   assert.equal(store.classes.find((c) => c.id === 'cls-reuse-teacher')?.teacherName, '유지선생');
 
+  // --- 위험 케이스 6. 새 반 자동 생성 시 강사·연습실 충돌 검사 ---
+  // 강사 충돌: 기존 월 15:00(t1)과 겹치는 월 15:30 슬롯에 t1로 새 반 생성 시도
+  const overlapTeacherClass = makeClass({
+    id: 'cls-overlap-t',
+    daysOfWeek: ['월'],
+    startTime: '15:00',
+    endTime: '15:50',
+    teacherId: 't1',
+    teacherName: '김선생',
+    room: '연습실1',
+  });
+  store.classes = [overlapTeacherClass];
+  store.students = [makeStudent({ id: 's-conflict-t', name: '충돌학생', classIds: [] })];
+  const classCountBeforeTeacherConflict = store.classes.length;
+  const teacherConflict = assignStudentToSlot({
+    student: store.students[0],
+    day: '월',
+    startTime: '15:30',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    preferredTeacherId: 't1',
+    createClassIfMissing: true,
+  });
+  assert.equal(teacherConflict.ok, false, '강사 일정 충돌 시 배치 실패');
+  if (!teacherConflict.ok) {
+    assert.match(teacherConflict.message, /새 반을 만들 수 없습니다/);
+    assert.match(teacherConflict.message, /강사/);
+    assert.notEqual(teacherConflict.needsNewClass, true);
+  }
+  assert.equal(store.classes.length, classCountBeforeTeacherConflict, '충돌 시 반이 생성되면 안 됨');
+  assert.equal(
+    store.students.find((s) => s.id === 's-conflict-t')?.classIds.length,
+    0,
+    '충돌 시 학생 classIds가 바뀌면 안 됨'
+  );
+
+  // 연습실 충돌: 미배정 강사라도 기본 실(연습실1)이 겹치면 거부
+  const overlapRoomClass = makeClass({
+    id: 'cls-overlap-r',
+    daysOfWeek: ['목'],
+    startTime: '16:00',
+    endTime: '16:50',
+    teacherId: 't2',
+    teacherName: '이선생',
+    room: '연습실1',
+  });
+  store.classes = [overlapRoomClass];
+  store.students = [makeStudent({ id: 's-conflict-r', classIds: [] })];
+  const roomConflict = assignStudentToSlot({
+    student: store.students[0],
+    day: '목',
+    startTime: '16:30',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    createClassIfMissing: true,
+  });
+  assert.equal(roomConflict.ok, false, '연습실 일정 충돌 시 배치 실패');
+  if (!roomConflict.ok) {
+    assert.match(roomConflict.message, /연습실|새 반을 만들 수 없습니다/);
+  }
+  assert.equal(store.classes.length, 1);
+  assert.equal(store.students.find((s) => s.id === 's-conflict-r')?.classIds.length, 0);
+
+  // 충돌 없으면 새 반 생성·배치 정상 (다른 요일)
+  store.classes = [overlapTeacherClass];
+  store.students = [makeStudent({ id: 's-no-conflict', classIds: [] })];
+  const noConflict = assignStudentToSlot({
+    student: store.students[0],
+    day: '금',
+    startTime: '15:00',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    preferredTeacherId: 't1',
+    createClassIfMissing: true,
+  });
+  assert.equal(noConflict.ok, true);
+  if (noConflict.ok) {
+    assert.equal(noConflict.createdClass, true);
+    assert.equal(noConflict.classItem.teacherId, 't1');
+  }
+
+  // createClassIfMissing=false면 충돌 검사 전에 needsNewClass 유지
+  store.classes = [overlapTeacherClass];
+  store.students = [makeStudent({ id: 's-needs-new', classIds: [] })];
+  const stillNeedsNew = assignStudentToSlot({
+    student: store.students[0],
+    day: '월',
+    startTime: '15:30',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    preferredTeacherId: 't1',
+    createClassIfMissing: false,
+  });
+  assert.equal(stillNeedsNew.ok, false);
+  if (!stillNeedsNew.ok) {
+    assert.equal(stillNeedsNew.needsNewClass, true);
+  }
+
+  // 이동: 충돌 나는 새 슬롯이면 원 슬롯 소속 유지
+  const moveFromOk = makeClass({
+    id: 'cls-move-from-ok',
+    daysOfWeek: ['화'],
+    startTime: '09:00',
+    endTime: '09:50',
+    teacherId: 't2',
+    teacherName: '이선생',
+    room: '연습실2',
+  });
+  store.classes = [overlapTeacherClass, moveFromOk];
+  store.students = [
+    makeStudent({ id: 's-move-conflict', name: '이동충돌', classIds: [moveFromOk.id] }),
+  ];
+  const moveConflict = moveStudentToSlot({
+    student: store.students[0],
+    from: { classItem: moveFromOk, day: '화', startTime: '09:00' },
+    toDay: '월',
+    toStartTime: '15:30',
+    classes: store.classes,
+    teachers: teachersWithTwo,
+    preferredTeacherId: 't1',
+    createClassIfMissing: true,
+  });
+  assert.equal(moveConflict.ok, false);
+  assert.equal(
+    store.students.find((s) => s.id === 's-move-conflict')?.classIds.includes(moveFromOk.id),
+    true,
+    '충돌로 이동 실패 시 원 슬롯 소속 유지'
+  );
+
+  // --- 슬롯 범위: 기본 09:00~20:30 + 등록된 시작시각만 확장 ---
+  const baseOnly = resolveTimetableSlots([]);
+  // deepEqual 전에 검사 — assert.deepEqual이 TIMETABLE_SLOTS 리터럴로 좁히면 '21:00' 비교가 TS2367
+  assert.equal(baseOnly.includes('21:00'), false);
+  assert.deepEqual(baseOnly, [...TIMETABLE_SLOTS]);
+
+  const withEvening = resolveTimetableSlots([
+    makeClass({ id: 'cls-2100', daysOfWeek: ['월'], startTime: '21:00', endTime: '21:50' }),
+    makeClass({ id: 'cls-2130', daysOfWeek: ['화'], startTime: '21:30', endTime: '22:20' }),
+  ]);
+  assert.equal(withEvening.includes('20:30'), true);
+  assert.equal(withEvening.includes('21:00'), true);
+  assert.equal(withEvening.includes('21:30'), true);
+  assert.ok(
+    timeToMinutesHelper(withEvening[withEvening.length - 1]) >= timeToMinutesHelper('21:30')
+  );
+  // 등록되지 않은 22:00은 추가되지 않음
+  assert.equal(withEvening.includes('22:00'), false);
+
+  const withOdd = resolveTimetableSlots([
+    makeClass({ id: 'cls-2115', daysOfWeek: ['수'], startTime: '21:15', endTime: '22:05' }),
+  ]);
+  assert.ok(
+    withOdd.some((slot) => slot === '21:15'),
+    '비 30분 시작시각도 행으로 유지'
+  );
+
+  const eveningStudent = makeStudent({ id: 's-eve', classIds: ['cls-2100'] });
+  const eveningClass = makeClass({
+    id: 'cls-2100',
+    daysOfWeek: ['월'],
+    startTime: '21:00',
+    endTime: '21:50',
+  });
+  store.classes = [eveningClass];
+  store.students = [eveningStudent, makeStudent({ id: 's-eve-2', classIds: [] })];
+  const evePlacements = getPlacementsForSlot(store.students, store.classes, '월', '21:00');
+  assert.ok(evePlacements.some((p) => p.student.id === 's-eve' && p.editable));
+  const eveAssign = assignStudentToSlot({
+    student: store.students.find((s) => s.id === 's-eve-2')!,
+    day: '월',
+    startTime: '21:00',
+    classes: store.classes,
+    teachers,
+  });
+  assert.equal(eveAssign.ok, true);
+  if (eveAssign.ok) {
+    assert.equal(eveAssign.classItem.id, 'cls-2100');
+    assert.equal(eveAssign.createdClass, false);
+  }
+
   console.log('pianoTimetablePlacement.test.ts: all assertions passed');
+}
+
+function timeToMinutesHelper(time: string): number {
+  const [h, m] = time.split(':').map((n) => parseInt(n, 10) || 0);
+  return h * 60 + m;
 }
 
 run().catch((err) => {

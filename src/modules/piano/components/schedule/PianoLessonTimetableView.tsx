@@ -14,7 +14,8 @@ import { usePianoLessonTimetable } from './usePianoLessonTimetable';
 /**
  * 피아노 수업 시간표 — 요일·시간대에 「누가 오는지」배치·이동.
  * ClassItem + student.classIds 재사용. 출결(DAY_ATTENDANCE)은 절대 변경하지 않음.
- * 30분 단위(09:00, 09:30…) 그리드에서 배치·이동. 여러 요일 반은 표시만 되며 반 관리에서 수정.
+ * 30분 단위 기본 그리드(09:00~20:30) + 등록된 반의 시작시각(예: 21:00)을 행으로 확장.
+ * 여러 요일 반은 표시만 되며 반 관리에서 수정.
  */
 export const PianoLessonTimetableView: FC = () => {
   const {

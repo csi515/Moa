@@ -8,11 +8,11 @@ import type { DayOfWeek, Student } from '@/types';
 import type { DragPlacementPayload } from './PianoTimetablePanels';
 import {
   TIMETABLE_DAYS,
-  TIMETABLE_SLOTS,
   assignStudentToSlot,
   getPlacementsForSlot,
   moveStudentToSlot,
   removeStudentFromSlot,
+  resolveTimetableSlots,
   type SlotPlacement,
   type TimetableSlot,
 } from './pianoTimetablePlacement';
@@ -85,8 +85,9 @@ export function usePianoLessonTimetable() {
 
   const placedIds = useMemo(() => {
     const ids = new Set<string>();
+    const slots = resolveTimetableSlots(visibleClasses);
     for (const day of TIMETABLE_DAYS) {
-      for (const slot of TIMETABLE_SLOTS) {
+      for (const slot of slots) {
         getPlacementsForSlot(students, visibleClasses, day, slot).forEach((p) =>
           ids.add(p.student.id)
         );

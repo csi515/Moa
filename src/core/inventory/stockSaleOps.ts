@@ -1,5 +1,5 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import type { SaleStockDeductLine, StockShortfall } from '../types/inventory';
+import type { SaleStockDeductLine, StockShortfall } from './types';
 
 type InventoryRow = {
   id: string;
@@ -19,7 +19,7 @@ function ensureClient() {
   return getCoreClient();
 }
 
-async function findInventoryRow(
+export async function findInventoryRow(
   organizationId: string,
   productId: string,
   variantId: string | null
@@ -42,12 +42,41 @@ async function findInventoryRow(
   return (data as InventoryRow | null) ?? null;
 }
 
+async function applyInventoryDelta(
+  organizationId: string,
+  productId: string,
+  variantId: string | null,
+  delta: number
+): Promise<number> {
+  const client = ensureClient();
+  const existing = await findInventoryRow(organizationId, productId, variantId);
+  const currentQty = existing ? toNumber(existing.quantity) : 0;
+  const quantityAfter = currentQty + delta;
+
+  if (existing) {
+    const { error: updateError } = await client
+      .from('inventory')
+      .update({ quantity: quantityAfter })
+      .eq('id', existing.id)
+      .eq('organization_id', organizationId);
+    if (updateError) throw updateError;
+  } else {
+    const { error: insertError } = await client.from('inventory').insert({
+      organization_id: organizationId,
+      product_id: productId,
+      variant_id: variantId,
+      quantity: quantityAfter,
+    });
+    if (insertError) throw insertError;
+  }
+  return quantityAfter;
+}
+
 /**
- * 판매 재고 확인·차감.
- * 정책: Retail 상품/옵션은 전부 재고 관리 대상(미관리 플래그 없음).
- * StockMovement(sale, 음수) 기록 후 Inventory 가감.
+ * 판매·반품용 재고 확인/차감/복구.
+ * movement 기록 후 Inventory 가감 (절대값 덮어쓰기 금지).
  */
-export const inventorySaleStock = {
+export const stockSaleOps = {
   async checkShortfalls(
     organizationId: string,
     lines: SaleStockDeductLine[]
@@ -74,10 +103,7 @@ export const inventorySaleStock = {
     return shortfalls;
   },
 
-  /**
-   * 판매 완료 후 재고 차감.
-   * movement_type=sale, quantity=음수, reference_type=sale.
-   */
+  /** movement_type=sale, quantity=음수, reference_type=sale */
   async applyDeductions(
     organizationId: string,
     saleId: string,
@@ -109,34 +135,11 @@ export const inventorySaleStock = {
       });
       if (movementError) throw movementError;
 
-      const existing = await findInventoryRow(organizationId, line.productId, variantId);
-      const currentQty = existing ? toNumber(existing.quantity) : 0;
-      const quantityAfter = currentQty + delta;
-
-      if (existing) {
-        const { error: updateError } = await client
-          .from('inventory')
-          .update({ quantity: quantityAfter })
-          .eq('id', existing.id)
-          .eq('organization_id', organizationId);
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await client.from('inventory').insert({
-          organization_id: organizationId,
-          product_id: line.productId,
-          variant_id: variantId,
-          quantity: quantityAfter,
-        });
-        if (insertError) throw insertError;
-      }
+      await applyInventoryDelta(organizationId, line.productId, variantId, delta);
     }
   },
 
-  /**
-   * 반품 후 재고 복구.
-   * movement_type=return, quantity=양수, reference_type=sale_return.
-   * productId 없는 라인(삭제된 상품)은 스킵.
-   */
+  /** movement_type=return, quantity=양수, reference_type=sale_return */
   async applyReturns(
     organizationId: string,
     saleReturnId: string,
@@ -154,40 +157,20 @@ export const inventorySaleStock = {
       }
 
       const variantId = line.variantId || null;
-      const delta = qty;
 
       const { error: movementError } = await client.from('stock_movements').insert({
         organization_id: organizationId,
         product_id: line.productId,
         variant_id: variantId,
         movement_type: 'return',
-        quantity: delta,
+        quantity: qty,
         reference_type: 'sale_return',
         reference_id: saleReturnId,
         reason: null,
       });
       if (movementError) throw movementError;
 
-      const existing = await findInventoryRow(organizationId, line.productId, variantId);
-      const currentQty = existing ? toNumber(existing.quantity) : 0;
-      const quantityAfter = currentQty + delta;
-
-      if (existing) {
-        const { error: updateError } = await client
-          .from('inventory')
-          .update({ quantity: quantityAfter })
-          .eq('id', existing.id)
-          .eq('organization_id', organizationId);
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await client.from('inventory').insert({
-          organization_id: organizationId,
-          product_id: line.productId,
-          variant_id: variantId,
-          quantity: quantityAfter,
-        });
-        if (insertError) throw insertError;
-      }
+      await applyInventoryDelta(organizationId, line.productId, variantId, qty);
     }
   },
 };
