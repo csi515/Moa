@@ -20,7 +20,8 @@ export {
   STOCK_MOVEMENT_TYPE_LABELS,
   TEXTBOOK_SALE_MOVEMENT_REF,
 } from './types';
-export { inventoryService } from './inventoryService';
+export { inventoryService, callApplyStockMovement } from './inventoryService';
+export { mapStockMovementRpcError } from './mapStockMovementRpcError';
 export { stockSaleOps } from './stockSaleOps';
 export {
   aggregateSaleStockLines,

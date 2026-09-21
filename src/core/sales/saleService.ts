@@ -105,8 +105,9 @@ function mapSaleItem(row: SaleItemRow): SaleItem {
 
 /**
  * Core 판매 서비스.
- * createSale은 core.create_sale RPC로 sales+items+movement+inventory를 원자 처리.
- * 포인트 ledger·Finance는 호출하지 않음(Module 책임).
+ * createSale은 core.create_sale RPC로 sales+items+movement+inventory
+ * (+ points_used>0 시 redeem ledger)를 원자 처리.
+ * 포인트 적립(earn)·Finance는 호출하지 않음(Module 책임).
  */
 export const saleService = {
   /** 판매중 상품·옵션 카탈로그 */

@@ -4,6 +4,29 @@
 -- 정책 대량 재작성 없음 — 실패 시 해당 정책만 수정
 --
 -- 러너: npm run test:rls-audit  (scripts/rls-org-isolation-audit.ts)
+-- 멤버십 권한 상승: npm run test:rls-membership-escalation
+-- 정책 정적 검증: npm run test:rls-membership-policy
+--
+-- =============================================================================
+-- M1-M3. 비멤버가 타 org에 자신을 owner/admin/manager 로 INSERT 할 수 없다
+-- =============================================================================
+-- SET LOCAL ROLE authenticated;
+-- SET LOCAL request.jwt.claim.sub = '<attacker_user_id>';
+-- INSERT INTO core.organization_members (organization_id, user_id, role, is_active)
+-- VALUES ('<orgB_id>', '<attacker_user_id>', 'owner', true);
+-- 기대: RLS 위반 (42501)
+--
+-- =============================================================================
+-- M4. 기존 customer 멤버가 동일 org에 owner 행을 추가 INSERT 할 수 없다
+-- =============================================================================
+-- (multi-role UNIQUE(org,user,role) 하에서 privilege escalation 차단)
+-- 기대: RLS 위반
+--
+-- =============================================================================
+-- M5. owner/admin 은 다른 사용자 membership INSERT 가능 (초대 UI/직접)
+-- =============================================================================
+-- 기대: 성공 또는 UNIQUE 충돌 (RLS 거부가 아님)
+-- 최초 owner·스태프 연결은 SECURITY DEFINER RPC가 RLS를 우회하므로 정상 유지
 --
 -- Retail 현재 SELECT 정책 (분석 요약, 덮어쓰지 않음):
 --   core_products_select / core_inventory_select / core_stock_movements_select / core_sales_select
@@ -12,7 +35,7 @@
 --     EXISTS 부모 + 동일 멤버십
 --   core_point_accounts_select / core_point_transactions_select
 --     is_my_customer(org, customer_id)
---     OR get_org_role(org) IN (owner, admin, manager, staff, instructor)
+--     OR has_any_org_role(org, [owner, admin, manager, staff, instructor])
 
 -- =============================================================================
 -- S1. OrgA staff는 OrgB customers를 SELECT 할 수 없다

@@ -18,6 +18,9 @@
     "lint": "tsc --noEmit",
     "test:bulk-import": "tsx src/core/students/bulkImport/studentBulkImport.test.ts",
     "test:rls-audit": "tsx scripts/rls-org-isolation-audit.ts",
+    "test:rls-membership-policy": "tsx scripts/rls-membership-policy.test.ts",
+    "test:rls-membership-escalation": "tsx scripts/rls-membership-escalation-audit.ts",
+    "test:multi-role-helpers": "tsx scripts/multiRolePermissionHelpers.test.ts",
     "test:auth-hijack-audit": "tsx scripts/auth-providers-hijack-audit.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
@@ -30,6 +33,11 @@
     "test:textbook-core-sale-link": "tsx src/modules/piano/services/textbookCoreSaleLink.test.ts",
     "test:skin-retail-migrate": "tsx src/modules/skin/services/skinRetailCatalogMigrate.test.ts",
     "test:sale-return-points": "tsx src/core/loyalty/saleReturnPointReverse.test.ts",
+    "test:point-atomic": "tsx src/core/loyalty/pointEarnRedeemAtomic.test.ts",
+    "test:sale-redeem-consistency": "tsx src/core/sales/saleRedeemConsistency.test.ts",
+    "test:stock-movement-atomic": "tsx src/core/inventory/applyStockMovementAtomic.test.ts",
+    "test:commerce-db-it": "tsx scripts/commerceDbIntegration.test.ts",
+    "test:commerce-unit": "npm run test:create-sale-atomic && npm run test:create-sale-return-atomic && npm run test:point-atomic && npm run test:sale-redeem-consistency && npm run test:stock-movement-atomic && npm run test:multi-role-helpers",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"
   },
   "dependencies": {

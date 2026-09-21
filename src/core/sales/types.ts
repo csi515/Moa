@@ -156,16 +156,36 @@ export interface SaleItemReturnable {
   lineAmount: number;
 }
 
+/**
+ * 부분 반품 라인 금액.
+ * 원 판매 라인금액(soldQty*unitPrice - discount)을 수량 누적 기준으로 배분하고,
+ * 중간 구간은 FLOOR, 마지막(전량 도달)에서 잔여 1원을 흡수한다.
+ * PostgreSQL create_sale_return과 동일 계약.
+ */
 export function computeReturnLineAmount(params: {
   returnQty: number;
   soldQty: number;
   unitPrice: number;
   discountAmount: number;
+  /** 이미 반품된 수량(누적). 기본 0 */
+  alreadyReturned?: number;
 }): number {
   const returnQty = Math.max(0, params.returnQty);
   const soldQty = Math.max(0, params.soldQty);
+  const alreadyReturned = Math.max(0, params.alreadyReturned ?? 0);
   if (returnQty <= 0 || soldQty <= 0) return 0;
-  const proportionalDiscount =
-    (Math.max(0, params.discountAmount) * returnQty) / soldQty;
-  return Math.max(0, returnQty * Math.max(0, params.unitPrice) - proportionalDiscount);
+
+  const originalLineAmount = Math.max(
+    0,
+    soldQty * Math.max(0, params.unitPrice) - Math.max(0, params.discountAmount)
+  );
+
+  const allocatedUpTo = (qty: number): number => {
+    if (qty <= 0) return 0;
+    if (qty >= soldQty) return originalLineAmount;
+    return Math.floor((originalLineAmount * qty) / soldQty);
+  };
+
+  const afterQty = alreadyReturned + returnQty;
+  return Math.max(0, allocatedUpTo(afterQty) - allocatedUpTo(alreadyReturned));
 }

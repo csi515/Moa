@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS core.products (
 );
 
 COMMENT ON TABLE core.products IS '소매 상품 마스터. organization_id로 사업장 분리. category_id는 향후 카테고리 테이블 연결용(현재 FK 없음).';
-COMMENT ON COLUMN core.products.category_id IS 'nullable — 상품 카테고리 테이블 미도입 상태의
+COMMENT ON COLUMN core.products.category_id IS 'nullable — 상품 카테고리 테이블 미도입 상태의';
 COMMENT ON COLUMN core.products.product_code IS '사업장 내 상품 코드(선택)';
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_products_org_product_code

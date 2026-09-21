@@ -21,7 +21,7 @@
  *   product_variants / sale_items
  *     → 부모 행 org 멤버십
  *   point_accounts / point_transactions
- *     → is_my_customer OR staff 역할(get_org_role IN owner|admin|manager|staff|instructor)
+ *     → is_my_customer OR has_any_org_role(owner|admin|manager|staff|instructor)
  */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 

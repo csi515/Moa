@@ -65,6 +65,7 @@ export const SaleReturnModal: FC<Props> = ({
             soldQty: line.soldQuantity,
             unitPrice: line.unitPrice,
             discountAmount: line.discountAmount,
+            alreadyReturned: line.returnedQuantity,
           }),
         0
       ),

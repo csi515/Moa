@@ -2,13 +2,6 @@ import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
 import { POINT_WON_VALUE, readOrgPointsEarnConfig } from './earnPolicy';
 import type { PointTransaction } from './types';
 
-type AccountRow = {
-  id: string;
-  organization_id: string;
-  customer_id: string;
-  balance: number | string;
-};
-
 type TxRow = {
   id: string;
   organization_id: string;
@@ -55,6 +48,26 @@ function mapTx(row: TxRow): PointTransaction {
   };
 }
 
+function mapTxFromRpc(raw: unknown): PointTransaction | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  if (!row.id) return null;
+  return mapTx({
+    id: String(row.id),
+    organization_id: String(row.organization_id),
+    customer_id: String(row.customer_id),
+    type: row.type as TxRow['type'],
+    amount: row.amount as number | string,
+    balance_after: row.balance_after as number | string,
+    earn_rate_percent: (row.earn_rate_percent as number | string | null) ?? null,
+    base_amount: (row.base_amount as number | string | null) ?? null,
+    reference_type: (row.reference_type as string | null) ?? null,
+    reference_id: (row.reference_id as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    created_at: String(row.created_at ?? ''),
+  });
+}
+
 /** 사용 가능 상한: min(잔액, 결제총액), 정수 P */
 export function maxRedeemablePoints(balance: number, saleTotalWon: number): number {
   return Math.max(
@@ -78,8 +91,7 @@ export type SalePointRedeemResult = {
 
 /**
  * 판매 시 포인트 사용(redeem).
- * 1P = 1원. amount는 음수. 잔액은 거래 후 balance_after로 일치시킴(직접 덮어쓰기 금지 패턴:
- * 현재잔액 조회 → 거래 insert → 잔액 update).
+ * 잔액 변경은 core.apply_point_redeem_for_sale(FOR UPDATE) 원자 RPC.
  */
 export const pointRedeemService = {
   async getBalance(organizationId: string, customerId: string): Promise<number> {
@@ -152,71 +164,32 @@ export const pointRedeemService = {
       throw new Error('사용 포인트는 결제금액을 초과할 수 없습니다.');
     }
 
-    const { data: account, error: findError } = await client
-      .from('point_accounts')
-      .select('*')
-      .eq('organization_id', params.organizationId)
-      .eq('customer_id', customerId)
-      .maybeSingle();
-    if (findError) throw findError;
-    if (!account) {
-      throw new Error('사용 가능한 포인트가 없습니다.');
+    const { data, error } = await client.rpc('apply_point_redeem_for_sale' as never, {
+      p_organization_id: params.organizationId,
+      p_customer_id: customerId,
+      p_sale_id: params.saleId,
+      p_points_to_use: requested,
+      p_sale_total_amount: saleTotal,
+    } as never);
+
+    if (error) {
+      throw new Error(error.message || '포인트 사용 처리에 실패했습니다.');
     }
 
-    const accountRow = account as AccountRow;
-    const balance = toNumber(accountRow.balance);
-    if (requested > balance) {
-      throw new Error(
-        `포인트가 부족합니다. (잔액 ${balance}P, 요청 ${requested}P)`
-      );
+    const payload = (data ?? {}) as Record<string, unknown>;
+    if (payload.skipped === true) {
+      return {
+        skipped: true,
+        reason: (payload.reason as SalePointRedeemResult['reason']) || 'already_redeemed',
+        pointsUsed: 0,
+        transaction: null,
+      };
     }
-
-    const delta = -requested;
-    const balanceAfter = balance + delta;
-    if (balanceAfter < 0) {
-      throw new Error('포인트 잔액이 부족합니다.');
-    }
-
-    const { data: txRow, error: txError } = await client
-      .from('point_transactions')
-      .insert({
-        organization_id: params.organizationId,
-        customer_id: customerId,
-        type: 'redeem',
-        amount: delta,
-        balance_after: balanceAfter,
-        earn_rate_percent: null,
-        base_amount: null,
-        reference_type: 'sale',
-        reference_id: params.saleId,
-        description: `판매 포인트 사용 ${requested}P`,
-      })
-      .select('*')
-      .single();
-
-    if (txError) {
-      if (txError.code === '23505') {
-        return {
-          skipped: true,
-          reason: 'already_redeemed',
-          pointsUsed: 0,
-          transaction: null,
-        };
-      }
-      throw txError;
-    }
-
-    const { error: updateError } = await client
-      .from('point_accounts')
-      .update({ balance: balanceAfter })
-      .eq('id', accountRow.id)
-      .eq('organization_id', params.organizationId);
-    if (updateError) throw updateError;
 
     return {
       skipped: false,
-      pointsUsed: requested,
-      transaction: mapTx(txRow as TxRow),
+      pointsUsed: toNumber(payload.points_used as number | string),
+      transaction: mapTxFromRpc(payload.transaction),
     };
   },
 };

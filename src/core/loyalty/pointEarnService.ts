@@ -5,13 +5,6 @@ import {
 } from './earnPolicy';
 import type { PointTransaction } from './types';
 
-type AccountRow = {
-  id: string;
-  organization_id: string;
-  customer_id: string;
-  balance: number | string;
-};
-
 type TxRow = {
   id: string;
   organization_id: string;
@@ -58,6 +51,26 @@ function mapTx(row: TxRow): PointTransaction {
   };
 }
 
+function mapTxFromRpc(raw: unknown): PointTransaction | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  if (!row.id) return null;
+  return mapTx({
+    id: String(row.id),
+    organization_id: String(row.organization_id),
+    customer_id: String(row.customer_id),
+    type: row.type as TxRow['type'],
+    amount: row.amount as number | string,
+    balance_after: row.balance_after as number | string,
+    earn_rate_percent: (row.earn_rate_percent as number | string | null) ?? null,
+    base_amount: (row.base_amount as number | string | null) ?? null,
+    reference_type: (row.reference_type as string | null) ?? null,
+    reference_id: (row.reference_id as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    created_at: String(row.created_at ?? ''),
+  });
+}
+
 export type SalePointEarnResult = {
   skipped: boolean;
   reason?:
@@ -75,8 +88,7 @@ export type SalePointEarnResult = {
 
 /**
  * 판매 완료 후 포인트 적립.
- * 고객 연결 · 포인트/적립 ON · floor(금액×적립률/100).
- * 적용 적립률·기준금액·적립P를 point_transactions에 스냅샷 저장.
+ * 정책 계산은 클라이언트, 잔액 반영은 core.apply_point_earn_for_sale 원자 RPC.
  */
 export const pointEarnService = {
   async earnForSale(params: {
@@ -153,86 +165,43 @@ export const pointEarnService = {
       };
     }
 
-    let { data: account, error: findError } = await client
-      .from('point_accounts')
-      .select('*')
-      .eq('organization_id', params.organizationId)
-      .eq('customer_id', customerId)
-      .maybeSingle();
-    if (findError) throw findError;
+    const { data, error } = await client.rpc('apply_point_earn_for_sale' as never, {
+      p_organization_id: params.organizationId,
+      p_customer_id: customerId,
+      p_sale_id: params.saleId,
+      p_points_earned: pointsEarned,
+      p_earn_rate_percent: earnRatePercent,
+      p_base_amount: eligibleAmount,
+    } as never);
 
-    if (!account) {
-      const { data: created, error: createError } = await client
-        .from('point_accounts')
-        .insert({
-          organization_id: params.organizationId,
-          customer_id: customerId,
-          balance: 0,
-        })
-        .select('*')
-        .single();
-      if (createError) {
-        const { data: again, error: againError } = await client
-          .from('point_accounts')
-          .select('*')
-          .eq('organization_id', params.organizationId)
-          .eq('customer_id', customerId)
-          .maybeSingle();
-        if (againError) throw againError;
-        if (!again) throw createError;
-        account = again;
-      } else {
-        account = created;
-      }
+    if (error) {
+      throw new Error(error.message || '포인트 적립 처리에 실패했습니다.');
     }
 
-    const accountRow = account as AccountRow;
-    const balanceAfter = toNumber(accountRow.balance) + pointsEarned;
-
-    const { data: txRow, error: txError } = await client
-      .from('point_transactions')
-      .insert({
-        organization_id: params.organizationId,
-        customer_id: customerId,
-        type: 'earn',
-        amount: pointsEarned,
-        balance_after: balanceAfter,
-        earn_rate_percent: earnRatePercent,
-        base_amount: eligibleAmount,
-        reference_type: 'sale',
-        reference_id: params.saleId,
-        description: `판매 적립 ${earnRatePercent}%`,
-      })
-      .select('*')
-      .single();
-
-    if (txError) {
-      if (txError.code === '23505') {
-        return {
-          skipped: true,
-          reason: 'already_earned',
-          pointsEarned: 0,
-          earnRatePercent,
-          baseAmount: eligibleAmount,
-          transaction: null,
-        };
-      }
-      throw txError;
+    const payload = (data ?? {}) as Record<string, unknown>;
+    if (payload.skipped === true) {
+      return {
+        skipped: true,
+        reason: (payload.reason as SalePointEarnResult['reason']) || 'already_earned',
+        pointsEarned: 0,
+        earnRatePercent,
+        baseAmount: eligibleAmount,
+        transaction: null,
+      };
     }
-
-    const { error: updateError } = await client
-      .from('point_accounts')
-      .update({ balance: balanceAfter })
-      .eq('id', accountRow.id)
-      .eq('organization_id', params.organizationId);
-    if (updateError) throw updateError;
 
     return {
       skipped: false,
-      pointsEarned,
-      earnRatePercent,
-      baseAmount: eligibleAmount,
-      transaction: mapTx(txRow as TxRow),
+      pointsEarned: toNumber(payload.points_earned as number | string) || pointsEarned,
+      earnRatePercent:
+        payload.earn_rate_percent == null
+          ? earnRatePercent
+          : toNumber(payload.earn_rate_percent as number | string),
+      baseAmount:
+        payload.base_amount == null
+          ? eligibleAmount
+          : toNumber(payload.base_amount as number | string),
+      transaction: mapTxFromRpc(payload.transaction),
     };
   },
 };

@@ -3,10 +3,15 @@
  * 실행: npx tsx src/core/loyalty/saleReturnPointReverse.test.ts
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   allocateReturnPointSlice,
   planSaleReturnPointAdjustments,
 } from './saleReturnPointPlan';
+
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
 type IncomeStub = {
   id: string;
@@ -212,6 +217,127 @@ function applyRetailReturnIncomeReversal(
   assert.equal(plan.redeemRestore, 500);
 }
 
+/**
+ * returnId별 adjust 부호 독립 멱등 (DB unique 인덱스 계약 재현).
+ * earn만 성공 → 재호출 시 redeem만 추가.
+ */
+function simulateReturnAdjustRecovery(params: {
+  returnId: string;
+  plan: { earnClawback: number; redeemRestore: number };
+  /** 이미 ledger에 있는 adjust (부호로 구분) */
+  existing: Array<{ returnId: string; amount: number }>;
+}): { applied: number[]; skipped: string[] } {
+  const applied: number[] = [];
+  const skipped: string[] = [];
+  const hasNeg = params.existing.some(
+    (e) => e.returnId === params.returnId && e.amount < 0
+  );
+  const hasPos = params.existing.some(
+    (e) => e.returnId === params.returnId && e.amount > 0
+  );
+
+  if (params.plan.redeemRestore > 0) {
+    if (hasPos) skipped.push('redeem');
+    else applied.push(params.plan.redeemRestore);
+  }
+  if (params.plan.earnClawback > 0) {
+    if (hasNeg) skipped.push('earn');
+    else applied.push(-params.plan.earnClawback);
+  }
+  return { applied, skipped };
+}
+
+// ── 복구: earn만 성공 후 재호출 → redeem만 ────────────────────────────────
+{
+  const plan = planSaleReturnPointAdjustments({
+    saleTotalAmount: 10000,
+    pointsEarned: 80,
+    pointsRedeemed: 1000,
+    thisReturnAmount: 10000,
+    priorReturnedAmount: 0,
+    priorEarnClawed: 0,
+    priorRedeemRestored: 0,
+  });
+  const mid = simulateReturnAdjustRecovery({
+    returnId: 'ret-1',
+    plan,
+    existing: [{ returnId: 'ret-1', amount: -80 }],
+  });
+  assert.deepEqual(mid.applied, [1000]);
+  assert.deepEqual(mid.skipped, ['earn']);
+
+  const done = simulateReturnAdjustRecovery({
+    returnId: 'ret-1',
+    plan,
+    existing: [
+      { returnId: 'ret-1', amount: -80 },
+      { returnId: 'ret-1', amount: 1000 },
+    ],
+  });
+  assert.deepEqual(done.applied, []);
+  assert.deepEqual(done.skipped, ['redeem', 'earn']);
+}
+
+// ── 복구: redeem만 성공 후 재호출 → earn만 ────────────────────────────────
+{
+  const plan = planSaleReturnPointAdjustments({
+    saleTotalAmount: 10000,
+    pointsEarned: 80,
+    pointsRedeemed: 1000,
+    thisReturnAmount: 10000,
+    priorReturnedAmount: 0,
+    priorEarnClawed: 0,
+    priorRedeemRestored: 0,
+  });
+  const mid = simulateReturnAdjustRecovery({
+    returnId: 'ret-2',
+    plan,
+    existing: [{ returnId: 'ret-2', amount: 1000 }],
+  });
+  assert.deepEqual(mid.applied, [-80]);
+  assert.deepEqual(mid.skipped, ['redeem']);
+}
+
+// ── 부분 반품 2회: prior 배분 반영 ─────────────────────────────────────────
+{
+  const first = planSaleReturnPointAdjustments({
+    saleTotalAmount: 10000,
+    pointsEarned: 100,
+    pointsRedeemed: 0,
+    thisReturnAmount: 3000,
+    priorReturnedAmount: 0,
+    priorEarnClawed: 0,
+    priorRedeemRestored: 0,
+  });
+  assert.equal(first.earnClawback, 30);
+
+  const second = planSaleReturnPointAdjustments({
+    saleTotalAmount: 10000,
+    pointsEarned: 100,
+    pointsRedeemed: 0,
+    thisReturnAmount: 7000,
+    priorReturnedAmount: 3000,
+    priorEarnClawed: 30,
+    priorRedeemRestored: 0,
+  });
+  assert.equal(second.earnClawback, 70);
+}
+
+// ── Retail createReturn: 포인트 실패해도 반품 본문 유지 (소스 계약) ───────
+{
+  const retail = readFileSync(
+    join(repoRoot, 'src/modules/retail/services/saleReturnService.ts'),
+    'utf8'
+  );
+  assert.match(retail, /return kept/);
+  assert.match(retail, /listReturnsForSale/);
+  assert.match(retail, /reverseForSaleReturn/);
+  assert.doesNotMatch(
+    retail,
+    /throw new Error\(\s*`반품은 완료되었으나/
+  );
+}
+
 console.log('saleReturnPointReverse.test.ts: ok');
 console.log(
   JSON.stringify(
@@ -219,6 +345,7 @@ console.log(
       retailFlow: {
         sale: { earn: '+80P', redeem: '-1000P' },
         fullReturn: { earnClawback: '-80P adjust', redeemRestore: '+1000P adjust' },
+        recovery: 'partial adjust → retry remaining sign only',
       },
       skinFlow: {
         saleIncome: { sourceId: 'saleId', amount: 30000 },

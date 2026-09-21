@@ -9,13 +9,6 @@ import {
   planSaleReturnPointAdjustments,
 } from './saleReturnPointPlan';
 
-type AccountRow = {
-  id: string;
-  organization_id: string;
-  customer_id: string;
-  balance: number | string;
-};
-
 type TxRow = {
   id: string;
   organization_id: string;
@@ -62,6 +55,26 @@ function mapTx(row: TxRow): PointTransaction {
   };
 }
 
+function mapTxFromRpc(raw: unknown): PointTransaction | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const row = raw as Record<string, unknown>;
+  if (!row.id) return null;
+  return mapTx({
+    id: String(row.id),
+    organization_id: String(row.organization_id),
+    customer_id: String(row.customer_id),
+    type: row.type as TxRow['type'],
+    amount: row.amount as number | string,
+    balance_after: row.balance_after as number | string,
+    earn_rate_percent: (row.earn_rate_percent as number | string | null) ?? null,
+    base_amount: (row.base_amount as number | string | null) ?? null,
+    reference_type: (row.reference_type as string | null) ?? null,
+    reference_id: (row.reference_id as string | null) ?? null,
+    description: (row.description as string | null) ?? null,
+    created_at: String(row.created_at ?? ''),
+  });
+}
+
 export type SaleReturnPointReverseResult = {
   skipped: boolean;
   reason?:
@@ -76,67 +89,44 @@ export type SaleReturnPointReverseResult = {
   redeemTransaction: PointTransaction | null;
 };
 
-async function insertAdjust(params: {
+async function applyAdjustRpc(params: {
   organizationId: string;
   customerId: string;
-  accountId: string;
-  currentBalance: number;
-  amount: number;
   returnId: string;
+  amount: number;
   description: string;
-}): Promise<{ tx: PointTransaction | null; balanceAfter: number; duplicate: boolean }> {
+}): Promise<{ tx: PointTransaction | null; duplicate: boolean }> {
   const client = ensureClient();
-  const balanceAfter = params.currentBalance + params.amount;
-  if (balanceAfter < 0) {
-    throw new Error(
-      `포인트 잔액이 부족하여 반품 적립 취소를 완료할 수 없습니다. (잔액 ${params.currentBalance}P)`
-    );
+  const { data, error } = await client.rpc(
+    'apply_point_adjust_for_sale_return' as never,
+    {
+      p_organization_id: params.organizationId,
+      p_customer_id: params.customerId,
+      p_return_id: params.returnId,
+      p_amount: params.amount,
+      p_description: params.description,
+    } as never
+  );
+
+  if (error) {
+    throw new Error(error.message || '반품 포인트 보정에 실패했습니다.');
   }
 
-  const { data: txRow, error: txError } = await client
-    .from('point_transactions')
-    .insert({
-      organization_id: params.organizationId,
-      customer_id: params.customerId,
-      type: 'adjust',
-      amount: params.amount,
-      balance_after: balanceAfter,
-      earn_rate_percent: null,
-      base_amount: null,
-      reference_type: POINT_RETURN_REF_TYPE,
-      reference_id: params.returnId,
-      description: params.description,
-    })
-    .select('*')
-    .single();
-
-  if (txError) {
-    if (txError.code === '23505') {
-      return { tx: null, balanceAfter: params.currentBalance, duplicate: true };
-    }
-    throw txError;
+  const payload = (data ?? {}) as Record<string, unknown>;
+  if (payload.skipped === true || payload.duplicate === true) {
+    return { tx: null, duplicate: true };
   }
-
-  const { error: updateError } = await client
-    .from('point_accounts')
-    .update({ balance: balanceAfter })
-    .eq('id', params.accountId)
-    .eq('organization_id', params.organizationId);
-  if (updateError) throw updateError;
-
   return {
-    tx: mapTx(txRow as TxRow),
-    balanceAfter,
+    tx: mapTxFromRpc(payload.transaction),
     duplicate: false,
   };
 }
 
 /**
- * 판매 반품 후 포인트 ledger 보정.
- * - 원 적립(earn) → adjust(음수)로 취소
- * - 원 사용(redeem) → adjust(양수)로 복구
- * - 부분 반품은 반품 금액 비례, 전량 완료 시 잔여분 흡수
- * - reference_type=sale_return + returnId 로 idempotent (원장 삭제 없음)
+ * 판매 반품 후 포인트 ledger 보정 (동일 returnId로 안전 재호출 가능).
+ * - 원 적립(earn) → adjust(음수) clawback
+ * - 원 사용(redeem) → adjust(양수) restore
+ * - 부호별 unique + 원자 RPC → 부분 실패 시 나머지만 재처리, 중복 없음
  */
 export const pointReturnService = {
   async reverseForSaleReturn(params: {
@@ -294,63 +284,34 @@ export const pointReturnService = {
       };
     }
 
-    let { data: account, error: findError } = await client
-      .from('point_accounts')
-      .select('*')
-      .eq('organization_id', orgId)
-      .eq('customer_id', customerId)
-      .maybeSingle();
-    if (findError) throw findError;
-
-    if (!account) {
-      const { data: created, error: createError } = await client
-        .from('point_accounts')
-        .insert({
-          organization_id: orgId,
-          customer_id: customerId,
-          balance: 0,
-        })
-        .select('*')
-        .single();
-      if (createError) throw createError;
-      account = created;
-    }
-
-    const accountRow = account as AccountRow;
-    let balance = toNumber(accountRow.balance);
     let earnTransaction: PointTransaction | null = null;
     let redeemTransaction: PointTransaction | null = null;
 
     // 사용 복구(+) 먼저 → 이후 적립 취소(-) 시 잔액 부족 가능성 감소
+    // 각 단계는 독립 RPC — 한쪽만 성공해도 재호출 시 나머지만 처리
     if (needRedeem) {
-      const res = await insertAdjust({
+      const res = await applyAdjustRpc({
         organizationId: orgId,
         customerId,
-        accountId: accountRow.id,
-        currentBalance: balance,
-        amount: plan.redeemRestore,
         returnId,
+        amount: plan.redeemRestore,
         description: `${POINT_RETURN_REDEEM_RESTORE_DESC_PREFIX} ${plan.redeemRestore}P (sale:${saleId})`,
       });
       if (!res.duplicate) {
         redeemTransaction = res.tx;
-        balance = res.balanceAfter;
       }
     }
 
     if (needEarn) {
-      const res = await insertAdjust({
+      const res = await applyAdjustRpc({
         organizationId: orgId,
         customerId,
-        accountId: accountRow.id,
-        currentBalance: balance,
-        amount: -plan.earnClawback,
         returnId,
+        amount: -plan.earnClawback,
         description: `${POINT_RETURN_EARN_CLAWBACK_DESC_PREFIX} ${plan.earnClawback}P (sale:${saleId})`,
       });
       if (!res.duplicate) {
         earnTransaction = res.tx;
-        balance = res.balanceAfter;
       }
     }
 
@@ -367,8 +328,8 @@ export const pointReturnService = {
 
     return {
       skipped: false,
-      earnClawback: needEarn ? plan.earnClawback : 0,
-      redeemRestore: needRedeem ? plan.redeemRestore : 0,
+      earnClawback: needEarn && earnTransaction ? plan.earnClawback : 0,
+      redeemRestore: needRedeem && redeemTransaction ? plan.redeemRestore : 0,
       earnTransaction,
       redeemTransaction,
     };

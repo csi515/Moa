@@ -255,6 +255,7 @@ export const saleReturnService = {
         soldQty: toNumber(src.quantity),
         unitPrice: toNumber(src.unit_price),
         discountAmount: toNumber(src.discount_amount),
+        alreadyReturned: returnedByItem.get(line.saleItemId) ?? 0,
       });
     }
 

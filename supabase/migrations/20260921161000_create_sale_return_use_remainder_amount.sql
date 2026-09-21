@@ -1,8 +1,4 @@
--- Core 판매 반품 원자 처리 RPC
--- sale_returns + sale_return_items + stock_movements(return) + inventory 단일 트랜잭션.
--- 원본 sales/sale_items 불변. 반품가능 = 판매수량 - 누적반품. FOR UPDATE로 동시 초과 반품 방지.
-
-BEGIN;
+-- create_sale_return: 부분 반품 금액을 compute_return_line_amount로 통일 (재고 로직 변경 없음)
 
 CREATE OR REPLACE FUNCTION core.create_sale_return(
   p_organization_id UUID,
@@ -32,9 +28,6 @@ DECLARE
   v_remaining NUMERIC(14, 3);
   v_line_amount NUMERIC(14, 2);
   v_total NUMERIC(14, 2) := 0;
-  v_orig_line NUMERIC(14, 2);
-  v_alloc_before NUMERIC(14, 2);
-  v_alloc_after NUMERIC(14, 2);
   v_rec RECORD;
   v_inv RECORD;
   v_product_id UUID;
@@ -153,32 +146,13 @@ BEGIN
         );
     END IF;
 
-    -- 누적 수량 기준 FLOOR 배분 + 전량 도달 시 잔여액 흡수 (TS computeReturnLineAmount와 동일)
-    -- 후속 migration에서 core.compute_return_line_amount로 추출
-    v_orig_line := GREATEST(
-      0,
-      (COALESCE(v_src.quantity, 0) * COALESCE(v_src.unit_price, 0))
-        - GREATEST(0, COALESCE(v_src.discount_amount, 0))
+    v_line_amount := core.compute_return_line_amount(
+      v_qty,
+      v_src.quantity,
+      v_src.unit_price,
+      v_src.discount_amount,
+      v_already
     );
-    IF COALESCE(v_already, 0) <= 0 THEN
-      v_alloc_before := 0;
-    ELSIF COALESCE(v_already, 0) >= COALESCE(v_src.quantity, 0) THEN
-      v_alloc_before := v_orig_line;
-    ELSE
-      v_alloc_before := FLOOR(
-        (v_orig_line * COALESCE(v_already, 0)) / NULLIF(v_src.quantity, 0)
-      );
-    END IF;
-    IF (COALESCE(v_already, 0) + v_qty) >= COALESCE(v_src.quantity, 0) THEN
-      v_alloc_after := v_orig_line;
-    ELSIF (COALESCE(v_already, 0) + v_qty) <= 0 THEN
-      v_alloc_after := 0;
-    ELSE
-      v_alloc_after := FLOOR(
-        (v_orig_line * (COALESCE(v_already, 0) + v_qty)) / NULLIF(v_src.quantity, 0)
-      );
-    END IF;
-    v_line_amount := GREATEST(0, v_alloc_after - v_alloc_before);
     v_total := v_total + v_line_amount;
 
     v_lines := v_lines || jsonb_build_array(
@@ -341,10 +315,4 @@ END;
 $$;
 
 COMMENT ON FUNCTION core.create_sale_return(UUID, UUID, TEXT, JSONB) IS
-  '반품+재고 복구 원자 RPC. sale/sale_items FOR UPDATE, 누적 반품 초과 시 전체 rollback.';
-
-REVOKE ALL ON FUNCTION core.create_sale_return(UUID, UUID, TEXT, JSONB) FROM PUBLIC;
-REVOKE ALL ON FUNCTION core.create_sale_return(UUID, UUID, TEXT, JSONB) FROM anon;
-GRANT EXECUTE ON FUNCTION core.create_sale_return(UUID, UUID, TEXT, JSONB) TO authenticated;
-
-COMMIT;
+  '반품+재고 복구 원자 RPC. 부분 반품 금액은 compute_return_line_amount(누적 FLOOR+잔여 흡수).';

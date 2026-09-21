@@ -43,6 +43,7 @@ export function computeReturnTotalAmount(
     soldQty: number;
     unitPrice: number;
     discountAmount: number;
+    alreadyReturned?: number;
   }>
 ): number {
   return lines.reduce(
@@ -53,6 +54,7 @@ export function computeReturnTotalAmount(
         soldQty: line.soldQty,
         unitPrice: line.unitPrice,
         discountAmount: line.discountAmount,
+        alreadyReturned: line.alreadyReturned,
       }),
     0
   );

@@ -1,11 +1,12 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { findInventoryRow } from './stockSaleOps';
+import { mapStockMovementRpcError } from './mapStockMovementRpcError';
 import type {
   InventoryStockRow,
   StockAdjustmentInput,
   StockInboundInput,
   StockMovement,
   StockMovementListQuery,
+  StockMovementType,
   StockReturnRestoreInput,
   StockSaleDeductInput,
 } from './types';
@@ -36,12 +37,17 @@ type MovementRow = {
   organization_id: string;
   product_id: string | null;
   variant_id: string | null;
-  movement_type: 'inbound' | 'sale' | 'return' | 'adjustment';
+  movement_type: StockMovementType;
   quantity: number | string;
   reference_type: string | null;
   reference_id: string | null;
   reason: string | null;
   created_at: string;
+};
+
+type ApplyStockMovementRpcResult = {
+  movement: MovementRow;
+  quantity_after: number | string;
 };
 
 function toNumber(value: number | string | null | undefined): number {
@@ -101,8 +107,52 @@ async function assertProductInOrg(
 }
 
 /**
+ * core.apply_stock_movement — movement + inventory 원자 변경.
+ * 공개 apply* API는 이 RPC만 사용한다.
+ */
+export async function callApplyStockMovement(params: {
+  organizationId: string;
+  productId: string;
+  variantId: string | null;
+  movementType: StockMovementType;
+  quantity: number;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  reason?: string | null;
+}): Promise<{ movement: StockMovement; quantityAfter: number }> {
+  const client = ensureClient();
+  const { data, error } = await client.rpc(
+    'apply_stock_movement' as never,
+    {
+      p_organization_id: params.organizationId,
+      p_product_id: params.productId,
+      p_variant_id: params.variantId,
+      p_movement_type: params.movementType,
+      p_quantity: params.quantity,
+      p_reference_type: params.referenceType ?? null,
+      p_reference_id: params.referenceId ?? null,
+      p_reason: params.reason ?? null,
+    } as never
+  );
+
+  if (error) {
+    throw new Error(mapStockMovementRpcError(error.message));
+  }
+
+  const payload = data as ApplyStockMovementRpcResult | null;
+  if (!payload?.movement) {
+    throw new Error('재고 처리에 실패했습니다.');
+  }
+
+  return {
+    movement: mapMovement(payload.movement),
+    quantityAfter: toNumber(payload.quantity_after),
+  };
+}
+
+/**
  * Core 재고 조회·입고·판매·반품·조정·이력.
- * 잔량 변경은 항상 StockMovement 기록 후 Inventory 가감.
+ * 잔량 변경은 apply_stock_movement RPC(FOR UPDATE)로 원자 처리.
  */
 export const inventoryService = {
   async listStockRows(organizationId: string): Promise<InventoryStockRow[]> {
@@ -223,7 +273,6 @@ export const inventoryService = {
     movement: StockMovement;
     quantityAfter: number;
   }> {
-    const client = ensureClient();
     const qty = Number(input.quantity);
     if (!Number.isFinite(qty) || qty <= 0) {
       throw new Error('입고 수량은 0보다 커야 합니다.');
@@ -235,56 +284,20 @@ export const inventoryService = {
     const variantId = input.variantId || null;
     await assertProductInOrg(input.organizationId, input.productId, variantId);
 
-    const { data: movementRow, error: movementError } = await client
-      .from('stock_movements')
-      .insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        movement_type: 'inbound',
-        quantity: qty,
-        reason: input.reason?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (movementError) throw movementError;
-
-    const existing = await findInventoryRow(
-      input.organizationId,
-      input.productId,
-      variantId
-    );
-    let quantityAfter: number;
-    if (existing) {
-      quantityAfter = toNumber(existing.quantity) + qty;
-      const { error: updateError } = await client
-        .from('inventory')
-        .update({ quantity: quantityAfter })
-        .eq('id', existing.id)
-        .eq('organization_id', input.organizationId);
-      if (updateError) throw updateError;
-    } else {
-      quantityAfter = qty;
-      const { error: insertError } = await client.from('inventory').insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        quantity: quantityAfter,
-      });
-      if (insertError) throw insertError;
-    }
-
-    return {
-      movement: mapMovement(movementRow as MovementRow),
-      quantityAfter,
-    };
+    return callApplyStockMovement({
+      organizationId: input.organizationId,
+      productId: input.productId,
+      variantId,
+      movementType: 'inbound',
+      quantity: qty,
+      reason: input.reason?.trim() || null,
+    });
   },
 
   async applyAdjustment(input: StockAdjustmentInput): Promise<{
     movement: StockMovement;
     quantityAfter: number;
   }> {
-    const client = ensureClient();
     const delta = Number(input.quantity);
     if (!Number.isFinite(delta) || delta === 0 || !Number.isInteger(delta)) {
       throw new Error('조정 수량은 0이 아닌 정수여야 합니다.');
@@ -300,54 +313,14 @@ export const inventoryService = {
     const variantId = input.variantId || null;
     await assertProductInOrg(input.organizationId, input.productId, variantId);
 
-    const existing = await findInventoryRow(
-      input.organizationId,
-      input.productId,
-      variantId
-    );
-    const currentQty = existing ? toNumber(existing.quantity) : 0;
-    const quantityAfter = currentQty + delta;
-    if (quantityAfter < 0) {
-      throw new Error(
-        `조정 후 재고가 음수가 됩니다. (현재 ${currentQty}, 조정 ${delta})`
-      );
-    }
-
-    const { data: movementRow, error: movementError } = await client
-      .from('stock_movements')
-      .insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        movement_type: 'adjustment',
-        quantity: delta,
-        reason,
-      })
-      .select('*')
-      .single();
-    if (movementError) throw movementError;
-
-    if (existing) {
-      const { error: updateError } = await client
-        .from('inventory')
-        .update({ quantity: quantityAfter })
-        .eq('id', existing.id)
-        .eq('organization_id', input.organizationId);
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await client.from('inventory').insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        quantity: quantityAfter,
-      });
-      if (insertError) throw insertError;
-    }
-
-    return {
-      movement: mapMovement(movementRow as MovementRow),
-      quantityAfter,
-    };
+    return callApplyStockMovement({
+      organizationId: input.organizationId,
+      productId: input.productId,
+      variantId,
+      movementType: 'adjustment',
+      quantity: delta,
+      reason,
+    });
   },
 
   /**
@@ -359,7 +332,6 @@ export const inventoryService = {
     movement: StockMovement;
     quantityAfter: number;
   }> {
-    const client = ensureClient();
     const qty = Math.floor(Number(input.quantity) || 0);
     if (qty <= 0) {
       throw new Error('판매 차감 수량은 0보다 커야 합니다.');
@@ -377,55 +349,16 @@ export const inventoryService = {
     const variantId = input.variantId || null;
     await assertProductInOrg(input.organizationId, input.productId, variantId);
 
-    const existing = await findInventoryRow(
-      input.organizationId,
-      input.productId,
-      variantId
-    );
-    const currentQty = existing ? toNumber(existing.quantity) : 0;
-    if (currentQty < qty) {
-      throw new Error(`재고가 부족합니다. (현재 ${currentQty})`);
-    }
-    const delta = -qty;
-    const quantityAfter = currentQty + delta;
-
-    const { data: movementRow, error: movementError } = await client
-      .from('stock_movements')
-      .insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        movement_type: 'sale',
-        quantity: delta,
-        reference_type: referenceType,
-        reference_id: saleId,
-        reason: input.reason?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (movementError) throw movementError;
-
-    if (existing) {
-      const { error: updateError } = await client
-        .from('inventory')
-        .update({ quantity: quantityAfter })
-        .eq('id', existing.id)
-        .eq('organization_id', input.organizationId);
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await client.from('inventory').insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        quantity: quantityAfter,
-      });
-      if (insertError) throw insertError;
-    }
-
-    return {
-      movement: mapMovement(movementRow as MovementRow),
-      quantityAfter,
-    };
+    return callApplyStockMovement({
+      organizationId: input.organizationId,
+      productId: input.productId,
+      variantId,
+      movementType: 'sale',
+      quantity: qty,
+      referenceType,
+      referenceId: saleId,
+      reason: input.reason?.trim() || null,
+    });
   },
 
   /**
@@ -437,7 +370,6 @@ export const inventoryService = {
     movement: StockMovement;
     quantityAfter: number;
   }> {
-    const client = ensureClient();
     const qty = Math.floor(Number(input.quantity) || 0);
     if (qty <= 0) {
       throw new Error('반품 복구 수량은 0보다 커야 합니다.');
@@ -455,50 +387,15 @@ export const inventoryService = {
     const variantId = input.variantId || null;
     await assertProductInOrg(input.organizationId, input.productId, variantId);
 
-    const existing = await findInventoryRow(
-      input.organizationId,
-      input.productId,
-      variantId
-    );
-    const currentQty = existing ? toNumber(existing.quantity) : 0;
-    const quantityAfter = currentQty + qty;
-
-    const { data: movementRow, error: movementError } = await client
-      .from('stock_movements')
-      .insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        movement_type: 'return',
-        quantity: qty,
-        reference_type: referenceType,
-        reference_id: saleReturnId,
-        reason: input.reason?.trim() || null,
-      })
-      .select('*')
-      .single();
-    if (movementError) throw movementError;
-
-    if (existing) {
-      const { error: updateError } = await client
-        .from('inventory')
-        .update({ quantity: quantityAfter })
-        .eq('id', existing.id)
-        .eq('organization_id', input.organizationId);
-      if (updateError) throw updateError;
-    } else {
-      const { error: insertError } = await client.from('inventory').insert({
-        organization_id: input.organizationId,
-        product_id: input.productId,
-        variant_id: variantId,
-        quantity: quantityAfter,
-      });
-      if (insertError) throw insertError;
-    }
-
-    return {
-      movement: mapMovement(movementRow as MovementRow),
-      quantityAfter,
-    };
+    return callApplyStockMovement({
+      organizationId: input.organizationId,
+      productId: input.productId,
+      variantId,
+      movementType: 'return',
+      quantity: qty,
+      referenceType,
+      referenceId: saleReturnId,
+      reason: input.reason?.trim() || null,
+    });
   },
 };

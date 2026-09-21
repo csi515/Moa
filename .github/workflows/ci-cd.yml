@@ -1,0 +1,212 @@
+# Moa Academy — CI/CD
+# Node.js 20 · Vite · React · TypeScript · npm
+# 트리거: main push, pull_request
+#
+# 비밀값은 절대 워크플로우에 하드코딩하지 않습니다.
+# 필요한 값은 GitHub → Settings → Secrets and variables → Actions 에 등록하세요.
+
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-cd-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────
+  # 품질 게이트 (비밀값 불필요)
+  # ─────────────────────────────────────────────
+  quality:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck (lint)
+        run: npm run lint
+
+      - name: Unit tests
+        run: |
+          npm run test:bulk-import
+          npm run test:deeplink
+          npm run test:invoice-dedupe
+          npm run test:timetable-placement
+          npm run test:today-lesson-teacher
+          npm run test:manual-attendance-class
+          npm run test:create-sale-atomic
+          npm run test:create-sale-return-atomic
+          npm run test:textbook-core-sale-link
+          npm run test:skin-retail-migrate
+          npm run test:sale-return-points
+
+  # ─────────────────────────────────────────────
+  # 빌드 + Playwright E2E (Vite 빌드용 VITE_* 필요)
+  # ─────────────────────────────────────────────
+  build-e2e:
+    name: Build & E2E
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: quality
+    env:
+      # 클라이언트 번들용 — 값은 Secrets에서만 주입
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
+      VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
+      VITE_APP_SHORT_NAME: ${{ vars.VITE_APP_SHORT_NAME }}
+      VITE_SUPPORT_EMAIL: ${{ vars.VITE_SUPPORT_EMAIL }}
+      VITE_LEGAL_ENTITY_NAME: ${{ vars.VITE_LEGAL_ENTITY_NAME }}
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify required build secrets
+        run: |
+          missing=0
+          for key in VITE_SUPABASE_URL VITE_SUPABASE_ANON_KEY VITE_APP_URL; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing secret: $key"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Register secrets in GitHub → Settings → Secrets and variables → Actions"
+            exit 1
+          fi
+          echo "Required VITE_* secrets are present (values not logged)."
+
+      - name: Production build
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Playwright E2E
+        run: npm run test:e2e
+        env:
+          # 실계정 E2E는 선택 — 없으면 목/게이트 테스트만 통과하는 스펙은 그대로 동작
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_ORG_NAME: ${{ secrets.E2E_ORG_NAME }}
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
+  # ─────────────────────────────────────────────
+  # 선택: Supabase RLS/Auth 감사 (원격 읽기 전용)
+  # Repository variable ENABLE_SECURITY_AUDIT=true 일 때만 실행
+  # ─────────────────────────────────────────────
+  security-audit:
+    name: Supabase Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    if: vars.ENABLE_SECURITY_AUDIT == 'true'
+    env:
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: RLS org isolation audit
+        run: npm run test:rls-audit
+        continue-on-error: true
+
+      - name: Auth providers hijack audit
+        run: npm run test:auth-hijack-audit
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────
+  # Production 배포 (main push만) — Vercel CLI
+  # Repository variable ENABLE_VERCEL_DEPLOY=true 일 때만 실행
+  # (Vercel Git 연동만 쓰는 경우 이 job은 꺼 두세요)
+  # ─────────────────────────────────────────────
+  deploy:
+    name: Deploy (Vercel Production)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [quality, build-e2e]
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      vars.ENABLE_VERCEL_DEPLOY == 'true'
+    environment: production
+    permissions:
+      contents: read
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build (Vercel)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Prebuilt
+        id: deploy
+        run: |
+          url="$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployed: $url"

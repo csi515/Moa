@@ -3,6 +3,7 @@
  * 실행: npx tsx src/core/sales/createSaleReturnAtomic.test.ts
  *
  * 실제 DB 트랜잭션은 core.create_sale_return(sales/sale_items FOR UPDATE)가 담당.
+ * 부분 반품 금액은 computeReturnLineAmount ≡ core.compute_return_line_amount.
  */
 import assert from 'node:assert/strict';
 import { computeReturnLineAmount } from './types';
@@ -71,6 +72,55 @@ function simulateSerializedConcurrentReturns(
   return { accepted, rejected, totalReturned: returned };
 }
 
+/** 부분 반품을 순차 적용한 금액 합계 */
+function sumSequentialReturns(
+  soldQty: number,
+  unitPrice: number,
+  discountAmount: number,
+  chunks: number[]
+): { parts: number[]; total: number; original: number } {
+  const original = Math.max(0, soldQty * unitPrice - discountAmount);
+  let already = 0;
+  const parts: number[] = [];
+  for (const qty of chunks) {
+    const amt = computeReturnLineAmount({
+      returnQty: qty,
+      soldQty,
+      unitPrice,
+      discountAmount,
+      alreadyReturned: already,
+    });
+    parts.push(amt);
+    already += qty;
+  }
+  return {
+    parts,
+    total: parts.reduce((s, n) => s + n, 0),
+    original,
+  };
+}
+
+/** PostgreSQL FLOOR 누적 배분과 동일 식 (검증용 인라인) */
+function sqlStyleReturnLineAmount(
+  returnQty: number,
+  soldQty: number,
+  unitPrice: number,
+  discountAmount: number,
+  alreadyReturned: number
+): number {
+  const vReturn = Math.max(0, returnQty);
+  const vSold = Math.max(0, soldQty);
+  const vAlready = Math.max(0, alreadyReturned);
+  if (vReturn <= 0 || vSold <= 0) return 0;
+  const vOrig = Math.max(0, vSold * Math.max(0, unitPrice) - Math.max(0, discountAmount));
+  const alloc = (qty: number) => {
+    if (qty <= 0) return 0;
+    if (qty >= vSold) return vOrig;
+    return Math.floor((vOrig * qty) / vSold);
+  };
+  return Math.max(0, alloc(vAlready + vReturn) - alloc(vAlready));
+}
+
 // ── 전액 반품 ─────────────────────────────────────────────────────
 {
   const amount = computeReturnLineAmount({
@@ -119,6 +169,94 @@ function simulateSerializedConcurrentReturns(
     requestQty: 2,
   });
   assert.equal(partial.returnedAfter, 2);
+}
+
+// ── 3개×10,000원 할인 1원 — 1개씩 세 번 ─────────────────────────
+{
+  const seq = sumSequentialReturns(3, 10000, 1, [1, 1, 1]);
+  assert.equal(seq.original, 29999);
+  assert.equal(seq.total, 29999);
+  assert.deepEqual(seq.parts, [9999, 10000, 10000]);
+}
+
+// ── 7개 중 2+2+3 반품 (할인 1원) ─────────────────────────────────
+{
+  const seq = sumSequentialReturns(7, 10000, 1, [2, 2, 3]);
+  assert.equal(seq.original, 69999);
+  assert.equal(seq.total, 69999);
+}
+
+// ── 할인액이 soldQty로 나누어지지 않는 값 ─────────────────────────
+{
+  const seq = sumSequentialReturns(3, 1000, 100, [1, 1, 1]);
+  assert.equal(seq.original, 2900);
+  assert.equal(seq.total, 2900);
+
+  const seq2 = sumSequentialReturns(5, 7777, 3, [1, 1, 1, 1, 1]);
+  assert.equal(seq2.total, seq2.original);
+}
+
+// ── 전량 반품 한 번 ───────────────────────────────────────────────
+{
+  const once = computeReturnLineAmount({
+    returnQty: 3,
+    soldQty: 3,
+    unitPrice: 10000,
+    discountAmount: 1,
+  });
+  assert.equal(once, 29999);
+}
+
+// ── 부분 반품 후 마지막 전량 반품 ─────────────────────────────────
+{
+  const first = computeReturnLineAmount({
+    returnQty: 1,
+    soldQty: 3,
+    unitPrice: 10000,
+    discountAmount: 1,
+    alreadyReturned: 0,
+  });
+  const rest = computeReturnLineAmount({
+    returnQty: 2,
+    soldQty: 3,
+    unitPrice: 10000,
+    discountAmount: 1,
+    alreadyReturned: 1,
+  });
+  assert.equal(first + rest, 29999);
+}
+
+// ── TS ≡ SQL 스타일 식 ───────────────────────────────────────────
+{
+  const cases: Array<{
+    returnQty: number;
+    soldQty: number;
+    unitPrice: number;
+    discountAmount: number;
+    alreadyReturned: number;
+  }> = [
+    { returnQty: 1, soldQty: 3, unitPrice: 10000, discountAmount: 1, alreadyReturned: 0 },
+    { returnQty: 1, soldQty: 3, unitPrice: 10000, discountAmount: 1, alreadyReturned: 1 },
+    { returnQty: 1, soldQty: 3, unitPrice: 10000, discountAmount: 1, alreadyReturned: 2 },
+    { returnQty: 2, soldQty: 7, unitPrice: 10000, discountAmount: 1, alreadyReturned: 0 },
+    { returnQty: 2, soldQty: 7, unitPrice: 10000, discountAmount: 1, alreadyReturned: 2 },
+    { returnQty: 3, soldQty: 7, unitPrice: 10000, discountAmount: 1, alreadyReturned: 4 },
+    { returnQty: 3, soldQty: 3, unitPrice: 10000, discountAmount: 1, alreadyReturned: 0 },
+    { returnQty: 2, soldQty: 5, unitPrice: 7777, discountAmount: 3, alreadyReturned: 1 },
+  ];
+  for (const c of cases) {
+    assert.equal(
+      computeReturnLineAmount(c),
+      sqlStyleReturnLineAmount(
+        c.returnQty,
+        c.soldQty,
+        c.unitPrice,
+        c.discountAmount,
+        c.alreadyReturned
+      ),
+      JSON.stringify(c)
+    );
+  }
 }
 
 // ── 부분 반품 2회 ─────────────────────────────────────────────────
