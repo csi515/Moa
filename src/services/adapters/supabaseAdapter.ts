@@ -22,7 +22,18 @@ import type { IStorageAdapter, StorageListener } from './types';
 
 const LOCAL_MISS = Symbol('local-miss');
 
-/** Supabase 하이브리드 어댑터 — Core + Piano 모듈 Supabase sync */
+/**
+ * Supabase 하이브리드 어댑터.
+ *
+ * - 원본(SoT): Supabase (도메인별 direct CRUD 포함)
+ * - 메모리 cache: 런타임 읽기
+ * - localStorage(writeLocal): remote mirror / offline snapshot — 독립 SoT 아님
+ * - syncOutbox: remote persist 재시도 상태 (업무 데이터 아님)
+ * - LOCAL_ONLY_KEYS: device-only UI·스키마 없는 데이터 (setItem → writeLocal만)
+ *
+ * setItem 성공(로컬 미러 기록) ≠ 원격 persist 성공.
+ * persist 실패 키는 outbox에 남아 flushSyncOutbox로 재시도한다.
+ */
 export class SupabaseAdapter implements IStorageAdapter {
   readonly backend = 'supabase' as const;
 
@@ -30,7 +41,7 @@ export class SupabaseAdapter implements IStorageAdapter {
   private cache = new Map<string, unknown>();
   private hydrated = false;
   private hydrating = false;
-  /** 네트워크 hydrate 실패 후 로컬 스냅샷으로 기동 */
+  /** 네트워크 hydrate 실패 후 localStorage offline snapshot으로 기동 */
   private offlineHydrated = false;
   /** hydrate / clear 시 증가 — in-flight hydrate·persist 무효화 */
   private hydrateGeneration = 0;
@@ -43,7 +54,7 @@ export class SupabaseAdapter implements IStorageAdapter {
       if (this.cache.has(key)) {
         return this.cache.get(key) as T;
       }
-      // hydrate 완료 전: org 스코프 로컬 스냅샷만 허용 (오프라인 폴백)
+      // hydrate 완료 전: org 스코프 offline snapshot만 허용 (원격 대체 SoT 아님)
       if (getOrganizationId() && !this.hydrated) {
         if (this.offlineHydrated) {
           return readLocal(key, defaultValue);
@@ -57,10 +68,11 @@ export class SupabaseAdapter implements IStorageAdapter {
   setItem<T>(key: StorageKey, value: T): void {
     if (SUPABASE_SYNC_KEYS.has(key)) {
       this.cache.set(key, value);
-      // 오프라인·재시작 대비 즉시 로컬 미러
+      // offline·재시작 대비 즉시 local mirror (원본은 이후 persist / 도메인 CRUD)
       writeLocal(key, value);
       this.schedulePersist(key);
     } else {
+      // LOCAL_ONLY / device-only
       writeLocal(key, value);
     }
     this.notify();
@@ -130,7 +142,10 @@ export class SupabaseAdapter implements IStorageAdapter {
           this.offlineHydrated = true;
           this.ensureOnlineFlushListener();
           this.notify();
-          console.warn('[storage] hydrate failed — using local snapshot (offline mode)', error);
+          console.warn(
+            '[storage] hydrate failed — using localStorage offline snapshot (not a durable SoT)',
+            error
+          );
           return;
         }
         this.hydrated = false;
@@ -185,7 +200,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     return ok;
   }
 
-  /** hydrate용 — live cache */
+  /** hydrate용 — live in-memory cache */
   private createLiveCacheAdapter(): SyncCache {
     return {
       get: <T>(key: StorageKey) => this.cache.get(key) as T | undefined,
@@ -273,6 +288,8 @@ export class SupabaseAdapter implements IStorageAdapter {
         if (isAborted()) return false;
       }
 
+      // PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: adapter persist 대상 아님(DB direct CRUD)
+
       if (!ok) {
         enqueueSyncOutbox(key);
       } else {
@@ -287,7 +304,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     }
   }
 
-  /** 로컬에 저장된 org 스냅샷을 캐시에 적재 (오프라인 기동) */
+  /** localStorage offline snapshot → 메모리 cache (원격 hydrate 실패 시 기동용) */
   private loadLocalSnapshotIntoCache(): boolean {
     let loaded = 0;
     for (const key of SUPABASE_SYNC_KEYS) {
@@ -316,6 +333,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     });
   }
 
+  /** outbox에 쌓인 StorageKey만 재 persist — 업무 엔티티 저장소가 아님 */
   async flushSyncOutbox(): Promise<void> {
     if (!this.hydrated || typeof navigator !== 'undefined' && navigator.onLine === false) {
       return;

@@ -2,6 +2,14 @@ import type { Textbook, TextbookInventoryTransaction } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+import {
+  commitLocalThenRemote,
+  resolveTextbookCatalogMode,
+} from '@/modules/piano/services/textbookCatalogPersist';
+
+function cloneTextbooks(list: Textbook[]): Textbook[] {
+  return list.map((t) => ({ ...t }));
+}
 
 /** 교재 목록·재고·입출고 이력 (재고 source = Core Inventory) */
 export function createTextbookCatalogStorage(api: StorageApi) {
@@ -14,8 +22,14 @@ export function createTextbookCatalogStorage(api: StorageApi) {
       return (api.getTextbooks as () => Textbook[])().find((t) => t.id === id);
     },
 
+    /**
+     * 교재 신규/수정.
+     * - core 모드: Core Product/재고 성공 후에만 local mirror 유지(실패 시 롤백)
+     * - local_demo: Supabase/사업장 없음 — 명시적 로컬 폴백(온보딩·데모)
+     */
     async saveTextbook(tb: Partial<Textbook> & { title: string }): Promise<Textbook> {
       const list = (api.getTextbooks as () => Textbook[])();
+      const snapshot = cloneTextbooks(list);
       const nowStr = new Date().toISOString();
       const price = Number(tb.salePrice ?? tb.price ?? 15000);
       const cost = Number(tb.costPrice ?? Math.round(price * 0.6));
@@ -25,26 +39,28 @@ export function createTextbookCatalogStorage(api: StorageApi) {
       let saved: Textbook;
       let isNew = false;
       let previousStock = 0;
+      let replaceIdx = -1;
 
       if (tb.id) {
         const idx = list.findIndex((t) => t.id === tb.id);
         if (idx >= 0) {
           const prev = list[idx];
           previousStock = prev.stock;
+          replaceIdx = idx;
           saved = {
             ...prev,
             ...tb,
             price,
             salePrice: price,
             costPrice: cost,
-            // stock은 Core 반영 후 미러 — 일단 요청값 보관 후 아래에서 동기화
+            // stock은 Core 반영 후 미러 — 일단 기존값 유지
             stock: previousStock,
+            currentStock: previousStock,
             minStock,
             isForSale: tb.isForSale !== undefined ? tb.isForSale : prev.isForSale !== false,
             productId: prev.productId || prev.id,
             updatedAt: nowStr,
           };
-          list[idx] = saved;
         } else {
           isNew = true;
           saved = {
@@ -58,6 +74,7 @@ export function createTextbookCatalogStorage(api: StorageApi) {
             salePrice: price,
             costPrice: cost,
             stock: 0,
+            currentStock: 0,
             minStock,
             isForSale: tb.isForSale !== undefined ? tb.isForSale : true,
             memo: tb.memo || '',
@@ -65,7 +82,6 @@ export function createTextbookCatalogStorage(api: StorageApi) {
             createdAt: nowStr,
             updatedAt: nowStr,
           };
-          list.push(saved);
         }
       } else {
         isNew = true;
@@ -82,6 +98,7 @@ export function createTextbookCatalogStorage(api: StorageApi) {
           salePrice: price,
           costPrice: cost,
           stock: 0,
+          currentStock: 0,
           minStock,
           isForSale: tb.isForSale !== undefined ? tb.isForSale : true,
           memo: tb.memo || '',
@@ -89,55 +106,78 @@ export function createTextbookCatalogStorage(api: StorageApi) {
           createdAt: nowStr,
           updatedAt: nowStr,
         };
-        list.push(saved);
       }
 
+      const mode = resolveTextbookCatalogMode(textbookCoreStock.isAvailable());
+
+      if (mode === 'core') {
+        return commitLocalThenRemote({
+          commitLocal: () => {
+            const next = cloneTextbooks(snapshot);
+            if (replaceIdx >= 0) {
+              next[replaceIdx] = saved;
+            } else {
+              next.push(saved);
+            }
+            setItem(STORAGE_KEYS.TEXTBOOKS, next);
+          },
+          rollbackLocal: () => {
+            setItem(STORAGE_KEYS.TEXTBOOKS, snapshot);
+          },
+          runRemote: async () => {
+            let linked = await textbookCoreStock.ensureProductLinked(saved);
+            const coreQty = await textbookCoreStock.syncStockMirror(linked.id);
+            const delta = requestedStock - coreQty;
+            if (delta !== 0) {
+              const res = await textbookCoreStock.applyDelta({
+                textbookId: linked.id,
+                quantityDelta: delta,
+                transactionType: delta > 0 ? 'inbound' : 'adjust',
+                memo: isNew
+                  ? '신규 교재 등록 시 초기 재고 설정'
+                  : '교재 수정 시 재고 반영',
+              });
+              linked = res.textbook;
+            } else {
+              linked =
+                (api.getTextbookById as (id: string) => Textbook | undefined)(linked.id) ||
+                linked;
+            }
+            return linked;
+          },
+        });
+      }
+
+      // local_demo: 명시적 로컬 폴백 (Supabase 미설정·사업장 미선택)
+      if (replaceIdx >= 0) {
+        list[replaceIdx] = {
+          ...saved,
+          stock: requestedStock,
+          currentStock: requestedStock,
+        };
+      } else {
+        list.push({
+          ...saved,
+          stock: requestedStock,
+          currentStock: requestedStock,
+        });
+      }
+      saved = list[replaceIdx >= 0 ? replaceIdx : list.length - 1];
       setItem(STORAGE_KEYS.TEXTBOOKS, list);
 
-      if (textbookCoreStock.isAvailable()) {
-        saved = await textbookCoreStock.ensureProductLinked(saved);
-        const coreQty = await textbookCoreStock.syncStockMirror(saved.id);
-        const delta = requestedStock - coreQty;
-        if (delta !== 0) {
-          const res = await textbookCoreStock.applyDelta({
-            textbookId: saved.id,
-            quantityDelta: delta,
-            transactionType: delta > 0 ? 'inbound' : 'adjust',
-            memo: isNew
-              ? '신규 교재 등록 시 초기 재고 설정'
-              : '교재 수정 시 재고 반영',
-          });
-          saved = res.textbook;
-        } else {
-          saved =
-            (api.getTextbookById as (id: string) => Textbook | undefined)(saved.id) || saved;
-        }
-      } else {
-        // Core 불가 시 로컬 폴백 (온보딩 등)
-        const idx = list.findIndex((t) => t.id === saved.id);
-        if (idx >= 0) {
-          list[idx] = {
-            ...saved,
-            stock: requestedStock,
-            currentStock: requestedStock,
-          };
-          setItem(STORAGE_KEYS.TEXTBOOKS, list);
-          saved = list[idx];
-          if (isNew && requestedStock > 0) {
-            (api.recordInventoryTransaction as (
-              tx: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-            ) => TextbookInventoryTransaction)({
-              textbookId: saved.id,
-              textbookTitle: saved.title,
-              transactionType: 'inbound',
-              quantity: requestedStock,
-              previousStock: 0,
-              currentStock: requestedStock,
-              transactionDate: new Date().toISOString().slice(0, 10),
-              memo: '신규 교재 등록 시 초기 재고 설정',
-            });
-          }
-        }
+      if (isNew && requestedStock > 0) {
+        (api.recordInventoryTransaction as (
+          tx: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
+        ) => TextbookInventoryTransaction)({
+          textbookId: saved.id,
+          textbookTitle: saved.title,
+          transactionType: 'inbound',
+          quantity: requestedStock,
+          previousStock: 0,
+          currentStock: requestedStock,
+          transactionDate: new Date().toISOString().slice(0, 10),
+          memo: '신규 교재 등록 시 초기 재고 설정',
+        });
       }
 
       return saved;
@@ -147,39 +187,74 @@ export function createTextbookCatalogStorage(api: StorageApi) {
       return (api.getTextbooks as () => Textbook[])().filter((t) => t.isForSale !== false);
     },
 
-    deleteTextbook(id: string): boolean {
-      const list = (api.getTextbooks as () => Textbook[])();
-      const idx = list.findIndex((t) => t.id === id);
-      if (idx < 0) return false;
-      list[idx] = {
-        ...list[idx],
-        isForSale: false,
-        updatedAt: new Date().toISOString(),
-      };
-      setItem(STORAGE_KEYS.TEXTBOOKS, list);
-      return true;
+    /**
+     * 판매 중지(소프트).
+     * - core: Core Product isActive 동기화 성공 후에만 local 유지
+     * - local_demo: local only (piano sync 키면 기존 outbox 경로)
+     */
+    async deleteTextbook(id: string): Promise<boolean> {
+      return (api.setTextbookForSale as (id: string, forSale: boolean) => Promise<boolean>)(
+        id,
+        false
+      );
     },
 
-    setTextbookForSale(id: string, forSale: boolean): boolean {
+    /**
+     * 판매 여부 변경.
+     * - core: Core Product 반영 실패 시 local 롤백 후 throw
+     * - local_demo / piano.textbooks: setItem → 기존 adapter outbox·retry
+     */
+    async setTextbookForSale(id: string, forSale: boolean): Promise<boolean> {
       const list = (api.getTextbooks as () => Textbook[])();
       const idx = list.findIndex((t) => t.id === id);
       if (idx < 0) return false;
-      list[idx] = {
+
+      const snapshot = cloneTextbooks(list);
+      const updated: Textbook = {
         ...list[idx],
         isForSale: forSale,
         updatedAt: new Date().toISOString(),
       };
+
+      const mode = resolveTextbookCatalogMode(textbookCoreStock.isAvailable());
+
+      if (mode === 'core') {
+        await commitLocalThenRemote({
+          commitLocal: () => {
+            const next = cloneTextbooks(snapshot);
+            next[idx] = updated;
+            setItem(STORAGE_KEYS.TEXTBOOKS, next);
+          },
+          rollbackLocal: () => {
+            setItem(STORAGE_KEYS.TEXTBOOKS, snapshot);
+          },
+          runRemote: async () => {
+            await textbookCoreStock.ensureProductLinked(updated);
+            return true;
+          },
+        });
+        return true;
+      }
+
+      list[idx] = updated;
       setItem(STORAGE_KEYS.TEXTBOOKS, list);
       return true;
     },
 
+    /**
+     * 재고 조정.
+     * - core: Core atomic movement SoT — 실패 시 throw, local-only 성공 없음
+     * - local_demo: 명시적 로컬 폴백
+     */
     async adjustStock(
       textbookId: string,
       quantityDelta: number,
       transactionType: 'inbound' | 'adjust' | 'return' = 'inbound',
       memo?: string
     ): Promise<{ textbook: Textbook; transaction: TextbookInventoryTransaction } | null> {
-      if (textbookCoreStock.isAvailable()) {
+      const mode = resolveTextbookCatalogMode(textbookCoreStock.isAvailable());
+
+      if (mode === 'core') {
         const res = await textbookCoreStock.applyDelta({
           textbookId,
           quantityDelta,
@@ -210,7 +285,7 @@ export function createTextbookCatalogStorage(api: StorageApi) {
         return { textbook: res.textbook, transaction: tx };
       }
 
-      // 로컬 폴백
+      // local_demo 폴백
       const list = (api.getTextbooks as () => Textbook[])();
       const idx = list.findIndex((t) => t.id === textbookId);
       if (idx === -1) return null;

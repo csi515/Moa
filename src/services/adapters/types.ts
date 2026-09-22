@@ -3,7 +3,11 @@ import type { StorageKey } from './storageKeys';
 
 export type StorageListener = () => void;
 
-/** 저장소 어댑터 인터페이스 — sync API 유지, hydrate만 async */
+/**
+ * 저장소 어댑터 인터페이스.
+ * backend는 Supabase; localStorage는 mirror/cache·device-only·outbox용 (독립 SoT 아님).
+ * sync API 유지, hydrate만 async.
+ */
 export interface IStorageAdapter {
   readonly backend: 'supabase';
 
@@ -13,7 +17,7 @@ export interface IStorageAdapter {
 
   subscribe(listener: StorageListener): () => void;
 
-  /** Supabase 모드: org 선택 시 원격 데이터 로드 */
+  /** org 선택 시 원격 → 메모리 cache (+ local mirror 갱신 경로는 구현체) */
   hydrate(organizationId: string, industryType?: string | null): Promise<void>;
 
   /** org 전환/로그아웃 시 캐시 초기화 */
@@ -21,10 +25,10 @@ export interface IStorageAdapter {
 
   isHydrated(): boolean;
   isHydrating(): boolean;
-  /** 원격 hydrate 실패 후 로컬 스냅샷으로 기동 중 */
+  /** 원격 hydrate 실패 후 localStorage offline snapshot으로 기동 중 */
   isOfflineHydrated?(): boolean;
 
-  /** 지정 키의 debounce persist를 즉시 실행. false면 원격 반영 실패(또는 abort) */
+  /** 지정 키의 debounce persist를 즉시 실행. false면 원격 반영 실패(또는 abort) → outbox */
   flushPersist?(keys: StorageKey[]): Promise<boolean>;
 }
 

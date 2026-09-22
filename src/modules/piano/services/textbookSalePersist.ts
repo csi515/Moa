@@ -100,3 +100,94 @@ export async function persistSaleAfterCoreSuccess(params: {
 
   return { payment };
 }
+
+/** DB 우선 수납 — local mirror는 호출측에서 성공 후에만 갱신 */
+export type RecordPaymentDbDeps = {
+  getSale: (orgId: string, saleId: string) => Promise<TextbookSale | null>;
+  insertPayment: (orgId: string, payment: TextbookPayment) => Promise<TextbookPayment>;
+  updateSale: (orgId: string, saleId: string, sale: TextbookSale) => Promise<TextbookSale>;
+  deletePayment: (orgId: string, paymentId: string) => Promise<void>;
+};
+
+export async function recordPaymentOnDb(params: {
+  orgId: string;
+  saleId: string;
+  payment: TextbookPayment;
+  updatedSale: TextbookSale;
+  deps: RecordPaymentDbDeps;
+}): Promise<TextbookPayment> {
+  const dbSale = await params.deps.getSale(params.orgId, params.saleId);
+  if (!dbSale) {
+    throw new Error(
+      '교재 판매가 DB에 없습니다. legacy 전용 건이거나 동기화되지 않은 판매에는 DB 모드에서 수납할 수 없습니다.'
+    );
+  }
+
+  const savedPayment = await params.deps.insertPayment(params.orgId, params.payment);
+  try {
+    await params.deps.updateSale(params.orgId, params.saleId, params.updatedSale);
+  } catch (updErr) {
+    try {
+      await params.deps.deletePayment(params.orgId, savedPayment.id);
+    } catch (delErr) {
+      console.error('[recordTextbookPayment] 판매 갱신 실패 후 수납 롤백 실패', delErr);
+    }
+    throw updErr;
+  }
+  return savedPayment;
+}
+
+/** DB 우선 수납 취소 — 성공 후에만 local 갱신 */
+export type ReversePaymentDbDeps = {
+  deletePayment: (orgId: string, paymentId: string) => Promise<void>;
+  updateSale: (orgId: string, saleId: string, sale: TextbookSale) => Promise<TextbookSale>;
+};
+
+export async function reversePaymentOnDb(params: {
+  orgId: string;
+  paymentId: string;
+  updatedSale: TextbookSale | null;
+  deps: ReversePaymentDbDeps;
+}): Promise<void> {
+  await params.deps.deletePayment(params.orgId, params.paymentId);
+  if (params.updatedSale) {
+    await params.deps.updateSale(params.orgId, params.updatedSale.id, params.updatedSale);
+  }
+}
+
+/**
+ * DB 모드 판매 취소의 DB 단계.
+ * - DB에 판매가 있으면 payments+sale 삭제 필수(실패 시 throw)
+ * - DB에 없으면 legacy-only로 간주하고 DB 삭제 생략
+ */
+export type CancelSaleDbDeps = {
+  getSale: (orgId: string, saleId: string) => Promise<TextbookSale | null>;
+  deletePaymentsForSale: (orgId: string, saleId: string) => Promise<TextbookPayment[]>;
+  deleteSale: (orgId: string, saleId: string) => Promise<void>;
+  insertPayment: (orgId: string, payment: TextbookPayment) => Promise<TextbookPayment>;
+};
+
+export async function cancelSaleOnDb(params: {
+  orgId: string;
+  saleId: string;
+  deps: CancelSaleDbDeps;
+}): Promise<{ legacyOnly: boolean }> {
+  const dbSale = await params.deps.getSale(params.orgId, params.saleId);
+  if (!dbSale) {
+    return { legacyOnly: true };
+  }
+  const removedPayments = await params.deps.deletePaymentsForSale(params.orgId, params.saleId);
+  try {
+    await params.deps.deleteSale(params.orgId, params.saleId);
+  } catch (delSaleErr) {
+    for (const payment of removedPayments) {
+      try {
+        await params.deps.insertPayment(params.orgId, payment);
+      } catch (restoreErr) {
+        console.error('[cancelSale] 판매 삭제 실패 후 수납 복구 실패', restoreErr);
+      }
+    }
+    throw delSaleErr;
+  }
+  return { legacyOnly: false };
+}

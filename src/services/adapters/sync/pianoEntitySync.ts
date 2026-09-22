@@ -120,8 +120,8 @@ export async function hydratePianoEntities(
     return mergeStudentWithPiano(s, pianoRow, classIds, teacherName);
   });
 
-  // 교재 판매/수납: DB SoT + local-only legacy 병합(자동 업로드·삭제 없음)
-  // hydrate 직전 cache.clear 되므로 org 스코프 localStorage에서 legacy 읽기
+  // 교재 판매/수납: DB direct CRUD가 원본. localStorage는 mirror + legacy local-only 행 병합
+  // (자동 업로드·diff-delete 없음). hydrate 직전 cache.clear → org 스코프 local에서 legacy 읽기
   const localSales = readLocal<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
   const localPayments = readLocal<TextbookPayment[]>(STORAGE_KEYS.TEXTBOOK_PAYMENTS, []);
   const dbSales = (salesResult.data || []).map(pianoRowToSale);

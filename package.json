@@ -35,6 +35,8 @@
     "test:pilates-booking-validate": "tsx src/modules/pilates/components/bookings/validateBookingCreate.test.ts",
     "test:textbook-sale-legacy": "tsx src/modules/piano/services/textbookSaleLegacy.test.ts",
     "test:textbook-sale-compensate": "tsx src/modules/piano/services/textbookSaleService.compensate.test.ts",
+    "test:textbook-sale-db-write": "tsx src/modules/piano/services/textbookSaleDbWrite.test.ts",
+    "test:textbook-catalog-persist": "tsx src/modules/piano/services/textbookCatalogPersist.test.ts",
     "test:sync-persist-helpers": "tsx src/services/adapters/sync/persistHelpers.test.ts",
     "test:hydrate-modules": "tsx src/services/adapters/hydrateModules.test.ts",
     "test:textbook-sale-db-it": "tsx scripts/textbookSaleDbIntegration.test.ts",

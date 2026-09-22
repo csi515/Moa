@@ -39,7 +39,7 @@ export async function persistSettings(
     .update({ settings: payload as never })
     .eq('id', orgId);
 
-  // local-first: 로컬은 유지, 원격 실패 시 false → outbox
+  // local mirror 유지 + 원격 실패 시 false → outbox 재시도 (로컬이 SoT가 아님)
   writeLocal(STORAGE_KEYS.SETTINGS, payload);
   writeLocal(STORAGE_KEYS.SLOT_RECRUITMENTS, slotRecruitments);
 

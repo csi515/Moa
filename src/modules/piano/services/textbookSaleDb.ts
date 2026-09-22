@@ -187,22 +187,27 @@ export const textbookSaleDb = {
     if (error) throw new Error(`교재 수납 DB 삭제 실패: ${error.message}`);
   },
 
-  async deletePaymentsForSale(organizationId: string, saleId: string): Promise<string[]> {
+  async deletePaymentsForSale(
+    organizationId: string,
+    saleId: string
+  ): Promise<TextbookPayment[]> {
     const client = getPianoClient();
     const { data: existing, error: listErr } = await client
       .from('textbook_payments')
-      .select('id')
+      .select('*')
       .eq('organization_id', organizationId)
       .eq('textbook_sale_id', saleId);
     if (listErr) throw new Error(`교재 수납 조회 실패: ${listErr.message}`);
-    const ids = (existing || []).map((r) => String(r.id));
-    if (ids.length === 0) return [];
+    const payments = (existing || []).map((r) =>
+      pianoRowToPayment(r as Parameters<typeof pianoRowToPayment>[0])
+    );
+    if (payments.length === 0) return [];
     const { error } = await client
       .from('textbook_payments')
       .delete()
       .eq('organization_id', organizationId)
       .eq('textbook_sale_id', saleId);
     if (error) throw new Error(`교재 수납 DB 삭제 실패: ${error.message}`);
-    return ids;
+    return payments;
   },
 };

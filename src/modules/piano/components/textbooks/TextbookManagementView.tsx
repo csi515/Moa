@@ -100,11 +100,20 @@ export const TextbookManagementView: React.FC = () => {
       confirmText: '사용 중지',
       isDestructive: true,
       onConfirm: () => {
-        const ok = StorageService.setTextbookForSale(id, false);
-        if (ok) {
-          showToast('교재를 사용 중지했습니다.', 'info');
-          triggerRefresh();
-        }
+        void (async () => {
+          try {
+            const ok = await StorageService.setTextbookForSale(id, false);
+            if (ok) {
+              showToast('교재를 사용 중지했습니다.', 'info');
+              triggerRefresh();
+            }
+          } catch (err) {
+            showToast(
+              err instanceof Error ? err.message : '교재 사용 중지에 실패했습니다.',
+              'error'
+            );
+          }
+        })();
       },
     });
   };
@@ -115,11 +124,20 @@ export const TextbookManagementView: React.FC = () => {
       message: `"${title}" 교재를 다시 판매 목록에 포함할까요?`,
       confirmText: '다시 사용',
       onConfirm: () => {
-        const ok = StorageService.setTextbookForSale(id, true);
-        if (ok) {
-          showToast('교재를 다시 사용하도록 설정했습니다.', 'success');
-          triggerRefresh();
-        }
+        void (async () => {
+          try {
+            const ok = await StorageService.setTextbookForSale(id, true);
+            if (ok) {
+              showToast('교재를 다시 사용하도록 설정했습니다.', 'success');
+              triggerRefresh();
+            }
+          } catch (err) {
+            showToast(
+              err instanceof Error ? err.message : '교재 상태 변경에 실패했습니다.',
+              'error'
+            );
+          }
+        })();
       },
     });
   };
@@ -132,10 +150,17 @@ export const TextbookManagementView: React.FC = () => {
       isDestructive: true,
       onConfirm: () => {
         void (async () => {
-          const ok = await StorageService.cancelSale(sale.id, '사용자 판매 취소/반품');
-          if (ok) {
-            showToast(`판매가 취소되고 재고가 복구되었습니다.`, 'success');
-            triggerRefresh();
+          try {
+            const ok = await StorageService.cancelSale(sale.id, '사용자 판매 취소/반품');
+            if (ok) {
+              showToast(`판매가 취소되고 재고가 복구되었습니다.`, 'success');
+              triggerRefresh();
+            }
+          } catch (err) {
+            showToast(
+              err instanceof Error ? err.message : '교재 판매 취소에 실패했습니다.',
+              'error'
+            );
           }
         })();
       },
@@ -253,13 +278,20 @@ export const TextbookManagementView: React.FC = () => {
           textbook={editingTextbook}
           onSave={(data) => {
             void (async () => {
-              await StorageService.saveTextbook(data);
-              showToast(
-                editingTextbook ? '교재가 수정되었습니다.' : '신규 교재가 등록되었습니다.',
-                'success'
-              );
-              setIsFormModalOpen(false);
-              triggerRefresh();
+              try {
+                await StorageService.saveTextbook(data);
+                showToast(
+                  editingTextbook ? '교재가 수정되었습니다.' : '신규 교재가 등록되었습니다.',
+                  'success'
+                );
+                setIsFormModalOpen(false);
+                triggerRefresh();
+              } catch (err) {
+                showToast(
+                  err instanceof Error ? err.message : '교재 저장에 실패했습니다.',
+                  'error'
+                );
+              }
             })();
           }}
           onClose={() => setIsFormModalOpen(false)}

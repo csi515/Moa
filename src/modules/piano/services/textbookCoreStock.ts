@@ -46,6 +46,7 @@ async function readCoreQuantity(organizationId: string, productId: string): Prom
  * Textbook 업무(판매·청구)는 Module에 두고, 잔량·입출고 이력만 Core를 source로 사용.
  */
 export const textbookCoreStock = {
+  /** Supabase 설정 + 사업장 선택 시에만 true — 운영 모드에서는 local-only 재고 폴백 금지 */
   isAvailable(): boolean {
     return Boolean(requireOrgId());
   },

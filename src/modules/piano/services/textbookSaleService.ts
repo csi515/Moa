@@ -28,6 +28,9 @@ import {
 } from '@/modules/piano/services/textbookSaleDb';
 import {
   persistSaleAfterCoreSuccess,
+  recordPaymentOnDb,
+  reversePaymentOnDb,
+  cancelSaleOnDb,
   type CreateSalePersistDeps,
 } from '@/modules/piano/services/textbookSalePersist';
 
@@ -267,6 +270,27 @@ export function createTextbookSaleService(api: StorageApi) {
       const coreSaleId = resolveTextbookCoreSaleId(sale);
       const dbMode = isTextbookSaleDbAvailable();
 
+      // DB 모드: 원격 삭제 성공 전에는 재고·local mirror를 바꾸지 않음
+      if (dbMode) {
+        const orgId = requireTextbookOrgId();
+        try {
+          await cancelSaleOnDb({
+            orgId,
+            saleId,
+            deps: {
+              getSale: (o, id) => textbookSaleDb.getSale(o, id),
+              deletePaymentsForSale: (o, id) => textbookSaleDb.deletePaymentsForSale(o, id),
+              deleteSale: (o, id) => textbookSaleDb.deleteSale(o, id),
+              insertPayment: (o, p) => textbookSaleDb.insertPayment(o, p),
+            },
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error('[cancelSale] DB 삭제 실패 — local mirror 유지', err);
+          throw new Error(msg || '교재 판매 DB 삭제에 실패했습니다.');
+        }
+      }
+
       if (tbIdx >= 0) {
         const tb = textbooks[tbIdx];
         if (textbookCoreStock.isAvailable() && coreSaleId) {
@@ -321,19 +345,6 @@ export function createTextbookSaleService(api: StorageApi) {
 
       const payments = (api.getTextbookPayments as () => TextbookPayment[])();
       const removedIds = payments.filter((p) => p.textbookSaleId === saleId).map((p) => p.id);
-
-      if (dbMode) {
-        const orgId = requireTextbookOrgId();
-        try {
-          await textbookSaleDb.deletePaymentsForSale(orgId, saleId);
-          await textbookSaleDb.deleteSale(orgId, saleId);
-        } catch (err) {
-          const msg = err instanceof Error ? err.message : String(err);
-          if (!/0 rows|not found|PGRST116/i.test(msg)) {
-            console.error('[cancelSale] DB 삭제', err);
-          }
-        }
-      }
 
       deleteLinkedIncomesForPaymentIds('textbook', removedIds);
       sales.splice(idx, 1);
@@ -398,23 +409,21 @@ export function createTextbookSaleService(api: StorageApi) {
 
       if (isTextbookSaleDbAvailable()) {
         const orgId = requireTextbookOrgId();
-        const dbSale = await textbookSaleDb.getSale(orgId, saleId);
-        if (dbSale) {
-          const savedPayment = await textbookSaleDb.insertPayment(orgId, payment);
-          try {
-            await textbookSaleDb.updateSale(orgId, saleId, updatedSale);
-          } catch (updErr) {
-            try {
-              await textbookSaleDb.deletePayment(orgId, savedPayment.id);
-            } catch (delErr) {
-              console.error('[recordTextbookPayment] 판매 갱신 실패 후 수납 롤백 실패', delErr);
-            }
-            throw updErr;
-          }
-          payment.id = savedPayment.id;
-          payment.receiptNumber = savedPayment.receiptNumber || payment.receiptNumber;
-          payment.createdAt = savedPayment.createdAt || payment.createdAt;
-        }
+        const savedPayment = await recordPaymentOnDb({
+          orgId,
+          saleId,
+          payment,
+          updatedSale,
+          deps: {
+            getSale: (o, id) => textbookSaleDb.getSale(o, id),
+            insertPayment: (o, p) => textbookSaleDb.insertPayment(o, p),
+            updateSale: (o, id, s) => textbookSaleDb.updateSale(o, id, s),
+            deletePayment: (o, id) => textbookSaleDb.deletePayment(o, id),
+          },
+        });
+        payment.id = savedPayment.id;
+        payment.receiptNumber = savedPayment.receiptNumber || payment.receiptNumber;
+        payment.createdAt = savedPayment.createdAt || payment.createdAt;
       }
 
       sales[idx] = updatedSale;
@@ -458,21 +467,29 @@ export function createTextbookSaleService(api: StorageApi) {
           status: paymentStatus(sale.totalAmount, newPaid),
           updatedAt: new Date().toISOString(),
         };
-        sales[idx] = updatedSale;
       }
 
       if (isTextbookSaleDbAvailable()) {
         const orgId = requireTextbookOrgId();
         try {
-          await textbookSaleDb.deletePayment(orgId, paymentId);
-          if (updatedSale) {
-            await textbookSaleDb.updateSale(orgId, updatedSale.id, updatedSale);
-          }
+          await reversePaymentOnDb({
+            orgId,
+            paymentId,
+            updatedSale,
+            deps: {
+              deletePayment: (o, id) => textbookSaleDb.deletePayment(o, id),
+              updateSale: (o, id, s) => textbookSaleDb.updateSale(o, id, s),
+            },
+          });
         } catch (err) {
-          console.error('[reverseTextbookPayment] DB', err);
+          console.error('[reverseTextbookPayment] DB 실패 — local mirror 유지', err);
+          return false;
         }
       }
 
+      if (idx >= 0 && updatedSale) {
+        sales[idx] = updatedSale;
+      }
       mirrorSales(sales);
       mirrorPayments(payments.filter((p) => p.id !== paymentId));
       deleteLinkedIncome('textbook', paymentId);
