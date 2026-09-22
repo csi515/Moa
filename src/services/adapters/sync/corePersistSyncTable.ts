@@ -23,7 +23,7 @@ export async function syncTable(
     | 'attendance_sessions',
   orgId: string,
   currentIds: string[],
-  upsertAll: () => Promise<void>,
+  upsertAll: () => Promise<boolean>,
   options: { cachePresent: boolean; context: string; isAborted?: PersistAbortGuard }
 ): Promise<boolean> {
   return upsertThenDiffDelete({

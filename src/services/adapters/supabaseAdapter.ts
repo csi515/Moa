@@ -1,6 +1,6 @@
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
 import { getOrganizationId, setIndustryType, setOrganizationId } from './storageContext';
-import { normalizeIndustryType } from '../../core/industry/types';
+import { resolveHydrateModules } from './hydrateModules';
 import {
   CORE_SYNC_KEYS,
   DAYCARE_SYNC_KEYS,
@@ -101,13 +101,18 @@ export class SupabaseAdapter implements IStorageAdapter {
       await hydrateCoreEntities(organizationId, cacheAdapter, industryType);
       if (isStale()) return;
 
-      await hydratePianoEntities(organizationId, cacheAdapter);
-      if (isStale()) return;
+      const modules = resolveHydrateModules(industryType);
 
-      await hydrateEducationEntities(organizationId, cacheAdapter);
-      if (isStale()) return;
-
-      if (normalizeIndustryType(industryType) === 'daycare') {
+      // Piano 전용 모듈 — piano 업종에서만 조회
+      if (modules.piano) {
+        await hydratePianoEntities(organizationId, cacheAdapter);
+        if (isStale()) return;
+      }
+      if (modules.education) {
+        await hydrateEducationEntities(organizationId, cacheAdapter);
+        if (isStale()) return;
+      }
+      if (modules.daycare) {
         await hydrateDaycareEntities(organizationId, cacheAdapter);
         if (isStale()) return;
       }
@@ -257,14 +262,14 @@ export class SupabaseAdapter implements IStorageAdapter {
       }
 
       if (PIANO_SYNC_KEYS.has(key)) {
-        await persistPianoEntity(key, orgId, cacheAdapter, isAborted);
+        ok = (await persistPianoEntity(key, orgId, cacheAdapter, isAborted)) && ok;
         if (isAborted()) return false;
-        await persistEducationEntity(key, orgId, cacheAdapter, isAborted);
+        ok = (await persistEducationEntity(key, orgId, cacheAdapter, isAborted)) && ok;
         if (isAborted()) return false;
       }
 
       if (DAYCARE_SYNC_KEYS.has(key)) {
-        await persistDaycareEntity(key, orgId, cacheAdapter, isAborted);
+        ok = (await persistDaycareEntity(key, orgId, cacheAdapter, isAborted)) && ok;
         if (isAborted()) return false;
       }
 

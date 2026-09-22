@@ -12,6 +12,7 @@ import {
 import {
   checkHydrateErrors,
   requireCacheList,
+  runRowUpserts,
   upsertThenDiffDelete,
 } from './persistHelpers';
 
@@ -46,14 +47,15 @@ export async function hydrateDaycareEntities(
   }
 }
 
-/** 어린이집 알림장·투약 persist */
+/** 어린이집 알림장·투약 persist — false면 soft-fail(outbox 유지) */
 export async function persistDaycareEntity(
   key: StorageKey,
   organizationId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard = () => false
-): Promise<void> {
-  if (!DAYCARE_SYNC_KEYS.has(key) || isAborted()) return;
+): Promise<boolean> {
+  if (!DAYCARE_SYNC_KEYS.has(key)) return true;
+  if (isAborted()) return false;
 
   switch (key) {
     case STORAGE_KEYS.CARE_JOURNALS:
@@ -76,7 +78,7 @@ export async function persistDaycareEntity(
         isAborted
       );
     default:
-      return;
+      return true;
   }
 }
 
@@ -87,26 +89,26 @@ async function persistDaycareTable<T extends { id: string }>(
   storageKey: StorageKey,
   toRows: (items: unknown[]) => T[],
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const items = requireCacheList<unknown>(cache, storageKey, `daycare.${table}`);
-  if (!items) return;
+  if (!items) return false;
 
   const client = getCoreClient();
   const rows = toRows(items);
 
-  await upsertThenDiffDelete({
+  const ok = await upsertThenDiffDelete({
     context: `daycare.${table}`,
     cachePresent: true,
     currentIds: rows.map((r) => r.id),
     isAborted,
-    upsertAll: async () => {
-      for (const row of rows) {
-        if (isAborted()) return;
-        const { error: upsertError } = await client.from(table).upsert(row as never);
-        if (upsertError) console.error(`Failed to upsert core.${table}:`, upsertError);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        rows,
+        isAborted,
+        (row) => client.from(table).upsert(row as never),
+        (error) => console.error(`Failed to upsert core.${table}:`, error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existing, error } = await client
         .from(table)
@@ -120,6 +122,7 @@ async function persistDaycareTable<T extends { id: string }>(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(storageKey, items);
+  return ok;
 }

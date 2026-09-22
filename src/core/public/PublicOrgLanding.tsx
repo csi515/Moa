@@ -1,30 +1,24 @@
-import { useState, useEffect, FormEvent } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Building2, 
-  MapPin, 
-  Phone, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Building2,
+  MapPin,
+  Phone,
+  Clock,
+  CheckCircle2,
   MessageSquare,
   ArrowLeft,
   QrCode,
-  Calendar,
-  Users,
-  ChevronRight,
   Link2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import type { PublicOrgInfo, ConsultationSubmission, BookableSchedule, ReservationRequest } from '@/types';
-import { publicOrgService } from './services/publicOrgService';
-import { coreScheduleService, reservationService } from '@/core/schedules';
-import { supabase } from '@/lib/supabase/client';
 import { appBrand } from '@/core/brand';
-import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
-import { getPlaceLabel, isAppointmentIndustry } from '@/core/industry/industryUi';
+import { getIndustryLabel } from '@/core/industry/types';
 import { storePendingOrgPublicCode } from '@/core/parent/services/pendingOrgConnect';
 import { setParentPortalModeActive } from '@/core/parent/services/appModeService';
-import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
+import { usePublicOrganization } from './usePublicOrganization';
+import { ConsultationForm } from './ConsultationForm';
+import { PublicBookingSection } from './PublicBookingSection';
 
 interface PublicOrgLandingProps {
   code: string;
@@ -35,85 +29,14 @@ interface PublicOrgLandingProps {
 export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingProps) {
   const navigate = useNavigate();
   const isConsultationMode = mode === 'consultation';
-  const [org, setOrg] = useState<PublicOrgInfo | null>(null);
-  const placeLabel = getPlaceLabel(org?.industry_type);
-  const adultFirst =
-    !!org &&
-    (isAppointmentIndustry(org.industry_type) ||
-      normalizeIndustryType(org.industry_type) === 'gym');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { org, loading, error, isAuthenticated, placeLabel, adultFirst } =
+    usePublicOrganization(code);
+
   const [showQR, setShowQR] = useState(false);
   const [showConsultForm, setShowConsultForm] = useState(mode === 'consultation');
   const [consultSubmitted, setConsultSubmitted] = useState(false);
-  const [consultForm, setConsultForm] = useState<ConsultationSubmission>({
-    contact_name: '',
-    contact_phone: '',
-    message: '',
-    preferred_time: '',
-  });
-  const [studentName, setStudentName] = useState('');
-  const [selectedDateKey, setSelectedDateKey] = useState('');
-
-  // Booking related states
-  const [bookableSchedules, setBookableSchedules] = useState<BookableSchedule[]>([]);
-  const [loadingSchedules, setLoadingSchedules] = useState(false);
-  const [selectedSchedule, setSelectedSchedule] = useState<BookableSchedule | null>(null);
-  const [showBookingForm, setShowBookingForm] = useState(false);
-  const [bookingSubmitted, setBookingSubmitted] = useState(false);
-  const [showMyReservations, setShowMyReservations] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [bookingForm, setBookingForm] = useState<Omit<ReservationRequest, 'schedule_id'>>({
-    applicant_name: '',
-    applicant_phone: '',
-    applicant_email: '',
-    request_message: '',
-  });
-
-  useEffect(() => {
-    async function fetchOrg() {
-      try {
-        setLoading(true);
-        setError(null);
-        const data = await publicOrgService.getOrganizationByCode(code);
-        if (!data) {
-          setError('조직을 찾을 수 없습니다');
-        } else {
-          setOrg(data);
-          // Load bookable schedules
-          loadBookableSchedules(data.id);
-        }
-      } catch (err) {
-        setError(err instanceof Error ? err.message : '조직 정보를 가져오는데 실패했습니다');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    async function checkAuth() {
-      const { data: { session } } = await supabase.auth.getSession();
-      setIsAuthenticated(!!session);
-    }
-
-    fetchOrg();
-    checkAuth();
-  }, [code]);
-
-  const loadBookableSchedules = async (orgId: string) => {
-    try {
-      setLoadingSchedules(true);
-      const schedules = await coreScheduleService.listBookableSchedules(orgId);
-      setBookableSchedules(schedules);
-    } catch (err) {
-      console.error('Failed to load bookable schedules:', err);
-      // Silent fail - bookable schedules are optional
-    } finally {
-      setLoadingSchedules(false);
-    }
-  };
 
   const handleJoinRequest = () => {
-    // 고객(원생) 가입 신청 — 가디언 연결과 별개
     navigate('/signup/customer', {
       state: {
         selectedOrgId: org?.id,
@@ -135,78 +58,6 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
       state: {
         openParentPortal: true,
       },
-    });
-  };
-
-  const handleConsultSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    if (!org) return;
-
-    try {
-      const messageParts = [
-        studentName.trim() ? `학생: ${studentName.trim()}` : '',
-        consultForm.message.trim(),
-      ].filter(Boolean);
-      await publicOrgService.submitConsultation(org.id, {
-        ...consultForm,
-        message: messageParts.join('\n') || consultForm.message,
-      });
-      setConsultSubmitted(true);
-      setConsultForm({
-        contact_name: '',
-        contact_phone: '',
-        message: '',
-        preferred_time: '',
-      });
-      setStudentName('');
-    } catch (err) {
-      alert(err instanceof Error ? err.message : '상담 신청에 실패했습니다');
-    }
-  };
-
-  const handleOpenBookingForm = (schedule: BookableSchedule) => {
-    if (!isAuthenticated) {
-      alert('슬롯 예약은 로그인이 필요합니다. 로그인 없이 아래 상담 문의 양식을 이용할 수 있습니다.');
-      return;
-    }
-    setSelectedSchedule(schedule);
-    setBookingForm({
-      applicant_name: '',
-      applicant_phone: '',
-      applicant_email: '',
-      request_message: '',
-    });
-    setShowBookingForm(true);
-    setBookingSubmitted(false);
-    setShowMyReservations(false);
-  };
-
-  const handleBookingSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    
-    if (!selectedSchedule) return;
-
-    try {
-      await reservationService.requestReservation({
-        schedule_id: selectedSchedule.id,
-        ...bookingForm,
-      });
-      setBookingSubmitted(true);
-    } catch (err: any) {
-      const errorMsg = err?.message || '예약 신청에 실패했습니다';
-      alert(errorMsg);
-    }
-  };
-
-  const formatDateTime = (isoString: string) => {
-    const date = new Date(isoString);
-    return date.toLocaleString('ko-KR', {
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
     });
   };
 
@@ -243,46 +94,8 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
 
   const currentUrl = window.location.origin + `/c/${org.public_code}`;
 
-  const dateKeys = (
-    Array.from(
-      new Set(
-        bookableSchedules.map((s) => {
-          const d = new Date(s.starts_at);
-          const y = d.getFullYear();
-          const m = String(d.getMonth() + 1).padStart(2, '0');
-          const day = String(d.getDate()).padStart(2, '0');
-          return `${y}-${m}-${day}`;
-        })
-      )
-    ) as string[]
-  ).sort();
-
-  const effectiveDateKey = selectedDateKey || dateKeys[0] || '';
-  const slotsForDate = bookableSchedules.filter((s) => {
-    if (!effectiveDateKey) return true;
-    const d = new Date(s.starts_at);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}` === effectiveDateKey;
-  });
-
-  const formatDateLabel = (key: string) => {
-    const [y, m, d] = key.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('ko-KR', {
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-    });
-  };
-
-  const formatTimeOnly = (iso: string) =>
-    new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50">
-      {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <button
@@ -301,9 +114,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {/* Organization Info Card */}
         <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
           <div className="flex items-start gap-4 mb-4">
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-2xl flex items-center justify-center flex-shrink-0">
@@ -367,7 +178,6 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
           )}
         </section>
 
-        {/* Audience chooser */}
         {!isConsultationMode && (
           <section className="space-y-3">
             <div>
@@ -444,365 +254,24 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
           </section>
         )}
 
-        {/* Bookable Schedules — consultation mode: date + time chips */}
-        {(bookableSchedules.length > 0 || isConsultationMode) && (
-          <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-2 flex items-center gap-2">
-              <Calendar className="w-6 h-6 text-indigo-600" />
-              {isConsultationMode ? '희망 날짜 · 시간' : '예약 가능한 일정'}
-            </h2>
-            <p className="text-sm text-slate-600 mb-6">
-              {isConsultationMode
-                ? '가능한 날짜와 시간을 선택해 주세요'
-                : '원하시는 시간대를 선택하여 예약하세요'}
-            </p>
+        {/* 조직 확정 후에만 마운트 → 슬롯 API가 org 조회 전에 호출되지 않음 */}
+        <PublicBookingSection
+          organizationId={org.id}
+          isConsultationMode={isConsultationMode}
+          isAuthenticated={isAuthenticated}
+        />
 
-            {loadingSchedules ? (
-              <div className="text-center py-8">
-                <div className="inline-block w-6 h-6 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-                <p className="mt-2 text-sm text-slate-600">일정을 불러오는 중...</p>
-              </div>
-            ) : bookableSchedules.length === 0 ? (
-              <p className="text-sm text-slate-500 text-center py-4">
-                현재 예약 가능한 시간이 없습니다. 아래 문의 양식을 이용해 주세요.
-              </p>
-            ) : isConsultationMode ? (
-              <div className="space-y-4">
-                <div>
-                  <p className="text-xs font-bold text-slate-500 mb-2">희망 날짜</p>
-                  <div className="flex flex-wrap gap-2">
-                    {dateKeys.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => setSelectedDateKey(key)}
-                        className={`min-h-[44px] px-3 py-2 rounded-xl text-sm font-bold transition-colors ${
-                          effectiveDateKey === key
-                            ? 'bg-indigo-600 text-white'
-                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                        }`}
-                      >
-                        {formatDateLabel(key)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-500 mb-2">희망 시간</p>
-                  <div className="flex flex-wrap gap-2">
-                    {slotsForDate.map((schedule) => (
-                      <button
-                        key={schedule.id}
-                        type="button"
-                        disabled={schedule.available_slots === 0}
-                        onClick={() => handleOpenBookingForm(schedule)}
-                        className={`min-h-[44px] px-4 py-2 rounded-xl text-sm font-bold transition-colors ${
-                          schedule.available_slots === 0
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                            : 'bg-white border-2 border-indigo-200 text-indigo-700 hover:bg-indigo-50'
-                        }`}
-                      >
-                        {formatTimeOnly(schedule.starts_at)}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {bookableSchedules.map((schedule) => (
-                  <div
-                    key={schedule.id}
-                    className="border border-slate-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-bold text-slate-900 mb-1">{schedule.title}</h3>
-                        {schedule.description && (
-                          <p className="text-sm text-slate-600 mb-2">{schedule.description}</p>
-                        )}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-slate-500">
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4" />
-                            <span>{formatDateTime(schedule.starts_at)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4" />
-                            <span>잔여 {schedule.available_slots}자리</span>
-                          </div>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleOpenBookingForm(schedule)}
-                        disabled={schedule.available_slots === 0}
-                        className={`px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-1 transition-colors min-h-[44px] ${
-                          schedule.available_slots === 0
-                            ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                            : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                        }`}
-                      >
-                        예약
-                        <ChevronRight className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+        {(showConsultForm || consultSubmitted) && (
+          <ConsultationForm
+            organizationId={org.id}
+            isConsultationMode={isConsultationMode}
+            showForm={showConsultForm}
+            submitted={consultSubmitted}
+            onSubmitted={() => setConsultSubmitted(true)}
+            onCloseSuccess={() => setShowConsultForm(false)}
+          />
         )}
 
-        {/* Consultation Form */}
-        {showConsultForm && !consultSubmitted && (
-          <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
-            <h2 className="text-xl font-bold text-slate-900 mb-2">
-              {isConsultationMode ? '상담 문의' : '상담 신청'}
-            </h2>
-            <p className="text-sm text-slate-600 mb-6">
-              {isConsultationMode
-                ? '예약 가능한 시간이 없거나 별도 문의가 필요할 때 이용해 주세요'
-                : '담당자가 확인 후 빠른 시일 내에 연락드리겠습니다'}
-            </p>
-            <form onSubmit={handleConsultSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  신청자 이름 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={consultForm.contact_name}
-                  onChange={(e) => setConsultForm({ ...consultForm, contact_name: e.target.value })}
-                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="이름"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  연락처 <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="tel"
-                  required
-                  value={consultForm.contact_phone}
-                  onChange={(e) => setConsultForm({ ...consultForm, contact_phone: e.target.value })}
-                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="010-0000-0000"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  수강 희망자 이름 (선택)
-                </label>
-                <input
-                  type="text"
-                  value={studentName}
-                  onChange={(e) => setStudentName(e.target.value)}
-                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="본인 또는 자녀 이름"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">희망 시간</label>
-                <input
-                  type="text"
-                  value={consultForm.preferred_time}
-                  onChange={(e) => setConsultForm({ ...consultForm, preferred_time: e.target.value })}
-                  className="w-full px-4 py-3 min-h-[44px] border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="예: 평일 오후 3시 이후"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">상담 내용</label>
-                <textarea
-                  value={consultForm.message}
-                  onChange={(e) => setConsultForm({ ...consultForm, message: e.target.value })}
-                  rows={4}
-                  className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="상담하고 싶은 내용을 적어 주세요"
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full py-3.5 min-h-[44px] bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors"
-              >
-                상담 신청
-              </button>
-            </form>
-          </section>
-        )}
-
-        {/* Consultation Success */}
-        {consultSubmitted && (
-          <section className="bg-green-50 border border-green-200 rounded-2xl p-6 sm:p-8 text-center">
-            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">상담 신청이 완료되었습니다</h3>
-            <p className="text-slate-700 mb-6">
-              담당자가 확인 후 빠른 시일 내에 연락드리겠습니다
-            </p>
-            <button
-              onClick={() => setShowConsultForm(false)}
-              className="px-6 py-2 bg-white text-green-600 border border-green-600 rounded-lg font-medium hover:bg-green-50 transition-colors"
-            >
-              닫기
-            </button>
-          </section>
-        )}
-
-        {/* Booking Modal */}
-        {showBookingForm && selectedSchedule && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-              {bookingSubmitted ? (
-                <div className="p-6 sm:p-8">
-                  {showMyReservations ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between gap-2">
-                        <h3 className="text-lg font-bold text-slate-900">내 예약</h3>
-                        <button
-                          type="button"
-                          onClick={() => setShowMyReservations(false)}
-                          className="text-sm font-bold text-indigo-600 min-h-[44px]"
-                        >
-                          완료 화면
-                        </button>
-                      </div>
-                      <MyReservationsView />
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <CheckCircle2 className="w-8 h-8 text-white" />
-                      </div>
-                      <h3 className="text-xl font-bold text-slate-900 mb-2">예약 신청이 완료되었습니다</h3>
-                      <p className="text-slate-700 mb-2">
-                        담당자가 확인 후 승인하면 확정됩니다
-                      </p>
-                      <p className="text-sm text-slate-500 mb-6">
-                        {isAuthenticated
-                          ? '이 화면에서 신청한 예약을 확인할 수 있습니다'
-                          : '로그인 후 내 예약에서 확인할 수 있습니다'}
-                      </p>
-                      <div className="flex gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setShowBookingForm(false)}
-                          className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors min-h-[44px]"
-                        >
-                          닫기
-                        </button>
-                        {isAuthenticated && (
-                          <button
-                            type="button"
-                            onClick={() => setShowMyReservations(true)}
-                            className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors min-h-[44px]"
-                          >
-                            내 예약 보기
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <form onSubmit={handleBookingSubmit} className="p-6 space-y-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-xl font-bold text-slate-900">예약 신청</h3>
-                    <button
-                      type="button"
-                      onClick={() => setShowBookingForm(false)}
-                      className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                    >
-                      ×
-                    </button>
-                  </div>
-
-                  <div className="bg-indigo-50 rounded-xl p-4 space-y-2">
-                    <h4 className="font-bold text-slate-900">{selectedSchedule.title}</h4>
-                    <p className="text-sm text-slate-600">{formatDateTime(selectedSchedule.starts_at)}</p>
-                    <p className="text-sm text-slate-600">잔여 {selectedSchedule.available_slots}자리</p>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        이름 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={bookingForm.applicant_name}
-                        onChange={(e) => setBookingForm({ ...bookingForm, applicant_name: e.target.value })}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="이름을 입력하세요"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        연락처 <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        value={bookingForm.applicant_phone}
-                        onChange={(e) => setBookingForm({ ...bookingForm, applicant_phone: e.target.value })}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="010-0000-0000"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        이메일 (선택)
-                      </label>
-                      <input
-                        type="email"
-                        value={bookingForm.applicant_email}
-                        onChange={(e) => setBookingForm({ ...bookingForm, applicant_email: e.target.value })}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        placeholder="예: name@example.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        요청사항 (선택)
-                      </label>
-                      <textarea
-                        value={bookingForm.request_message}
-                        onChange={(e) => setBookingForm({ ...bookingForm, request_message: e.target.value })}
-                        rows={3}
-                        className="w-full px-4 py-3 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
-                        placeholder="궁금한 사항이나 요청사항을 입력하세요"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowBookingForm(false)}
-                      className="flex-1 py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold hover:bg-slate-200 transition-colors"
-                    >
-                      취소
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 py-3 bg-indigo-600 text-white rounded-xl font-semibold hover:bg-indigo-700 transition-colors"
-                    >
-                      예약 신청
-                    </button>
-                  </div>
-                </form>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* QR Code Section — 공개 랜딩에서만 */}
         {!isConsultationMode && (
           <section className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 sm:p-8">
             <div className="text-center">
@@ -813,18 +282,11 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                 <QrCode className="w-5 h-5" />
                 {showQR ? 'QR 코드 숨기기' : 'QR 코드 보기'}
               </button>
-              
+
               {showQR && (
                 <div className="mt-6 inline-block p-4 bg-white rounded-2xl border-2 border-slate-200">
-                  <QRCodeSVG 
-                    value={currentUrl} 
-                    size={200} 
-                    level="H"
-                    includeMargin
-                  />
-                  <p className="text-xs text-slate-500 mt-3">
-                    QR 코드를 스캔하여 접속하세요
-                  </p>
+                  <QRCodeSVG value={currentUrl} size={200} level="H" includeMargin />
+                  <p className="text-xs text-slate-500 mt-3">QR 코드를 스캔하여 접속하세요</p>
                 </div>
               )}
             </div>
@@ -843,7 +305,6 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
           </section>
         )}
 
-        {/* Footer */}
         <footer className="text-center text-xs text-slate-500 py-4 space-y-1">
           <p>Powered by {appBrand.fullName}</p>
           <p className="text-slate-400">

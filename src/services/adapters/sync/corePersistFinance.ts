@@ -11,7 +11,7 @@ import {
 import type { FinanceExpense, IncomeEntry } from '../../../core/finance/types';
 import type { TeacherPayrollSettlement } from '../../../core/finance/teacherPayroll/settlements';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
-import { requireCacheList } from './persistHelpers';
+import { requireCacheList, runRowUpserts } from './persistHelpers';
 import type { CoreClient } from './corePersistSyncTable';
 import { syncTable } from './corePersistSyncTable';
 
@@ -20,28 +20,29 @@ export async function persistPayments(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const invoices = requireCacheList<TuitionInvoice>(cache, STORAGE_KEYS.INVOICES, 'payments');
-  if (!invoices) return;
+  if (!invoices) return false;
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'payments',
     orgId,
     invoices.map((i) => i.id),
-    async () => {
-      for (const inv of invoices) {
-        if (isAborted()) return;
-        const { error } = await client.from('payments').upsert(invoiceToPaymentRow(inv, orgId));
-        if (error) console.error('Failed to upsert payment:', error);
-      }
-    },
+    () =>
+      runRowUpserts(
+        invoices,
+        isAborted,
+        (inv) => client.from('payments').upsert(invoiceToPaymentRow(inv, orgId)),
+        (error) => console.error('Failed to upsert payment:', error)
+      ),
     { cachePresent: true, context: 'payments', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.INVOICES, invoices);
+  return ok;
 }
 
 export async function persistTuitionPayments(
@@ -49,38 +50,37 @@ export async function persistTuitionPayments(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
-  // payment_transactions.payment_id → payments.id FK
-  await persistPayments(client, orgId, cache, isAborted);
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
+  const paymentsOk = await persistPayments(client, orgId, cache, isAborted);
+  if (!paymentsOk || isAborted()) return false;
 
   const payments = requireCacheList<TuitionPayment>(
     cache,
     STORAGE_KEYS.TUITION_PAYMENTS,
     'payment_transactions'
   );
-  if (!payments) return;
+  if (!payments) return false;
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'payment_transactions',
     orgId,
     payments.map((p) => p.id),
-    async () => {
-      for (const payment of payments) {
-        if (isAborted()) return;
-        const { error } = await client
-          .from('payment_transactions')
-          .upsert(tuitionPaymentToTransactionRow(payment, orgId));
-        if (error) console.error('Failed to upsert payment_transaction:', error);
-      }
-    },
+    () =>
+      runRowUpserts(
+        payments,
+        isAborted,
+        (payment) =>
+          client.from('payment_transactions').upsert(tuitionPaymentToTransactionRow(payment, orgId)),
+        (error) => console.error('Failed to upsert payment_transaction:', error)
+      ),
     { cachePresent: true, context: 'payment_transactions', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.TUITION_PAYMENTS, payments);
+  return ok;
 }
 
 export async function persistExpenses(
@@ -88,28 +88,29 @@ export async function persistExpenses(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const expenses = requireCacheList<FinanceExpense>(cache, STORAGE_KEYS.EXPENSES, 'expenses');
-  if (!expenses) return;
+  if (!expenses) return false;
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'expenses',
     orgId,
     expenses.map((e) => e.id),
-    async () => {
-      for (const expense of expenses) {
-        if (isAborted()) return;
-        const { error } = await client.from('expenses').upsert(expenseToCoreRow(expense, orgId));
-        if (error) console.error('Failed to upsert expense:', error);
-      }
-    },
+    () =>
+      runRowUpserts(
+        expenses,
+        isAborted,
+        (expense) => client.from('expenses').upsert(expenseToCoreRow(expense, orgId)),
+        (error) => console.error('Failed to upsert expense:', error)
+      ),
     { cachePresent: true, context: 'expenses', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.EXPENSES, expenses);
+  return ok;
 }
 
 export async function persistIncomeEntries(
@@ -117,28 +118,29 @@ export async function persistIncomeEntries(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const entries = requireCacheList<IncomeEntry>(cache, STORAGE_KEYS.INCOME_ENTRIES, 'income_entries');
-  if (!entries) return;
+  if (!entries) return false;
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'income_entries',
     orgId,
     entries.map((e) => e.id),
-    async () => {
-      for (const entry of entries) {
-        if (isAborted()) return;
-        const { error } = await client.from('income_entries').upsert(incomeToCoreRow(entry, orgId));
-        if (error) console.error('Failed to upsert income entry:', error);
-      }
-    },
+    () =>
+      runRowUpserts(
+        entries,
+        isAborted,
+        (entry) => client.from('income_entries').upsert(incomeToCoreRow(entry, orgId)),
+        (error) => console.error('Failed to upsert income entry:', error)
+      ),
     { cachePresent: true, context: 'income_entries', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.INCOME_ENTRIES, entries);
+  return ok;
 }
 
 export async function persistTeacherPayrollSettlements(
@@ -155,30 +157,23 @@ export async function persistTeacherPayrollSettlements(
   );
   if (!settlements) return false;
 
-  let upsertOk = true;
-
   const syncOk = await syncTable(
     client,
     'teacher_payroll_settlements',
     orgId,
     settlements.map((s) => s.id),
-    async () => {
-      for (const settlement of settlements) {
-        if (isAborted()) return;
-        const { error } = await client
-          .from('teacher_payroll_settlements')
-          .upsert(settlementToCoreRow(settlement, orgId));
-        if (error) {
-          upsertOk = false;
-          console.error('Failed to upsert teacher_payroll_settlement:', error);
-        }
-      }
-    },
+    () =>
+      runRowUpserts(
+        settlements,
+        isAborted,
+        (settlement) =>
+          client.from('teacher_payroll_settlements').upsert(settlementToCoreRow(settlement, orgId)),
+        (error) => console.error('Failed to upsert teacher_payroll_settlement:', error)
+      ),
     { cachePresent: true, context: 'teacher_payroll_settlements', isAborted }
   );
 
   if (isAborted()) return false;
-  // local-first: 로컬은 유지, 원격 실패 시 false → outbox soft-fail
   writeLocal(STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS, settlements);
-  return upsertOk && syncOk;
+  return syncOk;
 }

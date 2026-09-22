@@ -3,29 +3,58 @@ import type {
   Textbook,
   TextbookSale,
   TextbookPayment,
-  TextbookInventoryTransaction,
   StudentMonthlyBillingSummary,
-  CombinedPaymentRequest,
-  PaymentMethod,
   TuitionInvoice,
 } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import {
-  deleteLinkedIncome,
-  deleteLinkedIncomesForPaymentIds,
-  upsertLinkedIncome,
-} from '../../core/finance/billingIncomeLink';
-import type { LinkedTextbookPaymentOptions } from '../../core/finance/linkedTextbookSettle';
-import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+  isTextbookSaleDbAvailable,
+  requireTextbookOrgId,
+  textbookSaleDb,
+} from '@/modules/piano/services/textbookSaleDb';
 import {
-  buildLinkedTextbookSaleIds,
-  resolveTextbookCoreSaleId,
-} from '@/modules/piano/services/textbookCoreSaleLink';
+  mergeTextbookPaymentsWithLegacy,
+  mergeTextbookSalesWithLegacy,
+} from '@/modules/piano/services/textbookSaleLegacy';
 
-/** 교재 판매·수납·통합 청구 (재고 차감/복구는 Core Inventory) */
+function buildReceiptNumber(): string {
+  const now = new Date();
+  const ymStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const randNum = String(Math.floor(Math.random() * 900) + 100);
+  return `RCP-TB-${ymStr}-${randNum}`;
+}
+
+function mirrorSales(sales: TextbookSale[]): void {
+  setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
+}
+
+function mirrorPayments(payments: TextbookPayment[]): void {
+  setItem(STORAGE_KEYS.TEXTBOOK_PAYMENTS, payments);
+}
+
+/**
+ * 교재 판매·수납 local mirror persistence + 읽기 집계.
+ * Core/DB/Finance orchestration은 textbookSaleService.
+ */
 export function createTextbookSalesStorage(api: StorageApi) {
   return {
+    /**
+     * DB → 캐시 미러 갱신. legacy local-only 행은 id 중복 없이 유지(자동 업로드 없음).
+     */
+    async refreshTextbookCommerceFromDb(): Promise<void> {
+      if (!isTextbookSaleDbAvailable()) return;
+      const orgId = requireTextbookOrgId();
+      const [dbSales, dbPayments] = await Promise.all([
+        textbookSaleDb.listSales(orgId),
+        textbookSaleDb.listPayments(orgId),
+      ]);
+      const localSales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      const localPayments = getItem<TextbookPayment[]>(STORAGE_KEYS.TEXTBOOK_PAYMENTS, []);
+      mirrorSales(mergeTextbookSalesWithLegacy(dbSales, localSales));
+      mirrorPayments(mergeTextbookPaymentsWithLegacy(dbPayments, localPayments));
+    },
+
     getTextbookSales(): TextbookSale[] {
       return getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []).map((s) =>
         (api.enrichSaleGuardian as (sale: TextbookSale) => TextbookSale)(s)
@@ -47,344 +76,8 @@ export function createTextbookSalesStorage(api: StorageApi) {
       return (api.getTextbookSales as () => TextbookSale[])().find((s) => s.id === id);
     },
 
-    /** 월 청구 합산 시 교재 판매에 billingInvoiceId 연결 */
-    linkTextbookSalesToInvoice(saleIds: string[], invoiceId: string): void {
-      if (saleIds.length === 0) return;
-      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      const linkSet = new Set(saleIds);
-      setItem(
-        STORAGE_KEYS.TEXTBOOK_SALES,
-        sales.map((s) =>
-          linkSet.has(s.id)
-            ? { ...s, billingInvoiceId: invoiceId, updatedAt: new Date().toISOString() }
-            : s
-        )
-      );
-    },
-
     getSalesByStudentId(studentId: string): TextbookSale[] {
       return (api.getTextbookSales as () => TextbookSale[])().filter((s) => s.studentId === studentId);
-    },
-
-    async createSale(data: {
-      studentId: string;
-      textbookId: string;
-      quantity: number;
-      unitPrice?: number;
-      discount?: number;
-      initialPaymentAmount?: number;
-      paymentMethod?: PaymentMethod | null;
-      saleDate?: string;
-      memo?: string;
-      teacherId?: string;
-      teacherName?: string;
-    }): Promise<{
-      sale: TextbookSale;
-      payment?: TextbookPayment;
-      transaction: TextbookInventoryTransaction;
-    }> {
-      const students = (api.getStudents as () => Student[])();
-      const student = students.find((s) => s.id === data.studentId);
-      const textbooks = (api.getTextbooks as () => Textbook[])();
-      const tb = textbooks.find((t) => t.id === data.textbookId);
-
-      if (!tb) throw new Error('선택한 교재 정보를 찾을 수 없습니다.');
-      if (tb.isForSale === false) {
-        throw new Error('사용 중지된 교재입니다. 교재 관리에서 다시 사용 설정한 뒤 판매하세요.');
-      }
-      if (!student) throw new Error('선택한 원생 정보를 찾을 수 없습니다.');
-
-      const qty = Math.max(1, Number(data.quantity) || 1);
-      const unitPrice = Number(data.unitPrice ?? tb.salePrice ?? tb.price ?? 15000);
-      const discount = Math.max(0, Number(data.discount) || 0);
-      const totalAmount = Math.max(0, qty * unitPrice - discount);
-      const initialPaid = Math.min(totalAmount, Math.max(0, Number(data.initialPaymentAmount) || 0));
-      const unpaidAmount = Math.max(0, totalAmount - initialPaid);
-
-      const status: 'unpaid' | 'partial' | 'paid' =
-        unpaidAmount === 0 ? 'paid' : initialPaid > 0 ? 'partial' : 'unpaid';
-
-      const now = new Date();
-      const nowIso = now.toISOString();
-      const saleDate = data.saleDate || nowIso.slice(0, 10);
-
-      let saleId = generateEntityId('ts');
-      let coreSaleId: string | null = null;
-      let prevStock = tb.stock;
-      let currentStock = Math.max(0, prevStock - qty);
-
-      if (textbookCoreStock.isAvailable()) {
-        /**
-         * Core 원자 판매(create_sale) → 재고 차감까지 한 트랜잭션.
-         * 이후 Piano TextbookSale/Payment 는 local persist.
-         * local 실패 시 compensateCoreSale 로 Core 측을 되돌린다.
-         */
-        let linked: Awaited<ReturnType<typeof textbookCoreStock.createCoreLinkedSale>> | null =
-          null;
-        try {
-          linked = await textbookCoreStock.createCoreLinkedSale({
-            textbook: tb,
-            studentId: student.id,
-            quantity: qty,
-            unitPrice,
-            discount,
-            paymentMethod: data.paymentMethod,
-            memo: data.memo,
-          });
-          const ids = buildLinkedTextbookSaleIds(linked.coreSale.id);
-          saleId = ids.id;
-          coreSaleId = ids.coreSaleId;
-          prevStock = linked.previousStock;
-          currentStock = linked.currentStock;
-        } catch (err) {
-          throw err;
-        }
-
-        const newSale: TextbookSale = {
-          id: saleId,
-          studentId: student.id,
-          studentName: student.name,
-          parentId: student.parentId,
-          parentName: student.parentName || '학부모',
-          parentPhone: student.parentPhone || '',
-          textbookId: tb.id,
-          textbookTitle: tb.title,
-          saleDate,
-          quantity: qty,
-          unitPrice,
-          discount,
-          totalAmount,
-          paidAmount: initialPaid,
-          unpaidAmount,
-          status,
-          paymentMethod: initialPaid > 0 ? data.paymentMethod || 'card' : null,
-          memo: data.memo || '',
-          teacherId: data.teacherId || student.teacherId,
-          teacherName: data.teacherName || student.teacherName,
-          coreSaleId,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        };
-
-        try {
-          const salesList = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-          salesList.unshift(newSale);
-          setItem(STORAGE_KEYS.TEXTBOOK_SALES, salesList);
-
-          const tx: TextbookInventoryTransaction = {
-            id: `core-sale-${saleId}`,
-            textbookId: tb.id,
-            textbookTitle: tb.title,
-            transactionType: 'sale',
-            quantity: -qty,
-            previousStock: prevStock,
-            currentStock,
-            referenceId: saleId,
-            transactionDate: saleDate,
-            memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-            createdAt: nowIso,
-          };
-
-          let payment: TextbookPayment | undefined;
-          if (initialPaid > 0) {
-            payment = (api.saveTextbookPaymentDirect as (
-              d: Omit<TextbookPayment, 'id' | 'createdAt' | 'receiptNumber'>
-            ) => TextbookPayment)({
-              textbookSaleId: saleId,
-              studentId: student.id,
-              studentName: student.name,
-              textbookTitle: tb.title,
-              paymentDate: saleDate,
-              amount: initialPaid,
-              paymentMethod: data.paymentMethod || 'card',
-              memo: '교재 판매 시 현장 수납',
-            });
-            upsertLinkedIncome({
-              sourceType: 'textbook',
-              paymentId: payment.id,
-              date: saleDate,
-              amount: initialPaid,
-              paymentMethod: data.paymentMethod || 'card',
-              description: `교재비 · ${tb.title} · ${student.name}`,
-              payer: student.name,
-              memo: '교재 판매 시 현장 수납',
-            });
-          }
-
-          return { sale: newSale, payment, transaction: tx };
-        } catch (persistError) {
-          if (coreSaleId) {
-            try {
-              await textbookCoreStock.compensateCoreSale(coreSaleId);
-            } catch (compensateError) {
-              console.error(
-                '[textbookSalesStorage.createSale] Core 보상 반품 실패',
-                compensateError
-              );
-            }
-          }
-          throw persistError;
-        }
-      }
-
-      // Core 불가: legacy 로컬 재고 차감 (TextbookSale만, Core Sale 없음)
-      const tbIdx = textbooks.findIndex((t) => t.id === tb.id);
-      if (tbIdx >= 0) {
-        textbooks[tbIdx] = {
-          ...tb,
-          stock: currentStock,
-          currentStock,
-          updatedAt: nowIso,
-        };
-        setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
-      }
-
-      const newSale: TextbookSale = {
-        id: saleId,
-        studentId: student.id,
-        studentName: student.name,
-        parentId: student.parentId,
-        parentName: student.parentName || '학부모',
-        parentPhone: student.parentPhone || '',
-        textbookId: tb.id,
-        textbookTitle: tb.title,
-        saleDate,
-        quantity: qty,
-        unitPrice,
-        discount,
-        totalAmount,
-        paidAmount: initialPaid,
-        unpaidAmount,
-        status,
-        paymentMethod: initialPaid > 0 ? data.paymentMethod || 'card' : null,
-        memo: data.memo || '',
-        teacherId: data.teacherId || student.teacherId,
-        teacherName: data.teacherName || student.teacherName,
-        createdAt: nowIso,
-        updatedAt: nowIso,
-      };
-
-      const salesList = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      salesList.unshift(newSale);
-      setItem(STORAGE_KEYS.TEXTBOOK_SALES, salesList);
-
-      const tx = (api.recordInventoryTransaction as (
-        t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-      ) => TextbookInventoryTransaction)({
-        textbookId: tb.id,
-        textbookTitle: tb.title,
-        transactionType: 'sale',
-        quantity: -qty,
-        previousStock: prevStock,
-        currentStock,
-        referenceId: saleId,
-        transactionDate: saleDate,
-        memo: `${student.name} 원생에게 ${qty}권 판매 출고`,
-      });
-
-      let payment: TextbookPayment | undefined;
-      if (initialPaid > 0) {
-        payment = (api.saveTextbookPaymentDirect as (
-          d: Omit<TextbookPayment, 'id' | 'createdAt' | 'receiptNumber'>
-        ) => TextbookPayment)({
-          textbookSaleId: saleId,
-          studentId: student.id,
-          studentName: student.name,
-          textbookTitle: tb.title,
-          paymentDate: saleDate,
-          amount: initialPaid,
-          paymentMethod: data.paymentMethod || 'card',
-          memo: '교재 판매 시 현장 수납',
-        });
-        upsertLinkedIncome({
-          sourceType: 'textbook',
-          paymentId: payment.id,
-          date: saleDate,
-          amount: initialPaid,
-          paymentMethod: data.paymentMethod || 'card',
-          description: `교재비 · ${tb.title} · ${student.name}`,
-          payer: student.name,
-          memo: '교재 판매 시 현장 수납',
-        });
-      }
-
-      return { sale: newSale, payment, transaction: tx };
-    },
-
-    async cancelSale(saleId: string, reason?: string): Promise<boolean> {
-      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      const idx = sales.findIndex((s) => s.id === saleId);
-      if (idx === -1) return false;
-
-      const sale = sales[idx];
-      const textbooks = (api.getTextbooks as () => Textbook[])();
-      const tbIdx = textbooks.findIndex((t) => t.id === sale.textbookId);
-      const coreSaleId = resolveTextbookCoreSaleId(sale);
-
-      if (tbIdx >= 0) {
-        const tb = textbooks[tbIdx];
-        if (textbookCoreStock.isAvailable() && coreSaleId) {
-          const saleReturn = await textbookCoreStock.cancelCoreLinkedSale({
-            coreSaleId,
-            quantity: sale.quantity,
-            reason: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
-          });
-          if (saleReturn) {
-            await textbookCoreStock.syncStockMirror(tb.id);
-          } else {
-            // Core Sale 조회 실패 등 — legacy 복구 경로 (return + sale_return ref)
-            await textbookCoreStock.applySaleRestore({
-              textbookId: tb.id,
-              quantity: sale.quantity,
-              saleId: sale.id,
-              memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
-            });
-          }
-        } else if (textbookCoreStock.isAvailable()) {
-          // legacy: Core 재고만 연동된 판매 — return movement로 복구
-          await textbookCoreStock.applySaleRestore({
-            textbookId: tb.id,
-            quantity: sale.quantity,
-            saleId: sale.id,
-            memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
-          });
-        } else {
-          const prevStock = tb.stock;
-          const currentStock = prevStock + sale.quantity;
-          textbooks[tbIdx] = {
-            ...tb,
-            stock: currentStock,
-            currentStock,
-            updatedAt: new Date().toISOString(),
-          };
-          setItem(STORAGE_KEYS.TEXTBOOKS, textbooks);
-
-          (api.recordInventoryTransaction as (
-            t: Omit<TextbookInventoryTransaction, 'id' | 'createdAt'>
-          ) => TextbookInventoryTransaction)({
-            textbookId: tb.id,
-            textbookTitle: tb.title,
-            transactionType: 'return',
-            quantity: sale.quantity,
-            previousStock: prevStock,
-            currentStock,
-            referenceId: sale.id,
-            transactionDate: new Date().toISOString().slice(0, 10),
-            memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
-          });
-        }
-      }
-
-      sales.splice(idx, 1);
-      setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
-
-      const payments = (api.getTextbookPayments as () => TextbookPayment[])();
-      const removedIds = payments.filter((p) => p.textbookSaleId === saleId).map((p) => p.id);
-      deleteLinkedIncomesForPaymentIds('textbook', removedIds);
-      const remainingPayments = payments.filter((p) => p.textbookSaleId !== saleId);
-      setItem(STORAGE_KEYS.TEXTBOOK_PAYMENTS, remainingPayments);
-
-      return true;
     },
 
     getTextbookPayments(): TextbookPayment[] {
@@ -403,126 +96,20 @@ export function createTextbookSalesStorage(api: StorageApi) {
       );
     },
 
+    /** @deprecated 내부·legacy 전용. 신규 수납은 recordTextbookPayment(DB) 사용 */
     saveTextbookPaymentDirect(
       data: Omit<TextbookPayment, 'id' | 'createdAt' | 'receiptNumber'>
     ): TextbookPayment {
       const payments = (api.getTextbookPayments as () => TextbookPayment[])();
-      const now = new Date();
-      const ymStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-      const randNum = String(Math.floor(Math.random() * 900) + 100);
-      const receiptNumber = `RCP-TB-${ymStr}-${randNum}`;
-
       const newPayment: TextbookPayment = {
         ...data,
         id: generateEntityId('tp'),
-        receiptNumber,
-        createdAt: now.toISOString(),
+        receiptNumber: buildReceiptNumber(),
+        createdAt: new Date().toISOString(),
       };
-
       payments.unshift(newPayment);
-      setItem(STORAGE_KEYS.TEXTBOOK_PAYMENTS, payments);
+      mirrorPayments(payments);
       return newPayment;
-    },
-
-    recordTextbookPayment(
-      saleId: string,
-      amount: number,
-      paymentMethod: PaymentMethod = 'card',
-      paymentDate?: string,
-      memo?: string,
-      options?: LinkedTextbookPaymentOptions
-    ): { payment: TextbookPayment; updatedSale: TextbookSale } {
-      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      const idx = sales.findIndex((s) => s.id === saleId);
-      if (idx === -1) throw new Error('해당 교재 판매 내역을 찾을 수 없습니다.');
-
-      const sale = sales[idx];
-      if (sale.billingInvoiceId && !options?.allowLinkedInvoice) {
-        throw new Error(
-          '월 청구에 합산된 교재입니다. 수강료 청구서에서 수납해 주세요.'
-        );
-      }
-      if (sale.unpaidAmount <= 0) throw new Error('이미 전액 납부 완료된 교재입니다.');
-
-      const payAmount = Math.min(amount, sale.unpaidAmount);
-      if (payAmount <= 0) throw new Error('납부 금액은 0원보다 커야 합니다.');
-
-      const newPaidAmount = sale.paidAmount + payAmount;
-      const newUnpaidAmount = Math.max(0, sale.totalAmount - newPaidAmount);
-      const newStatus: 'unpaid' | 'partial' | 'paid' = newUnpaidAmount === 0 ? 'paid' : 'partial';
-      const pDate = paymentDate || new Date().toISOString().slice(0, 10);
-
-      const updatedSale: TextbookSale = {
-        ...sale,
-        paidAmount: newPaidAmount,
-        unpaidAmount: newUnpaidAmount,
-        status: newStatus,
-        paymentMethod,
-        updatedAt: new Date().toISOString(),
-      };
-      sales[idx] = updatedSale;
-      setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
-
-      const payment = (api.saveTextbookPaymentDirect as (
-        d: Omit<TextbookPayment, 'id' | 'createdAt' | 'receiptNumber'>
-      ) => TextbookPayment)({
-        textbookSaleId: sale.id,
-        studentId: sale.studentId,
-        studentName: sale.studentName,
-        textbookTitle: sale.textbookTitle,
-        paymentDate: pDate,
-        amount: payAmount,
-        paymentMethod,
-        memo:
-          memo ||
-          (newStatus === 'paid'
-            ? '교재비 전액 완납'
-            : `교재비 부분 납부 (잔액 ₩${newUnpaidAmount.toLocaleString()})`),
-      });
-
-      if (!options?.skipIncome) {
-        upsertLinkedIncome({
-          sourceType: 'textbook',
-          paymentId: payment.id,
-          date: pDate,
-          amount: payAmount,
-          paymentMethod,
-          description: `교재비 · ${sale.textbookTitle} · ${sale.studentName}`,
-          payer: sale.studentName,
-          memo: payment.memo,
-        });
-      }
-
-      return { payment, updatedSale };
-    },
-
-    reverseTextbookPayment(paymentId: string): boolean {
-      const payments = (api.getTextbookPayments as () => TextbookPayment[])();
-      const payment = payments.find((p) => p.id === paymentId);
-      if (!payment) return false;
-
-      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      const idx = sales.findIndex((s) => s.id === payment.textbookSaleId);
-      if (idx >= 0) {
-        const sale = sales[idx];
-        const newPaid = Math.max(0, sale.paidAmount - payment.amount);
-        const newUnpaid = Math.max(0, sale.totalAmount - newPaid);
-        sales[idx] = {
-          ...sale,
-          paidAmount: newPaid,
-          unpaidAmount: newUnpaid,
-          status: newUnpaid === 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid',
-          updatedAt: new Date().toISOString(),
-        };
-        setItem(STORAGE_KEYS.TEXTBOOK_SALES, sales);
-      }
-
-      setItem(
-        STORAGE_KEYS.TEXTBOOK_PAYMENTS,
-        payments.filter((p) => p.id !== paymentId)
-      );
-      deleteLinkedIncome('textbook', paymentId);
-      return true;
     },
 
     getStudentBillingSummary(studentId: string, yearMonth?: string): StudentMonthlyBillingSummary {
@@ -607,77 +194,13 @@ export function createTextbookSalesStorage(api: StorageApi) {
       );
     },
 
-    recordCombinedPayment(req: CombinedPaymentRequest): {
-      tuitionInvoice?: TuitionInvoice;
-      textbookPayments: TextbookPayment[];
-      totalPaidAmount: number;
-    } {
-      let tuitionInvoice: TuitionInvoice | undefined;
-      const textbookPayments: TextbookPayment[] = [];
-      let totalPaid = 0;
-
-      const tuitionItems =
-        req.tuitionPayments && req.tuitionPayments.length > 0
-          ? req.tuitionPayments
-          : req.tuitionAmount && req.tuitionAmount > 0
-            ? (() => {
-                const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
-                  (i) => i.studentId === req.studentId && i.yearMonth === req.yearMonth
-                );
-                return invoices[0]
-                  ? [{ invoiceId: invoices[0].id, amount: req.tuitionAmount }]
-                  : [];
-              })()
-            : [];
-
-      for (const item of tuitionItems) {
-        if (item.amount <= 0) continue;
-        const res = (
-          api.recordPayment as (
-            id: string,
-            amount: number,
-            method: PaymentMethod,
-            notes?: string,
-            paymentDate?: string
-          ) => TuitionInvoice | null
-        )(item.invoiceId, item.amount, req.paymentMethod, req.memo, req.paymentDate);
-        if (res) {
-          tuitionInvoice = res;
-          totalPaid += item.amount;
-        }
-      }
-
-      if (req.textbookPayments && req.textbookPayments.length > 0) {
-        req.textbookPayments.forEach((item) => {
-          if (item.amount > 0) {
-            const res = (
-              api.recordTextbookPayment as (
-                saleId: string,
-                amount: number,
-                method?: PaymentMethod,
-                date?: string,
-                memo?: string
-              ) => { payment: TextbookPayment; updatedSale: TextbookSale }
-            )(item.saleId, item.amount, req.paymentMethod, req.paymentDate, req.memo);
-            if (res) {
-              textbookPayments.push(res.payment);
-              totalPaid += item.amount;
-            }
-          }
-        });
-      }
-
-      return { tuitionInvoice, textbookPayments, totalPaidAmount: totalPaid };
-    },
-
     getUnpaidTextbookSales(): (TextbookSale & { daysOverdue: number })[] {
       const sales = (api.getTextbookSales as () => TextbookSale[])();
       const today = new Date();
 
       return sales
         .filter(
-          (s) =>
-            !s.billingInvoiceId && (s.status === 'unpaid' || s.status === 'partial')
+          (s) => !s.billingInvoiceId && (s.status === 'unpaid' || s.status === 'partial')
         )
         .map((s) => {
           const saleD = new Date(s.saleDate);

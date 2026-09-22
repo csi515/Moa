@@ -23,16 +23,18 @@ type RecordTextbookPaymentFn = (
   date?: string,
   memo?: string,
   options?: LinkedTextbookPaymentOptions
-) => unknown;
+) =>
+  | { payment: TextbookPayment; updatedSale: TextbookSale }
+  | Promise<{ payment: TextbookPayment; updatedSale: TextbookSale }>;
 
 /** 월청구 완납 시 합산 교재 상태만 정산(수입은 tuition income에만 계상) */
-export function settleLinkedTextbookSalesOnTuitionPaid(params: {
+export async function settleLinkedTextbookSalesOnTuitionPaid(params: {
   api: StorageApi;
   invoice: TuitionInvoice;
   paymentId: string;
   method: PaymentMethod;
   paymentDate: string;
-}): void {
+}): Promise<void> {
   const saleIds = params.invoice.linkedTextbookSaleIds || [];
   if (saleIds.length === 0) return;
 
@@ -44,10 +46,12 @@ export function settleLinkedTextbookSalesOnTuitionPaid(params: {
     try {
       const sale = sales.find((s) => s.id === saleId);
       if (!sale || sale.unpaidAmount <= 0) continue;
-      record(saleId, sale.unpaidAmount, params.method, params.paymentDate, memo, {
-        skipIncome: true,
-        allowLinkedInvoice: true,
-      });
+      await Promise.resolve(
+        record(saleId, sale.unpaidAmount, params.method, params.paymentDate, memo, {
+          skipIncome: true,
+          allowLinkedInvoice: true,
+        })
+      );
     } catch (err) {
       console.error('Failed to settle linked textbook sale:', err);
     }
@@ -55,17 +59,19 @@ export function settleLinkedTextbookSalesOnTuitionPaid(params: {
 }
 
 /** 수강료 역분개 시 합산 교재 정산 롤백 */
-export function reverseLinkedTextbookPaymentsForTuition(
+export async function reverseLinkedTextbookPaymentsForTuition(
   api: StorageApi,
   paymentId: string
-): void {
+): Promise<void> {
   const marker = tuitionPaymentMarker(paymentId);
   const tbPayments = (api.getTextbookPayments as () => TextbookPayment[])();
-  const reverse = api.reverseTextbookPayment as (id: string) => boolean;
+  const reverse = api.reverseTextbookPayment as (
+    id: string
+  ) => boolean | Promise<boolean>;
 
   for (const tbPay of tbPayments.filter((p) => p.memo?.includes(marker))) {
     try {
-      reverse(tbPay.id);
+      await Promise.resolve(reverse(tbPay.id));
     } catch (err) {
       console.error('Failed to reverse linked textbook payment:', err);
     }

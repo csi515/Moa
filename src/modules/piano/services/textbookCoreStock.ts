@@ -436,8 +436,9 @@ export const textbookCoreStock = {
   },
 
   /**
-   * Core 판매 보상 취소(전체 반품 RPC). local TextbookSale persist 실패 시 사용.
-   */
+ * Core 판매 보상 취소(전체 반품 RPC).
+ * piano.textbook_sales INSERT 실패 시 Core 측을 되돌린다.
+ */
   async compensateCoreSale(coreSaleId: string): Promise<void> {
     const orgId = requireOrgId();
     if (!orgId) return;

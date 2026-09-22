@@ -1,9 +1,9 @@
 import type { RevenuePeriodPreset } from '../../types/revenue';
 
-/** Retail 매출 관리 문구 */
+/** Retail 매출 관리 문구 — Gross / Returns / Net 의미를 구분 */
 export const RETAIL_REVENUE_COPY = {
   title: '매출',
-  description: '판매(Sale) 기준으로 기간별 매출을 확인합니다',
+  description: '총 판매액·반품액·순매출을 기간별로 확인합니다',
   noOrg: '사업장을 선택해 주세요',
   loadError: '매출 정보를 불러오지 못했습니다',
   loading: '불러오는 중…',
@@ -15,18 +15,23 @@ export const RETAIL_REVENUE_COPY = {
   toLabel: '종료일',
   applyRange: '조회',
   customHint: '기간을 선택한 뒤 조회를 눌러 주세요',
-  totalSales: '총매출',
+  totalSales: '총 판매액',
+  totalSalesHint: '완료(completed) 판매 합계',
+  netSales: '순매출',
+  netSalesHint: '총 판매액 − 반품액',
   saleCount: '판매건수',
   saleCountUnit: '건',
-  returnAmount: '반품 금액',
+  returnAmount: '반품액',
   returnCount: '반품 건수',
-  returnHint: '반품은 별도 거래이며 총매출에 합산하지 않습니다',
-  paymentSection: '결제수단별 매출',
+  returnHint: '기간 내 반품 합계. 총 판매액에는 포함하지 않으며 순매출에서 차감합니다',
+  paymentSection: '결제수단별 총 판매액',
+  paymentHint: '완료 판매 기준. 반품은 결제수단이 없어 배분하지 않습니다',
   paymentEmpty: '해당 기간 판매가 없습니다',
-  productSection: '상품별 판매량',
+  productSection: '상품별 총 판매',
+  productHint: '완료 판매 기준 수량·금액(반품 미차감)',
   productEmpty: '해당 기간 판매 상품이 없습니다',
-  productQty: '수량',
-  productAmount: '금액',
+  productQty: '총 판매 수량',
+  productAmount: '총 판매 금액',
   qtyUnit: '개',
   countUnit: '건',
   rangeLabel: (from: string, to: string) =>

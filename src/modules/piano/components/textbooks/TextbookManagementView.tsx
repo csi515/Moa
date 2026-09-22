@@ -64,6 +64,13 @@ export const TextbookManagementView: React.FC = () => {
         // 미러 실패 시 로컬 값으로 표시
       }
     }
+    try {
+      if (typeof StorageService.refreshTextbookCommerceFromDb === 'function') {
+        await StorageService.refreshTextbookCommerceFromDb();
+      }
+    } catch {
+      // DB 조회 실패 시 캐시/legacy로 표시
+    }
     setTextbooks(StorageService.getTextbooks());
     setSales(StorageService.getTextbookSales());
     setPayments(StorageService.getTextbookPayments());

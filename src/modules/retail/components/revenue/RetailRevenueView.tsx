@@ -17,7 +17,7 @@ import { REVENUE_PERIOD_TABS, RETAIL_REVENUE_COPY as COPY } from './retailRevenu
 
 /**
  * Retail 매출 관리.
- * Sale 집계만 사용. Finance 회계·포인트 잔액 미사용. 반품은 별도 표시.
+ * Gross(completed)·Returns·Net을 구분 표시. Finance·포인트 잔액 미사용.
  */
 export const RetailRevenueView: FC = () => {
   const { showToast } = useApp();
@@ -138,6 +138,7 @@ export const RetailRevenueView: FC = () => {
               <p className="mt-1 text-2xl font-black tabular-nums text-teal-700">
                 {formatCurrency(summary.totalSalesAmount)}
               </p>
+              <p className="text-[11px] text-slate-400 mt-1">{COPY.totalSalesHint}</p>
             </div>
             <div className="rounded-2xl border border-slate-200 bg-white p-4">
               <p className="text-[11px] font-bold text-slate-500">{COPY.saleCount}</p>
@@ -166,10 +167,18 @@ export const RetailRevenueView: FC = () => {
               </div>
               <p className="text-[11px] text-amber-800/80 mt-2">{COPY.returnHint}</p>
             </div>
+            <div className="rounded-2xl border border-teal-200 bg-teal-50/70 p-4 col-span-2">
+              <p className="text-[11px] font-bold text-teal-800">{COPY.netSales}</p>
+              <p className="mt-1 text-2xl font-black tabular-nums text-teal-900">
+                {formatCurrency(summary.netSalesAmount)}
+              </p>
+              <p className="text-[11px] text-teal-800/70 mt-1">{COPY.netSalesHint}</p>
+            </div>
           </section>
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-slate-800">{COPY.paymentSection}</h2>
+            <p className="text-[11px] text-slate-500">{COPY.paymentHint}</p>
             {summary.byPayment.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
                 {COPY.paymentEmpty}
@@ -201,6 +210,7 @@ export const RetailRevenueView: FC = () => {
 
           <section className="space-y-2">
             <h2 className="text-sm font-bold text-slate-800">{COPY.productSection}</h2>
+            <p className="text-[11px] text-slate-500">{COPY.productHint}</p>
             {summary.byProduct.length === 0 ? (
               <p className="rounded-2xl border border-dashed border-slate-200 bg-white px-4 py-6 text-center text-sm text-slate-500">
                 {COPY.productEmpty}

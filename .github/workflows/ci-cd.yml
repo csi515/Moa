@@ -47,19 +47,47 @@ jobs:
       - name: Typecheck (lint)
         run: npm run lint
 
-      - name: Unit tests
-        run: |
-          npm run test:bulk-import
-          npm run test:deeplink
-          npm run test:invoice-dedupe
-          npm run test:timetable-placement
-          npm run test:today-lesson-teacher
-          npm run test:manual-attendance-class
-          npm run test:create-sale-atomic
-          npm run test:create-sale-return-atomic
-          npm run test:textbook-core-sale-link
-          npm run test:skin-retail-migrate
-          npm run test:sale-return-points
+      # ── 기존 도메인 unit ──────────────────────────────────────────
+      - name: Unit — bulk-import
+        run: npm run test:bulk-import
+
+      - name: Unit — deeplink
+        run: npm run test:deeplink
+
+      - name: Unit — invoice-dedupe
+        run: npm run test:invoice-dedupe
+
+      - name: Unit — timetable-placement
+        run: npm run test:timetable-placement
+
+      - name: Unit — today-lesson-teacher
+        run: npm run test:today-lesson-teacher
+
+      - name: Unit — manual-attendance-class
+        run: npm run test:manual-attendance-class
+
+      # ── commerce / 원자성 / multi-role (test:commerce-unit 1회) ──
+      # create-sale-atomic, create-sale-return-atomic, point-atomic,
+      # sale-redeem-consistency, stock-movement-atomic, multi-role-helpers
+      # (DB 자격 없으면 dry-run/정적 계약만 — secrets 불필요)
+      - name: Unit — commerce suite
+        run: npm run test:commerce-unit
+
+      - name: Unit — sale-return-points
+        run: npm run test:sale-return-points
+
+      - name: Unit — textbook-core-sale-link
+        run: npm run test:textbook-core-sale-link
+
+      - name: Unit — skin-retail-migrate
+        run: npm run test:skin-retail-migrate
+
+      # ── 권한 정적 계약 (DB/비밀값 불필요) ─────────────────────────
+      - name: Unit — rls-membership-policy
+        run: npm run test:rls-membership-policy
+
+      - name: Unit — retail-staff-sale-perm
+        run: npm run test:retail-staff-sale-perm
 
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E (Vite 빌드용 VITE_* 필요)
@@ -159,6 +187,10 @@ jobs:
 
       - name: RLS org isolation audit
         run: npm run test:rls-audit
+        continue-on-error: true
+
+      - name: Membership escalation audit
+        run: npm run test:rls-membership-escalation
         continue-on-error: true
 
       - name: Auth providers hijack audit

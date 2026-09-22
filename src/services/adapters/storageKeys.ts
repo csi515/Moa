@@ -88,15 +88,18 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS,
 ]);
 
-/** Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses) */
+/**
+ * Piano 모듈 Supabase 동기화 (Phase 4 + Phase 6 expenses).
+ * TEXTBOOK_SALES / TEXTBOOK_PAYMENTS 는 DB 우선 직접 CRUD —
+ * debounced persist(diff-delete)에서 제외해 다기기 삭제·legacy 자동 업로드를 막는다.
+ * hydrate는 piano 업종에서만 pianoEntitySync / educationEntitySync를 호출한다.
+ */
 export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.STUDENTS,
   STORAGE_KEYS.ATTENDANCE,
   STORAGE_KEYS.PRACTICE_RECORDS,
   STORAGE_KEYS.LESSON_RECORDS,
   STORAGE_KEYS.TEXTBOOKS,
-  STORAGE_KEYS.TEXTBOOK_SALES,
-  STORAGE_KEYS.TEXTBOOK_PAYMENTS,
   STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
   STORAGE_KEYS.SONGS,
   STORAGE_KEYS.EVENTS,
@@ -107,6 +110,12 @@ export const PIANO_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.WEEKLY_ASSIGNMENTS,
   STORAGE_KEYS.ACHIEVEMENTS,
   STORAGE_KEYS.LEARNING_REPORTS,
+]);
+
+/** hydrate만 수행 — persist 경로 없음 (교재 판매/수납 DB SoT) */
+export const PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.TEXTBOOK_SALES,
+  STORAGE_KEYS.TEXTBOOK_PAYMENTS,
 ]);
 
 /** 어린이집 플러그인 Supabase 동기화 */
@@ -135,9 +144,12 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.CARE_PICKUP_LOGS,
 ]);
 
-/** 전체 Supabase sync 키 (Core + Piano + Daycare) */
+/** 전체 Supabase sync 키 (Core + Piano + Daycare)
+ * 교재 판매/수납은 hydrate·캐시 미러만 (persist는 PIANO_SYNC_KEYS 제외)
+ */
 export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   ...CORE_SYNC_KEYS,
   ...PIANO_SYNC_KEYS,
+  ...PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS,
   ...DAYCARE_SYNC_KEYS,
 ]);

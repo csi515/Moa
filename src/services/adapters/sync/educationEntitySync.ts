@@ -28,6 +28,7 @@ import {
 import {
   checkHydrateErrors,
   requireCacheList,
+  runRowUpserts,
   upsertThenDiffDelete,
 } from './persistHelpers';
 
@@ -104,14 +105,15 @@ export async function hydrateEducationEntities(
   }
 }
 
-/** Piano 교육 엔티티 persist */
+/** Piano 교육 엔티티 persist — false면 soft-fail(outbox 유지) */
 export async function persistEducationEntity(
   key: StorageKey,
   organizationId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard = () => false
-): Promise<void> {
-  if (!PIANO_SYNC_KEYS.has(key) || !EDUCATION_KEYS.has(key) || isAborted()) return;
+): Promise<boolean> {
+  if (!PIANO_SYNC_KEYS.has(key) || !EDUCATION_KEYS.has(key)) return true;
+  if (isAborted()) return false;
 
   switch (key) {
     case STORAGE_KEYS.CURRICULUM_LEVELS:
@@ -165,7 +167,7 @@ export async function persistEducationEntity(
         isAborted
       );
     default:
-      return;
+      return true;
   }
 }
 
@@ -181,26 +183,26 @@ async function persistEducationTable<T extends { id: string }>(
   storageKey: StorageKey,
   toRows: (items: unknown[]) => T[],
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const items = requireCacheList<unknown>(cache, storageKey, `education.${table}`);
-  if (!items) return;
+  if (!items) return false;
 
   const client = getPianoClient();
   const rows = toRows(items);
 
-  await upsertThenDiffDelete({
+  const ok = await upsertThenDiffDelete({
     context: `education.${table}`,
     cachePresent: true,
     currentIds: rows.map((r) => r.id),
     isAborted,
-    upsertAll: async () => {
-      for (const row of rows) {
-        if (isAborted()) return;
-        const { error: upsertError } = await client.from(table).upsert(row as never);
-        if (upsertError) console.error(`Failed to upsert piano.${table}:`, upsertError);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        rows,
+        isAborted,
+        (row) => client.from(table).upsert(row as never),
+        (error) => console.error(`Failed to upsert piano.${table}:`, error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existing, error } = await client
         .from(table)
@@ -214,40 +216,39 @@ async function persistEducationTable<T extends { id: string }>(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(storageKey, items);
+  return ok;
 }
 
 async function persistWeeklyAssignments(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const assignments = requireCacheList<WeeklyAssignment>(
     cache,
     STORAGE_KEYS.WEEKLY_ASSIGNMENTS,
     'weekly_assignments'
   );
-  if (!assignments) return;
+  if (!assignments) return false;
 
   const client = getPianoClient();
 
-  // 과제 본문 sync 실패 시 assignment_items로 진행하지 않음 (기존 early-return 유지)
   const assignmentsOk = await upsertThenDiffDelete({
     context: 'education.weekly_assignments',
     cachePresent: true,
     currentIds: assignments.map((a) => a.id),
     isAborted,
-    upsertAll: async () => {
-      for (const assignment of assignments) {
-        if (isAborted()) return;
-        const { error } = await client
-          .from('weekly_assignments')
-          .upsert(weeklyAssignmentToRow(assignment, orgId));
-        if (error) console.error('Failed to upsert weekly_assignment:', error);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        assignments,
+        isAborted,
+        (assignment) =>
+          client.from('weekly_assignments').upsert(weeklyAssignmentToRow(assignment, orgId)),
+        (error) => console.error('Failed to upsert weekly_assignment:', error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existingAssignments, error } = await client
         .from('weekly_assignments')
@@ -260,24 +261,24 @@ async function persistWeeklyAssignments(
       return { error };
     },
   });
-  if (!assignmentsOk || isAborted()) return;
+  if (!assignmentsOk || isAborted()) return false;
 
   const allItems = assignments.flatMap((a) =>
     a.items.map((item) => assignmentItemToRow({ ...item, assignmentId: a.id }, orgId))
   );
 
-  await upsertThenDiffDelete({
+  const itemsOk = await upsertThenDiffDelete({
     context: 'education.assignment_items',
     cachePresent: true,
     currentIds: allItems.map((r) => r.id),
     isAborted,
-    upsertAll: async () => {
-      for (const row of allItems) {
-        if (isAborted()) return;
-        const { error } = await client.from('assignment_items').upsert(row);
-        if (error) console.error('Failed to upsert assignment_item:', error);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        allItems,
+        isAborted,
+        (row) => client.from('assignment_items').upsert(row),
+        (error) => console.error('Failed to upsert assignment_item:', error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existingItems, error } = await client
         .from('assignment_items')
@@ -291,6 +292,7 @@ async function persistWeeklyAssignments(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, assignments);
+  return itemsOk;
 }

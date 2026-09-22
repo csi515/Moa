@@ -31,3 +31,5 @@ npm run test:commerce-db-it
 
 - `npm run test:commerce-unit` — 기존 JS model/unit 스위트
 - `npm run test:point-atomic` / `test:stock-movement-atomic` — 개별 DB opt-in 테스트
+- `npm run test:textbook-sale-db-it` — 피아노 교재 판매/수납 DB 통합 (dry-run 기본)
+- `npm run test:textbook-sale-legacy` — legacy localStorage merge unit

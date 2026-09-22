@@ -12,6 +12,7 @@ import {
 } from './pianoEntityMappers';
 import {
   requireCacheList,
+  runRowUpserts,
   upsertThenDiffDelete,
   upsertThenDiffDeleteByKeys,
 } from './persistHelpers';
@@ -24,27 +25,25 @@ export async function persistPianoCustomers(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const students = requireCacheList<Student>(cache, STORAGE_KEYS.STUDENTS, 'piano.customers');
-  if (!students) return;
+  if (!students) return false;
 
   const client = getPianoClient();
 
-  await upsertThenDiffDelete({
+  const customersOk = await upsertThenDiffDelete({
     context: 'piano.customers',
     cachePresent: true,
     currentIds: students.map((s) => s.id),
     isAborted,
-    upsertAll: async () => {
-      for (const student of students) {
-        if (isAborted()) return;
-        const { error } = await client
-          .from('customers')
-          .upsert(studentToPianoCustomerRow(student, orgId));
-        if (error) console.error('Failed to upsert piano customer:', error);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        students,
+        isAborted,
+        (student) => client.from('customers').upsert(studentToPianoCustomerRow(student, orgId)),
+        (error) => console.error('Failed to upsert piano customer:', error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existing, error } = await client
         .from('customers')
@@ -57,9 +56,8 @@ export async function persistPianoCustomers(
       return { error };
     },
   });
-  if (isAborted()) return;
+  if (!customersOk || isAborted()) return false;
 
-  // class_members: keyed diff (조직 단위 wipe 금지)
   const memberRows = students.flatMap((s) =>
     (s.classIds || []).map((classId) => ({
       organization_id: orgId,
@@ -69,20 +67,21 @@ export async function persistPianoCustomers(
   );
   const currentMemberKeys = memberRows.map((r) => classMemberKey(r.service_id, r.customer_id));
 
-  await upsertThenDiffDeleteByKeys({
+  const membersOk = await upsertThenDiffDeleteByKeys({
     context: 'piano.class_members',
     cachePresent: true,
     currentKeys: currentMemberKeys,
     isAborted,
-    upsertAll: async () => {
-      for (const row of memberRows) {
-        if (isAborted()) return;
-        const { error } = await client.from('class_members').upsert(row, {
-          onConflict: 'service_id,customer_id',
-        });
-        if (error) console.error('Failed to upsert class member:', error);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        memberRows,
+        isAborted,
+        (row) =>
+          client.from('class_members').upsert(row, {
+            onConflict: 'service_id,customer_id',
+          }),
+        (error) => console.error('Failed to upsert class member:', error)
+      ),
     fetchRemoteKeys: async () => {
       const { data: existingMembers, error } = await client
         .from('class_members')
@@ -106,39 +105,38 @@ export async function persistPianoCustomers(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.STUDENTS, students);
+  return membersOk;
 }
 
 export async function persistPianoPayments(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const payments = requireCacheList<TextbookPayment>(
     cache,
     STORAGE_KEYS.TEXTBOOK_PAYMENTS,
     'textbook_payments'
   );
-  if (!payments) return;
+  if (!payments) return false;
 
   const client = getPianoClient();
 
-  await upsertThenDiffDelete({
+  const ok = await upsertThenDiffDelete({
     context: 'piano.textbook_payments',
     cachePresent: true,
     currentIds: payments.map((p) => p.id),
     isAborted,
-    upsertAll: async () => {
-      for (const payment of payments) {
-        if (isAborted()) return;
-        const { error: upsertError } = await client
-          .from('textbook_payments')
-          .upsert(paymentToPianoRow(payment, orgId));
-        if (upsertError) console.error('Failed to upsert textbook payment:', upsertError);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        payments,
+        isAborted,
+        (payment) => client.from('textbook_payments').upsert(paymentToPianoRow(payment, orgId)),
+        (error) => console.error('Failed to upsert textbook payment:', error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existing, error } = await client
         .from('textbook_payments')
@@ -152,8 +150,9 @@ export async function persistPianoPayments(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.TEXTBOOK_PAYMENTS, payments);
+  return ok;
 }
 
 export async function persistPianoTable<T extends { id: string }>(
@@ -173,26 +172,26 @@ export async function persistPianoTable<T extends { id: string }>(
   storageKey: StorageKey,
   toRows: (items: unknown[]) => T[],
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const items = requireCacheList<unknown>(cache, storageKey, `piano.${table}`);
-  if (!items) return;
+  if (!items) return false;
 
   const client = getPianoClient();
   const rows = toRows(items);
 
-  await upsertThenDiffDelete({
+  const ok = await upsertThenDiffDelete({
     context: `piano.${table}`,
     cachePresent: true,
     currentIds: rows.map((r) => r.id),
     isAborted,
-    upsertAll: async () => {
-      for (const row of rows) {
-        if (isAborted()) return;
-        const { error: upsertError } = await client.from(table).upsert(row as never);
-        if (upsertError) console.error(`Failed to upsert piano.${table}:`, upsertError);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        rows,
+        isAborted,
+        (row) => client.from(table).upsert(row as never),
+        (error) => console.error(`Failed to upsert piano.${table}:`, error)
+      ),
     fetchRemoteIds: async () => {
       const { data: existing, error } = await client
         .from(table)
@@ -206,6 +205,7 @@ export async function persistPianoTable<T extends { id: string }>(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(storageKey, items);
+  return ok;
 }

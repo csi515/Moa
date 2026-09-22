@@ -31,21 +31,46 @@ export function requireCacheList<T>(
 }
 
 /**
+ * row 단위 upsert 루프.
+ * 실패해도 나머지 row는 계속 시도하되, 하나라도 실패하면 false.
+ * (성공분 롤백 없음 — outbox 재시도로 보완)
+ */
+export async function runRowUpserts<T>(
+  items: T[],
+  isAborted: PersistAbortGuard | undefined,
+  upsertOne: (item: T) => PromiseLike<{ error: unknown }>,
+  logFailure: (error: unknown, item: T) => void
+): Promise<boolean> {
+  let ok = true;
+  for (const item of items) {
+    if (isAborted?.()) return false;
+    const { error } = await upsertOne(item);
+    if (error) {
+      ok = false;
+      logFailure(error, item);
+    }
+  }
+  return ok;
+}
+
+/**
  * upsert 후 ID diff-delete.
- * 캐시 불완전·abort 시 삭제 생략.
+ * 캐시 불완전·abort·upsert 부분 실패 시 false (삭제 생략 → outbox 유지).
  */
 export async function upsertThenDiffDelete(params: {
   context: string;
   cachePresent: boolean;
   currentIds: string[];
   isAborted?: PersistAbortGuard;
-  upsertAll: () => Promise<void>;
+  /** false면 부분/전체 upsert 실패 — 호출부까지 전파 */
+  upsertAll: () => Promise<boolean>;
   fetchRemoteIds: () => Promise<{ ids: string[]; error: unknown }>;
   deleteIds: (ids: string[]) => Promise<{ error: unknown }>;
 }): Promise<boolean> {
   if (params.isAborted?.()) return false;
 
-  await params.upsertAll();
+  const upsertOk = await params.upsertAll();
+  if (!upsertOk) return false;
   if (params.isAborted?.()) return false;
 
   const { ids, error } = await params.fetchRemoteIds();
@@ -78,13 +103,14 @@ export async function upsertThenDiffDeleteByKeys(params: {
   cachePresent: boolean;
   currentKeys: string[];
   isAborted?: PersistAbortGuard;
-  upsertAll: () => Promise<void>;
+  upsertAll: () => Promise<boolean>;
   fetchRemoteKeys: () => Promise<{ keys: string[]; error: unknown }>;
   deleteKey: (key: string) => Promise<{ error: unknown }>;
 }): Promise<boolean> {
   if (params.isAborted?.()) return false;
 
-  await params.upsertAll();
+  const upsertOk = await params.upsertAll();
+  if (!upsertOk) return false;
   if (params.isAborted?.()) return false;
 
   const { keys, error } = await params.fetchRemoteKeys();

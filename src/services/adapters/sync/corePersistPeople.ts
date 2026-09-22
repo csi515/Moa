@@ -15,7 +15,7 @@ import {
 import type { ParentStudentLink } from '../../../core/parent/types';
 import { linkToRow } from './parentLinkEntityMappers';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
-import { requireCacheList, upsertThenDiffDeleteByKeys } from './persistHelpers';
+import { requireCacheList, runRowUpserts, upsertThenDiffDeleteByKeys } from './persistHelpers';
 import type { CoreClient } from './corePersistSyncTable';
 import { syncTable } from './corePersistSyncTable';
 
@@ -23,11 +23,10 @@ export async function persistSettings(
   client: CoreClient,
   orgId: string,
   cache: SyncCache
-): Promise<void> {
+): Promise<boolean> {
   const settings = cache.get<AcademySettings>(STORAGE_KEYS.SETTINGS);
-  if (!settings) return;
+  if (!settings) return true;
 
-  // LOCAL_ONLY 슬롯 모집 상태를 settings 미러에 합쳐 원격 반영
   const slotRecruitments =
     readLocal<NonNullable<AcademySettings['slotRecruitments']>>(
       STORAGE_KEYS.SLOT_RECRUITMENTS,
@@ -40,9 +39,15 @@ export async function persistSettings(
     .update({ settings: payload as never })
     .eq('id', orgId);
 
-  if (error) console.error('Failed to persist settings:', error);
+  // local-first: 로컬은 유지, 원격 실패 시 false → outbox
   writeLocal(STORAGE_KEYS.SETTINGS, payload);
   writeLocal(STORAGE_KEYS.SLOT_RECRUITMENTS, slotRecruitments);
+
+  if (error) {
+    console.error('Failed to persist settings:', error);
+    return false;
+  }
+  return true;
 }
 
 function linkCompositeKey(parentId: string, studentId: string): string {
@@ -54,27 +59,28 @@ export async function persistStaff(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const teachers = requireCacheList<Teacher>(cache, STORAGE_KEYS.TEACHERS, 'staff');
-  if (!teachers) return;
+  if (!teachers) return false;
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'staff',
     orgId,
     teachers.map((t) => t.id),
-    async () => {
-      for (const teacher of teachers) {
-        if (isAborted()) return;
-        const { error } = await client.from('staff').upsert(teacherToStaffRow(teacher, orgId));
-        if (error) console.error('Failed to upsert staff:', error);
-      }
-    },
+    () =>
+      runRowUpserts(
+        teachers,
+        isAborted,
+        (teacher) => client.from('staff').upsert(teacherToStaffRow(teacher, orgId)),
+        (error) => console.error('Failed to upsert staff:', error)
+      ),
     { cachePresent: true, context: 'staff', isAborted }
   );
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.TEACHERS, teachers);
+  return ok;
 }
 
 export async function persistCustomers(
@@ -82,18 +88,17 @@ export async function persistCustomers(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
-  // students∪parents가 동일 customers 테이블 — 한쪽 누락 시 diff-delete 금지
+): Promise<boolean> {
+  if (isAborted()) return false;
   if (!cache.has(STORAGE_KEYS.STUDENTS) || !cache.has(STORAGE_KEYS.PARENTS)) {
     console.error('[sync] Refusing customers persist: STUDENTS/PARENTS cache incomplete');
-    return;
+    return false;
   }
   const students = cache.get<Student[]>(STORAGE_KEYS.STUDENTS) || [];
   const parents = cache.get<Parent[]>(STORAGE_KEYS.PARENTS) || [];
   const allIds = [...students.map((s) => s.id), ...parents.map((p) => p.id)];
 
-  await syncTable(
+  const ok = await syncTable(
     client,
     'customers',
     orgId,
@@ -105,15 +110,19 @@ export async function persistCustomers(
         )
       );
       const links = cache.get<ParentStudentLink[]>(STORAGE_KEYS.PARENT_STUDENT_LINKS) || [];
+      let upsertOk = true;
 
       for (const student of students) {
-        if (isAborted()) return;
+        if (isAborted()) return false;
         const row = {
           ...studentToCustomerRow(student, orgId),
           check_in_pin_hash: pinMap.get(student.id) ?? null,
         };
         const { error } = await client.from('customers').upsert(row);
-        if (error) console.error('Failed to upsert student:', error);
+        if (error) {
+          upsertOk = false;
+          console.error('Failed to upsert student:', error);
+        }
 
         const primaryLink =
           links.find((l) => l.studentId === student.id && l.isPrimary) ||
@@ -139,43 +148,56 @@ export async function persistCustomers(
 
           const contactRow = { ...contact, id: existing?.id || contact.id };
           const { error: contactError } = await client.from('customer_contacts').upsert(contactRow);
-          if (contactError) console.error('Failed to upsert contact:', contactError);
+          if (contactError) {
+            upsertOk = false;
+            console.error('Failed to upsert contact:', contactError);
+          }
         }
       }
 
       for (const parent of parents) {
-        if (isAborted()) return;
+        if (isAborted()) return false;
         const { error } = await client.from('customers').upsert(parentToCustomerRow(parent, orgId));
-        if (error) console.error('Failed to upsert parent:', error);
+        if (error) {
+          upsertOk = false;
+          console.error('Failed to upsert parent:', error);
+        }
       }
+      return upsertOk;
     },
     { cachePresent: true, context: 'customers', isAborted }
   );
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.STUDENTS, students);
   writeLocal(STORAGE_KEYS.PARENTS, parents);
+  return ok;
 }
 
 export async function persistCustomerPins(
   client: CoreClient,
   orgId: string,
   cache: SyncCache
-): Promise<void> {
-  if (!cache.has(STORAGE_KEYS.CUSTOMER_PINS)) return;
+): Promise<boolean> {
+  if (!cache.has(STORAGE_KEYS.CUSTOMER_PINS)) return true;
   const pins = cache.get<{ customerId: string; pinHash: string }[]>(STORAGE_KEYS.CUSTOMER_PINS) || [];
   const pinMap = new Map(pins.map((p) => [p.customerId, p.pinHash]));
 
+  let ok = true;
   for (const [customerId, pinHash] of pinMap) {
     const { error } = await client
       .from('customers')
       .update({ check_in_pin_hash: pinHash })
       .eq('id', customerId)
       .eq('organization_id', orgId);
-    if (error) console.error('Failed to update customer PIN:', error);
+    if (error) {
+      ok = false;
+      console.error('Failed to update customer PIN:', error);
+    }
   }
 
   writeLocal(STORAGE_KEYS.CUSTOMER_PINS, pins);
+  return ok;
 }
 
 export async function persistParentStudentLinks(
@@ -183,35 +205,35 @@ export async function persistParentStudentLinks(
   orgId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard
-): Promise<void> {
-  if (isAborted()) return;
+): Promise<boolean> {
+  if (isAborted()) return false;
   const links = requireCacheList<ParentStudentLink>(
     cache,
     STORAGE_KEYS.PARENT_STUDENT_LINKS,
     'parent_student_links'
   );
-  if (!links) return;
+  if (!links) return false;
 
   const rows = links.map((l) => linkToRow(l, orgId));
   const currentKeys = rows.map((r) =>
     linkCompositeKey(r.parent_customer_id, r.student_customer_id)
   );
 
-  // upsert 먼저 — 빈 캐시 wipe-all 금지, composite-key diff만 삭제
-  await upsertThenDiffDeleteByKeys({
+  const ok = await upsertThenDiffDeleteByKeys({
     context: 'parent_student_links',
     cachePresent: true,
     currentKeys,
     isAborted,
-    upsertAll: async () => {
-      for (const row of rows) {
-        if (isAborted()) return;
-        const { error } = await client.from('parent_student_links').upsert(row, {
-          onConflict: 'organization_id,parent_customer_id,student_customer_id',
-        });
-        if (error) console.error('Failed to upsert parent_student_link:', error);
-      }
-    },
+    upsertAll: () =>
+      runRowUpserts(
+        rows,
+        isAborted,
+        (row) =>
+          client.from('parent_student_links').upsert(row, {
+            onConflict: 'organization_id,parent_customer_id,student_customer_id',
+          }),
+        (error) => console.error('Failed to upsert parent_student_link:', error)
+      ),
     fetchRemoteKeys: async () => {
       const { data: existing, error } = await client
         .from('parent_student_links')
@@ -237,6 +259,7 @@ export async function persistParentStudentLinks(
     },
   });
 
-  if (isAborted()) return;
+  if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.PARENT_STUDENT_LINKS, links);
+  return ok;
 }

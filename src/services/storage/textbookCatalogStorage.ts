@@ -69,7 +69,8 @@ export function createTextbookCatalogStorage(api: StorageApi) {
         }
       } else {
         isNew = true;
-        const newId = `tb-${Date.now()}`;
+        // piano.textbooks / core.products PK = UUID — tb-* 는 FK·Core 판매 불가
+        const newId = generateEntityId('tb');
         saved = {
           id: newId,
           title: tb.title,

@@ -8,10 +8,11 @@ import type {
   Student,
   Textbook,
   TextbookInventoryTransaction,
+  TextbookPayment,
   TextbookSale,
 } from '../../../types';
 import { getPianoClient } from '../../../lib/supabase/pianoClient';
-import { writeLocal } from '../localStorageEngine';
+import { readLocal, writeLocal } from '../localStorageEngine';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
@@ -32,16 +33,18 @@ import {
   pianoRowToSong,
   pianoRowToTextbook,
   practiceToPianoRow,
-  saleToPianoRow,
   songToPianoRow,
   textbookToPianoRow,
 } from './pianoEntityMappers';
 import { checkHydrateErrors } from './persistHelpers';
 import {
   persistPianoCustomers,
-  persistPianoPayments,
   persistPianoTable,
 } from './pianoEntityPersist';
+import {
+  mergeTextbookPaymentsWithLegacy,
+  mergeTextbookSalesWithLegacy,
+} from '../../../modules/piano/services/textbookSaleLegacy';
 
 /** Piano 모듈 hydrate — Core hydrate 이후 호출 */
 export async function hydratePianoEntities(
@@ -117,14 +120,21 @@ export async function hydratePianoEntities(
     return mergeStudentWithPiano(s, pianoRow, classIds, teacherName);
   });
 
+  // 교재 판매/수납: DB SoT + local-only legacy 병합(자동 업로드·삭제 없음)
+  // hydrate 직전 cache.clear 되므로 org 스코프 localStorage에서 legacy 읽기
+  const localSales = readLocal<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+  const localPayments = readLocal<TextbookPayment[]>(STORAGE_KEYS.TEXTBOOK_PAYMENTS, []);
+  const dbSales = (salesResult.data || []).map(pianoRowToSale);
+  const dbPayments = (paymentsResult.data || []).map(pianoRowToPayment);
+
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.STUDENTS, mergedStudents],
     [STORAGE_KEYS.ATTENDANCE, (attendanceResult.data || []).map(pianoRowToAttendance)],
     [STORAGE_KEYS.LESSON_RECORDS, (lessonResult.data || []).map(pianoRowToLesson)],
     [STORAGE_KEYS.PRACTICE_RECORDS, (practiceResult.data || []).map(pianoRowToPractice)],
     [STORAGE_KEYS.TEXTBOOKS, (textbooksResult.data || []).map(pianoRowToTextbook)],
-    [STORAGE_KEYS.TEXTBOOK_SALES, (salesResult.data || []).map(pianoRowToSale)],
-    [STORAGE_KEYS.TEXTBOOK_PAYMENTS, (paymentsResult.data || []).map(pianoRowToPayment)],
+    [STORAGE_KEYS.TEXTBOOK_SALES, mergeTextbookSalesWithLegacy(dbSales, localSales)],
+    [STORAGE_KEYS.TEXTBOOK_PAYMENTS, mergeTextbookPaymentsWithLegacy(dbPayments, localPayments)],
     [
       STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
       (inventoryResult.data || []).map(pianoRowToInventory),
@@ -140,14 +150,15 @@ export async function hydratePianoEntities(
   }
 }
 
-/** Piano 모듈 persist */
+/** Piano 모듈 persist — false면 soft-fail(outbox 유지) */
 export async function persistPianoEntity(
   key: StorageKey,
   organizationId: string,
   cache: SyncCache,
   isAborted: PersistAbortGuard = () => false
-): Promise<void> {
-  if (!PIANO_SYNC_KEYS.has(key) || isAborted()) return;
+): Promise<boolean> {
+  if (!PIANO_SYNC_KEYS.has(key)) return true;
+  if (isAborted()) return false;
 
   switch (key) {
     case STORAGE_KEYS.STUDENTS:
@@ -189,16 +200,9 @@ export async function persistPianoEntity(
         isAborted
       );
     case STORAGE_KEYS.TEXTBOOK_SALES:
-      return persistPianoTable(
-        'textbook_sales',
-        organizationId,
-        cache,
-        STORAGE_KEYS.TEXTBOOK_SALES,
-        (items) => (items as TextbookSale[]).map((s) => saleToPianoRow(s, organizationId)),
-        isAborted
-      );
     case STORAGE_KEYS.TEXTBOOK_PAYMENTS:
-      return persistPianoPayments(organizationId, cache, isAborted);
+      // DB 우선 직접 CRUD — debounced persist/diff-delete 비활성
+      return true;
     case STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS:
       return persistPianoTable(
         'textbook_inventory_transactions',
@@ -238,6 +242,6 @@ export async function persistPianoEntity(
         isAborted
       );
     default:
-      return;
+      return true;
   }
 }

@@ -25,7 +25,7 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
   const validAmount = Math.min(sale.unpaidAmount, Math.max(0, payAmount));
   const remainingAfterPayment = Math.max(0, sale.unpaidAmount - validAmount);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (validAmount <= 0) {
@@ -38,7 +38,7 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
     }
 
     try {
-      const res = StorageService.recordTextbookPayment(
+      const res = await StorageService.recordTextbookPayment(
         sale.id,
         validAmount,
         paymentMethod,

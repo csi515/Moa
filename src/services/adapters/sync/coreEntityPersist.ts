@@ -33,57 +33,60 @@ export async function persistCoreEntity(
   if (isAborted()) return false;
   const client = getCoreClient();
 
+  let ok = true;
   switch (key) {
     case STORAGE_KEYS.SETTINGS:
-      await persistSettings(client, organizationId, cache);
+      ok = await persistSettings(client, organizationId, cache);
       break;
     case STORAGE_KEYS.TEACHERS:
-      await persistStaff(client, organizationId, cache, isAborted);
+      ok = await persistStaff(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.STUDENTS:
     case STORAGE_KEYS.PARENTS:
-      await persistCustomers(client, organizationId, cache, isAborted);
+      ok = await persistCustomers(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.CLASSES:
-      await persistServices(client, organizationId, cache, 'piano', isAborted);
+      ok = await persistServices(client, organizationId, cache, 'piano', isAborted);
       break;
     case STORAGE_KEYS.SERVICE_OFFERINGS:
-      await persistServices(client, organizationId, cache, 'pilates', isAborted);
+      ok = await persistServices(client, organizationId, cache, 'pilates', isAborted);
       break;
     case STORAGE_KEYS.SCHEDULES:
     case STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS:
-      await persistSchedules(client, organizationId, cache, isAborted);
+      ok = await persistSchedules(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.INVOICES:
-      await persistPayments(client, organizationId, cache, isAborted);
+      ok = await persistPayments(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.TUITION_PAYMENTS:
-      await persistTuitionPayments(client, organizationId, cache, isAborted);
+      ok = await persistTuitionPayments(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.EXPENSES:
-      await persistExpenses(client, organizationId, cache, isAborted);
+      ok = await persistExpenses(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.INCOME_ENTRIES:
-      await persistIncomeEntries(client, organizationId, cache, isAborted);
+      ok = await persistIncomeEntries(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.TEACHER_PAYROLL_SETTLEMENTS:
-      return persistTeacherPayrollSettlements(client, organizationId, cache, isAborted);
+      ok = await persistTeacherPayrollSettlements(client, organizationId, cache, isAborted);
+      break;
     case STORAGE_KEYS.CONSULTATIONS:
-      await persistConsultations(client, organizationId, cache, isAborted);
+      ok = await persistConsultations(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.NOTIFICATIONS:
-      return persistNotifications(client, organizationId, cache, isAborted);
+      ok = await persistNotifications(client, organizationId, cache, isAborted);
+      break;
     case STORAGE_KEYS.ATTENDANCE_SESSIONS:
-      await persistAttendanceSessions(client, organizationId, cache, isAborted);
+      ok = await persistAttendanceSessions(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.CUSTOMER_PINS:
-      await persistCustomerPins(client, organizationId, cache);
+      ok = await persistCustomerPins(client, organizationId, cache);
       break;
     case STORAGE_KEYS.PARENT_STUDENT_LINKS:
-      await persistParentStudentLinks(client, organizationId, cache, isAborted);
+      ok = await persistParentStudentLinks(client, organizationId, cache, isAborted);
       break;
     default:
       return true;
   }
-  return !isAborted();
+  return ok && !isAborted();
 }

@@ -22,6 +22,7 @@ export type MemberRole =
   | 'customer' 
   | 'guardian';
 export type ScheduleStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
+export type ReservationStatus = 'requested' | 'confirmed' | 'cancelled';
 export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded' | 'cancelled';
 export type PaymentMethod =
   | 'cash'
@@ -1152,6 +1153,171 @@ export interface Database {
         };
         Relationships: [];
       };
+      availability_rules: {
+        Row: {
+          id: string;
+          organization_id: string;
+          staff_id: string | null;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          slot_minutes: number;
+          title: string;
+          max_capacity: number;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          staff_id?: string | null;
+          day_of_week: number;
+          start_time: string;
+          end_time: string;
+          slot_minutes?: number;
+          title?: string;
+          max_capacity?: number;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          staff_id?: string | null;
+          day_of_week?: number;
+          start_time?: string;
+          end_time?: string;
+          slot_minutes?: number;
+          title?: string;
+          max_capacity?: number;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      availability_overrides: {
+        Row: {
+          id: string;
+          organization_id: string;
+          staff_id: string | null;
+          override_date: string;
+          is_closed: boolean;
+          start_time: string | null;
+          end_time: string | null;
+          slot_minutes: number | null;
+          title: string | null;
+          max_capacity: number | null;
+          is_active: boolean;
+          reason: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          staff_id?: string | null;
+          override_date: string;
+          is_closed?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
+          slot_minutes?: number | null;
+          title?: string | null;
+          max_capacity?: number | null;
+          is_active?: boolean;
+          reason?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          staff_id?: string | null;
+          override_date?: string;
+          is_closed?: boolean;
+          start_time?: string | null;
+          end_time?: string | null;
+          slot_minutes?: number | null;
+          title?: string | null;
+          max_capacity?: number | null;
+          is_active?: boolean;
+          reason?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      reservations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          schedule_id: string;
+          customer_id: string | null;
+          user_id: string | null;
+          applicant_name: string;
+          applicant_phone: string | null;
+          applicant_email: string | null;
+          request_message: string | null;
+          status: ReservationStatus;
+          confirmed_by: string | null;
+          confirmed_at: string | null;
+          cancelled_by: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          metadata: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          schedule_id: string;
+          customer_id?: string | null;
+          user_id?: string | null;
+          applicant_name: string;
+          applicant_phone?: string | null;
+          applicant_email?: string | null;
+          request_message?: string | null;
+          status?: ReservationStatus;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancel_reason?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          organization_id?: string;
+          schedule_id?: string;
+          customer_id?: string | null;
+          user_id?: string | null;
+          applicant_name?: string;
+          applicant_phone?: string | null;
+          applicant_email?: string | null;
+          request_message?: string | null;
+          status?: ReservationStatus;
+          confirmed_by?: string | null;
+          confirmed_at?: string | null;
+          cancelled_by?: string | null;
+          cancelled_at?: string | null;
+          cancel_reason?: string | null;
+          metadata?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1218,6 +1384,68 @@ export interface Database {
           p_request_message?: string | null;
         };
         Returns: string;
+      };
+      confirm_reservation: {
+        Args: {
+          p_reservation_id: string;
+        };
+        Returns: boolean;
+      };
+      cancel_reservation: {
+        Args: {
+          p_reservation_id: string;
+          p_cancel_reason?: string | null;
+        };
+        Returns: boolean;
+      };
+      get_organization_reservations: {
+        Args: {
+          p_org_id: string;
+          p_status?: ReservationStatus | null;
+          p_from_date?: string | null;
+          p_limit?: number;
+          p_offset?: number;
+        };
+        Returns: {
+          id: string;
+          schedule_id: string;
+          schedule_title: string | null;
+          schedule_starts_at: string;
+          schedule_ends_at: string;
+          customer_id: string | null;
+          applicant_name: string;
+          applicant_phone: string | null;
+          applicant_email: string | null;
+          request_message: string | null;
+          status: ReservationStatus;
+          confirmed_by_name: string | null;
+          confirmed_at: string | null;
+          cancelled_by_name: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          created_at: string;
+        }[];
+      };
+      get_my_reservations: {
+        Args: {
+          p_status?: ReservationStatus | null;
+          p_limit?: number;
+        };
+        Returns: {
+          id: string;
+          organization_id: string;
+          organization_name: string;
+          schedule_id: string;
+          schedule_title: string | null;
+          schedule_starts_at: string;
+          schedule_ends_at: string;
+          status: ReservationStatus;
+          request_message: string | null;
+          confirmed_at: string | null;
+          cancelled_at: string | null;
+          cancel_reason: string | null;
+          created_at: string;
+        }[];
       };
       delete_my_account: {
         Args: Record<string, never>;
@@ -1443,6 +1671,7 @@ export interface Database {
     Enums: {
       member_role: MemberRole;
       schedule_status: ScheduleStatus;
+      reservation_status: ReservationStatus;
       payment_status: PaymentStatus;
       payment_method: PaymentMethod;
       sale_status: SaleStatus;
@@ -1689,6 +1918,8 @@ export interface Database {
           payment_method: PaymentMethod | null;
           memo: string | null;
           staff_id: string | null;
+          /** Core sales.id 연결 (nullable) */
+          core_sale_id: string | null;
           metadata: Json;
           created_at: string;
           updated_at: string;
@@ -1708,6 +1939,7 @@ export interface Database {
           payment_method?: PaymentMethod | null;
           memo?: string | null;
           staff_id?: string | null;
+          core_sale_id?: string | null;
           metadata?: Json;
           created_at?: string;
           updated_at?: string;
@@ -2167,7 +2399,15 @@ export type Payment = CoreTables<'payments'>;
 export type PaymentTransaction = CoreTables<'payment_transactions'>;
 export type Consultation = CoreTables<'consultations'>;
 export type Notification = CoreTables<'notifications'>;
+export type AvailabilityRuleRow = CoreTables<'availability_rules'>;
+export type AvailabilityOverrideRow = CoreTables<'availability_overrides'>;
+export type ReservationRow = CoreTables<'reservations'>;
 export type SaleRow = CoreTables<'sales'>;
 export type SaleItemRow = CoreTables<'sale_items'>;
 export type PointAccountRow = CoreTables<'point_accounts'>;
 export type PointTransactionRow = CoreTables<'point_transactions'>;
+
+export type OrganizationReservationRpcRow =
+  Database['core']['Functions']['get_organization_reservations']['Returns'][number];
+export type MyReservationRpcRow =
+  Database['core']['Functions']['get_my_reservations']['Returns'][number];
