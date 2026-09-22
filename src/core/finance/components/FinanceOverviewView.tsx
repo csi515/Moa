@@ -25,7 +25,7 @@ import {
 export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { setActiveTab, showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('finance');
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   const summary = useMemo(

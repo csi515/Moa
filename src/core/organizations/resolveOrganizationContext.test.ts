@@ -7,9 +7,12 @@ import type { Organization } from '../../lib/supabase';
 import type { OrganizationMembership } from './services/organizationService';
 import {
   deriveSelectionFields,
+  planBootstrapApply,
+  resolveActiveUserRole,
   resolveMembershipById,
   resolveMembershipByOrganizationId,
   resolveOrganizationBootstrap,
+  computePortalAccessFlags,
 } from './resolveOrganizationContext';
 
 function org(id: string, name = id): Organization {
@@ -178,6 +181,89 @@ function mem(
   });
   assert.equal(decision.kind, 'select_membership');
   if (decision.kind === 'select_membership') assert.equal(decision.membershipId, 's2');
+}
+
+// ── bootstrap: empty membership ≠ parent ──────────────────────────
+{
+  const { decision, flags } = resolveOrganizationBootstrap({
+    memberships: [],
+    blockedOwnerOrgIds: [],
+    portalChildren: 0,
+    parentId: null,
+    parentPortalModeActive: false,
+    storedOrganizationId: null,
+  });
+  assert.equal(flags.isParentOnly, false);
+  assert.equal(flags.canAccessParentPortal, false);
+  assert.equal(decision.kind, 'select_organization_or_clear');
+  if (decision.kind === 'select_organization_or_clear') {
+    assert.equal(decision.organizationId, null);
+  }
+}
+
+// ── bootstrap: blocked owner only ─────────────────────────────────
+{
+  const { decision } = resolveOrganizationBootstrap({
+    memberships: [mem({ id: 'o1m', organizationId: 'o1', role: 'owner' })],
+    blockedOwnerOrgIds: ['o1'],
+    portalChildren: 0,
+    parentId: null,
+    parentPortalModeActive: false,
+    storedOrganizationId: null,
+  });
+  assert.equal(decision.kind, 'select_organization');
+  if (decision.kind === 'select_organization') {
+    assert.equal(decision.organizationId, 'o1');
+  }
+}
+
+// ── planBootstrapApply: portal mode ≠ selection ───────────────────
+{
+  const parentPlan = planBootstrapApply({ kind: 'enter_parent' });
+  assert.equal(parentPlan.portalMode, 'parent');
+  assert.equal(parentPlan.selection.by, 'membership');
+  if (parentPlan.selection.by === 'membership') {
+    assert.equal(parentPlan.selection.membershipId, null);
+  }
+  assert.equal(parentPlan.clearStoredOrganizationId, true);
+
+  const staffPlan = planBootstrapApply({
+    kind: 'select_membership',
+    membershipId: 'm1',
+  });
+  assert.equal(staffPlan.portalMode, 'none');
+}
+
+// ── computePortalAccessFlags: children without parentId ───────────
+{
+  const flags = computePortalAccessFlags([], {
+    blockedOwnerOrgIds: [],
+    portalChildren: 2,
+    parentId: null,
+  });
+  assert.equal(flags.hasParentAccess, true);
+  assert.equal(flags.canAccessParentPortal, false); // parentId 필요
+  assert.equal(flags.isParentOnly, true);
+}
+
+// ── resolveActiveUserRole: membership 없음 ≠ parent ───────────────
+{
+  assert.equal(
+    resolveActiveUserRole({ loading: true, currentRole: null, portalMode: 'none' }),
+    null
+  );
+  assert.equal(
+    resolveActiveUserRole({ loading: false, currentRole: null, portalMode: 'none' }),
+    'member'
+  );
+  assert.equal(
+    resolveActiveUserRole({ loading: false, currentRole: null, portalMode: 'parent' }),
+    'parent'
+  );
+  assert.equal(
+    resolveActiveUserRole({ loading: false, currentRole: 'owner', portalMode: 'none' }),
+    'owner'
+  );
 }
 
 console.log('resolveOrganizationContext.test.ts: ok');

@@ -1,9 +1,9 @@
 import type { SessionPass, SlotRecruitment } from '../../core/types/schedule';
 import type { AcademySettings } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
-import { DEFAULT_SETTINGS, deleteById, generateEntityId, getItem, setItem } from './helpers';
-import { getPassRemaining, pickPassToConsume } from '@/core/schedules/sessionPassUtils';
+import { DEFAULT_SETTINGS, getItem, setItem } from './helpers';
 import { buildSlotKey, normalizeStaffId, UNASSIGNED_STAFF_TOKEN } from '@/core/schedules/bookingCapacity';
+import { sessionPassService } from '@/core/schedules/sessionPassService';
 
 /** 슬롯 모집 상태를 settings에도 기록해 다기기 sync */
 function persistSlotRecruitments(list: SlotRecruitment[]): void {
@@ -12,76 +12,33 @@ function persistSlotRecruitments(list: SlotRecruitment[]): void {
   setItem(STORAGE_KEYS.SETTINGS, { ...settings, slotRecruitments: list });
 }
 
-/** 이용권·슬롯 모집 마감 CRUD (로컬) */
+/**
+ * 이용권·슬롯 모집 persistence 어댑터.
+ * 이용권 비즈니스 규칙(status 정규화·차감·복구)은 sessionPassService에 위임.
+ * StorageService public API(consumeSessionPass 등)는 호환용 thin wrapper.
+ */
 export function createSessionPassStorage() {
   return {
     getSessionPasses(): SessionPass[] {
-      return getItem<SessionPass[]>(STORAGE_KEYS.SESSION_PASSES, []);
+      return sessionPassService.list();
     },
 
     saveSessionPass(pass: Omit<SessionPass, 'id'> & { id?: string }): SessionPass {
-      const list = this.getSessionPasses();
-      const remaining = Math.max(0, pass.totalSessions - pass.usedSessions);
-      const status: SessionPass['status'] =
-        pass.status === 'cancelled' ? 'cancelled' : remaining <= 0 ? 'exhausted' : 'active';
-
-      let saved: SessionPass;
-      if (pass.id) {
-        const idx = list.findIndex((entry) => entry.id === pass.id);
-        if (idx >= 0) {
-          saved = { ...list[idx], ...pass, id: pass.id, status };
-          list[idx] = saved;
-        } else {
-          saved = { ...pass, id: pass.id, status };
-          list.unshift(saved);
-        }
-      } else {
-        saved = { ...pass, id: generateEntityId('pass'), status };
-        list.unshift(saved);
-      }
-
-      setItem(STORAGE_KEYS.SESSION_PASSES, list);
-      return saved;
+      return sessionPassService.save(pass);
     },
 
     deleteSessionPass(id: string): boolean {
-      const list = this.getSessionPasses();
-      if (!deleteById(list, id)) return false;
-      setItem(STORAGE_KEYS.SESSION_PASSES, list);
-      return true;
+      return sessionPassService.delete(id);
     },
 
-    /** 이용권 1회 차감. 성공 시 이용권 id */
+    /** @deprecated Domain: sessionPassService.consume — Storage API 호환 */
     consumeSessionPass(customerId: string): string | null {
-      const list = this.getSessionPasses();
-      const target = pickPassToConsume(list, customerId);
-      if (!target) return null;
-
-      const usedSessions = target.usedSessions + 1;
-      const remaining = getPassRemaining({ ...target, usedSessions });
-      const status: SessionPass['status'] = remaining <= 0 ? 'exhausted' : 'active';
-      const idx = list.findIndex((p) => p.id === target.id);
-      if (idx < 0) return null;
-      list[idx] = { ...target, usedSessions, status };
-      setItem(STORAGE_KEYS.SESSION_PASSES, list);
-      return target.id;
+      return sessionPassService.consume(customerId);
     },
 
-    /** 완료 취소 시 이용권 1회 복구 */
+    /** @deprecated Domain: sessionPassService.refund — Storage API 호환 */
     refundSessionPass(passId: string): boolean {
-      const list = this.getSessionPasses();
-      const idx = list.findIndex((p) => p.id === passId);
-      if (idx < 0) return false;
-      const pass = list[idx];
-      if (pass.status === 'cancelled') return false;
-      const usedSessions = Math.max(0, pass.usedSessions - 1);
-      list[idx] = {
-        ...pass,
-        usedSessions,
-        status: usedSessions >= pass.totalSessions ? 'exhausted' : 'active',
-      };
-      setItem(STORAGE_KEYS.SESSION_PASSES, list);
-      return true;
+      return sessionPassService.refund(passId);
     },
 
     getSlotRecruitments(): SlotRecruitment[] {

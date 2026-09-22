@@ -86,7 +86,7 @@ export const PassManagementView: React.FC<{ variant?: PassManagementVariant }> =
 }) => {
   const ui = VARIANT[variant];
   const { showToast } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('sessionPasses');
   const [filter, setFilter] = useState<PassFilter>('active');
   const [isModalOpen, setIsModalOpen] = useState(false);
 

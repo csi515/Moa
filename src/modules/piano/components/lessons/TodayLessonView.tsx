@@ -33,7 +33,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
   embedded = false,
 }) => {
   const { currentUser, showToast, openConfirmDialog, setActiveTab } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('lessons');
   const { staffId, scopeStudents, scopeClasses, scopeLessons } = useStaffScope();
 
   const [target, setTarget] = useState<TodayLessonSessionTarget | null>(null);

@@ -1,8 +1,10 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { StorageService } from './services/storage';
 import { normalizeIndustryType } from './core/industry/types';
 import { LoadingScreen } from './shared/components/LoadingScreen';
+import { isNativeApp } from './core/platform/capacitorPlatform';
+import { MOBILE_FOREGROUND_EVENT } from './core/platform/mobileLifecycle';
 
 interface StorageHydratorProps {
   organizationId: string;
@@ -20,6 +22,8 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [offlineMode, setOfflineMode] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const offlineModeRef = useRef(offlineMode);
+  offlineModeRef.current = offlineMode;
 
   const runHydrate = useCallback(async (cancelled: () => boolean) => {
     setReady(false);
@@ -41,6 +45,20 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     }
   }, [organizationId, industryType]);
 
+  /** offline snapshot 기동 후 네트워크 복구 — 로딩 플래시 없이 조용히 재 hydrate */
+  const runQuietRehydrate = useCallback(async () => {
+    if (!offlineModeRef.current) return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+    try {
+      await StorageService.hydrate(organizationId, normalizeIndustryType(industryType));
+      setOfflineMode(StorageService.isOfflineHydrated());
+      setError(null);
+      setReady(true);
+    } catch {
+      /* 실패 시 기존 offline UI 유지 */
+    }
+  }, [organizationId, industryType]);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -50,6 +68,25 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
       cancelled = true;
     };
   }, [runHydrate, attempt]);
+
+  /** 네이티브만: foreground / online 시 offline 모드 재동기화 (웹 동작 변경 없음) */
+  useEffect(() => {
+    if (!isNativeApp()) return;
+
+    const onForeground = () => {
+      void runQuietRehydrate();
+    };
+    const onOnline = () => {
+      void runQuietRehydrate();
+    };
+
+    window.addEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+    window.addEventListener('online', onOnline);
+    return () => {
+      window.removeEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+      window.removeEventListener('online', onOnline);
+    };
+  }, [runQuietRehydrate]);
 
   if (error) {
     return (

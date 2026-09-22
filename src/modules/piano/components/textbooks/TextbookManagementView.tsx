@@ -10,6 +10,8 @@ import { useApp } from '@/context/AppContext';
 import { BookOpen, ShoppingBag, Plus } from 'lucide-react';
 import { PageHeader } from '@/shared/components';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
+import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 
 import { TextbookFormModal } from './TextbookFormModal';
 import { NewSaleModal } from './NewSaleModal';
@@ -25,7 +27,9 @@ import { TextbookPaymentsTab } from './tabs/TextbookPaymentsTab';
 import { TextbookHistoryTab } from './tabs/TextbookHistoryTab';
 
 export const TextbookManagementView: React.FC = () => {
-  const { openConfirmDialog, showToast, refreshKey, triggerRefresh } = useApp();
+  const { openConfirmDialog, showToast, triggerRefresh } = useApp();
+  // 교재 domain만 — 학생/예약 변경으로 loadData 재실행 금지
+  const refreshKey = useStorageRefresh('textbooks');
 
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('inventory');
   const [focusLowStock, setFocusLowStock] = useState(false);
@@ -84,8 +88,16 @@ export const TextbookManagementView: React.FC = () => {
 
   useEffect(() => {
     void loadData();
-    const unsubscribe = StorageService.subscribe(() => {
-      void loadData();
+    const unsubscribe = StorageService.subscribe((changedKey) => {
+      if (
+        changedKey === '*' ||
+        changedKey === STORAGE_KEYS.TEXTBOOKS ||
+        changedKey === STORAGE_KEYS.TEXTBOOK_SALES ||
+        changedKey === STORAGE_KEYS.TEXTBOOK_PAYMENTS ||
+        changedKey === STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS
+      ) {
+        void loadData();
+      }
     });
     return () => unsubscribe();
   }, [refreshKey]);

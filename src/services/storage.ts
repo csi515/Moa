@@ -18,8 +18,7 @@ import { createShuttleRideStorage } from './storage/shuttleRideStorage';
 import { createStaffClassStorage } from './storage/staffClassStorage';
 import { createTextbookStorage } from './storage/textbookStorage';
 import type { StorageApi } from './storage/helpers';
-
-type Listener = () => void;
+import type { StorageListener } from './adapters/types';
 
 const storageCore = {
   async hydrate(organizationId: string, industryType?: string | null): Promise<void> {
@@ -43,7 +42,7 @@ const storageCore = {
     return getStorageAdapter().isHydrating();
   },
 
-  subscribe(listener: Listener): () => void {
+  subscribe(listener: StorageListener): () => void {
     return getStorageAdapter().subscribe(listener);
   },
 };

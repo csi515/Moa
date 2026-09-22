@@ -39,7 +39,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('finance');
 
   const initialMonth = getCurrentYearMonth();
 

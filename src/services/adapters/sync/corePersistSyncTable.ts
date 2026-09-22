@@ -20,7 +20,8 @@ export async function syncTable(
     | 'teacher_payroll_settlements'
     | 'consultations'
     | 'notifications'
-    | 'attendance_sessions',
+    | 'attendance_sessions'
+    | 'session_passes',
   orgId: string,
   currentIds: string[],
   upsertAll: () => Promise<boolean>,

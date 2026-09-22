@@ -2,8 +2,20 @@
 # Node.js 20 · Vite · React · TypeScript · npm
 # 트리거: main push, pull_request
 #
+# Dependency:
+#   quality (lint + unit + static security)
+#     ├─ build-e2e
+#     └─ security-db   (ENABLE_SECURITY_AUDIT=true — real RLS/auth DB audits)
+#   deploy ← needs quality + build-e2e + security-db
+#            (main + ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT)
+#
+# Security layers:
+#   1) Static (secrets 불필요) — quality job, 실패 시 CI FAIL
+#   2) DB audits (Supabase JWT/시드) — security-db, continue-on-error 없음
+#   3) Production gate — deploy는 security-db success 필수
+#
 # 비밀값은 절대 워크플로우에 하드코딩하지 않습니다.
-# 필요한 값은 GitHub → Settings → Secrets and variables → Actions 에 등록하세요.
+# GitHub → Settings → Secrets and variables → Actions
 
 name: CI/CD
 
@@ -25,10 +37,10 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────
-  # 품질 게이트 (비밀값 불필요)
+  # 1) 품질 + Static security (비밀값 불필요)
   # ─────────────────────────────────────────────
   quality:
-    name: Lint & Unit Tests
+    name: Lint & Unit & Static Security
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -47,7 +59,7 @@ jobs:
       - name: Typecheck (lint)
         run: npm run lint
 
-      # ── 기존 도메인 unit ──────────────────────────────────────────
+      # ── 도메인 unit ──────────────────────────────────────────────
       - name: Unit — bulk-import
         run: npm run test:bulk-import
 
@@ -66,10 +78,7 @@ jobs:
       - name: Unit — manual-attendance-class
         run: npm run test:manual-attendance-class
 
-      # ── commerce / 원자성 / multi-role (test:commerce-unit 1회) ──
-      # create-sale-atomic, create-sale-return-atomic, point-atomic,
-      # sale-redeem-consistency, stock-movement-atomic, multi-role-helpers
-      # (DB 자격 없으면 dry-run/정적 계약만 — secrets 불필요)
+      # commerce suite 1회 (DB 없으면 dry-run/정적 — secrets 불필요)
       - name: Unit — commerce suite
         run: npm run test:commerce-unit
 
@@ -82,15 +91,24 @@ jobs:
       - name: Unit — skin-retail-migrate
         run: npm run test:skin-retail-migrate
 
-      # ── 권한 정적 계약 (DB/비밀값 불필요) ─────────────────────────
-      - name: Unit — rls-membership-policy
+      # ── Static security (secrets 불필요, 실패 시 CI FAIL) ────────
+      - name: Static security — rls-membership-policy
         run: npm run test:rls-membership-policy
 
-      - name: Unit — retail-staff-sale-perm
+      - name: Static security — rls-member-scope-harden
+        run: npm run test:rls-member-scope-harden
+
+      - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 
+      - name: Static security — permissions-invariant
+        run: npm run test:permissions-invariant
+
+      - name: Static security — org-access-invariant
+        run: npm run test:org-access-invariant
+
   # ─────────────────────────────────────────────
-  # 빌드 + Playwright E2E (Vite 빌드용 VITE_* 필요)
+  # 빌드 + Playwright E2E
   # ─────────────────────────────────────────────
   build-e2e:
     name: Build & E2E
@@ -98,7 +116,6 @@ jobs:
     timeout-minutes: 30
     needs: quality
     env:
-      # 클라이언트 번들용 — 값은 Secrets에서만 주입
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
       VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
@@ -144,7 +161,6 @@ jobs:
       - name: Playwright E2E
         run: npm run test:e2e
         env:
-          # 실계정 E2E는 선택 — 없으면 목/게이트 테스트만 통과하는 스펙은 그대로 동작
           E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
           E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
           E2E_ORG_NAME: ${{ secrets.E2E_ORG_NAME }}
@@ -160,11 +176,14 @@ jobs:
           retention-days: 7
 
   # ─────────────────────────────────────────────
-  # 선택: Supabase RLS/Auth 감사 (원격 읽기 전용)
-  # Repository variable ENABLE_SECURITY_AUDIT=true 일 때만 실행
+  # 2) DB security audits (Supabase 연결·JWT 시드)
+  # Repository variable ENABLE_SECURITY_AUDIT=true 일 때 실행
+  # continue-on-error 없음 — 실패 시 job FAIL → merge/deploy 차단
+  # PR에서 audit secrets 없으면 스킵(정적 보안은 quality에서 이미 통과)
+  # main push에서는 secrets 필수 (배포 게이트)
   # ─────────────────────────────────────────────
-  security-audit:
-    name: Supabase Security Audit
+  security-db:
+    name: Security DB Audits
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs: quality
@@ -172,6 +191,21 @@ jobs:
     env:
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      RLS_AUDIT_ORG_A_ID: ${{ secrets.RLS_AUDIT_ORG_A_ID }}
+      RLS_AUDIT_ORG_B_ID: ${{ secrets.RLS_AUDIT_ORG_B_ID }}
+      RLS_AUDIT_STAFF_A_JWT: ${{ secrets.RLS_AUDIT_STAFF_A_JWT }}
+      RLS_AUDIT_OWNER_A_JWT: ${{ secrets.RLS_AUDIT_OWNER_A_JWT }}
+      RLS_AUDIT_PARENT_JWT: ${{ secrets.RLS_AUDIT_PARENT_JWT }}
+      RLS_AUDIT_ATTACKER_JWT: ${{ secrets.RLS_AUDIT_ATTACKER_JWT }}
+      RLS_AUDIT_CUSTOMER_JWT: ${{ secrets.RLS_AUDIT_CUSTOMER_JWT }}
+      RLS_AUDIT_FOREIGN_CUSTOMER_ID: ${{ secrets.RLS_AUDIT_FOREIGN_CUSTOMER_ID }}
+      RLS_AUDIT_STAFF_USER_ID: ${{ secrets.RLS_AUDIT_STAFF_USER_ID }}
+      AUTH_HIJACK_USER_B_JWT: ${{ secrets.AUTH_HIJACK_USER_B_JWT }}
+      AUTH_HIJACK_PROVIDER_USER_ID: ${{ secrets.AUTH_HIJACK_PROVIDER_USER_ID }}
+      AUTH_HIJACK_USER_A_ID: ${{ secrets.AUTH_HIJACK_USER_A_ID }}
+      AUTH_HIJACK_PROVIDER: ${{ secrets.AUTH_HIJACK_PROVIDER }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -185,32 +219,87 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Detect DB audit secrets
+        id: audit_secrets
+        run: |
+          # 값은 출력하지 않음 — 존재 여부만
+          required_ok=1
+          for key in \
+            VITE_SUPABASE_URL \
+            VITE_SUPABASE_ANON_KEY \
+            RLS_AUDIT_ORG_A_ID \
+            RLS_AUDIT_ORG_B_ID \
+            RLS_AUDIT_STAFF_A_JWT \
+            RLS_AUDIT_OWNER_A_JWT \
+            RLS_AUDIT_PARENT_JWT
+          do
+            if [ -z "${!key}" ]; then
+              echo "missing_name=$key"
+              required_ok=0
+            fi
+          done
+          # membership escalation: attacker JWT (전용 또는 staff JWT 재사용)
+          if [ -z "$RLS_AUDIT_ATTACKER_JWT" ] && [ -z "$RLS_AUDIT_STAFF_A_JWT" ]; then
+            echo "missing_name=RLS_AUDIT_ATTACKER_JWT_or_STAFF_A_JWT"
+            required_ok=0
+          fi
+          # auth hijack
+          for key in AUTH_HIJACK_USER_B_JWT AUTH_HIJACK_PROVIDER_USER_ID; do
+            if [ -z "${!key}" ]; then
+              echo "missing_name=$key"
+              required_ok=0
+            fi
+          done
+          if [ "$required_ok" -eq 1 ]; then
+            echo "has_secrets=true" >> "$GITHUB_OUTPUT"
+            echo "DB audit secrets are present (values not logged)."
+          else
+            echo "has_secrets=false" >> "$GITHUB_OUTPUT"
+            echo "One or more DB audit secrets are unset."
+          fi
+
+      - name: Require secrets on main (deploy gate)
+        if: >
+          steps.audit_secrets.outputs.has_secrets != 'true' &&
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main'
+        run: |
+          echo "::error::ENABLE_SECURITY_AUDIT=true on main but DB audit secrets are missing."
+          echo "Configure RLS_AUDIT_* and AUTH_HIJACK_* in Actions secrets (do not commit values)."
+          exit 1
+
+      - name: Skip DB audits on PR without secrets
+        if: steps.audit_secrets.outputs.has_secrets != 'true'
+        run: |
+          echo "DB security audits skipped — secrets not available."
+          echo "Static security already enforced in quality job."
+
       - name: RLS org isolation audit
+        if: steps.audit_secrets.outputs.has_secrets == 'true'
         run: npm run test:rls-audit
-        continue-on-error: true
 
       - name: Membership escalation audit
+        if: steps.audit_secrets.outputs.has_secrets == 'true'
         run: npm run test:rls-membership-escalation
-        continue-on-error: true
 
       - name: Auth providers hijack audit
+        if: steps.audit_secrets.outputs.has_secrets == 'true'
         run: npm run test:auth-hijack-audit
-        continue-on-error: true
 
   # ─────────────────────────────────────────────
-  # Production 배포 (main push만) — Vercel CLI
-  # Repository variable ENABLE_VERCEL_DEPLOY=true 일 때만 실행
-  # (Vercel Git 연동만 쓰는 경우 이 job은 꺼 두세요)
+  # 3) Production deploy — security-db success 필수
+  # ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT 모두 true
   # ─────────────────────────────────────────────
   deploy:
     name: Deploy (Vercel Production)
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: [quality, build-e2e]
+    needs: [quality, build-e2e, security-db]
     if: >
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      vars.ENABLE_VERCEL_DEPLOY == 'true'
+      vars.ENABLE_VERCEL_DEPLOY == 'true' &&
+      vars.ENABLE_SECURITY_AUDIT == 'true'
     environment: production
     permissions:
       contents: read

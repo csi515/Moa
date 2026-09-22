@@ -2,7 +2,11 @@ import type { Booking, BookingStatus, ServiceOffering } from '../../core/types/s
 import { STORAGE_KEYS } from '../adapters';
 import { deleteById, generateEntityId, getItem, setItem } from './helpers';
 
-/** 예약·서비스(필라테스 등) CRUD */
+/**
+ * 예약·서비스(필라테스 등) persistence CRUD.
+ * 이용권 연동 상태 전이는 ScheduleService.updateBookingStatus 사용
+ * (이 레이어의 updateBookingStatus는 status 필드만 갱신 — 차감/복구 없음).
+ */
 export function createScheduleStorage() {
   return {
     getBookings(): Booking[] {
@@ -31,6 +35,7 @@ export function createScheduleStorage() {
       return saved;
     },
 
+    /** status 필드만 저장. 이용권 규칙 없음 — ScheduleService.updateBookingStatus 권장 */
     updateBookingStatus(id: string, status: BookingStatus): Booking | null {
       const list = this.getBookings();
       const idx = list.findIndex((entry) => entry.id === id);

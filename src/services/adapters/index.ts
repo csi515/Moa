@@ -8,7 +8,7 @@ export {
   setOrganizationId,
   resolveStorageKey,
 } from './storageContext';
-export type { IStorageAdapter, StorageListener } from './types';
+export type { IStorageAdapter, StorageListener, StorageChangeKey } from './types';
 
 let adapterInstance: IStorageAdapter | null = null;
 

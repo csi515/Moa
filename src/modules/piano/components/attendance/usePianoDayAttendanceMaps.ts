@@ -8,7 +8,7 @@ import {
 
 /** 일자별 DAY_ATTENDANCE 기록·PIN 체크인 맵 (출결·홈·강사 홈 공용) */
 export function usePianoDayAttendanceMaps(dateIso: string) {
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('attendance');
 
   const dayRecordMap = useMemo(() => {
     void refreshKey;

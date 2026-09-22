@@ -38,6 +38,7 @@ import {
 import { rowToLink } from './parentLinkEntityMappers';
 import type { SyncCache } from './syncTypes';
 import { checkHydrateErrors } from './persistHelpers';
+import { rowToSessionPass } from './sessionPassMappers';
 
 /** Core 엔티티 전체 hydrate */
 export async function hydrateCoreEntities(
@@ -64,12 +65,16 @@ export async function hydrateCoreEntities(
     notificationsResult,
     attendanceSessionsResult,
     parentLinksResult,
+    sessionPassesResult,
   ] = await Promise.all([
     client.from('organizations').select('settings, name, industry_type').eq('id', organizationId).single(),
     client.from('staff').select('*').eq('organization_id', organizationId),
     client.from('customers').select('*').eq('organization_id', organizationId),
     client.from('customer_contacts').select('*').eq('organization_id', organizationId),
     client.from('services').select('*').eq('organization_id', organizationId),
+    // schedules: org 전체 hydrate (offline 캘린더·이력용).
+    // 날짜 윈도우 remote filter는 sync Domain Service와 충돌·과거 월 공백을 유발하므로
+    // 조회 최적화는 ScheduleService(bookingQuery) in-memory로 처리. 수만 건 이상 시 재검토.
     client.from('schedules').select('*').eq('organization_id', organizationId),
     client.from('payments').select('*').eq('organization_id', organizationId),
     client.from('payment_transactions').select('*').eq('organization_id', organizationId),
@@ -80,6 +85,7 @@ export async function hydrateCoreEntities(
     client.from('notifications').select('*').eq('organization_id', organizationId),
     client.from('attendance_sessions').select('*').eq('organization_id', organizationId),
     client.from('parent_student_links').select('*').eq('organization_id', organizationId),
+    client.from('session_passes' as 'schedules').select('*').eq('organization_id', organizationId),
   ]);
 
   checkHydrateErrors(
@@ -99,6 +105,7 @@ export async function hydrateCoreEntities(
       notifications: notificationsResult.error,
       attendanceSessions: attendanceSessionsResult.error,
       parentLinks: parentLinksResult.error,
+      sessionPasses: sessionPassesResult.error,
     },
     'core'
   );
@@ -173,6 +180,9 @@ export async function hydrateCoreEntities(
     }))
   );
   const parentStudentLinks = (parentLinksResult.data || []).map(rowToLink);
+  const sessionPasses = (sessionPassesResult.data || []).map((row) =>
+    rowToSessionPass(row as unknown as Parameters<typeof rowToSessionPass>[0])
+  );
 
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.SETTINGS, settings],
@@ -183,6 +193,7 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.SERVICE_OFFERINGS, serviceOfferings],
     [STORAGE_KEYS.SCHEDULES, bookings],
     [STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS, practiceRoomBookings],
+    [STORAGE_KEYS.SESSION_PASSES, sessionPasses],
     [STORAGE_KEYS.INVOICES, invoices],
     [STORAGE_KEYS.TUITION_PAYMENTS, tuitionPayments],
     [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(coreRowToExpense)],

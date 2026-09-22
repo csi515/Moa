@@ -3,6 +3,8 @@ import { useApp } from '@/context/AppContext';
 import { useModuleLabels } from '@/core/labels';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { isOrgAdmin } from '@/core/auth/permissions';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
+import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import {
   fetchStaffAccountStatuses,
   inviteStaffMember,
@@ -36,7 +38,12 @@ import {
 } from 'lucide-react';
 
 export const TeacherManagementView: React.FC = () => {
-  const { showToast, openConfirmDialog, refreshKey } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
+  const refreshKey = useStorageRefresh([
+    STORAGE_KEYS.TEACHERS,
+    STORAGE_KEYS.CLASSES,
+    STORAGE_KEYS.STUDENTS,
+  ]);
   const labels = useModuleLabels();
   const { currentOrganization, currentRole } = useOrganization();
   const canManageAccounts = isOrgAdmin(currentRole);

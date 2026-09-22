@@ -18,7 +18,7 @@ import {
   enqueueSyncOutbox,
   peekSyncOutbox,
 } from './syncOutbox';
-import type { IStorageAdapter, StorageListener } from './types';
+import type { IStorageAdapter, StorageChangeKey, StorageListener } from './types';
 
 const LOCAL_MISS = Symbol('local-miss');
 
@@ -75,7 +75,7 @@ export class SupabaseAdapter implements IStorageAdapter {
       // LOCAL_ONLY / device-only
       writeLocal(key, value);
     }
-    this.notify();
+    this.notify(key);
   }
 
   removeItem(key: StorageKey): void {
@@ -85,7 +85,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     } else {
       removeLocal(key);
     }
-    this.notify();
+    this.notify(key);
   }
 
   subscribe(listener: StorageListener): () => void {
@@ -132,7 +132,7 @@ export class SupabaseAdapter implements IStorageAdapter {
       this.hydrated = true;
       this.offlineHydrated = false;
       this.ensureOnlineFlushListener();
-      this.notify();
+      this.notify('*');
       void this.flushSyncOutbox();
     } catch (error) {
       if (!isStale()) {
@@ -141,7 +141,7 @@ export class SupabaseAdapter implements IStorageAdapter {
           this.hydrated = true;
           this.offlineHydrated = true;
           this.ensureOnlineFlushListener();
-          this.notify();
+          this.notify('*');
           console.warn(
             '[storage] hydrate failed — using localStorage offline snapshot (not a durable SoT)',
             error
@@ -344,10 +344,10 @@ export class SupabaseAdapter implements IStorageAdapter {
     if (ok) clearSyncOutboxKeys(keys);
   }
 
-  private notify(): void {
+  private notify(changedKey: StorageChangeKey): void {
     this.listeners.forEach((listener) => {
       try {
-        listener();
+        listener(changedKey);
       } catch (e) {
         console.error('Storage listener error:', e);
       }

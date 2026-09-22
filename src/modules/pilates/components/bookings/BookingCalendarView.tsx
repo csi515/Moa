@@ -9,7 +9,7 @@ import { StorageService } from '@/services/storage';
 import type { Booking, BookingStatus } from '@/core/types/schedule';
 import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 import { bookingChangeNotice } from '@/core/schedules/bookingChangeNotice';
-import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { buildSlotOccupancyIndex, getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
 import { confirmBookingDeposit } from '@/core/schedules/confirmBookingDeposit';
 import { PilatesSlotList } from './PilatesSlotList';
 import { BookingFormModal } from './BookingFormModal';
@@ -36,13 +36,17 @@ export const BookingCalendarView: React.FC = () => {
   const accentBtn = skin ? 'bg-rose-600 hover:bg-rose-700' : 'bg-teal-600 hover:bg-teal-700';
   const accentTab = skin ? 'bg-rose-600 text-white' : 'bg-teal-600 text-white';
   const accentText = skin ? 'text-rose-700' : 'text-teal-700';
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
   const { isScoped, staffId, scopeBookings, scopeMembersForPilates } = useStaffScope();
 
   const form = useBookingForm({ isScoped, staffId });
 
   const allBookingsRaw = ScheduleService.getBookings();
   const recruitments = ScheduleService.getSlotRecruitments();
+  const occupancyIndex = useMemo(
+    () => buildSlotOccupancyIndex(allBookingsRaw),
+    [allBookingsRaw, refreshKey]
+  );
   const allBookings = useMemo(() => {
     const scoped = scopeBookings(allBookingsRaw);
     return mergeScopedBookingsWithInbox({
@@ -364,7 +368,7 @@ export const BookingCalendarView: React.FC = () => {
     showToast('대기 신청을 일반 신청으로 올렸습니다.', 'success');
   };
 
-  const updateStatus = (booking: Booking, status: BookingStatus) => {
+  const updateStatus = async (booking: Booking, status: BookingStatus) => {
     if (skin && status === 'confirmed' && booking.waitlist) {
       showToast('대기 신청은 일반 신청으로 올린 뒤 확정하세요.', 'warning');
       return;
@@ -400,11 +404,17 @@ export const BookingCalendarView: React.FC = () => {
         return;
       }
     }
-    const result = ScheduleService.updateBookingStatus(
-      booking.id,
-      status,
-      skin ? undefined : { consumeOnNoShow: true }
-    );
+    let result: Booking | null;
+    try {
+      result = await ScheduleService.updateBookingStatus(
+        booking.id,
+        status,
+        skin ? undefined : { consumeOnNoShow: true }
+      );
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '상태 변경에 실패했습니다.', 'error');
+      return;
+    }
     if (!result) {
       const deducting = status === 'completed' || (!skin && status === 'no_show');
       showToast(
@@ -438,7 +448,7 @@ export const BookingCalendarView: React.FC = () => {
     }
   };
 
-  const completeClass = (group: { bookings: Booking[] }) => {
+  const completeClass = async (group: { bookings: Booking[] }) => {
     const targets = group.bookings.filter(
       (booking) => booking.status === 'scheduled' || booking.status === 'confirmed'
     );
@@ -446,9 +456,15 @@ export const BookingCalendarView: React.FC = () => {
     let missingPass = 0;
     let blocked = 0;
     for (const booking of targets) {
-      const result = ScheduleService.updateBookingStatus(booking.id, 'completed', {
-        consumeOnNoShow: true,
-      });
+      let result: Booking | null;
+      try {
+        result = await ScheduleService.updateBookingStatus(booking.id, 'completed', {
+          consumeOnNoShow: true,
+        });
+      } catch {
+        blocked += 1;
+        continue;
+      }
       if (!result) {
         blocked += 1;
         continue;
@@ -623,6 +639,7 @@ export const BookingCalendarView: React.FC = () => {
                     startsAt: b.startsAt,
                     bookings: allBookingsRaw,
                     recruitments,
+                    occupancyIndex,
                   })
                 : null;
 

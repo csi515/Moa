@@ -7,26 +7,19 @@ import { withOwnerFinanceTabs } from '@/core/industry/pluginTypes';
 import type { UserRole } from '@/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import type { AcademySettings } from '@/types';
+import {
+  isOrgOwner,
+  resolveRoleAccessKind,
+} from './permissionsRole';
 
-/** owner/admin/manager — 사업장 운영 전체 메뉴 */
-export function isOrgAdmin(role: UserRole | string | null | undefined): boolean {
-  return role === 'owner' || role === 'admin' || role === 'manager';
-}
-
-/** 사업주(owner) 역할 여부 */
-export function isOrgOwner(role: UserRole | string | null | undefined): boolean {
-  return role === 'owner';
-}
-
-/** staff / instructor(강사) 역할 여부 */
-export function isStaffRole(role: UserRole | string | null | undefined): boolean {
-  return role === 'staff' || role === 'instructor';
-}
-
-/** parent / guardian(학부모·보호자) 역할 여부 */
-export function isParentRole(role: UserRole | string | null | undefined): boolean {
-  return role === 'parent' || role === 'guardian';
-}
+export {
+  isOrgAdmin,
+  isOrgOwner,
+  isParentRole,
+  isStaffRole,
+  resolveRoleAccessKind,
+} from './permissionsRole';
+export type { RoleAccessKind } from './permissionsRole';
 
 function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
   return normalizeIndustryType(industry);
@@ -52,6 +45,11 @@ function appendAccountTab(tabs: NavTab[]): NavTab[] {
   return tabs.includes('account') ? tabs : [...tabs, 'account'];
 }
 
+/**
+ * 역할별 네비게이션 탭 목록 (UX 전용).
+ * 실제 데이터 접근 제어는 RLS / SECURITY DEFINER RPC가 담당한다.
+ * 프론트 role 위조·탭 노출만으로는 권한이 확대되지 않는다.
+ */
 export function getAllowedTabs(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined,
@@ -60,26 +58,24 @@ export function getAllowedTabs(
   const industryType = resolveIndustryType(industry);
   const plugin = getIndustryPlugin(industryType);
   const attendanceEnabled = isAttendanceModuleEnabled(settings, industryType);
+  const kind = resolveRoleAccessKind(role);
 
-  if (isOrgAdmin(role)) {
+  if (kind === 'admin') {
     const base = isOrgOwner(role)
       ? withOwnerFinanceTabs(plugin.adminTabs)
       : plugin.adminTabs;
     return appendAccountTab(filterAttendancePinTab(base, attendanceEnabled));
   }
 
-  if (isStaffRole(role)) {
+  if (kind === 'staff') {
     return appendAccountTab(filterAttendancePinTab(plugin.staffTabs, attendanceEnabled));
   }
 
-  if (isParentRole(role)) {
-    return [];
-  }
-
-  // customer/member/null/unknown — admin 폴백 금지 (최소 권한)
+  // parent / customer/member/null/unknown — admin 폴백 금지 (최소 권한)
   return [];
 }
 
+/** UX 탭 가시성만 판단. DB 권한 검사가 아님. */
 export function canAccessTab(
   role: UserRole | string | null | undefined,
   industry: IndustryType | string | null | undefined,

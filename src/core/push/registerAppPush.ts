@@ -98,6 +98,12 @@ export async function registerAppPush(params: {
   }
 }
 
+/** 로그아웃 시 in-memory push 컨텍스트 초기화 (로컬 토큰은 clearLocalPushTokensForUser) */
+export function resetAppPushRegistrationContext(): void {
+  lastUserId = null;
+  lastOrgId = undefined;
+}
+
 export function consumePendingPortalTab(): string | null {
   try {
     const tab = sessionStorage.getItem(PENDING_PORTAL_TAB_KEY);

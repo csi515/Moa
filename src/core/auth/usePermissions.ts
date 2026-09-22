@@ -6,6 +6,7 @@ import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { applyStaffGrantTabs, normalizeStaffGrants } from '@/core/staff/staffGrants';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import {
   getAllowedTabs,
   getDefaultTab,
@@ -18,8 +19,10 @@ import {
 } from './permissions';
 
 export function usePermissions() {
-  const { currentUser, refreshKey } = useApp();
+  const { currentUser } = useApp();
   const org = useOptionalOrganization();
+  // 설정·강사 grants 변경만 — students/bookings 변경으로 탭 재계산 금지
+  const refreshKey = useStorageRefresh('settings');
 
   const role = currentUser.role;
   const staffId = currentUser.staffId ?? org?.currentStaffId ?? null;
@@ -40,7 +43,6 @@ export function usePermissions() {
         staffGrants,
         isStaffRole(role)
       ),
-    // refreshKey: 설정 저장 후 출입(PIN) on/off 즉시 반영
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [role, industry, settings.features?.attendance?.enabled, refreshKey, staffGrants]
   );

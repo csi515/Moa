@@ -105,6 +105,7 @@ export const CORE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ATTENDANCE_SESSIONS,
   STORAGE_KEYS.CUSTOMER_PINS,
   STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS,
+  STORAGE_KEYS.SESSION_PASSES,
 ]);
 
 /**
@@ -159,7 +160,6 @@ export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
  * 원격 원본이 없거나 UI/온보딩 전용 — 다기기 공유 SoT가 아님.
  *
  * - ACTIVE_USER / INITIALIZED / ONBOARDING_PROGRESS: device-only UI·온보딩 상태
- * - SESSION_PASSES: remote 스키마 없음 — 당분간 device-local (재무/다기기 미반영)
  * - SLOT_RECRUITMENTS: 키는 LOCAL_ONLY이나 settings.slotRecruitments로 이중 저장·동기화
  * - SHUTTLE_* / CARE_* (저널·투약 제외): remote 테이블 없음 → device-local
  */
@@ -167,7 +167,6 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
   STORAGE_KEYS.INITIALIZED,
   STORAGE_KEYS.ONBOARDING_PROGRESS,
-  STORAGE_KEYS.SESSION_PASSES, // device-local — sync 금지
   STORAGE_KEYS.SLOT_RECRUITMENTS, // settings.slotRecruitments 미러
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
   STORAGE_KEYS.CARE_CHILD_RECORDS,

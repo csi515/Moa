@@ -1,7 +1,13 @@
 import type { AcademySettings, Teacher } from '../../types';
 import type { StorageKey } from './storageKeys';
 
-export type StorageListener = () => void;
+/**
+ * 저장소 변경 리스너.
+ * - StorageKey: 해당 키만 변경
+ * - '*': hydrate / 전체 무효화 (모든 구독자 갱신)
+ */
+export type StorageChangeKey = StorageKey | '*';
+export type StorageListener = (changedKey: StorageChangeKey) => void;
 
 /**
  * 저장소 어댑터 인터페이스.

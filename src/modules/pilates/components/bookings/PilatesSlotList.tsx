@@ -4,6 +4,7 @@ import type { Booking, BookingStatus, ServiceOffering, SlotRecruitment } from '@
 import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 import {
   buildSlotKey,
+  buildSlotOccupancyIndex,
   getSlotCapacityInfo,
   groupBookingsIntoSlots,
   type SlotBookingGroup,
@@ -39,6 +40,7 @@ export const PilatesSlotList: React.FC<PilatesSlotListProps> = ({
 }) => {
   const { showToast } = useApp();
   const groups = groupBookingsIntoSlots(bookings);
+  const occupancyIndex = buildSlotOccupancyIndex(allBookings);
   const bookingKeys = new Set(groups.map((group) => group.key));
   const emptyPresets: SlotBookingGroup[] = presetRecruitments
     .filter((item) => {
@@ -69,6 +71,7 @@ export const PilatesSlotList: React.FC<PilatesSlotListProps> = ({
                 startsAt: group.startsAt,
                 bookings: allBookings,
                 recruitments,
+                occupancyIndex,
               })
             : null;
         const editable = Boolean(group.staffId && canEditSlot(group.staffId));

@@ -14,6 +14,7 @@ import {
   persistNotifications,
   persistSchedules,
   persistServices,
+  persistSessionPasses,
 } from './corePersistCatalog';
 import {
   persistExpenses,
@@ -78,6 +79,9 @@ export async function persistCoreEntity(
       break;
     case STORAGE_KEYS.ATTENDANCE_SESSIONS:
       ok = await persistAttendanceSessions(client, organizationId, cache, isAborted);
+      break;
+    case STORAGE_KEYS.SESSION_PASSES:
+      ok = await persistSessionPasses(client, organizationId, cache, isAborted);
       break;
     case STORAGE_KEYS.CUSTOMER_PINS:
       ok = await persistCustomerPins(client, organizationId, cache);

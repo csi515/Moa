@@ -10,6 +10,18 @@ export { coreScheduleService } from './services/coreScheduleService';
 export { reservationService } from './services/reservationService';
 export { availabilityService } from './services/availabilityService';
 export { materializeAvailabilitySlots } from './services/materializeAvailabilitySlots';
+export { sessionPassService } from './sessionPassService';
+export { updateBookingStatusAtomic } from './bookingPassAtomic';
+export {
+  filterBookingsByDate,
+  filterBookingsForSlotWindow,
+  selectUpcomingBookings,
+} from './bookingQuery';
+export {
+  buildSlotOccupancyIndex,
+  buildSlotKey,
+  getSlotCapacityInfo,
+} from './bookingCapacity';
 export { AvailabilitySettingsView } from './components/AvailabilitySettingsView';
 export { ReservationInboxView } from './components/ReservationInboxView';
 export { ConsultationQrModal } from './components/ConsultationQrModal';

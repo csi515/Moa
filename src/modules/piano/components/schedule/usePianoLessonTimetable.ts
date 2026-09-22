@@ -25,7 +25,7 @@ export type TimetableLayoutMode = 'week' | 'byTeacher';
  */
 export function usePianoLessonTimetable() {
   const { showToast, openConfirmDialog, triggerRefresh } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('classes');
   const { isScoped, staffId, scopeClasses, scopeStudents } = useStaffScope();
   const useDragGrid = useMediaQuery('(min-width: 1024px) and (hover: hover) and (pointer: fine)');
 

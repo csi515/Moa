@@ -17,6 +17,7 @@ import { useOptionalOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
 import type { MemberRole } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 
 interface MembershipGroup {
   organizationId: string;
@@ -34,16 +35,15 @@ export const RoleContextSwitcher: React.FC = () => {
   const auth = useOptionalAuth();
   const org = useOptionalOrganization();
   const navigate = useNavigate();
-  const { currentUser, setActiveTab, refreshKey } = useApp();
+  const { currentUser, setActiveTab } = useApp();
   const [open, setOpen] = useState(false);
 
   const memberships = org?.memberships ?? [];
   const selectedMembership = org?.selectedMembership;
+  // 설정에서 학원명 변경 시 재렌더
+  useStorageRefresh('settings');
   const settingsName = StorageService.getSettings().name?.trim();
   const currentOrgId = selectedMembership?.organizationId;
-
-  // refreshKey: 설정에서 학원명 변경 시 재렌더
-  void refreshKey;
 
   const groupedMemberships = useMemo(() => {
     const groups = new Map<string, MembershipGroup>();

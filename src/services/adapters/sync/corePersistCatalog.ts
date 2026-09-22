@@ -13,13 +13,14 @@ import {
   bookingToScheduleRow,
   serviceOfferingToRow,
 } from './entityMappers';
-import type { Booking, ServiceOffering } from '../../../core/types/schedule';
+import type { Booking, ServiceOffering, SessionPass } from '../../../core/types/schedule';
 import { sessionToCoreRow } from './attendanceEntityMappers';
 import type { AttendanceSession } from '../../../core/attendance/types';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import { requireCacheList, runRowUpserts } from './persistHelpers';
 import type { CoreClient } from './corePersistSyncTable';
 import { syncTable } from './corePersistSyncTable';
+import { sessionPassToRow } from './sessionPassMappers';
 
 export async function persistServices(
   client: CoreClient,
@@ -240,5 +241,42 @@ export async function persistAttendanceSessions(
 
   if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.ATTENDANCE_SESSIONS, sessions);
+  return ok;
+}
+
+export async function persistSessionPasses(
+  client: CoreClient,
+  orgId: string,
+  cache: SyncCache,
+  isAborted: PersistAbortGuard
+): Promise<boolean> {
+  if (isAborted()) return false;
+  const passes = requireCacheList<SessionPass>(
+    cache,
+    STORAGE_KEYS.SESSION_PASSES,
+    'session_passes'
+  );
+  if (!passes) return false;
+
+  const rows = passes.map((p) => sessionPassToRow(p, orgId));
+
+  const ok = await syncTable(
+    client,
+    'session_passes',
+    orgId,
+    rows.map((r) => r.id),
+    () =>
+      runRowUpserts(
+        rows,
+        isAborted,
+        (row) =>
+          client.from('session_passes' as 'schedules').upsert(row as never),
+        (error) => console.error('Failed to upsert session_pass:', error)
+      ),
+    { cachePresent: true, context: 'session_passes', isAborted }
+  );
+
+  if (isAborted()) return false;
+  writeLocal(STORAGE_KEYS.SESSION_PASSES, passes);
   return ok;
 }

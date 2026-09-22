@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, type ReactNode }
 import { Session, User } from '@supabase/supabase-js';
 import { StorageService } from '../../services/storage';
 import * as authService from './services/authService';
+import { clearLocalPushTokensForUser, resetAppPushRegistrationContext } from '@/core/push';
 
 interface AuthContextType {
   session: Session | null;
@@ -57,7 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signOut = async () => {
+    const userId = session?.user?.id;
     StorageService.clearOrganization();
+    if (userId) clearLocalPushTokensForUser(userId);
+    resetAppPushRegistrationContext();
     await authService.signOut();
     setSession(null);
   };

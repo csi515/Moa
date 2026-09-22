@@ -22,7 +22,7 @@ import {
 export function useTeacherPayroll() {
   const { showToast, openConfirmDialog, triggerRefresh, setActiveTab } = useApp();
   const { industry } = usePermissions();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('finance');
 
   const [selectedMonth, setSelectedMonth] = useState(() => toLocalYearMonth());
   const [quantityOverrides, setQuantityOverrides] = useState<Record<string, number>>({});

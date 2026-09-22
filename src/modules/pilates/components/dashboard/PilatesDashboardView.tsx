@@ -3,7 +3,12 @@ import { useApp } from '@/context/AppContext';
 import { useStorageRefresh, useStaffScope } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { ScheduleService } from '@/core/services/scheduleService';
-import { buildSlotKey, getSlotCapacityInfo, groupBookingsIntoSlots } from '@/core/schedules/bookingCapacity';
+import {
+  buildSlotKey,
+  buildSlotOccupancyIndex,
+  getSlotCapacityInfo,
+  groupBookingsIntoSlots,
+} from '@/core/schedules/bookingCapacity';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';
@@ -12,11 +17,15 @@ import { Activity, Calendar, Users, Dumbbell, Plus } from 'lucide-react';
 /** 필라테스 강사 전용 축소 대시보드 */
 const PilatesStaffDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
   const { scopeBookings, scopeMembersForPilates, staffId } = useStaffScope();
 
   const today = new Date().toISOString().slice(0, 10);
   const allBookingsRaw = ScheduleService.getBookings();
+  const occupancyIndex = useMemo(
+    () => buildSlotOccupancyIndex(allBookingsRaw),
+    [allBookingsRaw, refreshKey]
+  );
   const todayBookings = useMemo(
     () => scopeBookings(ScheduleService.getBookingsByDate(today)),
     [today, scopeBookings, refreshKey]
@@ -138,6 +147,7 @@ const PilatesStaffDashboard: React.FC = () => {
                         startsAt: group.startsAt,
                         bookings: allBookingsRaw,
                         recruitments: ScheduleService.getSlotRecruitments(),
+                        occupancyIndex,
                       })
                     : null;
                 return (
@@ -203,7 +213,7 @@ const PilatesStaffDashboard: React.FC = () => {
 
 const PilatesAdminDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
 
   const today = new Date().toISOString().slice(0, 10);
   const todayBookings = useMemo(

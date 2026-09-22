@@ -3,6 +3,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -26,13 +27,29 @@ import {
 import * as orgService from './services/organizationService';
 import { useGuardianDeepLinkPortalSync } from './hooks/useGuardianDeepLinkPortalSync';
 import {
+  computePortalAccessFlags,
   deriveSelectionFields,
+  planBootstrapApply,
+  portalModeToFlags,
   resolveMembershipById,
   resolveMembershipByOrganizationId,
   resolveOrganizationBootstrap,
   STAFF_ROLES,
+  type AppPortalMode,
   type MembershipSelectionResult,
 } from './resolveOrganizationContext';
+import { isNativeApp } from '@/core/platform/capacitorPlatform';
+import { MOBILE_FOREGROUND_EVENT } from '@/core/platform/mobileLifecycle';
+
+/**
+ * OrganizationProvider 책임 (단일 Context 유지):
+ * 1. membership 목록 조회·갱신 (login bootstrap 포함)
+ * 2. Organization Selection (selectedMembership + localStorage org id)
+ * 3. Portal Mode (parent/customer/none) — Selection 과 별개
+ * 4. parent profile (globalParentId, portalChildCount)
+ * 5. blocked owner org ids
+ * 6. 선택·포털 플래그에서 파생된 role/org/staff/parentCustomer/access flags 노출
+ */
 
 interface OrganizationContextType {
   organizations: orgService.OrganizationMembership[];
@@ -60,7 +77,7 @@ interface OrganizationContextType {
     industryType?: IndustryType | string,
     settings?: orgService.CreateOrganizationFormExtras
   ) => Promise<void>;
-  refreshOrganizations: () => Promise<void>;
+  refreshOrganizations: (opts?: { quiet?: boolean }) => Promise<void>;
   /** 설정 저장 직후 헤더·사업장 선택 UI에 이름 반영 */
   patchOrganization: (organizationId: string, patch: { name: string }) => void;
   enterParentPortal: () => void;
@@ -71,29 +88,47 @@ interface OrganizationContextType {
 
 const OrganizationContext = createContext<OrganizationContextType | undefined>(undefined);
 
+function readStoredPortalMode(): AppPortalMode {
+  if (isParentPortalModeActive()) return 'parent';
+  if (isCustomerPortalModeActive()) return 'customer';
+  return 'none';
+}
+
 export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [organizations, setOrganizations] = useState<orgService.OrganizationMembership[]>([]);
-  /** 선택 SoT — org/role/staff/parentCustomerId 는 여기서 파생 */
+
+  // ── Source state ──────────────────────────────────────────────
+  const [memberships, setMemberships] = useState<orgService.OrganizationMembership[]>([]);
+  /** Selection SoT — org/role/staff/parentCustomerId 는 여기서만 파생 */
   const [selectedMembership, setSelectedMembership] =
     useState<orgService.OrganizationMembership | null>(null);
+  /** Portal Mode SoT — Selection 과 독립 (localStorage app mode 와 동기) */
+  const [portalMode, setPortalMode] = useState<AppPortalMode>(readStoredPortalMode);
   const [globalParentId, setGlobalParentId] = useState<string | null>(null);
-  const [isParentOnly, setIsParentOnly] = useState(false);
-  const [isCustomerOnly, setIsCustomerOnly] = useState(false);
-  const [canAccessParentPortal, setCanAccessParentPortal] = useState(false);
-  const [canAccessCustomerPortal, setCanAccessCustomerPortal] = useState(false);
   const [portalChildCount, setPortalChildCount] = useState(0);
   const [blockedOwnerOrgIds, setBlockedOwnerOrgIds] = useState<string[]>([]);
-  const [parentPortalActive, setParentPortalActiveState] = useState(isParentPortalModeActive);
-  const [customerPortalActive, setCustomerPortalActiveState] = useState(isCustomerPortalModeActive);
   const [loading, setLoading] = useState(true);
 
+  // ── Derived: selection ────────────────────────────────────────
   const {
     currentOrganization,
     currentRole,
     currentStaffId,
     currentParentCustomerId,
   } = deriveSelectionFields(selectedMembership);
+
+  // ── Derived: portal access (membership 조회 결과 기반, parent 단정 금지) ──
+  const portalAccess = useMemo(
+    () =>
+      computePortalAccessFlags(memberships, {
+        blockedOwnerOrgIds,
+        portalChildren: portalChildCount,
+        parentId: globalParentId,
+      }),
+    [memberships, blockedOwnerOrgIds, portalChildCount, globalParentId]
+  );
+
+  const { parentPortalActive, customerPortalActive } = portalModeToFlags(portalMode);
 
   /** 선택 결과 1곳 커밋 (상태 + localStorage 부작용) */
   const commitMembershipSelection = useCallback((result: MembershipSelectionResult) => {
@@ -105,65 +140,45 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, []);
 
+  const commitPortalMode = useCallback((mode: AppPortalMode) => {
+    setPortalMode(mode);
+    setParentPortalModeActive(mode === 'parent');
+    setCustomerPortalModeActive(mode === 'customer');
+  }, []);
+
   const applyMembershipSelection = useCallback(
-    (memberships: orgService.OrganizationMembership[], membershipId: string | null) => {
-      commitMembershipSelection(resolveMembershipById(memberships, membershipId));
+    (list: orgService.OrganizationMembership[], membershipId: string | null) => {
+      commitMembershipSelection(resolveMembershipById(list, membershipId));
     },
     [commitMembershipSelection]
   );
 
-  const applySelection = useCallback(
-    (memberships: orgService.OrganizationMembership[], organizationId: string | null) => {
-      commitMembershipSelection(resolveMembershipByOrganizationId(memberships, organizationId));
+  const applyOrgSelection = useCallback(
+    (list: orgService.OrganizationMembership[], organizationId: string | null) => {
+      commitMembershipSelection(resolveMembershipByOrganizationId(list, organizationId));
     },
     [commitMembershipSelection]
   );
 
-  const resetSelection = useCallback(() => {
-    setSelectedMembership(null);
-  }, []);
-
-  const deactivatePortals = useCallback(() => {
-    setParentPortalActiveState(false);
-    setParentPortalModeActive(false);
-    setCustomerPortalActiveState(false);
-    setCustomerPortalModeActive(false);
-  }, []);
-
-  const activateParentPortalMode = useCallback(() => {
-    setParentPortalActiveState(true);
-    setParentPortalModeActive(true);
-    setCustomerPortalActiveState(false);
-    setCustomerPortalModeActive(false);
-  }, []);
-
-  const activateCustomerPortalMode = useCallback(() => {
-    setCustomerPortalActiveState(true);
-    setCustomerPortalModeActive(true);
-    setParentPortalActiveState(false);
-    setParentPortalModeActive(false);
-  }, []);
-
-  /** 로그아웃 등 — 멤버십 목록·선택·포털 접근 플래그 초기화 (기존 필드만) */
   const resetLoggedOutOrgState = useCallback(() => {
     StorageService.clearOrganization();
-    setOrganizations([]);
-    resetSelection();
+    setMemberships([]);
+    setSelectedMembership(null);
     setGlobalParentId(null);
-    setIsParentOnly(false);
-    setCanAccessParentPortal(false);
     setPortalChildCount(0);
     setBlockedOwnerOrgIds([]);
-  }, [resetSelection]);
+    commitPortalMode('none');
+    orgService.clearStoredOrganizationId();
+  }, [commitPortalMode]);
 
-  const refreshOrganizations = useCallback(async () => {
+  const refreshOrganizations = useCallback(async (opts?: { quiet?: boolean }) => {
     if (!user) {
       resetLoggedOutOrgState();
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!opts?.quiet) setLoading(true);
     try {
       await applyOAuthSignupIntentIfAny();
       await runLoginAccountSync();
@@ -175,7 +190,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         portalChildren = tree.children.length;
         parentId = tree.parent?.id ?? null;
       } catch {
-        /* offline */
+        /* offline — parent 단정하지 않음 */
       }
 
       if (parentId === null) {
@@ -189,8 +204,10 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setGlobalParentId(parentId);
       setPortalChildCount(portalChildren);
 
-      const memberships = await orgService.fetchUserMembershipsWithContext();
-      const ownerOrgIds = memberships.filter((m) => m.role === 'owner').map((m) => m.organizationId);
+      const nextMemberships = await orgService.fetchUserMembershipsWithContext();
+      const ownerOrgIds = nextMemberships
+        .filter((m) => m.role === 'owner')
+        .map((m) => m.organizationId);
       let blockedIds: string[] = [];
       if (ownerOrgIds.length > 0) {
         try {
@@ -200,10 +217,10 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
       }
       setBlockedOwnerOrgIds(blockedIds);
-      setOrganizations(memberships);
+      setMemberships(nextMemberships);
 
-      const { flags, decision } = resolveOrganizationBootstrap({
-        memberships,
+      const { decision } = resolveOrganizationBootstrap({
+        memberships: nextMemberships,
         blockedOwnerOrgIds: blockedIds,
         portalChildren,
         parentId,
@@ -211,68 +228,63 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         storedOrganizationId: orgService.getStoredOrganizationId(),
       });
 
-      setCanAccessParentPortal(flags.canAccessParentPortal);
-      setCanAccessCustomerPortal(flags.canAccessCustomerPortal);
-      setIsParentOnly(flags.isParentOnly);
-      setIsCustomerOnly(flags.isCustomerOnly);
-
-      switch (decision.kind) {
-        case 'enter_parent':
-          activateParentPortalMode();
-          orgService.clearStoredOrganizationId();
-          applyMembershipSelection(memberships, null);
-          break;
-        case 'enter_customer':
-          activateCustomerPortalMode();
-          applyMembershipSelection(memberships, decision.membershipId);
-          break;
-        case 'select_membership':
-          applyMembershipSelection(memberships, decision.membershipId);
-          break;
-        case 'select_organization':
-          deactivatePortals();
-          applySelection(memberships, decision.organizationId);
-          break;
-        case 'select_organization_or_clear':
-          applySelection(memberships, decision.organizationId);
-          break;
-        default:
-          break;
+      const plan = planBootstrapApply(decision);
+      if (plan.clearStoredOrganizationId) {
+        orgService.clearStoredOrganizationId();
+      }
+      commitPortalMode(plan.portalMode);
+      if (plan.selection.by === 'membership') {
+        applyMembershipSelection(nextMemberships, plan.selection.membershipId);
+      } else {
+        applyOrgSelection(nextMemberships, plan.selection.organizationId);
       }
     } catch (err) {
       console.error('[org] refreshOrganizations failed', err);
-      setOrganizations([]);
-      applyMembershipSelection([], null);
+      // quiet(foreground): 기존 선택 유지 — 전체 비우면 stale보다 UX가 나쁨
+      if (!opts?.quiet) {
+        setMemberships([]);
+        setBlockedOwnerOrgIds([]);
+        applyMembershipSelection([], null);
+      }
     } finally {
-      setLoading(false);
+      if (!opts?.quiet) setLoading(false);
     }
   }, [
     user,
-    applySelection,
+    applyOrgSelection,
     applyMembershipSelection,
     resetLoggedOutOrgState,
-    activateParentPortalMode,
-    activateCustomerPortalMode,
-    deactivatePortals,
+    commitPortalMode,
   ]);
 
   useEffect(() => {
-    refreshOrganizations();
+    void refreshOrganizations();
   }, [refreshOrganizations]);
+
+  /** 네이티브 foreground: membership/org 조용히 재검증 (로딩 플래시 없음) */
+  useEffect(() => {
+    if (!isNativeApp()) return;
+    const onForeground = () => {
+      if (!user) return;
+      void refreshOrganizations({ quiet: true });
+    };
+    window.addEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+    return () => window.removeEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+  }, [user, refreshOrganizations]);
 
   const selectOrganization = useCallback(
     (organizationId: string) => {
       if (currentOrganization?.id !== organizationId) {
         StorageService.clearOrganization();
       }
-      applySelection(organizations, organizationId);
+      applyOrgSelection(memberships, organizationId);
     },
-    [organizations, applySelection, currentOrganization?.id]
+    [memberships, applyOrgSelection, currentOrganization?.id]
   );
 
   const switchMembership = useCallback(
     async (membershipId: string) => {
-      const membership = organizations.find((m) => m.id === membershipId);
+      const membership = memberships.find((m) => m.id === membershipId);
       if (!membership) {
         throw new Error('소속 정보를 찾을 수 없습니다.');
       }
@@ -284,15 +296,15 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       try {
         await orgService.setActiveMembership(membershipId);
         if (STAFF_ROLES.has(membership.role)) {
-          deactivatePortals();
+          commitPortalMode('none');
         }
-        applyMembershipSelection(organizations, membershipId);
+        applyMembershipSelection(memberships, membershipId);
       } catch (error) {
         console.error('Failed to switch membership:', error);
         throw error;
       }
     },
-    [organizations, applyMembershipSelection, currentOrganization?.id, deactivatePortals]
+    [memberships, applyMembershipSelection, currentOrganization?.id, commitPortalMode]
   );
 
   const clearOrganization = useCallback(async () => {
@@ -302,9 +314,9 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.error('Failed to clear active membership:', error);
     }
     orgService.clearStoredOrganizationId();
-    resetSelection();
+    setSelectedMembership(null);
     StorageService.clearOrganization();
-  }, [resetSelection]);
+  }, []);
 
   const createOrganization = useCallback(
     async (
@@ -328,7 +340,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     const nextName = patch.name.trim();
     if (!nextName) return;
 
-    setOrganizations((prev) =>
+    setMemberships((prev) =>
       prev.map((m) =>
         m.organizationId === organizationId
           ? { ...m, organization: { ...m.organization, name: nextName } }
@@ -343,43 +355,41 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const enterParentPortal = useCallback(() => {
-    activateParentPortalMode();
+    commitPortalMode('parent');
     // 이중 역할: staff org 컨텍스트가 포털 푸시/스토리지에 남지 않도록 해제
     orgService.clearStoredOrganizationId();
-    applyMembershipSelection(organizations, null);
-  }, [organizations, applyMembershipSelection, activateParentPortalMode]);
+    applyMembershipSelection(memberships, null);
+  }, [memberships, applyMembershipSelection, commitPortalMode]);
 
   useGuardianDeepLinkPortalSync(user?.id, enterParentPortal);
 
   const exitParentPortal = useCallback(() => {
-    setParentPortalActiveState(false);
-    setParentPortalModeActive(false);
-  }, []);
+    commitPortalMode('none');
+  }, [commitPortalMode]);
 
   const enterCustomerPortal = useCallback(() => {
-    activateCustomerPortalMode();
-  }, [activateCustomerPortalMode]);
+    commitPortalMode('customer');
+  }, [commitPortalMode]);
 
   const exitCustomerPortal = useCallback(() => {
-    setCustomerPortalActiveState(false);
-    setCustomerPortalModeActive(false);
-  }, []);
+    commitPortalMode('none');
+  }, [commitPortalMode]);
 
   return (
     <OrganizationContext.Provider
       value={{
-        organizations,
-        memberships: organizations,
+        organizations: memberships,
+        memberships,
         selectedMembership,
         currentOrganization,
         currentRole,
         currentStaffId,
         currentParentCustomerId,
         globalParentId,
-        isParentOnly,
-        isCustomerOnly,
-        canAccessParentPortal,
-        canAccessCustomerPortal,
+        isParentOnly: portalAccess.isParentOnly,
+        isCustomerOnly: portalAccess.isCustomerOnly,
+        canAccessParentPortal: portalAccess.canAccessParentPortal,
+        canAccessCustomerPortal: portalAccess.canAccessCustomerPortal,
         parentPortalActive,
         customerPortalActive,
         portalChildCount,

@@ -7,24 +7,36 @@ import type {
   SlotRecruitment,
 } from '../types/schedule';
 import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import {
+  filterBookingsByDate,
+  filterBookingsForSlotWindow,
+  selectUpcomingBookings,
+} from '@/core/schedules/bookingQuery';
 import { sumRemainingSessions } from '@/core/schedules/sessionPassUtils';
+import { sessionPassService } from '@/core/schedules/sessionPassService';
+import { updateBookingStatusAtomic } from '@/core/schedules/bookingPassAtomic';
 
-/** Core 예약·수업 종류·이용권 도메인 서비스 */
+/**
+ * 예약·수업 종류·이용권 Domain Service.
+ * - 읽기: hydrate된 local cache 위에서 조건 필터 (UI는 sync API 유지)
+ * - online/offline 차이는 Adapter hydrate가 담당 — 조회 API는 동일
+ * - 상태 전이+차감/복구: updateBookingStatusAtomic
+ *
+ * 참고: 전체 schedules hydrate 후 filter는 학원 규모(수천 건)에서 허용.
+ * getBookingsByDate / getUpcomingBookings 는 전체 sort·불필요 복사를 피한다.
+ * 수년치 수만 건 이상이면 hydrate 윈도우(원격 조건부 select)를 다음 단계로 검토.
+ */
 export const ScheduleService = {
   getBookings(): Booking[] {
     return StorageService.getBookings();
   },
 
   getBookingsByDate(date: string): Booking[] {
-    return StorageService.getBookings().filter((b) => b.startsAt.startsWith(date));
+    return filterBookingsByDate(StorageService.getBookings(), date);
   },
 
   getUpcomingBookings(limit = 10): Booking[] {
-    const now = new Date().toISOString();
-    return StorageService.getBookings()
-      .filter((b) => b.startsAt >= now && b.status !== 'cancelled')
-      .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-      .slice(0, limit);
+    return selectUpcomingBookings(StorageService.getBookings(), { limit });
   },
 
   saveBooking(booking: Omit<Booking, 'id'> & { id?: string }): Booking {
@@ -32,47 +44,16 @@ export const ScheduleService = {
   },
 
   /**
-   * 예약 상태 변경.
-   * completed 전환 시 이용권 1회 차감, completed→다른 상태 시 복구.
-   * 필라테스는 no_show도 같은 차감·복구를 쓴다.
+   * 예약 상태 변경 + 이용권 차감/복구 (원자).
+   * 운영: core.update_booking_status_with_pass
+   * 이용권 부족 시 null (예약 상태 미변경)
    */
-  updateBookingStatus(
+  async updateBookingStatus(
     id: string,
     status: BookingStatus,
     options?: { consumeOnNoShow?: boolean }
-  ): Booking | null {
-    const existing = StorageService.getBookings().find((b) => b.id === id);
-    if (!existing) return null;
-
-    let sessionPassId = existing.sessionPassId;
-    const deducting =
-      status === 'completed' || (options?.consumeOnNoShow === true && status === 'no_show');
-    const wasDeducting =
-      existing.status === 'completed' ||
-      (existing.status === 'no_show' && Boolean(existing.sessionPassId));
-
-    if (deducting && !wasDeducting && !sessionPassId) {
-      sessionPassId = StorageService.consumeSessionPass(existing.customerId) ?? undefined;
-      // 비취소 이용권이 있는데 차감 실패(잔여 0 등)면 completed/no_show 저장 차단
-      const hasPassEntitlement = StorageService.getSessionPasses().some(
-        (p) => p.customerId === existing.customerId && p.status !== 'cancelled'
-      );
-      if (!sessionPassId && hasPassEntitlement) {
-        return null;
-      }
-    }
-
-    if (wasDeducting && !deducting && existing.sessionPassId) {
-      StorageService.refundSessionPass(existing.sessionPassId);
-      sessionPassId = undefined;
-    }
-
-    const updated = StorageService.saveBooking({
-      ...existing,
-      status,
-      sessionPassId,
-    });
-    return updated;
+  ): Promise<Booking | null> {
+    return updateBookingStatusAtomic(id, status, options);
   },
 
   deleteBooking(id: string): boolean {
@@ -96,23 +77,23 @@ export const ScheduleService = {
   },
 
   getSessionPasses(): SessionPass[] {
-    return StorageService.getSessionPasses();
+    return sessionPassService.list();
   },
 
   getCustomerSessionPasses(customerId: string): SessionPass[] {
-    return StorageService.getSessionPasses().filter((p) => p.customerId === customerId);
+    return sessionPassService.listByCustomer(customerId);
   },
 
   getCustomerRemainingSessions(customerId: string): number {
-    return sumRemainingSessions(StorageService.getSessionPasses(), customerId);
+    return sumRemainingSessions(sessionPassService.listByCustomer(customerId), customerId);
   },
 
   saveSessionPass(pass: Omit<SessionPass, 'id'> & { id?: string }): SessionPass {
-    return StorageService.saveSessionPass(pass);
+    return sessionPassService.save(pass);
   },
 
   deleteSessionPass(id: string): boolean {
-    return StorageService.deleteSessionPass(id);
+    return sessionPassService.delete(id);
   },
 
   getSlotRecruitments(): SlotRecruitment[] {
@@ -140,11 +121,13 @@ export const ScheduleService = {
   getSlotCapacity(serviceId: string, staffId: string | null | undefined, startsAt: string) {
     const service = this.getServiceOfferings().find((s) => s.id === serviceId);
     if (!service) return null;
+    // 슬롯 시각·서비스만 넘겨 전체 예약 배열 스캔 비용 축소
+    const bookings = filterBookingsForSlotWindow(this.getBookings(), startsAt, serviceId);
     return getSlotCapacityInfo({
       service,
       staffId,
       startsAt,
-      bookings: this.getBookings(),
+      bookings,
       recruitments: this.getSlotRecruitments(),
     });
   },

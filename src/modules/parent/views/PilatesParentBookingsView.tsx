@@ -33,7 +33,7 @@ export const PilatesParentBookingsView: React.FC<{
   const passLabel = skin ? '관리권' : '이용권';
   const serviceFallback = skin ? '시술' : '수업';
   const { showToast } = useApp();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
   const now = new Date().toISOString();
 
   const remaining = useMemo(
@@ -150,8 +150,17 @@ export const PilatesParentBookingsView: React.FC<{
                 <button
                   type="button"
                   onClick={() => {
-                    ScheduleService.updateBookingStatus(b.id, 'cancelled');
-                    showToast('예약 신청을 취소했습니다.', 'info');
+                    void (async () => {
+                      try {
+                        await ScheduleService.updateBookingStatus(b.id, 'cancelled');
+                        showToast('예약 신청을 취소했습니다.', 'info');
+                      } catch (err) {
+                        showToast(
+                          err instanceof Error ? err.message : '취소에 실패했습니다.',
+                          'error'
+                        );
+                      }
+                    })();
                   }}
                   className="mt-2 text-xs font-bold text-rose-600 min-h-[44px]"
                 >

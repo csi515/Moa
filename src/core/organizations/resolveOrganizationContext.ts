@@ -1,8 +1,13 @@
 /**
  * OrganizationProvider 선택/부트스트랩 순수 로직.
  * 부작용(localStorage·React setState)은 Provider가 commit 시 수행한다.
+ *
+ * 개념 분리:
+ * - Organization Selection = selectedMembership (및 localStorage org id)
+ * - Portal Mode = parent | customer | none (앱 모드, 선택과 독립)
  */
 import type { MemberRole } from '../../lib/supabase';
+import type { UserRole } from '../../types';
 import type { OrganizationMembership } from './services/organizationService';
 
 export const STAFF_ROLES = new Set<string>([
@@ -13,6 +18,9 @@ export const STAFF_ROLES = new Set<string>([
   'instructor',
 ]);
 export const CUSTOMER_ROLES = new Set<string>(['customer', 'member']);
+
+/** 앱 포털 모드 — 조직 선택(selectedMembership)과 별개 */
+export type AppPortalMode = 'none' | 'parent' | 'customer';
 
 export type MembershipStorageAction =
   | { action: 'store'; organizationId: string }
@@ -101,6 +109,7 @@ export function computePortalAccessFlags(
     staffMemberships,
     customerMemberships,
     hasParentAccess,
+    // parentId 없으면 포털 진입 불가 (프로필 미확보). membership 없음만으로 parent 단정하지 않음.
     canAccessParentPortal: hasParentAccess && opts.parentId !== null,
     canAccessCustomerPortal: customerMemberships.length > 0,
     isParentOnly,
@@ -118,6 +127,57 @@ export type OrganizationBootstrapDecision =
   | { kind: 'select_membership'; membershipId: string }
   | { kind: 'select_organization'; organizationId: string }
   | { kind: 'select_organization_or_clear'; organizationId: string | null };
+
+/** 부트스트랩 결정을 Provider가 실행할 계획으로 변환 (포털 모드 ≠ 조직 선택) */
+export type BootstrapApplyPlan = {
+  portalMode: AppPortalMode;
+  /** null membershipId = 선택 해제. organizationId 경로는 resolveMembershipByOrganizationId */
+  selection:
+    | { by: 'membership'; membershipId: string | null }
+    | { by: 'organization'; organizationId: string | null };
+  clearStoredOrganizationId: boolean;
+};
+
+export function planBootstrapApply(
+  decision: OrganizationBootstrapDecision
+): BootstrapApplyPlan {
+  switch (decision.kind) {
+    case 'enter_parent':
+      return {
+        portalMode: 'parent',
+        selection: { by: 'membership', membershipId: null },
+        clearStoredOrganizationId: true,
+      };
+    case 'enter_customer':
+      return {
+        portalMode: 'customer',
+        selection: { by: 'membership', membershipId: decision.membershipId },
+        clearStoredOrganizationId: false,
+      };
+    case 'select_membership':
+      return {
+        portalMode: 'none',
+        selection: { by: 'membership', membershipId: decision.membershipId },
+        clearStoredOrganizationId: false,
+      };
+    case 'select_organization':
+      return {
+        portalMode: 'none',
+        selection: { by: 'organization', organizationId: decision.organizationId },
+        clearStoredOrganizationId: false,
+      };
+    case 'select_organization_or_clear':
+      return {
+        portalMode: 'none',
+        selection: { by: 'organization', organizationId: decision.organizationId },
+        clearStoredOrganizationId: false,
+      };
+    default: {
+      const _exhaustive: never = decision;
+      return _exhaustive;
+    }
+  }
+}
 
 export function resolveOrganizationBootstrap(input: {
   memberships: OrganizationMembership[];
@@ -155,7 +215,7 @@ export function resolveOrganizationBootstrap(input: {
   const isBlockedOwner = (m: OrganizationMembership) =>
     m.role === 'owner' && blocked.has(m.organizationId);
 
-  // 1. OAuth/딥링크 후 학부모 포털 모드
+  // 1. OAuth/딥링크 후 학부모 포털 모드 (이미 portal mode 활성 + parent 프로필)
   if (input.parentPortalModeActive && input.parentId !== null) {
     return { flags, decision: { kind: 'enter_parent' } };
   }
@@ -201,6 +261,7 @@ export function resolveOrganizationBootstrap(input: {
   }
 
   // 7. stored / 단일 staff / clear
+  // membership 0건 → organizationId null (선택기). parent로 단정하지 않음.
   const storedMembership = input.storedOrganizationId
     ? input.memberships.find((m) => m.organizationId === input.storedOrganizationId)
     : undefined;
@@ -237,5 +298,33 @@ export function deriveSelectionFields(membership: OrganizationMembership | null)
     currentRole: membership.role,
     currentStaffId: membership.staffId,
     currentParentCustomerId: membership.parentCustomerId,
+  };
+}
+
+/**
+ * StorageService activeUser.role 파생.
+ * membership 없음 ≠ parent. 포털 모드가 있을 때만 parent/customer로 확정.
+ * loading 중에는 null → sync skip.
+ * 선택·포털 모두 없으면 'member'(최소 권한 placeholder).
+ */
+export function resolveActiveUserRole(input: {
+  loading: boolean;
+  currentRole: MemberRole | null;
+  portalMode: AppPortalMode;
+}): UserRole | null {
+  if (input.loading) return null;
+  if (input.currentRole) return input.currentRole as UserRole;
+  if (input.portalMode === 'parent') return 'parent';
+  if (input.portalMode === 'customer') return 'customer';
+  return 'member';
+}
+
+export function portalModeToFlags(mode: AppPortalMode): {
+  parentPortalActive: boolean;
+  customerPortalActive: boolean;
+} {
+  return {
+    parentPortalActive: mode === 'parent',
+    customerPortalActive: mode === 'customer',
   };
 }

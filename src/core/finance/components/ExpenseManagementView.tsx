@@ -28,7 +28,7 @@ const PAYROLL_RELATED_CATEGORIES = new Set(['teacher_salary', 'instructor_fee', 
 export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('finance');
   const categoryOptions = getExpenseCategories(industry);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));

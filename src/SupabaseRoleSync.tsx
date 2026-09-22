@@ -1,8 +1,11 @@
 import React, { useEffect } from 'react';
 import { useOptionalAuth } from './core/auth/AuthProvider';
 import { useOptionalOrganization } from './core/organizations/OrganizationProvider';
+import {
+  resolveActiveUserRole,
+  type AppPortalMode,
+} from './core/organizations/resolveOrganizationContext';
 import { StorageService } from './services/storage';
-import type { UserRole } from './types';
 
 /** Supabase 로그인 사용자 → 조직 역할·staffId 기반 activeUser 동기화 */
 export const SupabaseRoleSync: React.FC = () => {
@@ -17,20 +20,39 @@ export const SupabaseRoleSync: React.FC = () => {
       auth.user.email?.split('@')[0] ||
       '사용자';
 
-    // membership 없는 부모 전용 세션에서 owner 폴백 금지
-    const role: UserRole = org?.currentRole ?? 'parent';
-    const staffId = org?.currentStaffId ?? null;
-    const parentCustomerId = org?.currentParentCustomerId ?? null;
+    const portalMode: AppPortalMode = org
+      ? org.parentPortalActive
+        ? 'parent'
+        : org.customerPortalActive
+          ? 'customer'
+          : 'none'
+      : 'none';
+
+    // membership 없음 ≠ parent. loading 중에는 sync skip.
+    const role = resolveActiveUserRole({
+      loading: Boolean(org?.loading),
+      currentRole: org?.currentRole ?? null,
+      portalMode,
+    });
+    if (role == null) return;
 
     StorageService.setActiveUser({
       id: auth.user.id,
       name: fullName,
       role,
-      staffId,
-      parentCustomerId,
+      staffId: org?.currentStaffId ?? null,
+      parentCustomerId: org?.currentParentCustomerId ?? null,
       email: auth.user.email || '',
     });
-  }, [auth?.user, org?.currentRole, org?.currentStaffId, org?.currentParentCustomerId]);
+  }, [
+    auth?.user,
+    org?.loading,
+    org?.currentRole,
+    org?.currentStaffId,
+    org?.currentParentCustomerId,
+    org?.parentPortalActive,
+    org?.customerPortalActive,
+  ]);
 
   return null;
 };

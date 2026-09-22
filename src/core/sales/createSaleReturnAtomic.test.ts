@@ -329,6 +329,34 @@ function sqlStyleReturnLineAmount(
   assert.equal(over.returnedAfter, 2);
 }
 
+// ── [재고 Consistency] 판매 전 − 판매 수량 + 반품 = 최종 재고 ─────
+{
+  const stockBefore = 10;
+  const soldQty = 3;
+  const afterSale = stockBefore - soldQty;
+  assert.equal(afterSale, 7);
+
+  const ret = modelAtomicCreateReturn({
+    soldQty,
+    alreadyReturned: 0,
+    requestQty: 3,
+  });
+  assert.equal(ret.returnCreated, true);
+  assert.equal(ret.inventoryRestored, true);
+  const afterReturn = afterSale + (ret.returnedAfter - 0);
+  assert.equal(afterReturn, stockBefore);
+
+  // Idempotency: 동일 전량 반품 재요청 → 추가 복구 없음
+  const dup = modelAtomicCreateReturn({
+    soldQty,
+    alreadyReturned: ret.returnedAfter,
+    requestQty: 3,
+  });
+  assert.equal(dup.returnCreated, false);
+  assert.equal(dup.inventoryRestored, false);
+  assert.equal(dup.returnedAfter, 3);
+}
+
 // ── 동일 상품 여러 line(합산) ──────────────────────────────────────
 {
   const agg = aggregateReturnRequestLines([

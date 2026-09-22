@@ -4,18 +4,19 @@ import { StorageService } from '@/services/storage';
 import { formatKoreanDate } from '@/utils/formatters';
 import { RoleContextSwitcher } from '@/core/organizations/RoleContextSwitcher';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import { Layers, Users } from 'lucide-react';
 
 export const Header: React.FC = () => {
-  const { setActiveTab, refreshKey } = useApp();
+  const { setActiveTab } = useApp();
   const supabaseOrg = useOptionalOrganization();
   const canEnterParentPortal =
     supabaseOrg?.canAccessParentPortal &&
     !supabaseOrg.isParentOnly &&
     !supabaseOrg.parentPortalActive;
 
-  // refreshKey: 설정 저장 후 로컬 사업장명 재조회
-  void refreshKey;
+  // 설정 저장 후 로컬 사업장명 재조회 (students 등 타 domain 무시)
+  useStorageRefresh('settings');
   const settingsName = StorageService.getSettings().name?.trim();
   const displayName =
     settingsName ||

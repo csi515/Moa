@@ -17,7 +17,7 @@ import type { IncomeEntry } from '@/core/finance/types';
 export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('finance');
   const categoryOptions = getIncomeCategories(industry);
 
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));

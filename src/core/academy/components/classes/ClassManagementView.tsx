@@ -35,7 +35,7 @@ export const ClassManagementView: React.FC = () => {
   const serviceLabel = labels.service.singular;
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
   const placeLabel = getPlaceLabel(industry);
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('classes');
 
   const classes = useMemo(() => StorageService.getClasses(), [refreshKey]);
   const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);

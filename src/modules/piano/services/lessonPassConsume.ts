@@ -1,6 +1,7 @@
-import { StorageService } from '@/services/storage';
+import { sessionPassService } from '@/core/schedules/sessionPassService';
 import { isSessionPassBillingStudent } from '@/core/academy/utils/billingMode';
 import type { AttendanceRecord, AttendanceStatus, Student } from '@/types';
+import { StorageService } from '@/services/storage';
 
 const COUNTABLE: AttendanceStatus[] = ['present', 'late', 'early_leave', 'make_up'];
 
@@ -10,8 +11,7 @@ function countsTowardPass(status: AttendanceStatus): boolean {
 
 /**
  * 회차권 학생 출결 저장 시 이용권 차감/복구.
- * - 차감 대상 상태로 전환: consume (같은 학생·날짜에 이미 차감된 기록이 있으면 재사용)
- * - 차감 대상에서 벗어나면: refund (같은 pass를 쓰는 다른 당일 기록이 없을 때만)
+ * 이용권 규칙은 sessionPassService에 위임 (출결 도메인 리팩터 범위 밖 — 호출부만 정렬).
  */
 export function applySessionPassForAttendance(params: {
   student: Student;
@@ -41,7 +41,7 @@ export function applySessionPassForAttendance(params: {
     if (sibling?.sessionPassId) {
       sessionPassId = sibling.sessionPassId;
     } else {
-      const consumed = StorageService.consumeSessionPass(params.student.id);
+      const consumed = sessionPassService.consume(params.student.id);
       if (!consumed) {
         return {
           sessionPassId: undefined,
@@ -60,7 +60,7 @@ export function applySessionPassForAttendance(params: {
         r.sessionPassId === sessionPassId
     );
     if (!stillUsedElsewhere) {
-      StorageService.refundSessionPass(sessionPassId);
+      sessionPassService.refund(sessionPassId);
     }
     sessionPassId = undefined;
   }

@@ -81,7 +81,7 @@ function simulateSerializedConcurrentSales(
   return { accepted, rejected, finalStock: stock };
 }
 
-// ── 정상 판매(재고 충분) ───────────────────────────────────────────
+// ── [판매/재고] Consistency: 판매 전 − 수량 = 판매 후 ─────────────
 {
   const lines = [line('p1', 2, { label: '양말' })];
   const available = new Map([[saleStockAggKey('p1', null), 10]]);
@@ -93,7 +93,7 @@ function simulateSerializedConcurrentSales(
   assert.equal(result.finalStock, 8);
 }
 
-// ── 재고 부족 → 판매 문서 미생성 ───────────────────────────────────
+// ── [판매/재고] Atomicity: 재고 부족 → 판매·재고 모두 미반영 ──────
 {
   const lines = [line('p1', 6, { label: '양말' }), line('p1', 5, { label: '양말' })];
   const available = new Map([[saleStockAggKey('p1', null), 10]]);
@@ -181,7 +181,7 @@ function simulateSerializedConcurrentSales(
   assert.equal(rolled.finalStock, 5);
 }
 
-// ── 동시 판매: 재고 1에 요청 2건 → 1건만 성공, 음수 금지 ───────────
+// ── [판매/재고] Isolation: 동시 판매 → 음수 재고 금지 ─────────────
 {
   const sim = simulateSerializedConcurrentSales(1, [1, 1]);
   assert.deepEqual(sim.accepted, [1]);

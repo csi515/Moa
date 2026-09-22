@@ -13,7 +13,7 @@ import { Calendar, Plus, Sparkles, Users } from 'lucide-react';
 const SkinStaffDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
   const labels = useModuleLabels();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
   const { scopeBookings, scopeMembersForPilates } = useStaffScope();
   const staff = labels.staff.singular;
   const customer = labels.customer.singular;
@@ -23,15 +23,15 @@ const SkinStaffDashboard: React.FC = () => {
   const allBookingsRaw = ScheduleService.getBookings();
   const todayBookings = useMemo(() => {
     const scoped = scopeBookings(ScheduleService.getBookingsByDate(today));
-    const inbox = ScheduleService.getBookings().filter(
+    const inbox = allBookingsRaw.filter(
       (b) => isUnassignedCustomerRequest(b) && b.startsAt.startsWith(today)
     );
     const seen = new Set(scoped.map((b) => b.id));
     return [...scoped, ...inbox.filter((b) => !seen.has(b.id))];
-  }, [today, scopeBookings, refreshKey]);
+  }, [today, scopeBookings, allBookingsRaw, refreshKey]);
   const pendingRequests = useMemo(
-    () => ScheduleService.getBookings().filter(isUnassignedCustomerRequest),
-    [refreshKey]
+    () => allBookingsRaw.filter(isUnassignedCustomerRequest),
+    [allBookingsRaw, refreshKey]
   );
   const members = useMemo(
     () =>
@@ -128,7 +128,7 @@ const SkinStaffDashboard: React.FC = () => {
 const SkinAdminDashboard: React.FC = () => {
   const { setActiveTab } = useApp();
   const labels = useModuleLabels();
-  const refreshKey = useStorageRefresh();
+  const refreshKey = useStorageRefresh('bookings');
   const customer = labels.customer.singular;
   const staff = labels.staff.singular;
   const service = labels.service.management;

@@ -21,6 +21,20 @@ export function isActiveBookingStatus(status: BookingStatus): boolean {
   return ACTIVE_STATUSES.includes(status);
 }
 
+/**
+ * 활성(정원 점유) 예약의 슬롯별 건수 — 리스트 렌더 시 O(슬롯)×O(전체) 반복 방지.
+ */
+export function buildSlotOccupancyIndex(bookings: readonly Booking[]): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const booking of bookings) {
+    if (!booking.serviceId || booking.waitlist) continue;
+    if (!isActiveBookingStatus(booking.status)) continue;
+    const key = buildSlotKey(booking.serviceId, booking.staffId, booking.startsAt);
+    map.set(key, (map.get(key) ?? 0) + 1);
+  }
+  return map;
+}
+
 export interface SlotBookingGroup {
   key: string;
   serviceId: string;
@@ -113,11 +127,15 @@ export function getSlotCapacityInfo(params: {
   startsAt: string;
   bookings: Booking[];
   recruitments?: SlotRecruitment[];
+  /** buildSlotOccupancyIndex 결과 — 있으면 bookings 전체 재스캔 생략 */
+  occupancyIndex?: Map<string, number>;
 }): SlotCapacityInfo {
-  const { service, staffId, startsAt, bookings, recruitments = [] } = params;
+  const { service, staffId, startsAt, bookings, recruitments = [], occupancyIndex } = params;
   const normalizedStaffId = normalizeStaffId(staffId);
   const slotKey = buildSlotKey(service.id, normalizedStaffId, startsAt);
-  const occupied = countSlotOccupancy(bookings, service.id, normalizedStaffId, startsAt);
+  const occupied =
+    occupancyIndex?.get(slotKey) ??
+    countSlotOccupancy(bookings, service.id, normalizedStaffId, startsAt);
   const recruitment = recruitments.find((r) => {
     const key =
       r.id.includes('|') && r.id.split('|').length >= 3

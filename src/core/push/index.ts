@@ -5,5 +5,5 @@ export {
   getLocalPushTokens,
   upsertLocalPushToken,
 } from './pushTokenStorage';
-export { consumePendingPortalTab, registerAppPush } from './registerAppPush';
+export { consumePendingPortalTab, registerAppPush, resetAppPushRegistrationContext } from './registerAppPush';
 export { dispatchAppPush } from './dispatchAppPush';

@@ -5,7 +5,8 @@ import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { studentUsesShuttleService } from '@/core/transport';
-import { useStaffScope } from '@/hooks';
+import { useStaffScope, useStorageRefresh } from '@/hooks';
+import { STORAGE_REFRESH_DOMAINS } from '@/hooks/useStorageRefresh';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
@@ -52,8 +53,14 @@ export const StudentListView: React.FC = () => {
     setSelectedStudentId,
     selectedStudentDetailTab,
     setSelectedStudentDetailTab,
-    refreshKey,
   } = useApp();
+  const refreshKey = useStorageRefresh([
+    ...STORAGE_REFRESH_DOMAINS.students,
+    ...STORAGE_REFRESH_DOMAINS.attendance,
+    ...STORAGE_REFRESH_DOMAINS.finance,
+    ...STORAGE_REFRESH_DOMAINS.sessionPasses,
+    ...STORAGE_REFRESH_DOMAINS.classes,
+  ]);
   const { industry } = usePermissions();
   const showPickupFields = getIndustryPlugin(industry).showPickupFields;
   const labels = useModuleLabels();

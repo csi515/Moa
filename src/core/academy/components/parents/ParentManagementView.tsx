@@ -4,6 +4,8 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { useStorageRefresh } from '@/hooks/useStorageRefresh';
+import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import {
   fetchParentAccountStatuses,
   inviteParentWithSync,
@@ -31,7 +33,12 @@ import {
 } from 'lucide-react';
 
 export const ParentManagementView: React.FC = () => {
-  const { setSelectedStudentId, setActiveTab, showToast, refreshKey } = useApp();
+  const { setSelectedStudentId, setActiveTab, showToast } = useApp();
+  const refreshKey = useStorageRefresh([
+    STORAGE_KEYS.PARENTS,
+    STORAGE_KEYS.STUDENTS,
+    STORAGE_KEYS.PARENT_STUDENT_LINKS,
+  ]);
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
