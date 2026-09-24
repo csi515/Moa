@@ -1442,6 +1442,156 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['waitlist_entries']['Insert']>;
         Relationships: [];
       };
+      checklist_templates: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          purpose: string;
+          target_type: string | null;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          purpose?: string;
+          target_type?: string | null;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['checklist_templates']['Insert']>;
+        Relationships: [];
+      };
+      checklist_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          template_id: string;
+          title: string;
+          required: boolean;
+          sort_order: number;
+          metadata: Json;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          template_id: string;
+          title: string;
+          required?: boolean;
+          sort_order: number;
+          metadata?: Json;
+        };
+        Update: Partial<Database['core']['Tables']['checklist_items']['Insert']>;
+        Relationships: [];
+      };
+      ops_tasks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          template_id: string | null;
+          assigned_staff_id: string | null;
+          status: OpsTaskStatus;
+          priority: OpsTaskPriority;
+          due_at: string | null;
+          completed_at: string | null;
+          issue_id: string | null;
+          notification_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          template_id?: string | null;
+          assigned_staff_id?: string | null;
+          status?: OpsTaskStatus;
+          priority?: OpsTaskPriority;
+          due_at?: string | null;
+          completed_at?: string | null;
+          issue_id?: string | null;
+          notification_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['ops_tasks']['Insert']>;
+        Relationships: [];
+      };
+      ops_task_checks: {
+        Row: {
+          id: string;
+          organization_id: string;
+          task_id: string;
+          item_id: string | null;
+          title: string;
+          required: boolean;
+          sort_order: number;
+          completed: boolean;
+          completed_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          task_id: string;
+          item_id?: string | null;
+          title: string;
+          required?: boolean;
+          sort_order: number;
+          completed?: boolean;
+          completed_at?: string | null;
+        };
+        Update: Partial<Database['core']['Tables']['ops_task_checks']['Insert']>;
+        Relationships: [];
+      };
+      maintenance_issues: {
+        Row: {
+          id: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          reported_by: string;
+          assigned_staff_id: string | null;
+          task_id: string | null;
+          status: OpsIssueStatus;
+          description: string;
+          resolution: string | null;
+          resolved_at: string | null;
+          notification_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          reported_by: string;
+          assigned_staff_id?: string | null;
+          task_id?: string | null;
+          status?: OpsIssueStatus;
+          description: string;
+          resolution?: string | null;
+          resolved_at?: string | null;
+          notification_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['maintenance_issues']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1873,6 +2023,73 @@ export interface Database {
         };
         Returns: Json;
       };
+      upsert_checklist_template: {
+        Args: {
+          p_organization_id: string;
+          p_name: string;
+          p_items?: Json;
+          p_id?: string | null;
+          p_target_type?: string | null;
+          p_purpose?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      deactivate_checklist_template: {
+        Args: { p_organization_id: string; p_template_id: string };
+        Returns: Json;
+      };
+      create_ops_task: {
+        Args: {
+          p_organization_id: string;
+          p_target_type: string;
+          p_target_id: string;
+          p_template_id?: string | null;
+          p_assigned_staff_id?: string | null;
+          p_priority?: OpsTaskPriority;
+          p_due_at?: string | null;
+          p_issue_id?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      assign_ops_task: {
+        Args: { p_organization_id: string; p_task_id: string; p_staff_id: string };
+        Returns: Json;
+      };
+      set_ops_task_status: {
+        Args: { p_organization_id: string; p_task_id: string; p_status: OpsTaskStatus };
+        Returns: Json;
+      };
+      set_ops_task_check: {
+        Args: {
+          p_organization_id: string;
+          p_task_id: string;
+          p_check_id: string;
+          p_completed: boolean;
+        };
+        Returns: Json;
+      };
+      report_maintenance_issue: {
+        Args: {
+          p_organization_id: string;
+          p_target_type: string;
+          p_target_id: string;
+          p_reported_by: string;
+          p_description: string;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      set_maintenance_issue_status: {
+        Args: {
+          p_organization_id: string;
+          p_issue_id: string;
+          p_status: OpsIssueStatus;
+          p_resolution?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       member_role: MemberRole;
@@ -1887,6 +2104,9 @@ export interface Database {
       stock_movement_type: 'inbound' | 'sale' | 'return' | 'adjustment';
       customer_session_status: CustomerSessionStatus;
       waitlist_status: WaitlistStatus;
+      ops_task_status: OpsTaskStatus;
+      ops_task_priority: OpsTaskPriority;
+      ops_issue_status: OpsIssueStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -2916,6 +3136,9 @@ export interface Database {
 
 export type CustomerSessionStatus = 'active' | 'completed' | 'cancelled';
 export type WaitlistStatus = 'waiting' | 'notified' | 'assigned' | 'cancelled' | 'expired';
+export type OpsTaskStatus = 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+export type OpsTaskPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type OpsIssueStatus = 'reported' | 'acknowledged' | 'in_progress' | 'resolved' | 'cancelled';
 export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
 export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
