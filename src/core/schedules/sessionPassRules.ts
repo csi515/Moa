@@ -1,5 +1,5 @@
 import type { SessionPass } from '@/core/types/schedule';
-import { getPassRemaining, pickPassToConsume } from './sessionPassUtils';
+import { getPassRemaining, isPassUsable, pickPassToConsume } from './sessionPassUtils';
 
 /** 잔여 횟수·취소 여부로 이용권 status 산출 (저장 시 정규화) */
 export function deriveSessionPassStatus(
@@ -31,7 +31,7 @@ export function applyConsumeToPassList(
   customerId: string
 ): { list: SessionPass[]; passId: string } | null {
   const target = pickPassToConsume(passes, customerId);
-  if (!target) return null;
+  if (!target || !isPassUsable(target)) return null;
 
   const usedSessions = target.usedSessions + 1;
   const status: SessionPass['status'] =

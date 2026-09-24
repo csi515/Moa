@@ -10,7 +10,9 @@ import {
   deriveSessionPassStatus,
   hasNonCancelledPassEntitlement,
 } from './sessionPassRules';
+import { isPassUsable } from './sessionPassUtils';
 import { planBookingPassTransition } from './bookingStatusTransition';
+import { applyLocalBookingPassChange } from './bookingPassLocalApply';
 
 function pass(partial: Partial<SessionPass> & Pick<SessionPass, 'id' | 'customerId'>): SessionPass {
   return {
@@ -103,6 +105,47 @@ async function run() {
     ),
     true
   );
+
+  const cancelledRefund = applyRefundToPassList(
+    [pass({ id: 'p1', customerId: 'c1', status: 'cancelled', usedSessions: 3 })],
+    'p1'
+  );
+  assert.equal(cancelledRefund.ok, false);
+  assert.equal(cancelledRefund.list[0].usedSessions, 3);
+
+  const expired = pass({
+    id: 'p-exp',
+    customerId: 'c1',
+    expiresAt: '2020-01-01T00:00:00.000Z',
+    usedSessions: 0,
+    status: 'active',
+  });
+  assert.equal(isPassUsable(expired, new Date('2026-09-24T00:00:00.000Z')), false);
+  assert.equal(applyConsumeToPassList([expired], 'c1'), null);
+
+  const exhausted = pass({
+    id: 'p-exh',
+    customerId: 'c1',
+    usedSessions: 10,
+    totalSessions: 10,
+    status: 'exhausted',
+  });
+  assert.equal(isPassUsable(exhausted), false);
+  assert.equal(applyConsumeToPassList([exhausted], 'c1'), null);
+
+  const completedBooking = booking({
+    id: 'b-ref',
+    status: 'completed',
+    sessionPassId: 'p1',
+  });
+  const refundBlocked = applyLocalBookingPassChange(completedBooking, 'cancelled', {
+    consume: () => 'p1',
+    refund: () => false,
+    hasEntitlement: () => true,
+  });
+  assert.equal(refundBlocked, null);
+  assert.equal(completedBooking.status, 'completed');
+  assert.equal(completedBooking.sessionPassId, 'p1');
 
   console.log('sessionPassBookingRules.test.ts: ok');
 }

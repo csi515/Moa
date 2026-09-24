@@ -9,7 +9,7 @@ import { setItem } from '@/services/storage/helpers';
 import type { Booking, BookingStatus, SessionPass } from '@/core/types/schedule';
 import { StorageService } from '@/services/storage';
 import { sessionPassService } from './sessionPassService';
-import { planBookingPassTransition } from './bookingStatusTransition';
+import { applyLocalBookingPassChange } from './bookingPassLocalApply';
 import { rowToSessionPass } from '@/services/adapters/sync/sessionPassMappers';
 import {
   mergeSessionPasses,
@@ -23,29 +23,22 @@ function updateBookingStatusLocally(
   status: BookingStatus,
   options?: { consumeOnNoShow?: boolean }
 ): Booking | null {
-  const plan = planBookingPassTransition(existing, status, options);
   const passesBefore = sessionPassService.list().map((p) => ({ ...p }));
-  let sessionPassId = existing.sessionPassId;
 
   try {
-    if (plan.action === 'consume') {
-      const consumed = sessionPassService.consume(existing.customerId);
-      if (!consumed && sessionPassService.hasEntitlement(existing.customerId)) {
-        return null;
-      }
-      sessionPassId = consumed ?? undefined;
-    } else if (plan.action === 'refund') {
-      sessionPassService.refund(plan.sessionPassId);
-      sessionPassId = undefined;
-    } else {
-      sessionPassId = plan.sessionPassId;
-    }
-
-    return StorageService.saveBooking({
-      ...existing,
+    const next = applyLocalBookingPassChange(
+      existing,
       status,
-      sessionPassId,
-    });
+      {
+        consume: (customerId) => sessionPassService.consume(customerId),
+        refund: (passId) => sessionPassService.refund(passId),
+        hasEntitlement: (customerId) => sessionPassService.hasEntitlement(customerId),
+      },
+      options
+    );
+    if (!next) return null;
+
+    return StorageService.saveBooking(next);
   } catch (err) {
     setItem(STORAGE_KEYS.SESSION_PASSES, passesBefore);
     throw err;

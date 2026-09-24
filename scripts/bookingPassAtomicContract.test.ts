@@ -12,6 +12,10 @@ const harden = readFileSync(
   join(root, 'supabase/migrations/20260922220000_harden_member_scoped_rls.sql'),
   'utf8'
 );
+const lockMig = readFileSync(
+  join(root, 'supabase/migrations/20260924110000_harden_session_pass_lock_and_refund.sql'),
+  'utf8'
+);
 const unit = readFileSync(
   join(root, 'src/core/schedules/bookingPassAtomic.test.ts'),
   'utf8'
@@ -32,6 +36,12 @@ assert.ok(rpcBody, 'RPC body not found');
 assert.doesNotMatch(rpcBody, /\bCOMMIT\b/);
 assert.doesNotMatch(rpcBody, /autonomous transaction/i);
 
+assert.match(lockMig, /LIMIT 1\s+FOR UPDATE/);
+assert.match(lockMig, /v_pass_consumable/);
+assert.match(lockMig, /Session pass refund failed/);
+assert.match(lockMig, /AND used_sessions < total_sessions/);
+assert.match(lockMig, /status <> 'cancelled'/);
+
 assert.match(unit, /modelAtomicStatusChange/);
 assert.match(unit, /simulateSerialized/);
 
@@ -44,6 +54,8 @@ assert.match(dbIt, /F\. customer\/parent/);
 assert.match(dbIt, /G\. staff/);
 assert.match(dbIt, /H\. 동시 completed/);
 assert.match(dbIt, /I\. 중간 실패/);
+assert.match(dbIt, /J\. cancelled pass refund 실패/);
+assert.match(dbIt, /K\. expired pass consume 실패/);
 assert.match(dbIt, /RLS_AUDIT_ORG_A_ID/);
 assert.match(dbIt, /Promise\.all/);
 

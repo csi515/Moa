@@ -181,6 +181,38 @@ async function runLive(ctx: BookingPassLiveCtx): Promise<void> {
       assert.equal((await readPass(ctx.owner, passSingleId)).used, 1);
       mark('I. 중간 실패');
     }
+
+    // J. cancelled pass refund 실패 — booking 유지
+    {
+      const before = await readBooking(ctx.owner, fx.bookingAId);
+      const { error } = await callBookingPassRpc(ctx.staff, ctx.orgA, fx.bookingAId, 'cancelled');
+      assert.ok(error, 'expected refund fail');
+      assert.match(rpcMessage(error), /Session pass refund failed/i);
+      const after = await readBooking(ctx.owner, fx.bookingAId);
+      assert.equal(after.status, before.status);
+      assert.equal(after.sessionPassId, before.sessionPassId);
+      mark('J. cancelled pass refund 실패');
+    }
+
+    // K. expired pass consume 실패
+    {
+      const { error: expErr } = await core(ctx.owner).from('session_passes').insert({
+        organization_id: ctx.orgA,
+        customer_id: fx.customerId,
+        customer_name: fx.tag,
+        label: `${fx.tag}_exp`,
+        total_sessions: 10,
+        used_sessions: 0,
+        status: 'active',
+        expires_at: '2020-01-01T00:00:00.000Z',
+      });
+      assert.ok(!expErr, expErr?.message);
+      const { error } = await callBookingPassRpc(ctx.staff, ctx.orgA, fx.bookingDId, 'completed');
+      assert.ok(error, 'expected expired consume fail');
+      assert.match(rpcMessage(error), /Insufficient session pass/i);
+      assert.equal((await readBooking(ctx.owner, fx.bookingDId)).status, 'scheduled');
+      mark('K. expired pass consume 실패');
+    }
   } finally {
     await fx.cleanup();
   }
@@ -199,6 +231,8 @@ if (mode.mode === 'dry-run') {
   console.log('  G. staff');
   console.log('  H. 동시 completed');
   console.log('  I. 중간 실패');
+  console.log('  J. cancelled pass refund 실패');
+  console.log('  K. expired pass consume 실패');
 } else {
   await runLive(mode.ctx);
   console.log('\nDB-verified:');

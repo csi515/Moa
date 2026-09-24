@@ -12,6 +12,8 @@ import {
   applyRefundToPassList,
   hasNonCancelledPassEntitlement,
 } from './sessionPassRules';
+import { applyLocalBookingPassChange } from './bookingPassLocalApply';
+import { isPassUsable } from './sessionPassUtils';
 import type { Booking, SessionPass } from '@/core/types/schedule';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -75,10 +77,11 @@ function modelAtomicStatusChange(input: {
     if (input.failMidway) {
       return { booking: input.booking, pass: input.pass, ok: false, action: 'rollback' };
     }
-    if (pass && pass.status !== 'cancelled') {
-      const used = Math.max(0, pass.used - 1);
-      pass = { used, status: used >= 10 ? 'exhausted' : 'active' };
+    if (!pass || pass.status === 'cancelled') {
+      return { booking: input.booking, pass: input.pass, ok: false, action: 'refund_blocked' };
     }
+    const used = Math.max(0, pass.used - 1);
+    pass = { used, status: used >= 10 ? 'exhausted' : 'active' };
     booking = { status: input.newStatus, passId: null };
     action = 'refund';
   } else {
@@ -211,6 +214,133 @@ async function run() {
     assert.equal(mapBookingPassRpcError({ message: 'Insufficient session pass' }).code, 'insufficient_pass');
     assert.equal(mapBookingPassRpcError({ message: 'Booking not found' }).code, 'not_found');
     assert.equal(mapBookingPassRpcError({ message: 'Permission denied' }).code, 'permission');
+    assert.equal(mapBookingPassRpcError({ message: 'Session pass refund failed' }).code, 'refund_failed');
+  }
+
+  // local refund 실패 → booking 변경 실패
+  {
+    const booking: Booking = {
+      id: 'b-local',
+      customerId: 'c1',
+      customerName: 'A',
+      startsAt: '2026-09-22T10:00:00',
+      endsAt: '2026-09-22T11:00:00',
+      status: 'completed',
+      sessionPassId: 'p1',
+    };
+    const next = applyLocalBookingPassChange(booking, 'cancelled', {
+      consume: () => null,
+      refund: () => false,
+      hasEntitlement: () => true,
+    });
+    assert.equal(next, null);
+    assert.equal(booking.status, 'completed');
+    assert.equal(booking.sessionPassId, 'p1');
+  }
+
+  // cancelled pass refund 실패
+  {
+    const r = modelAtomicStatusChange({
+      booking: { status: 'completed', passId: 'p1' },
+      pass: { used: 3, status: 'cancelled' },
+      hasEntitlement: true,
+      newStatus: 'cancelled',
+    });
+    assert.equal(r.ok, false);
+    assert.equal(r.action, 'refund_blocked');
+    assert.equal(r.booking.status, 'completed');
+    assert.equal(r.booking.passId, 'p1');
+    assert.equal(r.pass?.used, 3);
+    const cancelledList = applyRefundToPassList(
+      [
+        {
+          id: 'p1',
+          customerId: 'c1',
+          customerName: 'A',
+          label: '10회',
+          totalSessions: 10,
+          usedSessions: 3,
+          status: 'cancelled',
+          purchasedAt: '2026-01-01',
+        },
+      ],
+      'p1'
+    );
+    assert.equal(cancelledList.ok, false);
+  }
+
+  // expired / exhausted consume 실패
+  {
+    const expired: SessionPass = {
+      id: 'p-exp',
+      customerId: 'c1',
+      customerName: 'A',
+      label: '10회',
+      totalSessions: 10,
+      usedSessions: 0,
+      status: 'active',
+      purchasedAt: '2026-01-01',
+      expiresAt: '2020-01-01T00:00:00.000Z',
+    };
+    const exhausted: SessionPass = {
+      ...expired,
+      id: 'p-exh',
+      usedSessions: 10,
+      status: 'exhausted',
+      expiresAt: undefined,
+    };
+    assert.equal(isPassUsable(expired, new Date('2026-09-24')), false);
+    assert.equal(applyConsumeToPassList([expired], 'c1'), null);
+    assert.equal(applyConsumeToPassList([exhausted], 'c1'), null);
+    const booking: Booking = {
+      id: 'b-exp',
+      customerId: 'c1',
+      customerName: 'A',
+      startsAt: '2026-09-22T10:00:00',
+      endsAt: '2026-09-22T11:00:00',
+      status: 'scheduled',
+    };
+    const blocked = applyLocalBookingPassChange(booking, 'completed', {
+      consume: () => null,
+      refund: () => true,
+      hasEntitlement: () => true,
+    });
+    assert.equal(blocked, null);
+    assert.equal(booking.status, 'scheduled');
+  }
+
+  // concurrent consume: 잔여 1회를 두 요청이 직렬화하면 1회만 차감
+  {
+    let pass: SessionPass = {
+      id: 'p-race',
+      customerId: 'c1',
+      customerName: 'A',
+      label: '1회',
+      totalSessions: 1,
+      usedSessions: 0,
+      status: 'active',
+      purchasedAt: '2026-01-01',
+    };
+    const first = applyConsumeToPassList([pass], 'c1');
+    assert.ok(first);
+    pass = first!.list[0];
+    const second = applyConsumeToPassList([pass], 'c1');
+    assert.equal(second, null);
+    assert.equal(pass.usedSessions, 1);
+    assert.equal(pass.status, 'exhausted');
+  }
+
+  // idempotency regression
+  {
+    const r = modelAtomicStatusChange({
+      booking: { status: 'completed', passId: 'p1' },
+      pass: { used: 2, status: 'active' },
+      hasEntitlement: true,
+      newStatus: 'completed',
+    });
+    assert.equal(r.action, 'idempotent');
+    assert.equal(r.pass?.used, 2);
+    assert.equal(r.booking.passId, 'p1');
   }
 
   // pure list ops still consistent with plan

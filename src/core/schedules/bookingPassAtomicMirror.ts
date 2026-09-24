@@ -96,7 +96,11 @@ export async function runOnlineBookingPassUpdate(
 
   if (error) {
     const mapped = mapBookingPassRpcError(error);
-    if (mapped.code === 'insufficient_pass' || mapped.code === 'not_found') {
+    if (
+      mapped.code === 'insufficient_pass' ||
+      mapped.code === 'not_found' ||
+      mapped.code === 'refund_failed'
+    ) {
       return null;
     }
     throw new Error(mapped.message);
