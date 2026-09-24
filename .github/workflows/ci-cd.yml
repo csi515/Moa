@@ -107,6 +107,9 @@ jobs:
       - name: Static security — booking-pass-atomic-contract
         run: npm run test:booking-pass-atomic-contract
 
+      - name: Static security — persist-policy
+        run: npm run test:persist-policy
+
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 

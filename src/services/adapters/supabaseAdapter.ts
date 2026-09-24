@@ -18,6 +18,11 @@ import {
   enqueueSyncOutbox,
   peekSyncOutbox,
 } from './syncOutbox';
+import {
+  canPersistRemote,
+  isPersistEpochCurrent,
+  nextPersistEpoch,
+} from './persistPolicy';
 import type { IStorageAdapter, StorageChangeKey, StorageListener } from './types';
 
 const LOCAL_MISS = Symbol('local-miss');
@@ -46,6 +51,8 @@ export class SupabaseAdapter implements IStorageAdapter {
   /** hydrate / clear 시 증가 — in-flight hydrate·persist 무효화 */
   private hydrateGeneration = 0;
   private persistGeneration = 0;
+  /** 키별 persist 스냅샷 세대 — writeLocalMirror 시 증가해 in-flight stale persist 중단 */
+  private persistEpochs = new Map<string, number>();
   private persistTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private onlineListenerAttached = false;
 
@@ -86,6 +93,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     if (SUPABASE_SYNC_KEYS.has(key)) {
       this.cache.set(key, value);
       writeLocal(key, value);
+      this.persistEpochs.set(key, nextPersistEpoch(this.persistEpochs.get(key)));
     } else {
       writeLocal(key, value);
     }
@@ -110,6 +118,7 @@ export class SupabaseAdapter implements IStorageAdapter {
   async hydrate(organizationId: string, industryType?: string | null): Promise<void> {
     const generation = ++this.hydrateGeneration;
     this.persistGeneration++;
+    this.persistEpochs.clear();
 
     setOrganizationId(organizationId);
     setIndustryType(industryType ?? null);
@@ -178,6 +187,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     // in-flight hydrate/persist 무효화
     this.hydrateGeneration++;
     this.persistGeneration++;
+    this.persistEpochs.clear();
     this.cache.clear();
     this.hydrated = false;
     this.offlineHydrated = false;
@@ -247,7 +257,9 @@ export class SupabaseAdapter implements IStorageAdapter {
   }
 
   private schedulePersist(key: StorageKey): void {
-    if (!this.hydrated) return;
+    if (!canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated })) {
+      return;
+    }
 
     const existing = this.persistTimers.get(key);
     if (existing) clearTimeout(existing);
@@ -263,43 +275,70 @@ export class SupabaseAdapter implements IStorageAdapter {
   private isPersistValid(generation: number, orgId: string): boolean {
     return (
       generation === this.persistGeneration &&
-      this.hydrated &&
+      canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated }) &&
       getOrganizationId() === orgId
     );
   }
 
   private async persistKey(key: StorageKey): Promise<boolean> {
-    if (!this.hydrated) return false;
+    if (!canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated })) {
+      return false;
+    }
 
     const generation = this.persistGeneration;
+    const startedEpoch = this.persistEpochs.get(key) ?? 0;
     const orgId = getOrganizationId();
     if (!orgId) return false;
 
-    // 시작 시점 스냅샷 + 가드 (in-flight 중 clear/org 전환 시 중단)
+    // 시작 시점 스냅샷 + 가드 (in-flight 중 clear/org 전환·RPC mirror 시 중단)
     const snapshot = new Map(this.cache);
     const cacheAdapter = this.createSnapshotCacheAdapter(snapshot);
-    const isAborted = () => !this.isPersistValid(generation, orgId);
+    const isAborted = () =>
+      !this.isPersistValid(generation, orgId) ||
+      !isPersistEpochCurrent(startedEpoch, this.persistEpochs.get(key));
 
-    if (isAborted()) return false;
+    /** org 유지 + RPC mirror로만 abort된 경우 — 최신 cache로 재시도 */
+    const enqueueIfStillCurrentOrg = () => {
+      if (this.isPersistValid(generation, orgId)) {
+        enqueueSyncOutbox(key);
+      }
+    };
+
+    if (isAborted()) {
+      enqueueIfStillCurrentOrg();
+      return false;
+    }
 
     try {
       let ok = true;
 
       if (CORE_SYNC_KEYS.has(key)) {
         ok = (await persistCoreEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) return false;
+        if (isAborted()) {
+          enqueueIfStillCurrentOrg();
+          return false;
+        }
       }
 
       if (PIANO_SYNC_KEYS.has(key)) {
         ok = (await persistPianoEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) return false;
+        if (isAborted()) {
+          enqueueIfStillCurrentOrg();
+          return false;
+        }
         ok = (await persistEducationEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) return false;
+        if (isAborted()) {
+          enqueueIfStillCurrentOrg();
+          return false;
+        }
       }
 
       if (DAYCARE_SYNC_KEYS.has(key)) {
         ok = (await persistDaycareEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) return false;
+        if (isAborted()) {
+          enqueueIfStillCurrentOrg();
+          return false;
+        }
       }
 
       // PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: adapter persist 대상 아님(DB direct CRUD)
@@ -349,7 +388,10 @@ export class SupabaseAdapter implements IStorageAdapter {
 
   /** outbox에 쌓인 StorageKey만 재 persist — 업무 엔티티 저장소가 아님 */
   async flushSyncOutbox(): Promise<void> {
-    if (!this.hydrated || typeof navigator !== 'undefined' && navigator.onLine === false) {
+    if (
+      !canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated }) ||
+      (typeof navigator !== 'undefined' && navigator.onLine === false)
+    ) {
       return;
     }
     const keys = peekSyncOutbox();
