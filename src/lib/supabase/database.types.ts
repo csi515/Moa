@@ -2461,6 +2461,74 @@ export interface Database {
         Update: Partial<Database['bath']['Tables']['rooms']['Insert']>;
         Relationships: [];
       };
+      services: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          category: BathServiceCategory;
+          duration_minutes: number;
+          base_price: number;
+          requires_staff: boolean;
+          requires_resource: boolean;
+          product_id: string | null;
+          active: boolean;
+          sort_order: number;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          category: BathServiceCategory;
+          duration_minutes: number;
+          base_price?: number;
+          requires_staff?: boolean;
+          requires_resource?: boolean;
+          product_id?: string | null;
+          active?: boolean;
+          sort_order?: number;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['services']['Insert']>;
+        Relationships: [];
+      };
+      service_resources: {
+        Row: {
+          organization_id: string;
+          service_id: string;
+          resource_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          service_id: string;
+          resource_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['service_resources']['Insert']>;
+        Relationships: [];
+      };
+      service_staff: {
+        Row: {
+          organization_id: string;
+          service_id: string;
+          staff_id: string;
+          created_at: string;
+        };
+        Insert: {
+          organization_id: string;
+          service_id: string;
+          staff_id: string;
+          created_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['service_staff']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2514,11 +2582,53 @@ export interface Database {
         Args: { p_organization_id: string; p_room_id: string };
         Returns: Json;
       };
+      upsert_service: {
+        Args: {
+          p_organization_id: string;
+          p_name: string;
+          p_category: BathServiceCategory;
+          p_duration_minutes: number;
+          p_id?: string | null;
+          p_base_price?: number;
+          p_requires_staff?: boolean;
+          p_requires_resource?: boolean;
+          p_product_id?: string | null;
+          p_active?: boolean;
+          p_sort_order?: number;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      set_service_active: {
+        Args: { p_organization_id: string; p_service_id: string; p_active: boolean };
+        Returns: Json;
+      };
+      delete_service: {
+        Args: { p_organization_id: string; p_service_id: string };
+        Returns: Json;
+      };
+      set_service_resources: {
+        Args: {
+          p_organization_id: string;
+          p_service_id: string;
+          p_resource_ids: string[];
+        };
+        Returns: Json;
+      };
+      set_service_staff: {
+        Args: {
+          p_organization_id: string;
+          p_service_id: string;
+          p_staff_ids: string[];
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       visit_status: BathVisitStatus;
       room_type: BathRoomType;
       floor_type: BathFloorType;
+      service_category: BathServiceCategory;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -2527,6 +2637,7 @@ export interface Database {
 export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
 export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
+export type BathServiceCategory = 'scrub' | 'massage' | 'other';
 export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'make_up';
 export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
 export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';

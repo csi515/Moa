@@ -22,3 +22,15 @@ export type {
   BathRoomType,
   BathRoomWriteInput,
 } from './room';
+
+export {
+  BATH_SERVICE_CATEGORIES,
+  BATH_SERVICE_CATEGORY_LABELS,
+} from './service';
+export type {
+  BathService,
+  BathServiceCategory,
+  BathServiceListQuery,
+  BathServiceTimeSlot,
+  BathServiceWriteInput,
+} from './service';
