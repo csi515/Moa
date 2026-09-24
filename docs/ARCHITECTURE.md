@@ -170,6 +170,7 @@ User → Customer relationship → Organization
 3. RLS가 있어도 애플리케이션에서 organization context를 유지한다 (`OrganizationProvider`, `useOrganization`).
 4. 다른 organization 데이터가 노출될 수 있는 전역 조회를 신규로 만들지 않는다.
 5. 활성 조직 전환은 membership/context API를 통한다 (직접 로컬 키만으로 권한을 가정하지 않음).
+6. 지점 범위는 `location_id`로 확장한다. 테넌트 경계를 대체하지 않으며 기존 테이블에 일괄 추가하지 않는다. 상세: [location-aware-domains.md](./architecture/location-aware-domains.md).
 
 다중 역할·Guardian/Student 글로벌 모델 전환 상세: [MOA_MULTI_ROLE_ARCHITECTURE.md](./MOA_MULTI_ROLE_ARCHITECTURE.md).
 
@@ -189,6 +190,7 @@ User → Customer relationship → Organization
 | 문서 | 역할 |
 |---|---|
 | ARCHITECTURE.md (본 문서) | 일상 아키텍처·멀티테넌트 표준 |
+| location-aware-domains.md | organization vs location 도메인 분류 |
 | MOA_MULTI_ROLE_ARCHITECTURE.md | 다중 역할 갭 분석·로드맵 |
 | UI_ARCHITECTURE_AUDIT.md | 실측 감사·Gap·정리 후보 |
 | CODING_STANDARDS.md | 일상 코딩 규칙 |

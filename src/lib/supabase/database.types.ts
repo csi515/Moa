@@ -1727,6 +1727,25 @@ export interface Database {
         Args: { org_id: string };
         Returns: boolean;
       };
+      location_belongs_to_organization: {
+        Args: { p_organization_id: string; p_location_id: string };
+        Returns: boolean;
+      };
+      assert_location_in_organization: {
+        Args: {
+          p_organization_id: string;
+          p_location_id: string | null;
+          p_required?: boolean;
+        };
+        Returns: string | null;
+      };
+      location_aware_visible: {
+        Args: {
+          p_row_location_id: string | null;
+          p_selected_location_id: string | null;
+        };
+        Returns: boolean;
+      };
       ensure_guest_customer: {
         Args: {
           p_org_id: string;

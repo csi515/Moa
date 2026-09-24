@@ -14,5 +14,6 @@
 | 권한 | unknown/customer fail-closed | `test:permissions-invariant` (+ `test:multi-role-helpers`) |
 | 권한 | Role+Permission+Scope 호환 | `test:authorization` (+ `test:permissions-invariant`) |
 | 권한 | membership 승격 불가 | `test:rls-membership-policy`, `test:rls-membership-escalation` |
+| 지점 | LocationAware 분류·레거시 호환 | `test:location-aware` |
 
 실행: `npm run test:business-invariants`
