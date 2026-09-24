@@ -45,11 +45,12 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     }
   }, [organizationId, industryType]);
 
-  /** offline snapshot 기동 후 네트워크 복구 — 로딩 플래시 없이 조용히 재 hydrate */
+  /** offline snapshot 기동 후 네트워크 복구 — pending flush 후 조용히 재 hydrate */
   const runQuietRehydrate = useCallback(async () => {
     if (!offlineModeRef.current) return;
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     try {
+      await StorageService.flushSyncOutbox();
       await StorageService.hydrate(organizationId, normalizeIndustryType(industryType));
       setOfflineMode(StorageService.isOfflineHydrated());
       setError(null);
@@ -69,19 +70,23 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     };
   }, [runHydrate, attempt]);
 
-  /** 네이티브만: foreground / online 시 offline 모드 재동기화 (웹 동작 변경 없음) */
+  /** web + native: online 시 pending flush 후 재 hydrate. native는 foreground도 동일 */
   useEffect(() => {
-    if (!isNativeApp()) return;
+    const onOnline = () => {
+      void runQuietRehydrate();
+    };
+    window.addEventListener('online', onOnline);
+
+    if (!isNativeApp()) {
+      return () => {
+        window.removeEventListener('online', onOnline);
+      };
+    }
 
     const onForeground = () => {
       void runQuietRehydrate();
     };
-    const onOnline = () => {
-      void runQuietRehydrate();
-    };
-
     window.addEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
-    window.addEventListener('online', onOnline);
     return () => {
       window.removeEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
       window.removeEventListener('online', onOnline);

@@ -10,6 +10,7 @@ import { STORAGE_KEYS } from '@/services/adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
 import { notifyParentTuitionInvoiceSent } from '@/core/academy/services/academyAlertService';
 import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
+import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 import {
   buildInvoiceNotes,
   collectPendingRecitalFees,
@@ -84,7 +85,7 @@ export function createInvoicePaymentService(api: StorageApi) {
       const newPaidAmount = inv.paidAmount + payAmount;
       const newUnpaidAmount = Math.max(0, inv.totalAmount - newPaidAmount);
       const newStatus = newUnpaidAmount === 0 ? 'paid' : newPaidAmount > 0 ? 'partial' : 'unpaid';
-      const pDate = paymentDate || new Date().toISOString().slice(0, 10);
+      const pDate = paymentDate || todayIsoLocal();
       const receiptNum = `REC-${new Date().getFullYear()}${String(new Date().getMonth() + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 900) + 100)}`;
 
       const updated: TuitionInvoice = {
@@ -278,7 +279,7 @@ export function createInvoicePaymentService(api: StorageApi) {
       if (!isMonthlyBillingStudent(student)) {
         return null;
       }
-      const ym = yearMonth || new Date().toISOString().slice(0, 7);
+      const ym = yearMonth || yearMonthLocal();
 
       const existing = findExistingStudentMonthInvoice(
         (api.getInvoices as () => TuitionInvoice[])(),

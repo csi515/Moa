@@ -142,7 +142,8 @@ export const reservationService = {
     status?: ReservationStatus,
     fromDate?: Date,
     limit = 100,
-    offset = 0
+    offset = 0,
+    toDate?: Date
   ): Promise<ReservationDetail[]> {
     const { data, error } = await getCoreClient().rpc('get_organization_reservations', {
       p_org_id: organizationId,
@@ -150,6 +151,7 @@ export const reservationService = {
       p_from_date: fromDate ? fromDate.toISOString() : null,
       p_limit: limit,
       p_offset: offset,
+      p_to_date: toDate ? toDate.toISOString() : null,
     });
 
     if (error) throw error;

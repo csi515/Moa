@@ -1,12 +1,13 @@
 import { StorageService } from '@/services/storage';
-import type { AssignmentItem } from '@/types/education';
+import type { AssignmentItem, WeeklyAssignment } from '@/types/education';
+import { planLessonHomeworkSync } from './lessonHomeworkPlan';
+
+export { planLessonHomeworkSync, modelSerializedHomeworkSync } from './lessonHomeworkPlan';
 
 /**
  * 레슨 숙제를 이번 주 주간 과제에 반영합니다.
- * - 동일 곡명 + 동일 instructions면 no-op (부모 확인/완료 상태 유지)
- * - 동일 곡명·instructions 변경 시에만 갱신 (확인/완료 리셋)
- * - 없으면 새 항목 추가
- * - homework가 비어 있으면 no-op
+ * 저장 직전 최신 목록을 다시 읽어 다른 강사 항목을 덮지 않는다.
+ * 신규 assignment는 id를 먼저 정해 한 번만 저장한다.
  */
 export function syncLessonHomeworkToWeeklyAssignment(params: {
   studentId: string;
@@ -18,65 +19,43 @@ export function syncLessonHomeworkToWeeklyAssignment(params: {
   if (!homework) return;
 
   const weekStart = StorageService.getCurrentWeekStart();
-  const existing = StorageService.getWeeklyAssignments(params.studentId).find(
+  const latest = StorageService.getWeeklyAssignments(params.studentId).find(
     (a) => a.weekStart === weekStart
   );
-  const songTitle = params.songTitle.trim() || '수업 과제';
-  const items = [...(existing?.items || [])];
-  const sameSongIdx = items.findIndex(
-    (it) => it.songTitle.trim().toLowerCase() === songTitle.toLowerCase()
-  );
-
-  if (sameSongIdx >= 0) {
-    const prev = items[sameSongIdx];
-    if (prev.instructions.trim() === homework) {
-      return;
-    }
-    items[sameSongIdx] = {
-      ...prev,
-      instructions: homework,
-      parentConfirmed: false,
-      completed: false,
-      parentConfirmedAt: undefined,
-      completedAt: undefined,
-    };
-  } else {
-    const newItem: AssignmentItem = {
-      id: `ai-${Date.now()}`,
-      assignmentId: existing?.id || '',
-      songTitle,
-      instructions: homework,
-      sortOrder: items.length,
-      parentConfirmed: false,
-      completed: false,
-    };
-    items.push(newItem);
-  }
-
-  const saved = StorageService.saveWeeklyAssignment({
-    ...(existing ? { id: existing.id } : {}),
-    studentId: params.studentId,
-    staffId: params.staffId || existing?.staffId,
-    weekStart,
-    title: existing?.title || `${weekStart} 주간 과제`,
-    status: 'assigned',
-    publishedAt: existing?.publishedAt || new Date().toISOString(),
-    items: items.map((it) => ({
-      ...it,
-      assignmentId: existing?.id || it.assignmentId || '',
-    })),
+  const plan = planLessonHomeworkSync({
+    latestItems: latest?.items || [],
+    songTitle: params.songTitle,
+    homework,
   });
+  if (plan.action === 'noop') return;
 
-  if (!existing) {
-    StorageService.saveWeeklyAssignment({
-      id: saved.id,
-      studentId: saved.studentId,
-      staffId: saved.staffId,
-      weekStart: saved.weekStart,
-      title: saved.title,
-      status: saved.status,
-      publishedAt: saved.publishedAt,
-      items: saved.items.map((it) => ({ ...it, assignmentId: saved.id })),
-    });
-  }
+  const assignmentId = latest?.id || crypto.randomUUID();
+  persistWeeklyAssignment({
+    assignmentId,
+    existing: latest,
+    studentId: params.studentId,
+    staffId: params.staffId,
+    weekStart,
+    items: plan.items,
+  });
+}
+
+function persistWeeklyAssignment(params: {
+  assignmentId: string;
+  existing?: WeeklyAssignment;
+  studentId: string;
+  staffId?: string | null;
+  weekStart: string;
+  items: AssignmentItem[];
+}): void {
+  StorageService.saveWeeklyAssignment({
+    id: params.assignmentId,
+    studentId: params.studentId,
+    staffId: params.staffId || params.existing?.staffId,
+    weekStart: params.weekStart,
+    title: params.existing?.title || `${params.weekStart} 주간 과제`,
+    status: 'assigned',
+    publishedAt: params.existing?.publishedAt || new Date().toISOString(),
+    items: params.items.map((it) => ({ ...it, assignmentId: params.assignmentId })),
+  });
 }

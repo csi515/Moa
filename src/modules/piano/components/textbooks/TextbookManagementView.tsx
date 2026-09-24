@@ -12,6 +12,7 @@ import { PageHeader } from '@/shared/components';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
+import { yearMonthLocal } from '@/shared/utils/localDate';
 
 import { TextbookFormModal } from './TextbookFormModal';
 import { NewSaleModal } from './NewSaleModal';
@@ -102,7 +103,7 @@ export const TextbookManagementView: React.FC = () => {
     return () => unsubscribe();
   }, [refreshKey]);
 
-  const currentYM = new Date().toISOString().slice(0, 7);
+  const currentYM = yearMonthLocal();
   const stats = StorageService.getTextbookStats(currentYM);
 
   const handleDeactivateTextbook = (id: string, title: string) => {

@@ -110,6 +110,45 @@ jobs:
       - name: Static security — persist-policy
         run: npm run test:persist-policy
 
+      - name: Unit — persist-schedules
+        run: npm run test:persist-schedules
+
+      - name: Unit — tuition-payment-atomic
+        run: npm run test:tuition-payment-atomic
+
+      - name: Unit — textbook-payment-atomic
+        run: npm run test:textbook-payment-atomic
+
+      - name: Unit — attendance-pass-atomic
+        run: npm run test:attendance-pass-atomic
+
+      - name: Unit — attendance-class-key
+        run: npm run test:attendance-class-key
+
+      - name: Unit — absence-notify
+        run: npm run test:absence-notify
+
+      - name: Unit — makeup-schedule-atomic
+        run: npm run test:makeup-schedule-atomic
+
+      - name: Unit — local-date
+        run: npm run test:local-date
+
+      - name: Unit — consultation-today
+        run: npm run test:consultation-today
+
+      - name: Unit — piano-expected-attendance
+        run: npm run test:piano-expected-attendance
+
+      - name: Unit — lesson-homework-sync
+        run: npm run test:lesson-homework-sync
+
+      - name: Unit — pending-mutations
+        run: npm run test:pending-mutations
+
+      - name: Unit — sync-persist-helpers
+        run: npm run test:sync-persist-helpers
+
       - name: Unit — commerce barrel
         run: npm run test:commerce-barrel
 

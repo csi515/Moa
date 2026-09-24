@@ -2,6 +2,7 @@ import { createNotificationsStorage } from '@/services/storage/notificationsStor
 import { getOrganizationId } from '@/services/adapters/storageContext';
 import { dispatchAppPush } from '@/core/push';
 import type { MakeupItem, NotificationType, PracticeRoomBooking } from '@/types';
+import { absenceEventKey, shouldNotifyParentAbsence } from './absenceNotifyPolicy';
 
 const notifications = createNotificationsStorage();
 
@@ -45,28 +46,63 @@ function publishParentAlert(params: {
   });
 }
 
-/** 결석 시 학부모 포털 알림 + 앱 푸시 */
+/** 결석 시 학부모 포털 알림 + 앱 푸시. non-absent→absent·당일만, 동일 이벤트 1회. */
 export function notifyParentAbsence(params: {
   studentId: string;
   studentName: string;
   parentPhone?: string;
   className: string;
+  classId?: string;
   date: string;
   reason?: string;
-}): void {
+  previousStatus?: string | null;
+}): boolean {
+  if (
+    !shouldNotifyParentAbsence({
+      previousStatus: params.previousStatus,
+      nextStatus: 'absent',
+      date: params.date,
+    })
+  ) {
+    return false;
+  }
+
+  const eventKey = absenceEventKey({
+    studentId: params.studentId,
+    date: params.date,
+    classId: params.classId,
+  });
+  const alreadySent = notifications
+    .getNotifications()
+    .some((n) => n.type === 'absence' && n.eventKey === eventKey);
+  if (alreadySent) return false;
+
   const reason = params.reason ? ` (${params.reason})` : '';
-  publishParentAlert({
+  notifications.saveNotification({
     type: 'absence',
     title: '결석 안내',
     message: `${params.studentName} 원생이 ${params.date} ${params.className} 수업에 결석 처리되었습니다.${reason}`,
-    student: {
-      id: params.studentId,
-      name: params.studentName,
-      parentPhone: params.parentPhone,
-    },
+    targetStudentId: params.studentId,
+    targetStudentName: params.studentName,
+    targetParentPhone: params.parentPhone,
+    targetGroup: `student:${params.studentId}`,
+    recipientCount: 1,
     scheduledDate: params.date,
-    portalTab: 'attendance',
+    eventKey,
+    status: 'sent',
+    sentAt: new Date().toISOString(),
   });
+
+  const organizationId = getOrganizationId() || undefined;
+  void dispatchAppPush({
+    title: '결석 안내',
+    body: `${params.studentName} 원생이 ${params.date} ${params.className} 수업에 결석 처리되었습니다.${reason}`,
+    organizationId,
+    studentId: params.studentId,
+    portalTab: 'attendance',
+    type: 'absence',
+  });
+  return true;
 }
 
 /** 보강 일정 등록 시 학부모 포털 알림 + 앱 푸시 */

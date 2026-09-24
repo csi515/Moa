@@ -11,7 +11,8 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
-import { todayIsoLocal } from '@/shared/utils/localDate';
+import { saveAttendanceWithPass } from '@/core/schedules/attendancePassAtomic';
+import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 import {
   getAttendanceBadge,
   getInvoiceStatusBadge,
@@ -129,7 +130,7 @@ export function useStudentDetailModal({
   const [newCstNextDate, setNewCstNextDate] = useState('');
 
   const [isAddPrOpen, setIsAddPrOpen] = useState(false);
-  const [newPrDate, setNewPrDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newPrDate, setNewPrDate] = useState(todayIsoLocal);
   const [newPrMinutes, setNewPrMinutes] = useState(40);
   const [newPrSong, setNewPrSong] = useState('');
   const [newPrDifficulty, setNewPrDifficulty] = useState('');
@@ -138,7 +139,7 @@ export function useStudentDetailModal({
   const [isAddVideoOpen, setIsAddVideoOpen] = useState(false);
   const [newVideoTitle, setNewVideoTitle] = useState('');
   const [newVideoUrl, setNewVideoUrl] = useState('');
-  const [newVideoDate, setNewVideoDate] = useState(new Date().toISOString().slice(0, 10));
+  const [newVideoDate, setNewVideoDate] = useState(todayIsoLocal);
   const [newVideoType, setNewVideoType] = useState<PerformanceVideo['eventType']>('recital');
   const [newVideoEventId, setNewVideoEventId] = useState('');
   const [newVideoSong, setNewVideoSong] = useState('');
@@ -178,7 +179,7 @@ export function useStudentDetailModal({
   const studentSales = StorageService.getTextbookSalesByStudentId(student.id);
   const billingSummary = StorageService.getStudentBillingSummary(
     student.id,
-    new Date().toISOString().slice(0, 7)
+    yearMonthLocal()
   );
   const guardians = getGuardiansForStudent(student.id);
   const primaryGuardian = guardians.find((g) => g.isPrimary) || guardians[0];
@@ -229,7 +230,7 @@ export function useStudentDetailModal({
         StudentService.saveStudent({
           ...student,
           status: 'withdrawn',
-          leaveDate: new Date().toISOString().slice(0, 10),
+          leaveDate: todayIsoLocal(),
         });
         showToast(`${student.name} ${who}이 ${ended} 처리되었습니다.`, 'info');
         triggerRefresh();
@@ -238,7 +239,7 @@ export function useStudentDetailModal({
     });
   };
 
-  const handleSaveAttendance = (e: React.FormEvent) => {
+  const handleSaveAttendance = async (e: React.FormEvent) => {
     e.preventDefault();
     const options = getEnrolledClassesOnDate(enrolledClasses, newAttDate);
     const resolved = resolveManualAttendanceClass({
@@ -255,36 +256,55 @@ export function useStudentDetailModal({
     const existing = StorageService.getAttendance().find(
       (r) => r.date === newAttDate && r.studentId === student.id && r.classId === classId
     );
-    const passResult = runStudentDetailAttendanceSideEffect(industryPlugin.id, {
-      student,
-      nextStatus: status,
-      previous: existing || null,
-      date: newAttDate,
-    });
-    if (passResult.warning) {
-      showToast(passResult.warning, 'warning');
-      return;
+    if (industryPlugin.id === 'piano') {
+      const result = await saveAttendanceWithPass({
+        student,
+        nextStatus: status,
+        previous: existing || null,
+        date: newAttDate,
+        classId,
+        className,
+        createdBy: currentUser.name,
+        memo: newAttMemo,
+      });
+      if (!result.ok) {
+        showToast(result.warning || '출결 저장에 실패했습니다.', 'warning');
+        return;
+      }
+    } else {
+      const passResult = runStudentDetailAttendanceSideEffect(industryPlugin.id, {
+        student,
+        nextStatus: status,
+        previous: existing || null,
+        date: newAttDate,
+      });
+      if (passResult.warning) {
+        showToast(passResult.warning, 'warning');
+        return;
+      }
+      StorageService.saveAttendanceRecord({
+        ...(existing ? { id: existing.id } : {}),
+        date: newAttDate,
+        studentId: student.id,
+        studentName: student.name,
+        classId,
+        className,
+        status,
+        memo: newAttMemo,
+        createdBy: currentUser.name,
+        sessionPassId: passResult.sessionPassId,
+      });
     }
-    StorageService.saveAttendanceRecord({
-      ...(existing ? { id: existing.id } : {}),
-      date: newAttDate,
-      studentId: student.id,
-      studentName: student.name,
-      classId,
-      className,
-      status,
-      memo: newAttMemo,
-      createdBy: currentUser.name,
-      sessionPassId: passResult.sessionPassId,
-    });
     if (status === 'absent') {
       notifyParentAbsence({
         studentId: student.id,
         studentName: student.name,
         parentPhone: student.parentPhone,
         className,
+        classId,
         date: newAttDate,
         reason: newAttMemo || undefined,
+        previousStatus: existing?.status,
       });
     }
     showToast('출결 기록이 저장되었습니다.', 'success');
@@ -306,7 +326,7 @@ export function useStudentDetailModal({
         getPrimaryGuardian(student.id)?.parentName ||
         student.parentName ||
         labels.contact.singular,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIsoLocal(),
       type: newCstType,
       content: newCstContent.trim(),
       result: newCstResult.trim(),
@@ -415,15 +435,23 @@ export function useStudentDetailModal({
     setPayMemo('');
   };
 
-  const handleProcessPayment = (e: React.FormEvent) => {
+  const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payInvoiceId) return;
-    TuitionService.recordPayment(payInvoiceId, payAmount, payMethod, payMemo);
-    showToast(`₩${payAmount.toLocaleString()}원 수납 처리가 완료되었습니다.`, 'success');
-    setPayInvoiceId(null);
+    try {
+      const updated = await TuitionService.recordPayment(payInvoiceId, payAmount, payMethod, payMemo);
+      if (!updated) {
+        showToast('수납 처리에 실패했습니다.', 'error');
+        return;
+      }
+      showToast(`₩${payAmount.toLocaleString()}원 수납 처리가 완료되었습니다.`, 'success');
+      setPayInvoiceId(null);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '수납 처리에 실패했습니다.', 'error');
+    }
   };
 
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (student.billingMode === 'session_pass') {
       showToast(
         `회차권 ${labels.customer.singular}은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.`,
@@ -431,9 +459,15 @@ export function useStudentDetailModal({
       );
       return;
     }
-    const yearMonth = new Date().toISOString().slice(0, 7);
+    const yearMonth = yearMonthLocal();
     const existing = TuitionService.findInvoiceForStudentMonth(student.id, yearMonth);
-    const created = TuitionService.createInvoiceForStudent(student, yearMonth);
+    let created;
+    try {
+      created = await TuitionService.createInvoiceForStudent(student, yearMonth);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '청구서를 발행할 수 없습니다.', 'error');
+      return;
+    }
     if (!created) {
       showToast('청구서를 발행할 수 없습니다.', 'warning');
       return;

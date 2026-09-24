@@ -42,6 +42,10 @@ const storageCore = {
     return getStorageAdapter().isHydrating();
   },
 
+  async flushSyncOutbox(): Promise<void> {
+    await getStorageAdapter().flushSyncOutbox?.();
+  },
+
   subscribe(listener: StorageListener): () => void {
     return getStorageAdapter().subscribe(listener);
   },

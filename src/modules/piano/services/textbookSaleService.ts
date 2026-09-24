@@ -15,8 +15,10 @@ import {
   deleteLinkedIncomesForPaymentIds,
   upsertLinkedIncome,
 } from '@/core/finance/billingIncomeLink';
+import { recordTuitionPaymentAtomic } from '@/core/finance/tuitionPaymentAtomic';
 import type { LinkedTextbookPaymentOptions } from '@/core/finance/linkedTextbookSettle';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   buildLinkedTextbookSaleIds,
   resolveTextbookCoreSaleId,
@@ -28,11 +30,14 @@ import {
 } from '@/modules/piano/services/textbookSaleDb';
 import {
   persistSaleAfterCoreSuccess,
-  recordPaymentOnDb,
   reversePaymentOnDb,
   cancelSaleOnDb,
   type CreateSalePersistDeps,
 } from '@/modules/piano/services/textbookSalePersist';
+import {
+  isOnlineTextbookPaymentPath,
+  recordTextbookPaymentAtomic,
+} from '@/modules/piano/services/textbookPaymentAtomic';
 
 function paymentStatus(
   totalAmount: number,
@@ -337,7 +342,7 @@ export function createTextbookSaleService(api: StorageApi) {
             previousStock: prevStock,
             currentStock,
             referenceId: sale.id,
-            transactionDate: new Date().toISOString().slice(0, 10),
+            transactionDate: todayIsoLocal(),
             memo: `판매 취소/반품 처리: ${sale.studentName} (${reason || '사유 미입력'})`,
           });
         }
@@ -377,7 +382,7 @@ export function createTextbookSaleService(api: StorageApi) {
       const newPaidAmount = sale.paidAmount + payAmount;
       const newUnpaidAmount = Math.max(0, sale.totalAmount - newPaidAmount);
       const newStatus = paymentStatus(sale.totalAmount, newPaidAmount);
-      const pDate = paymentDate || new Date().toISOString().slice(0, 10);
+      const pDate = paymentDate || todayIsoLocal();
       const nowIso = new Date().toISOString();
 
       const updatedSale: TextbookSale = {
@@ -407,23 +412,15 @@ export function createTextbookSaleService(api: StorageApi) {
         createdAt: nowIso,
       };
 
-      if (isTextbookSaleDbAvailable()) {
-        const orgId = requireTextbookOrgId();
-        const savedPayment = await recordPaymentOnDb({
-          orgId,
-          saleId,
-          payment,
-          updatedSale,
-          deps: {
-            getSale: (o, id) => textbookSaleDb.getSale(o, id),
-            insertPayment: (o, p) => textbookSaleDb.insertPayment(o, p),
-            updateSale: (o, id, s) => textbookSaleDb.updateSale(o, id, s),
-            deletePayment: (o, id) => textbookSaleDb.deletePayment(o, id),
-          },
+      if (isOnlineTextbookPaymentPath()) {
+        return recordTextbookPaymentAtomic({
+          sale,
+          amount: payAmount,
+          paymentMethod,
+          paymentDate: pDate,
+          memo: payment.memo,
+          skipIncome: options?.skipIncome,
         });
-        payment.id = savedPayment.id;
-        payment.receiptNumber = savedPayment.receiptNumber || payment.receiptNumber;
-        payment.createdAt = savedPayment.createdAt || payment.createdAt;
       }
 
       sales[idx] = updatedSale;
@@ -521,15 +518,13 @@ export function createTextbookSaleService(api: StorageApi) {
 
       for (const item of tuitionItems) {
         if (item.amount <= 0) continue;
-        const res = (
-          api.recordPayment as (
-            id: string,
-            amount: number,
-            method: PaymentMethod,
-            notes?: string,
-            paymentDate?: string
-          ) => TuitionInvoice | null
-        )(item.invoiceId, item.amount, req.paymentMethod, req.memo, req.paymentDate);
+        const res = await recordTuitionPaymentAtomic({
+          invoiceId: item.invoiceId,
+          amount: item.amount,
+          method: req.paymentMethod,
+          notes: req.memo,
+          paymentDate: req.paymentDate,
+        });
         if (res) {
           tuitionInvoice = res;
           totalPaid += item.amount;

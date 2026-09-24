@@ -10,6 +10,7 @@ import type { Parent, Student } from '../../types';
 import type { GuardianRelationship, ParentStudentLink } from '../../core/parent/types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
+import { weekStartIsoLocal } from '@/shared/utils/localDate';
 
 /** 보호자 링크 + 교육(커리큘럼·과제·리포트) 도메인 */
 export function createParentEducationStorage(api: StorageApi) {
@@ -383,10 +384,7 @@ export function createParentEducationStorage(api: StorageApi) {
     },
 
     getCurrentWeekStart(): string {
-      const d = new Date();
-      const day = d.getDay();
-      const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      return new Date(d.setDate(diff)).toISOString().slice(0, 10);
+      return weekStartIsoLocal();
     },
 
     saveWeeklyAssignment(

@@ -589,6 +589,8 @@ export interface NotificationItem {
   targetStudentName?: string;
   targetParentPhone?: string;
   scheduledDate?: string;
+  /** 결석 등 동일 이벤트 중복 방지 키 */
+  eventKey?: string;
   status?: 'pending' | 'sent' | 'failed';
   sentAt?: string;
   createdAt?: string;

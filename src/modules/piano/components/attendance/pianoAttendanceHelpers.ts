@@ -1,11 +1,12 @@
 import type { AttendanceRecord, AttendanceStatus, Student } from '@/types';
 import type { AttendanceSession } from '@/core/attendance/types';
 import { StorageService } from '@/services/storage';
-import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
+import { saveAttendanceWithPass } from '@/core/schedules/attendancePassAtomic';
 import {
   DAY_ATTENDANCE_CLASS_ID,
   DAY_ATTENDANCE_CLASS_NAME,
 } from '@/core/attendance/dayAttendance';
+import { isDayAttendanceClassId } from '@/core/attendance/attendanceClassKey';
 
 export {
   DAY_ATTENDANCE_CLASS_ID,
@@ -69,7 +70,7 @@ export function buildDayAttendanceRecordMap(
 ): Map<string, AttendanceRecord> {
   const map = new Map<string, AttendanceRecord>();
   for (const r of records) {
-    if (r.date === dateIso && r.classId === DAY_ATTENDANCE_CLASS_ID) {
+    if (r.date === dateIso && isDayAttendanceClassId(r.classId)) {
       map.set(r.studentId, r);
     }
   }
@@ -138,14 +139,14 @@ export type PersistDayAttendanceResult =
   | { ok: false; warning: string };
 
 /** day attendance(DAY_ATTENDANCE) 기록 저장 — 등원/지각/결석 공통 */
-export function persistDayAttendance(params: {
+export async function persistDayAttendance(params: {
   student: Student;
   date: string;
   status: Exclude<DayStatus, 'unchecked'>;
   createdBy: string;
   existing?: AttendanceRecord | null;
   memo?: string;
-}): PersistDayAttendanceResult {
+}): Promise<PersistDayAttendanceResult> {
   const { student, date, status, createdBy, memo } = params;
   const existing =
     params.existing ??
@@ -153,33 +154,24 @@ export function persistDayAttendance(params: {
       (r) =>
         r.date === date &&
         r.studentId === student.id &&
-        r.classId === DAY_ATTENDANCE_CLASS_ID
+        isDayAttendanceClassId(r.classId)
     );
 
   const nextStatus = toAttendanceStatus(status);
-  const passResult = applySessionPassForAttendance({
+  const result = await saveAttendanceWithPass({
     student,
     nextStatus,
     previous: existing || null,
     date,
-  });
-  if (passResult.warning) {
-    return { ok: false, warning: passResult.warning };
-  }
-
-  StorageService.saveAttendanceRecord({
-    ...(existing ? { id: existing.id } : {}),
-    date,
-    studentId: student.id,
-    studentName: student.name,
     classId: DAY_ATTENDANCE_CLASS_ID,
     className: DAY_ATTENDANCE_CLASS_NAME,
-    status: nextStatus,
-    absentReason: status === 'absent' ? memo?.trim() || undefined : undefined,
-    memo: memo?.trim() || undefined,
     createdBy,
-    sessionPassId: passResult.sessionPassId,
+    memo: memo?.trim() || undefined,
+    absentReason: status === 'absent' ? memo?.trim() || undefined : undefined,
   });
+  if (!result.ok) {
+    return { ok: false, warning: result.warning || '출결 저장에 실패했습니다.' };
+  }
 
   if (status === 'present' || status === 'late') {
     syncDayCheckInSession(student, date);
@@ -189,12 +181,12 @@ export function persistDayAttendance(params: {
 }
 
 /** 원장 홈 등원 1탭용 */
-export function markDayPresent(params: {
+export async function markDayPresent(params: {
   student: Student;
   date: string;
   createdBy: string;
   existing?: AttendanceRecord | null;
-}): PersistDayAttendanceResult {
+}): Promise<PersistDayAttendanceResult> {
   return persistDayAttendance({
     ...params,
     status: 'present',

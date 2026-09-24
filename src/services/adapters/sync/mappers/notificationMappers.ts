@@ -21,6 +21,7 @@ interface NotificationMetadata {
   recipientCount?: number;
   targetStudentName?: string;
   targetParentPhone?: string;
+  eventKey?: string;
   sessionId?: string;
   action?: 'check_in' | 'check_out';
   at?: string;
@@ -35,6 +36,7 @@ export function notificationToRow(notif: AppNotification, organizationId: string
     recipientCount: notif.recipientCount,
     targetStudentName: notif.targetStudentName,
     targetParentPhone: notif.targetParentPhone,
+    eventKey: notif.eventKey,
   };
 
   return {
@@ -77,6 +79,7 @@ export function notificationRowToApp(row: {
     targetStudentId: row.target_id || undefined,
     targetStudentName: meta.targetStudentName,
     targetParentPhone: meta.targetParentPhone,
+    eventKey: meta.eventKey,
     scheduledDate: row.scheduled_at || undefined,
     status: row.status as AppNotification['status'],
     sentAt: row.sent_at || undefined,

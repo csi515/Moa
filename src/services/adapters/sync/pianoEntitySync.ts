@@ -13,6 +13,7 @@ import type {
 } from '../../../types';
 import { getPianoClient } from '../../../lib/supabase/pianoClient';
 import { readLocal, writeLocal } from '../localStorageEngine';
+import { applyDirtyListMerge } from '../pendingMutations';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
@@ -129,7 +130,13 @@ export async function hydratePianoEntities(
 
   const entities: [StorageKey, unknown][] = [
     [STORAGE_KEYS.STUDENTS, mergedStudents],
-    [STORAGE_KEYS.ATTENDANCE, (attendanceResult.data || []).map(pianoRowToAttendance)],
+    [
+      STORAGE_KEYS.ATTENDANCE,
+      applyDirtyListMerge(
+        STORAGE_KEYS.ATTENDANCE,
+        (attendanceResult.data || []).map(pianoRowToAttendance)
+      ),
+    ],
     [STORAGE_KEYS.LESSON_RECORDS, (lessonResult.data || []).map(pianoRowToLesson)],
     [STORAGE_KEYS.PRACTICE_RECORDS, (practiceResult.data || []).map(pianoRowToPractice)],
     [STORAGE_KEYS.TEXTBOOKS, (textbooksResult.data || []).map(pianoRowToTextbook)],
@@ -170,7 +177,8 @@ export async function persistPianoEntity(
         cache,
         STORAGE_KEYS.ATTENDANCE,
         (items) => (items as AttendanceRecord[]).map((r) => attendanceToPianoRow(r, organizationId)),
-        isAborted
+        isAborted,
+        { allowDiffDelete: false }
       );
     case STORAGE_KEYS.LESSON_RECORDS:
       return persistPianoTable(

@@ -171,7 +171,8 @@ export async function persistPianoTable<T extends { id: string }>(
   cache: SyncCache,
   storageKey: StorageKey,
   toRows: (items: unknown[]) => T[],
-  isAborted: PersistAbortGuard
+  isAborted: PersistAbortGuard,
+  options?: { allowDiffDelete?: boolean }
 ): Promise<boolean> {
   if (isAborted()) return false;
   const items = requireCacheList<unknown>(cache, storageKey, `piano.${table}`);
@@ -179,6 +180,18 @@ export async function persistPianoTable<T extends { id: string }>(
 
   const client = getPianoClient();
   const rows = toRows(items);
+
+  if (options?.allowDiffDelete === false) {
+    const upsertOk = await runRowUpserts(
+      rows,
+      isAborted,
+      (row) => client.from(table).upsert(row as never),
+      (error) => console.error(`Failed to upsert piano.${table}:`, error)
+    );
+    if (isAborted()) return false;
+    writeLocal(storageKey, items);
+    return upsertOk;
+  }
 
   const ok = await upsertThenDiffDelete({
     context: `piano.${table}`,

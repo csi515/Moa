@@ -19,15 +19,16 @@ export function diffIds(existingIds: string[], currentIds: string[]): string[] {
 /**
  * 캐시 키가 없거나(미하이드레이트/클리어) 불완전할 때 원격 대량 DELETE 방지.
  * cachePresent=false → 삭제 후보 없음.
+ * snapshotComplete가 false이면 stale 목록으로 원격 row를 지우지 않는다.
  */
 export function safeDiffIds(
   existingIds: string[],
   currentIds: string[],
-  options: { cachePresent: boolean; context: string }
+  options: { cachePresent: boolean; context: string; snapshotComplete?: boolean }
 ): string[] {
-  if (!options.cachePresent) {
+  if (!options.cachePresent || options.snapshotComplete === false) {
     console.error(
-      `[sync] Refusing diff-delete (${options.context}): local cache key missing/incomplete`
+      `[sync] Refusing diff-delete (${options.context}): local cache missing or snapshot incomplete`
     );
     return [];
   }

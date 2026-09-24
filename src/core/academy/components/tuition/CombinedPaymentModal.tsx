@@ -9,6 +9,7 @@ import { Modal } from '@/shared/components/ui/Modal';
 import { CreditCard, CheckSquare, Square, CheckCircle2 } from 'lucide-react';
 import { formatCurrency } from '@/utils/formatters';
 import { ONSITE_PAYMENT_METHOD_OPTIONS } from '@/core/finance/paymentMethodLabels';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 interface CombinedPaymentModalProps {
   student: Student;
@@ -47,7 +48,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   );
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('onsite_card');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(todayIsoLocal);
   const [memo, setMemo] = useState('');
 
   const selectedInvoiceTotal = useMemo(
@@ -80,7 +81,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (grandSelectedTotal <= 0) {
@@ -105,7 +106,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
         }))
         .filter((s) => s.amount > 0);
 
-      const res = TuitionService.recordCombinedPayment({
+      const res = await TuitionService.recordCombinedPayment({
         studentId: student.id,
         yearMonth: effectiveYearMonth,
         tuitionPayments,

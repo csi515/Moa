@@ -1,26 +1,27 @@
-import type { ClassItem, Student } from '@/types';
+import type { ClassItem, MakeupItem, Student } from '@/types';
 import { weekdayFromIsoDate } from '@/core/academy/utils/weekdayKo';
 
 export interface ExpectedStudentOnDate {
   student: Student;
-  /** 해당 요일에 배정된 반(시간표) */
+  /** 해당 요일에 배정된 반(시간표) + 당일 예약된 보강 */
   classes: ClassItem[];
   /** 가장 빠른 시작 시각 (정렬·표시용) */
   earliestStart: string;
 }
 
 /**
- * 일정(시간표) 기준 — 해당 날짜에 오기로 배정된 재원생.
- * classIds + ClassItem.daysOfWeek만 사용. 출결 기록은 읽지 않음.
+ * ClassItem에는 특정일 휴강/시간변경/학생 단독 예외 필드가 없다.
+ * 지원하는 one-off는 보강(MakeupItem.scheduled)뿐이며, 정규 요일 반복은 그대로 사용한다.
  */
 export function getExpectedStudentsOnDate(
   dateIso: string,
   students: Student[],
-  classes: ClassItem[]
+  classes: ClassItem[],
+  options?: { makeups?: MakeupItem[] }
 ): ExpectedStudentOnDate[] {
   const day = weekdayFromIsoDate(dateIso);
   const classById = new Map(classes.map((c) => [c.id, c]));
-  const rows: ExpectedStudentOnDate[] = [];
+  const byStudent = new Map<string, ExpectedStudentOnDate>();
 
   for (const student of students) {
     if (student.status !== 'active') continue;
@@ -33,18 +34,54 @@ export function getExpectedStudentsOnDate(
     }
     if (matched.length === 0) continue;
     matched.sort((a, b) => (a.startTime || '').localeCompare(b.startTime || ''));
-    rows.push({
+    byStudent.set(student.id, {
       student,
       classes: matched,
       earliestStart: matched[0]?.startTime || '99:99',
     });
   }
 
-  return rows.sort((a, b) => {
+  const studentById = new Map(students.map((s) => [s.id, s]));
+  for (const makeup of options?.makeups || []) {
+    if (makeup.status !== 'scheduled' || makeup.makeUpDate !== dateIso) continue;
+    const student = studentById.get(makeup.studentId);
+    if (!student || student.status !== 'active') continue;
+    const slot = makeupAsClass(makeup);
+    const existing = byStudent.get(student.id);
+    if (existing) {
+      if (existing.classes.some((c) => c.id === slot.id)) continue;
+      existing.classes = [...existing.classes, slot].sort((a, b) =>
+        (a.startTime || '').localeCompare(b.startTime || '')
+      );
+      existing.earliestStart = existing.classes[0]?.startTime || existing.earliestStart;
+      continue;
+    }
+    byStudent.set(student.id, {
+      student,
+      classes: [slot],
+      earliestStart: slot.startTime || '99:99',
+    });
+  }
+
+  return Array.from(byStudent.values()).sort((a, b) => {
     const t = a.earliestStart.localeCompare(b.earliestStart);
     if (t !== 0) return t;
     return a.student.name.localeCompare(b.student.name, 'ko');
   });
+}
+
+export function makeupAsClass(makeup: MakeupItem): ClassItem {
+  return {
+    id: `makeup:${makeup.attendanceId}`,
+    name: makeup.className ? `보강 · ${makeup.className}` : '보강',
+    teacherId: makeup.makeUpTeacherId || '',
+    teacherName: makeup.makeUpTeacherName || '',
+    daysOfWeek: [],
+    startTime: makeup.makeUpStartTime || '',
+    endTime: makeup.makeUpEndTime || '',
+    capacity: 1,
+    room: makeup.makeUpRoom || '',
+  };
 }
 
 /** 출결 행 부제 — 시간·반 이름 */

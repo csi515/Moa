@@ -1,18 +1,19 @@
 import { StorageService } from '@/services/storage';
-import { applySessionPassForAttendance } from './lessonPassConsume';
+import { saveAttendanceWithPass } from '@/core/schedules/attendancePassAtomic';
 import {
   DAY_ATTENDANCE_CLASS_ID,
   DAY_ATTENDANCE_CLASS_NAME,
 } from '@/core/attendance/dayAttendance';
+import { isDayAttendanceClassId } from '@/core/attendance/attendanceClassKey';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 
 /**
  * PIN 체크인 성공 시 등원(c-default) AttendanceRecord를 동기화.
- * 회차권은 학생·일 기준 1회 정책(applySessionPassForAttendance)을 따른다.
+ * 온라인은 update_attendance_status_with_pass 원자 경로.
  */
-export function syncDayAttendanceFromPinCheckIn(customerId: string): {
+export async function syncDayAttendanceFromPinCheckIn(customerId: string): Promise<{
   warning?: string;
-} {
+}> {
   const student = StorageService.getStudents().find((s) => s.id === customerId);
   if (!student) return {};
 
@@ -21,31 +22,22 @@ export function syncDayAttendanceFromPinCheckIn(customerId: string): {
     (r) =>
       r.date === date &&
       r.studentId === customerId &&
-      r.classId === DAY_ATTENDANCE_CLASS_ID
+      isDayAttendanceClassId(r.classId)
   );
 
   if (existing && (existing.status === 'present' || existing.status === 'late')) {
     return {};
   }
 
-  const passResult = applySessionPassForAttendance({
+  const result = await saveAttendanceWithPass({
     student,
     nextStatus: 'present',
     previous: existing || null,
     date,
-  });
-
-  StorageService.saveAttendanceRecord({
-    ...(existing ? { id: existing.id } : {}),
-    date,
-    studentId: student.id,
-    studentName: student.name,
     classId: DAY_ATTENDANCE_CLASS_ID,
     className: DAY_ATTENDANCE_CLASS_NAME,
-    status: 'present',
     createdBy: 'PIN',
-    sessionPassId: passResult.sessionPassId,
   });
 
-  return { warning: passResult.warning };
+  return { warning: result.ok ? undefined : result.warning };
 }

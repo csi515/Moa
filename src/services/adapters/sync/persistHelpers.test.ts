@@ -75,6 +75,30 @@ async function run() {
     assert.equal(ok, true);
   }
 
+  // stale snapshot: cache.has만으로는 삭제하지 않는다
+  {
+    let deleteCalled = false;
+    let fetchCalled = false;
+    const ok = await upsertThenDiffDelete({
+      context: 'stale-schedules',
+      cachePresent: true,
+      snapshotComplete: false,
+      currentIds: ['booking-a'],
+      upsertAll: async () => true,
+      fetchRemoteIds: async () => {
+        fetchCalled = true;
+        return { ids: ['booking-a', 'booking-b'], error: null };
+      },
+      deleteIds: async () => {
+        deleteCalled = true;
+        return { error: null };
+      },
+    });
+    assert.equal(ok, true);
+    assert.equal(fetchCalled, false, '불완전 snapshot은 remote id를 조회해 지우지 않는다');
+    assert.equal(deleteCalled, false, '원격 예약 B를 삭제하면 안 된다');
+  }
+
   // upsertThenDiffDeleteByKeys: upsert 실패 → false, delete 생략
   {
     let deleteKeyCalled = false;

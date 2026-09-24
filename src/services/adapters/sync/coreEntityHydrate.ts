@@ -39,6 +39,7 @@ import { rowToLink } from './parentLinkEntityMappers';
 import type { SyncCache } from './syncTypes';
 import { checkHydrateErrors } from './persistHelpers';
 import { rowToSessionPass } from './sessionPassMappers';
+import { applyDirtyListMerge } from '../pendingMutations';
 
 /** Core 엔티티 전체 hydrate */
 export async function hydrateCoreEntities(
@@ -191,9 +192,9 @@ export async function hydrateCoreEntities(
     [STORAGE_KEYS.PARENTS, parents],
     [STORAGE_KEYS.CLASSES, classes],
     [STORAGE_KEYS.SERVICE_OFFERINGS, serviceOfferings],
-    [STORAGE_KEYS.SCHEDULES, bookings],
+    [STORAGE_KEYS.SCHEDULES, applyDirtyListMerge(STORAGE_KEYS.SCHEDULES, bookings)],
     [STORAGE_KEYS.PRACTICE_ROOM_BOOKINGS, practiceRoomBookings],
-    [STORAGE_KEYS.SESSION_PASSES, sessionPasses],
+    [STORAGE_KEYS.SESSION_PASSES, applyDirtyListMerge(STORAGE_KEYS.SESSION_PASSES, sessionPasses)],
     [STORAGE_KEYS.INVOICES, invoices],
     [STORAGE_KEYS.TUITION_PAYMENTS, tuitionPayments],
     [STORAGE_KEYS.EXPENSES, (expensesResult.data || []).map(coreRowToExpense)],

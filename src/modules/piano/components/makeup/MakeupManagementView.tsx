@@ -20,6 +20,8 @@ import {
   formatConflictSummary,
 } from '@/core/academy/utils/scheduleConflicts';
 import { notifyParentMakeupScheduled } from '@/core/academy/services/academyAlertService';
+import { scheduleMakeupAtomic } from '@/core/schedules/makeupScheduleAtomic';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import { getAcademyRoomNames } from '@/core/academy/utils/academyRooms';
 import {
   Sparkles,
@@ -45,14 +47,14 @@ function addMinutes(hhmm: string, minutes: number): string {
 }
 
 export const MakeupManagementView: React.FC = () => {
-  const { showToast, openConfirmDialog } = useApp();
+  const { showToast } = useApp();
   const { openStudent } = useStudentNavigation();
   const refreshKey = useStorageRefresh();
   const { scopeMakeupItems } = useStaffScope();
 
   const [statusFilter, setStatusFilter] = useState<MakeupStatus | 'all'>('pending');
   const [scheduleTarget, setScheduleTarget] = useState<MakeupItem | null>(null);
-  const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [scheduleDate, setScheduleDate] = useState(todayIsoLocal);
   const [startTime, setStartTime] = useState('16:00');
   const [endTime, setEndTime] = useState('16:50');
   const [room, setRoom] = useState('');
@@ -98,7 +100,7 @@ export const MakeupManagementView: React.FC = () => {
     const lessonMinutes = StorageService.getSettings().defaultLessonMinutes || 50;
     const start = item.makeUpStartTime || origin?.startTime || '16:00';
     setScheduleTarget(item);
-    setScheduleDate(item.makeUpDate || new Date().toISOString().slice(0, 10));
+    setScheduleDate(item.makeUpDate || todayIsoLocal());
     setStartTime(start);
     setEndTime(item.makeUpEndTime || origin?.endTime || addMinutes(start, lessonMinutes));
     setRoom(item.makeUpRoom || origin?.room || rooms[0] || '');
@@ -127,15 +129,27 @@ export const MakeupManagementView: React.FC = () => {
       },
     });
 
-    const save = () => {
-      StorageService.scheduleMakeup(scheduleTarget.attendanceId, {
-        date: scheduleDate,
-        startTime,
-        endTime,
-        room,
-        teacherId: teacher?.id,
-        teacherName: teacher?.name,
+    if (conflicts.length > 0) {
+      showToast(formatConflictSummary(conflicts) || '일정이 겹칩니다.', 'warning');
+      return;
+    }
+
+    void (async () => {
+      const result = await scheduleMakeupAtomic({
+        attendanceId: scheduleTarget.attendanceId,
+        makeup: {
+          date: scheduleDate,
+          startTime,
+          endTime,
+          room,
+          teacherId: teacher?.id,
+          teacherName: teacher?.name,
+        },
       });
+      if (!result.ok) {
+        showToast(result.warning || '보강 일정 등록에 실패했습니다.', 'warning');
+        return;
+      }
 
       const refreshed = StorageService.getMakeupItems().find(
         (m) => m.attendanceId === scheduleTarget.attendanceId
@@ -144,19 +158,7 @@ export const MakeupManagementView: React.FC = () => {
 
       showToast(`${scheduleTarget.studentName} 학생 보강 일정이 등록되었습니다.`, 'success');
       setScheduleTarget(null);
-    };
-
-    if (conflicts.length > 0) {
-      openConfirmDialog({
-        title: '일정 충돌 확인',
-        message: `아래 충돌이 있습니다. 그래도 등록할까요?\n\n${formatConflictSummary(conflicts)}`,
-        confirmText: '그래도 등록',
-        onConfirm: save,
-      });
-      return;
-    }
-
-    save();
+    })();
   };
 
   const handleComplete = (item: MakeupItem) => {

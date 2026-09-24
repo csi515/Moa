@@ -12,6 +12,12 @@ import type {
   TuitionPayment,
 } from '@/types';
 import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
+import {
+  ensureMonthlyTuitionInvoiceAtomic,
+  recordTuitionPaymentAtomic,
+} from '@/core/finance/tuitionPaymentAtomic';
+import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
+import { yearMonthLocal } from '@/shared/utils/localDate';
 
 export { findExistingStudentMonthInvoice };
 
@@ -64,16 +70,57 @@ export const TuitionService = {
     return StorageService.deleteInvoice(id);
   },
 
-  createInvoiceForStudent(
+  async createInvoiceForStudent(
     student: Student,
     yearMonth?: string,
     options?: { includeExtras?: boolean; extraFee?: number; extraFeeLabel?: string }
-  ): TuitionInvoice | null {
-    return StorageService.createInvoiceForStudent(student, yearMonth, options);
+  ): Promise<TuitionInvoice | null> {
+    const ym = yearMonth || yearMonthLocal();
+    const existing = this.findInvoiceForStudentMonth(student.id, ym);
+    if (existing) return existing;
+
+    const local = StorageService.createInvoiceForStudent(student, ym, options);
+    if (!local || !isSupabaseConfigured()) return local;
+    try {
+      const remote = await ensureMonthlyTuitionInvoiceAtomic({
+        studentId: student.id,
+        studentName: student.name,
+        yearMonth: local.yearMonth,
+        title: local.title || `${local.yearMonth} 수강료`,
+        billedAmount: local.totalAmount,
+        dueDate: local.dueDate || undefined,
+        metadata: {
+          studentName: student.name,
+          yearMonth: local.yearMonth,
+          baseFee: local.baseFee,
+          unpaidAmount: local.unpaidAmount,
+          notes: local.notes,
+          includeExtras: local.includeExtras,
+          linkedTextbookSaleIds: local.linkedTextbookSaleIds,
+        },
+        invoiceId: local.id,
+      });
+      if (remote && remote.id !== local.id) {
+        StorageService.deleteInvoice(local.id);
+      }
+      return remote || local;
+    } catch (err) {
+      console.error('[createInvoiceForStudent] ensure monthly invoice', err);
+      throw err;
+    }
   },
 
-  generateMonthlyInvoicesForAllActive(yearMonth: string): number {
-    return StorageService.generateMonthlyInvoicesForAllActive(yearMonth);
+  async generateMonthlyInvoicesForAllActive(yearMonth: string): Promise<number> {
+    const students = StorageService.getStudents().filter(
+      (s) => s.status === 'active' && isMonthlyBillingStudent(s)
+    );
+    let generated = 0;
+    for (const student of students) {
+      const before = this.findInvoiceForStudentMonth(student.id, yearMonth);
+      const created = await this.createInvoiceForStudent(student, yearMonth);
+      if (created && !before) generated += 1;
+    }
+    return generated;
   },
 
   /** 청구서 수동 발송 (알림 포함). 자동 발송 금지. */
@@ -119,22 +166,29 @@ export const TuitionService = {
     return updated;
   },
 
-  recordPayment(
+  async recordPayment(
     invoiceId: string,
     amount: number,
     method: PaymentMethod,
     notes?: string,
     paymentDate?: string,
     options?: { cashReceiptIssued?: boolean }
-  ): TuitionInvoice | null {
-    return StorageService.recordPayment(invoiceId, amount, method, notes, paymentDate, options);
+  ): Promise<TuitionInvoice | null> {
+    return recordTuitionPaymentAtomic({
+      invoiceId,
+      amount,
+      method,
+      notes,
+      paymentDate,
+      cashReceiptIssued: options?.cashReceiptIssued,
+    });
   },
 
-  recordCombinedPayment(req: CombinedPaymentRequest): {
+  async recordCombinedPayment(req: CombinedPaymentRequest): Promise<{
     tuitionInvoice?: TuitionInvoice;
     textbookPayments: unknown[];
     totalPaidAmount: number;
-  } {
+  }> {
     return StorageService.recordCombinedPayment(req);
   },
 

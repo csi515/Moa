@@ -40,8 +40,11 @@ export function usePianoExpectedDay(dateIso: string) {
   );
 
   const expected = useMemo(
-    () => getExpectedStudentsOnDate(dateIso, students, classes),
-    [dateIso, students, classes]
+    () =>
+      getExpectedStudentsOnDate(dateIso, students, classes, {
+        makeups: StorageService.getMakeupItems(),
+      }),
+    [dateIso, students, classes, refreshKey]
   );
 
   return {

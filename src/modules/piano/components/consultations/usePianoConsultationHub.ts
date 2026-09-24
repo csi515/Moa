@@ -9,9 +9,13 @@ import {
 } from '@/core/customer/studentJoinInbox';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
-import { todayIsoLocal } from '@/shared/utils/localDate';
 import type { CustomerJoinRequest, ReservationDetail } from '@/types';
 import { inquiryBelongsToStaff, reservationBelongsToStaff } from './staffConsultationScope';
+import {
+  TODAY_RESERVATION_PAGE_SIZE,
+  localDayReservationWindow,
+  shouldFetchNextReservationPage,
+} from './consultationTodayQuery';
 
 export type ConsultationSegment =
   | 'home'
@@ -43,14 +47,6 @@ export const CONSULTATION_OPTIONS: { value: ConsultationSegment; label: string }
   { value: 'records', label: '기록' },
   { value: 'home', label: '오늘' },
 ];
-
-function isSameLocalDay(iso: string, key: string): boolean {
-  const d = new Date(iso);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}` === key;
-}
 
 export function formatConsultationTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('ko-KR', {
@@ -148,11 +144,25 @@ export function usePianoConsultationHub() {
     setLoadingToday(true);
     setTodayError(false);
     try {
-      const all = await reservationService.getOrganizationReservations(currentOrganization.id);
-      const key = todayIsoLocal();
+      const { from, to } = localDayReservationWindow();
+      const collected: ReservationDetail[] = [];
+      let offset = 0;
+      for (;;) {
+        const page = await reservationService.getOrganizationReservations(
+          currentOrganization.id,
+          undefined,
+          from,
+          TODAY_RESERVATION_PAGE_SIZE,
+          offset,
+          to
+        );
+        collected.push(...page);
+        if (!shouldFetchNextReservationPage(page.length, offset)) break;
+        offset += page.length;
+      }
       setTodayRows(
-        all
-          .filter((r) => r.status !== 'cancelled' && isSameLocalDay(r.schedule_starts_at, key))
+        collected
+          .filter((r) => r.status !== 'cancelled')
           .filter(keepReservation)
           .sort((a, b) => a.schedule_starts_at.localeCompare(b.schedule_starts_at))
       );

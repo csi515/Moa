@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  canDiffDeleteSnapshot,
   canPersistRemote,
   isPersistEpochCurrent,
   nextPersistEpoch,
@@ -24,6 +25,11 @@ function run() {
   assert.equal(isPersistEpochCurrent(2, 3), false);
   assert.equal(isPersistEpochCurrent(0, undefined), true);
   assert.equal(isPersistEpochCurrent(1, undefined), false);
+
+  assert.equal(canDiffDeleteSnapshot({ cachePresent: true, snapshotComplete: true }), true);
+  assert.equal(canDiffDeleteSnapshot({ cachePresent: true, snapshotComplete: false }), false);
+  assert.equal(canDiffDeleteSnapshot({ cachePresent: false, snapshotComplete: true }), false);
+  assert.equal(canDiffDeleteSnapshot({ cachePresent: false, snapshotComplete: false }), false);
 
   const here = dirname(fileURLToPath(import.meta.url));
   const adapterSource = readFileSync(join(here, 'supabaseAdapter.ts'), 'utf8');

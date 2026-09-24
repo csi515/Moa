@@ -1,23 +1,22 @@
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
 import { getOrganizationId, setIndustryType, setOrganizationId } from './storageContext';
-import { resolveHydrateModules } from './hydrateModules';
+import {
+  persistRegisteredCapabilities,
+  resolveIndustryHydrateCapabilities,
+} from './industrySyncRegistry';
 import {
   CORE_SYNC_KEYS,
-  DAYCARE_SYNC_KEYS,
-  PIANO_SYNC_KEYS,
   STORAGE_KEYS,
   SUPABASE_SYNC_KEYS,
   type StorageKey,
 } from './storageKeys';
 import { hydrateCoreEntities, persistCoreEntity, type SyncCache } from './sync/coreEntitySync';
-import { hydrateDaycareEntities, persistDaycareEntity } from './sync/daycareEntitySync';
-import { hydrateEducationEntities, persistEducationEntity } from './sync/educationEntitySync';
-import { hydratePianoEntities, persistPianoEntity } from './sync/pianoEntitySync';
 import {
   clearSyncOutboxKeys,
   enqueueSyncOutbox,
   peekSyncOutbox,
 } from './syncOutbox';
+import { clearPendingForKey, markPendingUpsert } from './pendingMutations';
 import {
   canPersistRemote,
   isPersistEpochCurrent,
@@ -77,7 +76,12 @@ export class SupabaseAdapter implements IStorageAdapter {
       this.cache.set(key, value);
       // offline·재시작 대비 즉시 local mirror (원본은 이후 persist / 도메인 CRUD)
       writeLocal(key, value);
-      this.schedulePersist(key);
+      if (canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated })) {
+        this.schedulePersist(key);
+      } else {
+        markPendingUpsert(key);
+        enqueueSyncOutbox(key);
+      }
     } else {
       // LOCAL_ONLY / device-only
       writeLocal(key, value);
@@ -136,19 +140,8 @@ export class SupabaseAdapter implements IStorageAdapter {
       await hydrateCoreEntities(organizationId, cacheAdapter, industryType);
       if (isStale()) return;
 
-      const modules = resolveHydrateModules(industryType);
-
-      // Piano 전용 모듈 — piano 업종에서만 조회
-      if (modules.piano) {
-        await hydratePianoEntities(organizationId, cacheAdapter);
-        if (isStale()) return;
-      }
-      if (modules.education) {
-        await hydrateEducationEntities(organizationId, cacheAdapter);
-        if (isStale()) return;
-      }
-      if (modules.daycare) {
-        await hydrateDaycareEntities(organizationId, cacheAdapter);
+      for (const capability of resolveIndustryHydrateCapabilities(industryType)) {
+        await capability.hydrate(organizationId, cacheAdapter);
         if (isStale()) return;
       }
 
@@ -320,39 +313,27 @@ export class SupabaseAdapter implements IStorageAdapter {
         }
       }
 
-      if (PIANO_SYNC_KEYS.has(key)) {
-        ok = (await persistPianoEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) {
-          enqueueIfStillCurrentOrg();
-          return false;
-        }
-        ok = (await persistEducationEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) {
-          enqueueIfStillCurrentOrg();
-          return false;
-        }
-      }
-
-      if (DAYCARE_SYNC_KEYS.has(key)) {
-        ok = (await persistDaycareEntity(key, orgId, cacheAdapter, isAborted)) && ok;
-        if (isAborted()) {
-          enqueueIfStillCurrentOrg();
-          return false;
-        }
+      ok = (await persistRegisteredCapabilities(key, orgId, cacheAdapter, isAborted)) && ok;
+      if (isAborted()) {
+        enqueueIfStillCurrentOrg();
+        return false;
       }
 
       // PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: adapter persist 대상 아님(DB direct CRUD)
 
       if (!ok) {
         enqueueSyncOutbox(key);
+        markPendingUpsert(key);
       } else {
         clearSyncOutboxKeys([key]);
+        clearPendingForKey(key);
       }
 
       return ok;
     } catch (error) {
       console.error(`[storage] persist failed for ${key}`, error);
       enqueueSyncOutbox(key);
+      markPendingUpsert(key);
       return false;
     }
   }

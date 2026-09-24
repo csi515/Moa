@@ -8,7 +8,6 @@ import { STORAGE_KEYS } from '../storageKeys';
 import {
   classToServiceRow,
   consultationToRow,
-  isPracticeRoomScheduleRow,
   notificationToRow,
   bookingToScheduleRow,
   serviceOfferingToRow,
@@ -21,6 +20,7 @@ import { requireCacheList, runRowUpserts } from './persistHelpers';
 import type { CoreClient } from './corePersistSyncTable';
 import { syncTable } from './corePersistSyncTable';
 import { sessionPassToRow } from './sessionPassMappers';
+import { pendingDeleteIds } from '../pendingMutations';
 
 export async function persistServices(
   client: CoreClient,
@@ -107,30 +107,27 @@ export async function persistSchedules(
   if (!bookings) return false;
 
   const bookingRows = bookings.map((b) => bookingToScheduleRow(b, orgId));
+  const tombstones = pendingDeleteIds(STORAGE_KEYS.SCHEDULES, orgId);
 
-  const { data: existingSchedules } = await client
-    .from('schedules')
-    .select('id, metadata')
-    .eq('organization_id', orgId);
-  if (isAborted()) return false;
-  const protectedPracticeIds = (existingSchedules || [])
-    .filter((row) => isPracticeRoomScheduleRow(row.metadata))
-    .map((row) => row.id);
-
-  const ok = await syncTable(
-    client,
-    'schedules',
-    orgId,
-    [...bookingRows.map((r) => r.id), ...protectedPracticeIds],
-    () =>
-      runRowUpserts(
-        bookingRows,
-        isAborted,
-        (row) => client.from('schedules').upsert(row),
-        (error) => console.error('Failed to upsert schedule:', error)
-      ),
-    { cachePresent: true, context: 'schedules', isAborted }
+  // 단일 예약 저장이 stale 목록으로 원격 예약을 diff-delete 하지 않는다.
+  // 삭제는 deleteBooking tombstone / 명시적 row delete 만 허용.
+  let ok = await runRowUpserts(
+    bookingRows,
+    isAborted,
+    (row) => client.from('schedules').upsert(row),
+    (error) => console.error('Failed to upsert schedule:', error)
   );
+  if (ok && tombstones.length > 0 && !isAborted()) {
+    const { error: deleteError } = await client
+      .from('schedules')
+      .delete()
+      .eq('organization_id', orgId)
+      .in('id', tombstones);
+    if (deleteError) {
+      console.error('Failed to delete scheduled tombstones:', deleteError);
+      ok = false;
+    }
+  }
 
   if (isAborted()) return false;
   writeLocal(STORAGE_KEYS.SCHEDULES, bookings);
@@ -260,20 +257,11 @@ export async function persistSessionPasses(
 
   const rows = passes.map((p) => sessionPassToRow(p, orgId));
 
-  const ok = await syncTable(
-    client,
-    'session_passes',
-    orgId,
-    rows.map((r) => r.id),
-    () =>
-      runRowUpserts(
-        rows,
-        isAborted,
-        (row) =>
-          client.from('session_passes' as 'schedules').upsert(row as never),
-        (error) => console.error('Failed to upsert session_pass:', error)
-      ),
-    { cachePresent: true, context: 'session_passes', isAborted }
+  const ok = await runRowUpserts(
+    rows,
+    isAborted,
+    (row) => client.from('session_passes' as 'schedules').upsert(row as never),
+    (error) => console.error('Failed to upsert session_pass:', error)
   );
 
   if (isAborted()) return false;

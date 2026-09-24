@@ -1,6 +1,11 @@
 import type { Booking, BookingStatus, ServiceOffering } from '../../core/types/schedule';
 import { STORAGE_KEYS } from '../adapters';
 import { deleteById, generateEntityId, getItem, setItem } from './helpers';
+import { markPendingDelete, markPendingUpsert } from '../adapters/pendingMutations';
+import {
+  deleteRemoteSchedule,
+  upsertRemoteSchedule,
+} from '../adapters/sync/scheduleRowMutations';
 
 /**
  * 예약·서비스(필라테스 등) persistence CRUD.
@@ -32,10 +37,17 @@ export function createScheduleStorage() {
       }
 
       setItem(STORAGE_KEYS.SCHEDULES, list);
+      markPendingUpsert(STORAGE_KEYS.SCHEDULES, saved.id);
+      void upsertRemoteSchedule(saved).then((ok) => {
+        if (!ok) markPendingUpsert(STORAGE_KEYS.SCHEDULES, saved.id);
+      });
       return saved;
     },
 
-    /** status 필드만 저장. 이용권 규칙 없음 — ScheduleService.updateBookingStatus 권장 */
+    /**
+     * legacy/local-only: status 필드만 저장. 이용권 규칙·RLS 없음.
+     * production 상태 전이는 ScheduleService.updateBookingStatus / cancelBookingAsParent.
+     */
     updateBookingStatus(id: string, status: BookingStatus): Booking | null {
       const list = this.getBookings();
       const idx = list.findIndex((entry) => entry.id === id);
@@ -50,6 +62,8 @@ export function createScheduleStorage() {
       const list = this.getBookings();
       if (!deleteById(list, id)) return false;
       setItem(STORAGE_KEYS.SCHEDULES, list);
+      markPendingDelete(STORAGE_KEYS.SCHEDULES, id);
+      void deleteRemoteSchedule(id);
       return true;
     },
 

@@ -18,7 +18,7 @@ import {
 } from './bookingPassAtomicMirror';
 
 /** demo/offline: 이용권 스냅샷 롤백으로 best-effort 원자성 */
-function updateBookingStatusLocally(
+export function updateBookingStatusLocally(
   existing: Booking,
   status: BookingStatus,
   options?: { consumeOnNoShow?: boolean }
@@ -45,7 +45,7 @@ function updateBookingStatusLocally(
   }
 }
 
-function writeBookingMirror(
+export function writeBookingMirror(
   existing: Booking,
   payload: { status: BookingStatus; session_pass_id?: string | null }
 ): Booking {
@@ -59,7 +59,7 @@ function writeBookingMirror(
 }
 
 /** 해당 이용권만 SELECT 후 mirror. org 전체 목록 persist 없음 */
-async function refreshAffectedPassMirror(
+export async function refreshAffectedPassMirror(
   orgId: string,
   passIds: string[]
 ): Promise<void> {

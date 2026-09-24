@@ -16,6 +16,7 @@ import {
 } from '@/shared/components';
 import { formatPhone } from '@/utils/formatters';
 import { getYouTubeWatchUrl } from '@/utils/youtube';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   Award,
   Calendar,
@@ -55,11 +56,11 @@ export const RecitalManagementView: React.FC = () => {
   const [participantSearch, setParticipantSearch] = useState('');
 
   const [formTitle, setFormTitle] = useState('');
-  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formDate, setFormDate] = useState(todayIsoLocal);
   const [formType, setFormType] = useState<'concert' | 'competition'>('concert');
   const [formDescription, setFormDescription] = useState('');
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayIsoLocal();
   const allStudents = RecitalService.getActiveStudents();
   const students = useMemo(() => scopeStudents(allStudents), [allStudents, scopeStudents]);
   const events = useMemo(

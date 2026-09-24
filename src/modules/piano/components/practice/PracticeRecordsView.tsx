@@ -6,6 +6,7 @@ import { PageHeader, SummaryMetricCard, FilterBar, SearchField } from '@/shared/
 import { PracticeRecord } from '@/types';
 import { consumeOpenPendingPractice } from '@/core/customer/studentJoinInbox';
 import { notifyParentPracticeReviewed } from '@/core/academy/services/academyAlertService';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   BookOpenCheck,
   Plus,
@@ -35,7 +36,7 @@ export const PracticeRecordsView: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     studentId: students[0]?.id || '',
-    date: new Date().toISOString().slice(0, 10),
+    date: todayIsoLocal(),
     minutes: 40,
     songTitle: '',
     difficultyPart: '',
@@ -68,7 +69,7 @@ export const PracticeRecordsView: React.FC = () => {
   const handleOpenCreate = () => {
     setFormData({
       studentId: students[0]?.id || '',
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIsoLocal(),
       minutes: 45,
       songTitle: '체르니 100번 30번 & 소나티네 Op.36 No.1',
       difficultyPart: '1악장 발전부 왼손 도약',

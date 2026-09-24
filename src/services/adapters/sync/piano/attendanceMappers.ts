@@ -19,6 +19,7 @@ import type {
   PianoInventoryTransactionType,
   PianoTextbookPaymentStatus,
 } from '../../../../lib/supabase/database.types';
+import { attendanceClassKey, isAttendanceServiceUuid } from '../../../../core/attendance/attendanceClassKey';
 
 
 // ─── Attendance ───────────────────────────────────────────────────
@@ -40,11 +41,12 @@ const DB_TO_ATTENDANCE: Record<PianoAttendanceStatus, AttendanceRecord['status']
 };
 
 export function attendanceToPianoRow(record: AttendanceRecord, organizationId: string) {
+  const classId = attendanceClassKey(record.classId);
   return {
     id: record.id,
     organization_id: organizationId,
     customer_id: record.studentId,
-    service_id: record.classId || null,
+    service_id: isAttendanceServiceUuid(record.classId) ? record.classId : null,
     attendance_date: record.date,
     status: ATTENDANCE_TO_DB[record.status],
     absent_reason: record.absentReason || null,
@@ -53,6 +55,7 @@ export function attendanceToPianoRow(record: AttendanceRecord, organizationId: s
     memo: record.memo || null,
     created_by: record.createdBy || null,
     metadata: {
+      classId,
       studentName: record.studentName,
       className: record.className,
       makeUpStartTime: record.makeUpStartTime || null,
@@ -80,6 +83,7 @@ export function pianoRowToAttendance(row: {
   created_at: string;
 }): AttendanceRecord {
   const meta = (row.metadata || {}) as {
+    classId?: string | null;
     studentName?: string;
     className?: string;
     makeUpStartTime?: string | null;
@@ -94,7 +98,7 @@ export function pianoRowToAttendance(row: {
     date: row.attendance_date,
     studentId: row.customer_id,
     studentName: meta.studentName || '',
-    classId: row.service_id || '',
+    classId: attendanceClassKey(meta.classId, row.service_id),
     className: meta.className || '',
     status: DB_TO_ATTENDANCE[row.status],
     absentReason: row.absent_reason || undefined,

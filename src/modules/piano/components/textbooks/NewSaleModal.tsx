@@ -4,6 +4,7 @@ import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
 import { X, ShoppingBag, User, BookOpen, Calculator, AlertTriangle, CheckCircle2, CreditCard } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 interface NewSaleModalProps {
   initialStudentId?: string;
@@ -33,7 +34,7 @@ export const NewSaleModal: React.FC<NewSaleModalProps> = ({
       ? initialTextbookId
       : textbooks[0]?.id || ''
   );
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [saleDate, setSaleDate] = useState(todayIsoLocal);
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(15000);
   const [discount, setDiscount] = useState<number>(0);

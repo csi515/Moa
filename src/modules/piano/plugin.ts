@@ -30,6 +30,7 @@ export const pianoPluginManifest: IndustryPluginManifest = {
   customerListTab: 'students',
   showSchoolFields: true,
   showPickupFields: false,
+  syncCapabilities: ['piano', 'education'],
   levelLabel: '레벨',
   adminTabs: withNoticesTabs([
     'dashboard',

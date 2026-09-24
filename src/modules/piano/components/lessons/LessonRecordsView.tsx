@@ -22,6 +22,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 export const LessonRecordsView: React.FC = () => {
   const { showToast, openConfirmDialog, currentUser, setSelectedStudentId, setActiveTab } = useApp();
@@ -49,7 +50,7 @@ export const LessonRecordsView: React.FC = () => {
 
   const [formData, setFormData] = useState({
     studentId: students[0]?.id || '',
-    date: new Date().toISOString().slice(0, 10),
+    date: todayIsoLocal(),
     songTitle: '',
     progress: '',
     lessonContent: '',
@@ -79,7 +80,7 @@ export const LessonRecordsView: React.FC = () => {
     setEditingLesson(null);
     setFormData({
       studentId: students[0]?.id || '',
-      date: new Date().toISOString().slice(0, 10),
+      date: todayIsoLocal(),
       songTitle: '',
       progress: '',
       lessonContent: '',

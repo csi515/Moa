@@ -22,6 +22,7 @@ export const daycarePluginManifest: IndustryPluginManifest = {
   customerListTab: 'students',
   showSchoolFields: false,
   showPickupFields: true,
+  syncCapabilities: ['daycare'],
   levelLabel: '연령반',
   adminTabs: [
     ...CLASS_BASED_CORE_ADMIN_TABS,

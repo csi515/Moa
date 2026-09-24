@@ -31,6 +31,11 @@ export interface IndustryPluginManifest {
   levelLabel: string;
   adminTabs: NavTab[];
   staffTabs: NavTab[];
+  /**
+   * hydrate/persist capability id.
+   * Adapter는 이 목록만 실행한다. 업종 이름을 Adapter에서 직접 분기하지 않는다.
+   */
+  syncCapabilities?: string[];
 }
 
 const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses', 'payroll'];

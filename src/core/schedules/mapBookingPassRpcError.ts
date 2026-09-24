@@ -24,5 +24,14 @@ export function mapBookingPassRpcError(error: {
   if (/Session pass refund failed/i.test(raw)) {
     return { code: 'refund_failed', message: '이용권 복구에 실패했습니다.' };
   }
+  if (/Cancellation window expired/i.test(raw)) {
+    return { code: 'window_expired', message: '취소 가능 시간이 지났습니다.' };
+  }
+  if (/Not a customer-requested booking/i.test(raw)) {
+    return { code: 'not_customer_request', message: '고객 신청 예약만 취소할 수 있습니다.' };
+  }
+  if (/Booking not cancellable/i.test(raw)) {
+    return { code: 'not_cancellable', message: '취소할 수 없는 예약 상태입니다.' };
+  }
   return { code: 'unknown', message: raw || '예약 상태 변경에 실패했습니다.' };
 }

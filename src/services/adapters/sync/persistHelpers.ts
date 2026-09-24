@@ -1,5 +1,6 @@
 import type { StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
+import { canDiffDeleteSnapshot } from '../persistPolicy';
 import { assertHydrateNoErrors, safeDiffIds } from './utils';
 
 export function logHydrateErrors(errors: Record<string, unknown>): void {
@@ -60,6 +61,8 @@ export async function runRowUpserts<T>(
 export async function upsertThenDiffDelete(params: {
   context: string;
   cachePresent: boolean;
+  /** false면 stale/부분 목록 — 원격 diff-delete 금지. 생략 시 기존 hydrate persist와 동일 */
+  snapshotComplete?: boolean;
   currentIds: string[];
   isAborted?: PersistAbortGuard;
   /** false면 부분/전체 upsert 실패 — 호출부까지 전파 */
@@ -73,6 +76,15 @@ export async function upsertThenDiffDelete(params: {
   if (!upsertOk) return false;
   if (params.isAborted?.()) return false;
 
+  if (
+    !canDiffDeleteSnapshot({
+      cachePresent: params.cachePresent,
+      snapshotComplete: params.snapshotComplete !== false,
+    })
+  ) {
+    return true;
+  }
+
   const { ids, error } = await params.fetchRemoteIds();
   if (error) {
     console.error(`Failed to fetch ${params.context} for sync:`, error);
@@ -83,6 +95,7 @@ export async function upsertThenDiffDelete(params: {
   const toDelete = safeDiffIds(ids, params.currentIds, {
     cachePresent: params.cachePresent,
     context: params.context,
+    snapshotComplete: params.snapshotComplete,
   });
   if (toDelete.length === 0) return true;
 
@@ -101,6 +114,7 @@ export async function upsertThenDiffDelete(params: {
 export async function upsertThenDiffDeleteByKeys(params: {
   context: string;
   cachePresent: boolean;
+  snapshotComplete?: boolean;
   currentKeys: string[];
   isAborted?: PersistAbortGuard;
   upsertAll: () => Promise<boolean>;
@@ -113,6 +127,15 @@ export async function upsertThenDiffDeleteByKeys(params: {
   if (!upsertOk) return false;
   if (params.isAborted?.()) return false;
 
+  if (
+    !canDiffDeleteSnapshot({
+      cachePresent: params.cachePresent,
+      snapshotComplete: params.snapshotComplete !== false,
+    })
+  ) {
+    return true;
+  }
+
   const { keys, error } = await params.fetchRemoteKeys();
   if (error) {
     console.error(`Failed to fetch ${params.context} for sync:`, error);
@@ -123,6 +146,7 @@ export async function upsertThenDiffDeleteByKeys(params: {
   const toDelete = safeDiffIds(keys, params.currentKeys, {
     cachePresent: params.cachePresent,
     context: params.context,
+    snapshotComplete: params.snapshotComplete,
   });
 
   let ok = true;

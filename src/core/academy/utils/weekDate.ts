@@ -1,4 +1,5 @@
 import type { DayOfWeek } from '@/types';
+import { formatIsoDateLocal } from '@/shared/utils/localDate';
 
 const FROM_MONDAY: Record<Exclude<DayOfWeek, '일'>, number> = {
   월: 0,
@@ -20,9 +21,9 @@ export function isoDateForWeekdayThisWeek(day: DayOfWeek): string {
 
   if (day === '일') {
     monday.setDate(monday.getDate() + 6);
-    return monday.toISOString().slice(0, 10);
+    return formatIsoDateLocal(monday);
   }
 
   monday.setDate(monday.getDate() + FROM_MONDAY[day]);
-  return monday.toISOString().slice(0, 10);
+  return formatIsoDateLocal(monday);
 }

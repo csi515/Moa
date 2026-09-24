@@ -6,6 +6,7 @@ import { StorageService } from '@/services/storage';
 import { PageHeader, FilterBar } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
 import type { AchievementType, AssignmentStatus, CurriculumProgressStatus } from '@/types/education';
+import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 import {
   BookOpen,
   BookOpenCheck,
@@ -281,7 +282,7 @@ function AchievementsPanel({
   const [title, setTitle] = useState('');
   const [type, setType] = useState<AchievementType>('exam');
   const [result, setResult] = useState('');
-  const [eventDate, setEventDate] = useState(new Date().toISOString().slice(0, 10));
+  const [eventDate, setEventDate] = useState(todayIsoLocal);
   const achievements = StorageService.getAchievements(studentId);
 
   const handleAdd = () => {
@@ -335,7 +336,7 @@ function ReportsPanel({
   showToast: (m: string, t?: 'success') => void;
   onRefresh: () => void;
 }) {
-  const yearMonth = new Date().toISOString().slice(0, 7);
+  const yearMonth = yearMonthLocal();
   const reports = StorageService.getLearningReports(studentId);
   const [strengths, setStrengths] = useState('');
   const [improvements, setImprovements] = useState('');

@@ -3,6 +3,9 @@
  * 실행: npm run test:hydrate-modules
  */
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { resolveHydrateModules } from './hydrateModules';
 
 const cases: Array<{
@@ -24,5 +27,11 @@ for (const { industry, expect } of cases) {
   const actual = resolveHydrateModules(industry);
   assert.deepEqual(actual, expect, `${industry}`);
 }
+
+const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
+const pianoPlugin = readFileSync(join(srcRoot, 'modules/piano/plugin.ts'), 'utf8');
+const daycarePlugin = readFileSync(join(srcRoot, 'modules/daycare/plugin.ts'), 'utf8');
+assert.match(pianoPlugin, /syncCapabilities:\s*\[\s*'piano',\s*'education'\s*\]/);
+assert.match(daycarePlugin, /syncCapabilities:\s*\[\s*'daycare'\s*\]/);
 
 console.log('hydrateModules.test.ts: ok');

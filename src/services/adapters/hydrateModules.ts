@@ -1,6 +1,9 @@
 import { normalizeIndustryType } from '@/core/industry/types';
 
-/** hydrate 시 industry별 모듈 로드 여부 (Core는 항상) */
+/**
+ * hydrate 모듈 플래그 (테스트·호환용).
+ * 실제 Adapter hydrate는 plugin.syncCapabilities + industrySyncRegistry를 따른다.
+ */
 export function resolveHydrateModules(industryType?: string | null): {
   piano: boolean;
   education: boolean;

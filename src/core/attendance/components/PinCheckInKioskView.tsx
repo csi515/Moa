@@ -110,7 +110,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
               result.action === 'check_in' &&
               (industry === 'piano' || industry === 'daycare')
             ) {
-              const sync = runPinCheckInSideEffects(result.customerId);
+              const sync = await runPinCheckInSideEffects(result.customerId);
               if (sync.warning) {
                 showToast(sync.warning, 'warning');
               }

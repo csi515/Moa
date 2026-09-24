@@ -24,3 +24,15 @@ export function isPersistEpochCurrent(
 ): boolean {
   return startedEpoch === (currentEpoch ?? 0);
 }
+
+/**
+ * snapshot diff-delete 허용 여부.
+ * cache.has(key)만으로는 목록이 완전하다고 보지 않는다.
+ * 완전 hydrate + 명시적 allow 가 있을 때만 true.
+ */
+export function canDiffDeleteSnapshot(state: {
+  cachePresent: boolean;
+  snapshotComplete: boolean;
+}): boolean {
+  return state.cachePresent && state.snapshotComplete;
+}

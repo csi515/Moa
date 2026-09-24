@@ -12,7 +12,7 @@ import { todayIsoLocal } from '@/shared/utils/localDate';
 import { weekdayFromDate } from '@/core/academy/utils/weekdayKo';
 import { syncLessonHomeworkToWeeklyAssignment } from '../../services/lessonHomeworkSync';
 import { syncLessonCurriculumProgress } from '../../services/lessonCurriculumSync';
-import { applySessionPassForAttendance } from '../../services/lessonPassConsume';
+import { saveAttendanceWithPass } from '@/core/schedules/attendancePassAtomic';
 import { notifyParentAbsence } from '@/core/academy/services/academyAlertService';
 import { consumeOpenUncheckedLessons } from '@/core/customer/studentJoinInbox';
 import { LessonSessionModal, type LessonSessionForm } from './LessonSessionModal';
@@ -100,36 +100,27 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     });
   };
 
-  const persistAttendance = (
+  const persistAttendance = async (
     student: Student,
     classItem: ClassItem,
     status: AttendanceStatus,
     memo?: string
-  ): boolean => {
+  ): Promise<boolean> => {
     const existingAtt = findAttendance(student.id, classItem.id);
-    const passResult = applySessionPassForAttendance({
+    const result = await saveAttendanceWithPass({
       student,
       nextStatus: status,
       previous: existingAtt || null,
       date: today,
-    });
-    if (passResult.warning) {
-      showToast(passResult.warning, 'warning');
-      return false;
-    }
-
-    StorageService.saveAttendanceRecord({
-      ...(existingAtt ? { id: existingAtt.id } : {}),
-      date: today,
-      studentId: student.id,
-      studentName: student.name,
       classId: classItem.id,
       className: classItem.name,
-      status,
-      memo: memo?.trim() || undefined,
       createdBy: currentUser.name,
-      sessionPassId: passResult.sessionPassId,
+      memo: memo?.trim() || undefined,
     });
+    if (!result.ok) {
+      showToast(result.warning || '출결 저장에 실패했습니다.', 'warning');
+      return false;
+    }
 
     if (status === 'absent') {
       notifyParentAbsence({
@@ -137,21 +128,23 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
         studentName: student.name,
         parentPhone: student.parentPhone,
         className: classItem.name,
+        classId: classItem.id,
         date: today,
         reason: memo?.trim() || undefined,
+        previousStatus: existingAtt?.status,
       });
     }
     return true;
   };
 
-  const handleQuickStatus = (
+  const handleQuickStatus = async (
     e: MouseEvent,
     student: Student,
     classItem: ClassItem,
     status: 'present' | 'absent'
   ) => {
     e.stopPropagation();
-    if (!persistAttendance(student, classItem, status)) return;
+    if (!(await persistAttendance(student, classItem, status))) return;
     showToast(
       status === 'absent'
         ? `${student.name} 학생 결석 처리되었습니다.`
@@ -204,7 +197,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
     return { songSuggestions, homeworkHint, inProgressSong };
   }, [target, lessons, refreshKey]);
 
-  const handleSave = (form: LessonSessionForm) => {
+  const handleSave = async (form: LessonSessionForm) => {
     if (!target) return;
     const { student, classItem } = target;
 
@@ -213,7 +206,7 @@ export const TodayLessonView: FC<{ compactHeader?: boolean; embedded?: boolean }
       return;
     }
 
-    if (!persistAttendance(student, classItem, form.status, form.memo)) return;
+    if (!(await persistAttendance(student, classItem, form.status, form.memo))) return;
 
     if (form.status !== 'absent') {
       const existingLesson = findLesson(student.id, classItem.id);

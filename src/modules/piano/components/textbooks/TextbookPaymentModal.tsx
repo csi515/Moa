@@ -4,6 +4,7 @@ import { StorageService } from '@/services/storage';
 import { useApp } from '@/context/AppContext';
 import { X, CreditCard, CheckCircle2, Calculator, ArrowRight, FileText } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 
 interface TextbookPaymentModalProps {
   sale: TextbookSale;
@@ -19,7 +20,7 @@ export const TextbookPaymentModal: React.FC<TextbookPaymentModalProps> = ({
   const { showToast } = useApp();
   const [payAmount, setPayAmount] = useState<number>(sale.unpaidAmount);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('card');
-  const [paymentDate, setPaymentDate] = useState(new Date().toISOString().slice(0, 10));
+  const [paymentDate, setPaymentDate] = useState(todayIsoLocal);
   const [memo, setMemo] = useState('');
 
   const validAmount = Math.min(sale.unpaidAmount, Math.max(0, payAmount));

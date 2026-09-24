@@ -15,6 +15,7 @@ import {
 import { sumRemainingSessions } from '@/core/schedules/sessionPassUtils';
 import { sessionPassService } from '@/core/schedules/sessionPassService';
 import { updateBookingStatusAtomic } from '@/core/schedules/bookingPassAtomic';
+import { cancelBookingAsParent } from '@/core/schedules/parentBookingCancel';
 
 /**
  * 예약·수업 종류·이용권 Domain Service.
@@ -54,6 +55,14 @@ export const ScheduleService = {
     options?: { consumeOnNoShow?: boolean }
   ): Promise<Booking | null> {
     return updateBookingStatusAtomic(id, status, options);
+  },
+
+  /**
+   * 부모 포털 전용 예약 취소.
+   * staff RPC를 열지 않고 core.cancel_booking_as_parent만 호출한다.
+   */
+  async cancelBookingAsParent(id: string): Promise<Booking | null> {
+    return cancelBookingAsParent(id);
   },
 
   deleteBooking(id: string): boolean {

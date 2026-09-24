@@ -6,6 +6,7 @@ import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import type { Student } from '@/types';
 import { usePianoExpectedDay } from './usePianoExpectedDay';
 import {
+  DAY_ATTENDANCE_CLASS_ID,
   DAY_ATTENDANCE_CLASS_NAME,
   STATUS_META,
   countDayStatuses,
@@ -119,13 +120,13 @@ export function usePianoAttendanceView() {
     return { ...counted, expected: expected.length };
   }, [roster, expected.length, dayRecordMap, pinCheckInIds]);
 
-  const persistStatus = (
+  const persistStatus = async (
     student: Student,
     status: Exclude<DayStatus, 'unchecked'>,
     memo?: string
   ) => {
     const existing = dayRecordMap.get(student.id);
-    const result = persistDayAttendance({
+    const result = await persistDayAttendance({
       student,
       date: selectedDate,
       status,
@@ -144,8 +145,10 @@ export function usePianoAttendanceView() {
         studentName: student.name,
         parentPhone: student.parentPhone,
         className: DAY_ATTENDANCE_CLASS_NAME,
+        classId: DAY_ATTENDANCE_CLASS_ID,
         date: selectedDate,
         reason: memo?.trim() || undefined,
+        previousStatus: existing?.status,
       });
     }
 
@@ -153,20 +156,20 @@ export function usePianoAttendanceView() {
     return true;
   };
 
-  const handleSetStatus = (student: Student, status: Exclude<DayStatus, 'unchecked'>) => {
+  const handleSetStatus = async (student: Student, status: Exclude<DayStatus, 'unchecked'>) => {
     if (status === 'absent') {
       setAbsentTarget(student);
       return;
     }
-    if (!persistStatus(student, status)) return;
+    if (!(await persistStatus(student, status))) return;
     showToast(`${student.name} 학생 ${STATUS_META[status].label} 처리되었습니다.`, 'success');
   };
 
-  const handleAbsentConfirm = (reason: string) => {
+  const handleAbsentConfirm = async (reason: string) => {
     if (!absentTarget) return;
     const student = absentTarget;
     setAbsentTarget(null);
-    if (!persistStatus(student, 'absent', reason)) return;
+    if (!(await persistStatus(student, 'absent', reason))) return;
     showToast(`${student.name} 학생 결석 처리되었습니다.`, 'success');
     openConfirmDialog({
       title: '보강 일정',

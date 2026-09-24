@@ -18,6 +18,7 @@ import {
 import { CreditCard, Plus, Clock, Send } from 'lucide-react';
 import { PageHeader } from '@/shared/components';
 import { CombinedPaymentModal } from './CombinedPaymentModal';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import { TuitionSummaryCards } from './TuitionSummaryCards';
 import { TuitionFilterBar } from './TuitionFilterBar';
 import { TuitionCombinedBillingView } from './TuitionCombinedBillingView';
@@ -54,7 +55,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const [payAmount, setPayAmount] = useState(0);
   const [payMethod, setPayMethod] = useState<PaymentMethod>('onsite_card');
   const [payMemo, setPayMemo] = useState('');
-  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(todayIsoLocal);
   const [cashReceiptIssued, setCashReceiptIssued] = useState(false);
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
   const [isBulkSendOpen, setIsBulkSendOpen] = useState(false);
@@ -130,8 +131,8 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     return { totalBilled, totalPaid, totalUnpaid, collectionRate, unpaidCount, totalCount: monthInvoices.length };
   }, [invoices, selectedMonth]);
 
-  const handleBatchGenerate = () => {
-    const count = TuitionService.generateMonthlyInvoicesForAllActive(selectedMonth);
+  const handleBatchGenerate = async () => {
+    const count = await TuitionService.generateMonthlyInvoicesForAllActive(selectedMonth);
     if (count === 0) {
       showToast(`${formatYearMonthLabel(selectedMonth)} 청구서가 이미 모든 재원 ${customerLabel}에게 발행되어 있습니다.`, 'info');
     } else {
@@ -147,11 +148,11 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     setPayAmount(inv.unpaidAmount);
     setPayMethod('onsite_card');
     setPayMemo('');
-    setPayDate(new Date().toISOString().slice(0, 10));
+    setPayDate(todayIsoLocal());
     setCashReceiptIssued(false);
   };
 
-  const handleProcessPayment = (e: React.FormEvent) => {
+  const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!payModalInvoice) return;
 
@@ -164,22 +165,26 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       return;
     }
 
-    const updated = TuitionService.recordPayment(
-      payModalInvoice.id,
-      payAmount,
-      payMethod,
-      payMemo,
-      payDate,
-      { cashReceiptIssued }
-    );
-    if (!updated) {
-      showToast('수납 처리에 실패했습니다.', 'error');
-      return;
-    }
+    try {
+      const updated = await TuitionService.recordPayment(
+        payModalInvoice.id,
+        payAmount,
+        payMethod,
+        payMemo,
+        payDate,
+        { cashReceiptIssued }
+      );
+      if (!updated) {
+        showToast('수납 처리에 실패했습니다.', 'error');
+        return;
+      }
 
-    showToast(`${payModalInvoice.studentName} ${customerLabel} ${formatCurrency(payAmount)} 수납 완료`, 'success');
-    setPayModalInvoice(null);
-    setReceiptInvoice(updated);
+      showToast(`${payModalInvoice.studentName} ${customerLabel} ${formatCurrency(payAmount)} 수납 완료`, 'success');
+      setPayModalInvoice(null);
+      setReceiptInvoice(updated);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '수납 처리에 실패했습니다.', 'error');
+    }
   };
 
   const handleSendInvoice = (inv: TuitionInvoice) => {

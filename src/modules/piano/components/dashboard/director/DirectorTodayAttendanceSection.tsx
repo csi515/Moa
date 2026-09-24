@@ -53,10 +53,10 @@ export const DirectorTodayAttendanceSection: FC<DirectorTodayAttendanceSectionPr
   );
 
   const markPresent = useCallback(
-    (student: Student) => {
+    async (student: Student) => {
       setBusyId(student.id);
       try {
-        const result = markDayPresent({
+        const result = await markDayPresent({
           student,
           date: today,
           createdBy: currentUser.name,

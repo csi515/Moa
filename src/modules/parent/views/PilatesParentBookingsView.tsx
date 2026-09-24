@@ -6,16 +6,13 @@ import { useApp } from '@/context/AppContext';
 import type { Student } from '@/types';
 import type { Booking } from '@/core/types/schedule';
 import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
+import { canCancelBookingAsParent } from '@/core/schedules/parentBookingCancelPolicy';
 import { EmptyState } from '@/shared/components';
 import { getPassRemaining, isPassUsable } from '@/core/schedules/sessionPassUtils';
 import { SkinBookingRequestForm } from './SkinBookingRequestForm';
 
 function canCancelRequest(booking: Booking, now: string): boolean {
-  return (
-    booking.requestedBy === 'customer' &&
-    booking.status === 'scheduled' &&
-    booking.startsAt >= now
-  );
+  return canCancelBookingAsParent(booking, now);
 }
 
 function formatWhen(iso: string): string {
@@ -152,7 +149,7 @@ export const PilatesParentBookingsView: React.FC<{
                   onClick={() => {
                     void (async () => {
                       try {
-                        await ScheduleService.updateBookingStatus(b.id, 'cancelled');
+                        await ScheduleService.cancelBookingAsParent(b.id);
                         showToast('예약 신청을 취소했습니다.', 'info');
                       } catch (err) {
                         showToast(

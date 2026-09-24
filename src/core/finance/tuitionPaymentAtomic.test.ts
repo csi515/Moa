@@ -1,0 +1,83 @@
+/**
+ * 수강료 수납·월 청구 원자 경로 계약/동시성.
+ * 실행: npm run test:tuition-payment-atomic
+ */
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { modelSerializedTuitionPayments } from './tuitionPaymentPlan';
+
+function run() {
+  // 같은 청구서 동시 부분 수납
+  {
+    const r = modelSerializedTuitionPayments({ billed: 100000, paid: 0, requests: [40000, 40000] });
+    assert.equal(r.paid, 80000);
+    assert.deepEqual(r.applied, [40000, 40000]);
+  }
+
+  // 잔액보다 큰 금액 동시 요청 — billed 초과 없음
+  {
+    const r = modelSerializedTuitionPayments({ billed: 100000, paid: 0, requests: [80000, 80000] });
+    assert.equal(r.paid, 100000);
+    assert.deepEqual(r.applied, [80000, 20000]);
+  }
+
+  // 완납 직후 재수납
+  {
+    const r = modelSerializedTuitionPayments({ billed: 100000, paid: 100000, requests: [10000] });
+    assert.equal(r.paid, 100000);
+    assert.deepEqual(r.applied, [0]);
+  }
+
+  // 동일 요청 재시도 — 두 번째 apply 0 (이미 반영된 잔액)
+  {
+    const first = modelSerializedTuitionPayments({ billed: 50000, paid: 0, requests: [50000] });
+    const retry = modelSerializedTuitionPayments({
+      billed: 50000,
+      paid: first.paid,
+      requests: [50000],
+    });
+    assert.equal(first.applied[0], 50000);
+    assert.equal(retry.applied[0], 0);
+  }
+
+  // 다른 학생은 독립
+  {
+    const a = modelSerializedTuitionPayments({ billed: 30000, paid: 0, requests: [10000] });
+    const b = modelSerializedTuitionPayments({ billed: 40000, paid: 0, requests: [10000] });
+    assert.equal(a.paid, 10000);
+    assert.equal(b.paid, 10000);
+  }
+
+  const here = dirname(fileURLToPath(import.meta.url));
+  const sql = readFileSync(
+    join(here, '../../../supabase/migrations/20260924130000_tuition_textbook_payment_atomic.sql'),
+    'utf8'
+  );
+  assert.match(sql, /core\.record_tuition_payment/);
+  assert.match(sql, /core\.ensure_monthly_tuition_invoice/);
+  assert.match(sql, /FOR UPDATE/);
+  assert.match(sql, /idempotency_key/);
+  assert.match(sql, /uq_core_payments_org_customer_year_month/);
+  assert.match(sql, /uq_payment_tx_org_receipt/);
+  assert.match(sql, /paid_amount <= billed_amount/);
+  assert.match(sql, /is_org_staff_actor/);
+  assert.match(sql, /Organization mismatch/);
+  assert.match(sql, /Invoice already paid/);
+  assert.match(sql, /unique_violation/);
+  assert.match(sql, /REVOKE ALL[\s\S]*record_tuition_payment[\s\S]*anon/);
+
+  const client = readFileSync(join(here, 'tuitionPaymentAtomic.ts'), 'utf8');
+  assert.match(client, /record_tuition_payment/);
+  assert.match(client, /writeLocalMirror/);
+  assert.equal(client.includes('upsertThenDiffDelete'), false);
+
+  const tuitionService = readFileSync(join(here, 'services/tuitionService.ts'), 'utf8');
+  assert.match(tuitionService, /recordTuitionPaymentAtomic/);
+  assert.match(tuitionService, /ensureMonthlyTuitionInvoiceAtomic/);
+
+  console.log('tuitionPaymentAtomic.test.ts: ok');
+}
+
+run();

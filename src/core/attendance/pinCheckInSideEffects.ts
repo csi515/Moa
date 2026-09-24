@@ -2,7 +2,9 @@
  * PIN 체크인 성공 후 업종별 부가 동기화.
  * Core 키오스크가 Module을 import하지 않도록 등록식으로 연결한다.
  */
-export type PinCheckInSideEffect = (customerId: string) => { warning?: string } | void;
+export type PinCheckInSideEffect = (
+  customerId: string
+) => { warning?: string } | void | Promise<{ warning?: string } | void>;
 
 const sideEffects: PinCheckInSideEffect[] = [];
 
@@ -14,9 +16,9 @@ export function registerPinCheckInSideEffect(effect: PinCheckInSideEffect): () =
   };
 }
 
-export function runPinCheckInSideEffects(customerId: string): { warning?: string } {
+export async function runPinCheckInSideEffects(customerId: string): Promise<{ warning?: string }> {
   for (const effect of sideEffects) {
-    const result = effect(customerId);
+    const result = await effect(customerId);
     if (result && result.warning) return { warning: result.warning };
   }
   return {};
