@@ -36,6 +36,12 @@ export interface IStorageAdapter {
 
   /** 지정 키의 debounce persist를 즉시 실행. false면 원격 반영 실패(또는 abort) → outbox */
   flushPersist?(keys: StorageKey[]): Promise<boolean>;
+
+  /**
+   * cache + localStorage만 갱신. persist / diff-delete를 예약하지 않음.
+   * RPC 후 해당 row mirror 전용 — 전체 snapshot sync 경로가 아님.
+   */
+  writeLocalMirror?<T>(key: StorageKey, value: T): void;
 }
 
 /** Supabase staff ↔ Teacher 매핑용 metadata */

@@ -1,6 +1,7 @@
 /**
  * 예약 상태 + 이용권 차감/복구 원자 클라이언트.
- * DB: core.update_booking_status_with_pass
+ * DB: core.update_booking_status_with_pass 가 source of truth.
+ * 온라인 경로에서 SCHEDULES/SESSION_PASSES 전체 snapshot flush·diff-delete 금지.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
 import { getOrganizationId, getStorageAdapter, STORAGE_KEYS } from '@/services/adapters';
@@ -9,27 +10,12 @@ import type { Booking, BookingStatus, SessionPass } from '@/core/types/schedule'
 import { StorageService } from '@/services/storage';
 import { sessionPassService } from './sessionPassService';
 import { planBookingPassTransition } from './bookingStatusTransition';
-import { mapBookingPassRpcError } from './mapBookingPassRpcError';
 import { rowToSessionPass } from '@/services/adapters/sync/sessionPassMappers';
-
-function applyRpcResultToLocalMirror(
-  existing: Booking,
-  payload: {
-    status: BookingStatus;
-    session_pass_id?: string | null;
-  }
-): Booking {
-  const sessionPassId =
-    payload.session_pass_id == null || payload.session_pass_id === ''
-      ? undefined
-      : String(payload.session_pass_id);
-
-  return StorageService.saveBooking({
-    ...existing,
-    status: payload.status,
-    sessionPassId,
-  });
-}
+import {
+  mergeSessionPasses,
+  patchBookingInList,
+  runOnlineBookingPassUpdate,
+} from './bookingPassAtomicMirror';
 
 /** demo/offline: 이용권 스냅샷 롤백으로 best-effort 원자성 */
 function updateBookingStatusLocally(
@@ -66,25 +52,51 @@ function updateBookingStatusLocally(
   }
 }
 
-async function refreshSessionPassMirror(orgId: string): Promise<void> {
+function writeBookingMirror(
+  existing: Booking,
+  payload: { status: BookingStatus; session_pass_id?: string | null }
+): Booking {
+  const adapter = getStorageAdapter();
+  const list = adapter.getItem<Booking[]>(STORAGE_KEYS.SCHEDULES, []);
+  const { list: next, booking } = patchBookingInList(list, existing, payload);
+  if (adapter.writeLocalMirror) {
+    adapter.writeLocalMirror(STORAGE_KEYS.SCHEDULES, next);
+  }
+  return booking;
+}
+
+/** 해당 이용권만 SELECT 후 mirror. org 전체 목록 persist 없음 */
+async function refreshAffectedPassMirror(
+  orgId: string,
+  passIds: string[]
+): Promise<void> {
+  if (passIds.length === 0) return;
   try {
     const client = getCoreClient();
+    const adapter = getStorageAdapter();
     const { data: passRows, error } = await client
       .from('session_passes' as never)
       .select('*')
-      .eq('organization_id', orgId);
+      .eq('organization_id', orgId)
+      .in('id', passIds);
     if (error || !Array.isArray(passRows)) return;
-    const passes: SessionPass[] = passRows.map((row) =>
+    const incoming: SessionPass[] = passRows.map((row) =>
       rowToSessionPass(row as Parameters<typeof rowToSessionPass>[0])
     );
-    setItem(STORAGE_KEYS.SESSION_PASSES, passes);
+    const current = adapter.getItem<SessionPass[]>(STORAGE_KEYS.SESSION_PASSES, []);
+    if (adapter.writeLocalMirror) {
+      adapter.writeLocalMirror(
+        STORAGE_KEYS.SESSION_PASSES,
+        mergeSessionPasses(current, incoming)
+      );
+    }
   } catch {
     /* mirror refresh best-effort */
   }
 }
 
 /**
- * 운영(Supabase+org): flush → RPC → local mirror.
+ * 운영(Supabase+org): RPC → 해당 booking/pass local mirror.
  * demo: local fallback (동일 규칙).
  */
 export async function updateBookingStatusAtomic(
@@ -102,46 +114,28 @@ export async function updateBookingStatusAtomic(
     return updateBookingStatusLocally(existing, status, options);
   }
 
-  const adapter = getStorageAdapter();
-  if (adapter.flushPersist) {
-    const flushed = await adapter.flushPersist([
-      STORAGE_KEYS.SCHEDULES,
-      STORAGE_KEYS.SESSION_PASSES,
-    ]);
-    if (!flushed) {
-      throw new Error('예약·이용권 원격 동기화에 실패했습니다. 잠시 후 다시 시도해 주세요.');
-    }
-  }
-
-  const client = getCoreClient();
-  const { data, error } = await client.rpc(
-    'update_booking_status_with_pass' as never,
-    {
-      p_organization_id: orgId,
-      p_booking_id: bookingId,
-      p_new_status: status,
-      p_consume_on_no_show: options?.consumeOnNoShow === true,
-    } as never
-  );
-
-  if (error) {
-    const mapped = mapBookingPassRpcError(error);
-    if (mapped.code === 'insufficient_pass' || mapped.code === 'not_found') {
-      return null;
-    }
-    throw new Error(mapped.message);
-  }
-
-  const payload = data as {
-    action: string;
-    status: BookingStatus;
-    session_pass_id?: string | null;
-  };
-
-  await refreshSessionPassMirror(orgId!);
-
-  return applyRpcResultToLocalMirror(existing, {
-    status: payload.status || status,
-    session_pass_id: payload.session_pass_id,
+  return runOnlineBookingPassUpdate(existing, status, {
+    rpc: async () => {
+      const client = getCoreClient();
+      const { data, error } = await client.rpc(
+        'update_booking_status_with_pass' as never,
+        {
+          p_organization_id: orgId,
+          p_booking_id: bookingId,
+          p_new_status: status,
+          p_consume_on_no_show: options?.consumeOnNoShow === true,
+        } as never
+      );
+      return {
+        data: data as {
+          action?: string;
+          status: BookingStatus;
+          session_pass_id?: string | null;
+        } | null,
+        error,
+      };
+    },
+    writeBookingMirror: (payload) => writeBookingMirror(existing, payload),
+    refreshPassMirror: (passIds) => refreshAffectedPassMirror(orgId!, passIds),
   });
 }

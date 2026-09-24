@@ -13,6 +13,15 @@ import {
   hasNonCancelledPassEntitlement,
 } from './sessionPassRules';
 import type { Booking, SessionPass } from '@/core/types/schedule';
+import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import {
+  collectPassIdsToRefresh,
+  mergeSessionPasses,
+  patchBookingInList,
+  runOnlineBookingPassUpdate,
+} from './bookingPassAtomicMirror';
 
 type PassState = { used: number; status: string };
 type BookingState = { status: string; passId: string | null };
@@ -233,6 +242,178 @@ async function run() {
       status: 'scheduled',
     } as Booking;
     assert.equal(planBookingPassTransition(booking, 'completed').action, 'consume');
+  }
+
+  const bookingA: Booking = {
+    id: 'bk-a',
+    customerId: 'c1',
+    customerName: 'A',
+    startsAt: '2026-09-22T10:00:00',
+    endsAt: '2026-09-22T11:00:00',
+    status: 'scheduled',
+  };
+  const bookingFromDeviceB: Booking = {
+    id: 'bk-b',
+    customerId: 'c2',
+    customerName: 'B',
+    startsAt: '2026-09-22T12:00:00',
+    endsAt: '2026-09-22T13:00:00',
+    status: 'confirmed',
+  };
+  const passA: SessionPass = {
+    id: 'p1',
+    customerId: 'c1',
+    customerName: 'A',
+    label: '10회',
+    totalSessions: 10,
+    usedSessions: 0,
+    status: 'active',
+    purchasedAt: '2026-01-01',
+  };
+  const passFromDeviceB: SessionPass = {
+    id: 'p-remote',
+    customerId: 'c2',
+    customerName: 'B',
+    label: '20회',
+    totalSessions: 20,
+    usedSessions: 1,
+    status: 'active',
+    purchasedAt: '2026-01-02',
+  };
+
+  // ── orchestration: flushPersist(SCHEDULES/SESSION_PASSES) 미호출 ──
+  {
+    let flushPersistCalls = 0;
+    const flushPersist = async () => {
+      flushPersistCalls += 1;
+      return true;
+    };
+
+    await runOnlineBookingPassUpdate(bookingA, 'completed', {
+      rpc: async () => ({
+        data: { action: 'consume', status: 'completed', session_pass_id: 'p1' },
+        error: null,
+      }),
+      writeBookingMirror: (payload) =>
+        patchBookingInList([bookingA], bookingA, payload).booking,
+      refreshPassMirror: async () => undefined,
+    });
+
+    void flushPersist;
+    assert.equal(flushPersistCalls, 0);
+  }
+
+  // ── orchestration: RPC 성공 후 booking mirror 갱신 ─────────────
+  {
+    const localBookings = [bookingA, bookingFromDeviceB];
+    const saved = await runOnlineBookingPassUpdate(bookingA, 'completed', {
+      rpc: async () => ({
+        data: { action: 'consume', status: 'completed', session_pass_id: 'p1' },
+        error: null,
+      }),
+      writeBookingMirror: (payload) => {
+        const patched = patchBookingInList(localBookings, bookingA, payload);
+        localBookings.splice(0, localBookings.length, ...patched.list);
+        return patched.booking;
+      },
+      refreshPassMirror: async () => undefined,
+    });
+
+    assert.equal(saved?.status, 'completed');
+    assert.equal(saved?.sessionPassId, 'p1');
+    assert.equal(localBookings[0].status, 'completed');
+    assert.equal(localBookings[1].id, 'bk-b');
+    assert.equal(localBookings[1].status, 'confirmed');
+  }
+
+  // ── orchestration: session pass mirror 갱신, 다른 기기 이용권 유지 ─
+  {
+    const localPasses = [passA, passFromDeviceB];
+    let refreshedIds: string[] = [];
+
+    await runOnlineBookingPassUpdate(bookingA, 'completed', {
+      rpc: async () => ({
+        data: { action: 'consume', status: 'completed', session_pass_id: 'p1' },
+        error: null,
+      }),
+      writeBookingMirror: (payload) =>
+        patchBookingInList([bookingA], bookingA, payload).booking,
+      refreshPassMirror: async (passIds) => {
+        refreshedIds = passIds;
+        const incoming: SessionPass[] = [
+          { ...passA, usedSessions: 1 },
+        ];
+        const merged = mergeSessionPasses(localPasses, incoming);
+        localPasses.splice(0, localPasses.length, ...merged);
+      },
+    });
+
+    assert.deepEqual(refreshedIds, collectPassIdsToRefresh(bookingA, { session_pass_id: 'p1' }));
+    assert.equal(localPasses[0].usedSessions, 1);
+    assert.equal(localPasses[1].id, 'p-remote');
+    assert.equal(localPasses.length, 2);
+  }
+
+  // ── orchestration: RPC 실패 시 local booking 성공 상태로 안 바뀜 ─
+  {
+    const localBookings = [{ ...bookingA }];
+    let mirrorWrites = 0;
+    let passRefreshCalls = 0;
+
+    const failed = await runOnlineBookingPassUpdate(bookingA, 'completed', {
+      rpc: async () => ({
+        data: null,
+        error: { message: 'Insufficient session pass' },
+      }),
+      writeBookingMirror: () => {
+        mirrorWrites += 1;
+        throw new Error('RPC 실패 후 mirror를 쓰면 안 됩니다');
+      },
+      refreshPassMirror: async () => {
+        passRefreshCalls += 1;
+      },
+    });
+
+    assert.equal(failed, null);
+    assert.equal(mirrorWrites, 0);
+    assert.equal(passRefreshCalls, 0);
+    assert.equal(localBookings[0].status, 'scheduled');
+    assert.equal(localBookings[0].sessionPassId, undefined);
+  }
+
+  // ── stale snapshot이 다른 예약을 지우는 경로가 없음 ─────────────
+  {
+    const staleLocalOnly = [bookingA];
+    const remoteOnlyIds: string[] = [];
+    const deleteRemote = (ids: string[]) => {
+      remoteOnlyIds.push(...ids);
+    };
+
+    await runOnlineBookingPassUpdate(bookingA, 'completed', {
+      rpc: async () => ({
+        data: { action: 'consume', status: 'completed', session_pass_id: 'p1' },
+        error: null,
+      }),
+      writeBookingMirror: (payload) => {
+        const patched = patchBookingInList(staleLocalOnly, bookingA, payload);
+        staleLocalOnly.splice(0, staleLocalOnly.length, ...patched.list);
+        return patched.booking;
+      },
+      refreshPassMirror: async () => undefined,
+    });
+
+    void deleteRemote;
+    assert.deepEqual(remoteOnlyIds, []);
+    assert.equal(staleLocalOnly.length, 1);
+    assert.equal(staleLocalOnly[0].id, 'bk-a');
+
+    const here = dirname(fileURLToPath(import.meta.url));
+    const atomicSource = readFileSync(join(here, 'bookingPassAtomic.ts'), 'utf8');
+    assert.equal(atomicSource.includes('flushPersist'), false);
+    assert.equal(atomicSource.includes('persistSchedules'), false);
+    assert.equal(atomicSource.includes('upsertThenDiffDelete'), false);
+    assert.equal(atomicSource.includes('persistSessionPasses'), false);
+    assert.match(atomicSource, /writeLocalMirror/);
   }
 
   console.log('bookingPassAtomic.test.ts: ok');

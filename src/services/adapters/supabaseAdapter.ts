@@ -78,6 +78,20 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.notify(key);
   }
 
+  /**
+   * RPC 후 해당 목록 cache/local만 맞춤.
+   * schedulePersist / flushPersist / upsertThenDiffDelete 를 타지 않는다.
+   */
+  writeLocalMirror<T>(key: StorageKey, value: T): void {
+    if (SUPABASE_SYNC_KEYS.has(key)) {
+      this.cache.set(key, value);
+      writeLocal(key, value);
+    } else {
+      writeLocal(key, value);
+    }
+    this.notify(key);
+  }
+
   removeItem(key: StorageKey): void {
     if (SUPABASE_SYNC_KEYS.has(key)) {
       this.cache.delete(key);
