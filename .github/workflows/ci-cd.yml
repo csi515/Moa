@@ -101,6 +101,9 @@ jobs:
       - name: Static security — session-pass-org-integrity
         run: npm run test:session-pass-org-integrity
 
+      - name: Static security — booking-pass-atomic-contract
+        run: npm run test:booking-pass-atomic-contract
+
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 
@@ -280,6 +283,10 @@ jobs:
       - name: RLS org isolation audit
         if: steps.audit_secrets.outputs.has_secrets == 'true'
         run: npm run test:rls-audit
+
+      - name: Atomic booking + session pass DB IT
+        if: steps.audit_secrets.outputs.has_secrets == 'true'
+        run: npm run test:booking-pass-atomic-db
 
       - name: Membership escalation audit
         if: steps.audit_secrets.outputs.has_secrets == 'true'

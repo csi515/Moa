@@ -40,6 +40,8 @@
     "test:session-pass-org-integrity": "tsx scripts/sessionPassOrgIntegrity.test.ts",
     "test:session-pass-org-integrity-db": "tsx scripts/sessionPassOrgIntegrityDb.test.ts",
     "test:booking-pass-atomic": "tsx src/core/schedules/bookingPassAtomic.test.ts",
+    "test:booking-pass-atomic-contract": "tsx scripts/bookingPassAtomicContract.test.ts",
+    "test:booking-pass-atomic-db": "tsx scripts/bookingPassAtomicDb.test.ts",
     "test:booking-query": "tsx src/core/schedules/bookingQuery.test.ts",
     "test:textbook-sale-legacy": "tsx src/modules/piano/services/textbookSaleLegacy.test.ts",
     "test:textbook-sale-compensate": "tsx src/modules/piano/services/textbookSaleService.compensate.test.ts",
@@ -60,7 +62,7 @@
     "test:permissions-invariant": "tsx src/core/auth/permissions.invariant.test.ts",
     "test:org-access-invariant": "tsx src/core/invariants/orgAccess.invariant.test.ts",
     "test:point-balance-invariant": "tsx src/core/invariants/pointBalance.invariant.test.ts",
-    "test:business-invariants": "npm run test:session-pass-booking-rules && npm run test:session-pass-org-integrity && npm run test:booking-pass-atomic && npm run test:create-sale-atomic && npm run test:create-sale-return-atomic && npm run test:stock-movement-atomic && npm run test:sale-return-points && npm run test:point-atomic && npm run test:sale-redeem-consistency && npm run test:point-balance-invariant && npm run test:multi-role-helpers && npm run test:rls-membership-policy && npm run test:permissions-invariant && npm run test:org-access-invariant",
+    "test:business-invariants": "npm run test:session-pass-booking-rules && npm run test:session-pass-org-integrity && npm run test:booking-pass-atomic && npm run test:booking-pass-atomic-contract && npm run test:create-sale-atomic && npm run test:create-sale-return-atomic && npm run test:stock-movement-atomic && npm run test:sale-return-points && npm run test:point-atomic && npm run test:sale-redeem-consistency && npm run test:point-balance-invariant && npm run test:multi-role-helpers && npm run test:rls-membership-policy && npm run test:permissions-invariant && npm run test:org-access-invariant",
     "supabase:types": "echo 'Run Supabase MCP generate_typescript_types and update src/lib/supabase/database.types.ts'"
   },
   "dependencies": {
