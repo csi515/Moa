@@ -1,17 +1,20 @@
 # Moa Academy — CI/CD
-# Node.js 20 · Vite · React · TypeScript · npm
+# Node.js 22 (.nvmrc / package.json engines) · Vite · React · TypeScript · npm
 # 트리거: main push, pull_request
 #
-# Dependency:
+# Dependency (quality 실패 시 하위 job은 skip — 의도):
 #   quality (lint + unit + static security)
 #     ├─ build-e2e
 #     └─ security-db   (ENABLE_SECURITY_AUDIT=true — real RLS/auth DB audits)
 #   deploy ← needs quality + build-e2e + security-db
 #            (main + ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT)
+#            security-db 실패/누락 secret(main) → deploy 차단
 #
 # Security layers:
-#   1) Static (secrets 불필요) — quality job, 실패 시 CI FAIL
+#   1) Static (secrets 불필요) — quality job에서 실제 실행, 실패 시 CI FAIL
 #   2) DB audits (Supabase JWT/시드) — security-db, continue-on-error 없음
+#      PR + secret 없음: 감사 미실행 (job 성공 ≠ DB audit PASS)
+#      main push + secret 없음: security-db FAIL → deploy 불가
 #   3) Production gate — deploy는 security-db success 필수
 #
 # 비밀값은 절대 워크플로우에 하드코딩하지 않습니다.
@@ -33,7 +36,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '20'
+  NODE_VERSION: '22'
 
 jobs:
   # ─────────────────────────────────────────────
@@ -50,7 +53,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install dependencies
@@ -137,7 +140,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install dependencies
@@ -219,7 +222,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install dependencies
@@ -275,10 +278,13 @@ jobs:
           exit 1
 
       - name: Skip DB audits on PR without secrets
-        if: steps.audit_secrets.outputs.has_secrets != 'true'
+        if: >
+          steps.audit_secrets.outputs.has_secrets != 'true' &&
+          !(github.event_name == 'push' && github.ref == 'refs/heads/main')
         run: |
-          echo "DB security audits skipped — secrets not available."
-          echo "Static security already enforced in quality job."
+          echo "DB security audits were not executed (secrets unavailable on this PR)."
+          echo "This job success is not a DB-audit PASS."
+          echo "Static security already ran in quality. main push fails if secrets are missing."
 
       - name: RLS org isolation audit
         if: steps.audit_secrets.outputs.has_secrets == 'true'
@@ -323,7 +329,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: '.nvmrc'
           cache: npm
 
       - name: Install Vercel CLI

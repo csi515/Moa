@@ -5,6 +5,24 @@
 모아(Moa) 프로젝트는 Supabase 백엔드와 Vercel 프론트엔드를 사용합니다.  
 환경 변수는 **절대 Git에 커밋하지 않으며**, 로컬 개발용과 프로덕션용을 분리하여 관리합니다.
 
+## Node.js 버전
+
+로컬과 CI는 **Node.js 22** 이상을 사용한다.
+
+- `.nvmrc` — `22`
+- `package.json` `engines.node` — `>=22`
+- GitHub Actions — `.nvmrc`를 읽어 설치
+
+```bash
+# nvm
+nvm use
+
+# fnm
+fnm use
+```
+
+Node 20에서는 `@supabase/supabase-js` 2.112+ 가 engines 경고를 낸다.
+
 ## 로컬 개발 환경 설정
 
 ### 1단계: `.env.local` 파일 생성
