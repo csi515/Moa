@@ -1666,6 +1666,38 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['authorization_grants']['Insert']>;
         Relationships: [];
       };
+      audit_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          location_id: string | null;
+          actor_user_id: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          before_data: Json | null;
+          after_data: Json | null;
+          request_id: string | null;
+          idempotency_key: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          location_id?: string | null;
+          actor_user_id?: string | null;
+          action: string;
+          entity_type: string;
+          entity_id: string;
+          before_data?: Json | null;
+          after_data?: Json | null;
+          request_id?: string | null;
+          idempotency_key?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['audit_logs']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1745,6 +1777,24 @@ export interface Database {
           p_selected_location_id: string | null;
         };
         Returns: boolean;
+      };
+      sanitize_audit_payload: {
+        Args: { p_entity_type: string; p_data: Json };
+        Returns: Json;
+      };
+      append_audit_log: {
+        Args: {
+          p_organization_id: string;
+          p_entity_type: string;
+          p_entity_id: string;
+          p_action: string;
+          p_location_id?: string | null;
+          p_before_data?: Json | null;
+          p_after_data?: Json | null;
+          p_request_id?: string | null;
+          p_idempotency_key?: string | null;
+        };
+        Returns: string;
       };
       ensure_guest_customer: {
         Args: {
