@@ -75,6 +75,7 @@
     "test:resource-reservation": "tsx src/core/resources/resourceReservation.test.ts",
     "test:resource": "tsx src/core/resources/resourceCapability.test.ts",
     "test:availability": "tsx src/core/availability/availabilityCapability.test.ts",
+    "test:customer-session": "tsx src/core/sessions/sessionCapability.test.ts",
     "test:textbook-sale-db-it": "tsx scripts/textbookSaleDbIntegration.test.ts",
     "test:skin-retail-migrate": "tsx src/modules/skin/services/skinRetailCatalogMigrate.test.ts",
     "test:sale-return-points": "tsx src/core/loyalty/saleReturnPointReverse.test.ts",

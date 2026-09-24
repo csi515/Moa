@@ -1350,6 +1350,50 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['bookable_resources']['Insert']>;
         Relationships: [];
       };
+      customer_sessions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          started_at: string;
+          ended_at: string | null;
+          status: CustomerSessionStatus;
+          source: string;
+          context: string | null;
+          staff_id: string | null;
+          booking_id: string | null;
+          reservation_id: string | null;
+          pass_id: string | null;
+          payment_id: string | null;
+          resource_id: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          started_at?: string;
+          ended_at?: string | null;
+          status?: CustomerSessionStatus;
+          source?: string;
+          context?: string | null;
+          staff_id?: string | null;
+          booking_id?: string | null;
+          reservation_id?: string | null;
+          pass_id?: string | null;
+          payment_id?: string | null;
+          resource_id?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['customer_sessions']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1720,6 +1764,31 @@ export interface Database {
         Args: { p_org_id: string; p_id: string; p_active: boolean };
         Returns: boolean;
       };
+      start_customer_session: {
+        Args: {
+          p_organization_id: string;
+          p_customer_id: string;
+          p_staff_id?: string | null;
+          p_source?: string | null;
+          p_context?: string | null;
+          p_booking_id?: string | null;
+          p_reservation_id?: string | null;
+          p_pass_id?: string | null;
+          p_payment_id?: string | null;
+          p_resource_id?: string | null;
+          p_memo?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      finish_customer_session: {
+        Args: { p_organization_id: string; p_session_id: string };
+        Returns: Json;
+      };
+      cancel_customer_session: {
+        Args: { p_organization_id: string; p_session_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       member_role: MemberRole;
@@ -1732,6 +1801,7 @@ export interface Database {
       notification_status: NotificationStatus;
       notification_channel: NotificationChannel;
       stock_movement_type: 'inbound' | 'sale' | 'return' | 'adjustment';
+      customer_session_status: CustomerSessionStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -2759,6 +2829,7 @@ export interface Database {
   };
 }
 
+export type CustomerSessionStatus = 'active' | 'completed' | 'cancelled';
 export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
 export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
