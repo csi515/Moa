@@ -124,6 +124,7 @@ export async function listResourceReservationRows(
     .limit(query.limit ?? 200);
 
   if (query.customerId) builder = builder.eq('customer_id', query.customerId);
+  if (query.resourceId) builder = builder.eq('room_id', query.resourceId);
   if (query.fromIso) builder = builder.gte('starts_at', query.fromIso);
   if (query.toIso) builder = builder.lte('starts_at', query.toIso);
   if (Array.isArray(query.status)) builder = builder.in('status', query.status);

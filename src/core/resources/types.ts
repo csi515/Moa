@@ -100,6 +100,7 @@ export type RequestResourceReservationInput = {
 export type ListResourceReservationsQuery = {
   organizationId: string;
   customerId?: string;
+  resourceId?: string;
   status?: ResourceReservationStatus | ResourceReservationStatus[];
   fromIso?: string;
   toIso?: string;

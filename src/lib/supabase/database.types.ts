@@ -2417,6 +2417,50 @@ export interface Database {
         Update: Partial<Database['bath']['Tables']['visits']['Insert']>;
         Relationships: [];
       };
+      rooms: {
+        Row: {
+          id: string;
+          organization_id: string;
+          resource_id: string;
+          room_number: string;
+          name: string;
+          room_type: BathRoomType;
+          floor_type: BathFloorType;
+          capacity: number;
+          bathtub_count: number;
+          has_scrub_station: boolean;
+          has_shower: boolean;
+          has_toilet: boolean;
+          base_price: number;
+          active: boolean;
+          sort_order: number;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          resource_id: string;
+          room_number: string;
+          name: string;
+          room_type: BathRoomType;
+          floor_type: BathFloorType;
+          capacity: number;
+          bathtub_count?: number;
+          has_scrub_station?: boolean;
+          has_shower?: boolean;
+          has_toilet?: boolean;
+          base_price?: number;
+          active?: boolean;
+          sort_order?: number;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['rooms']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2442,15 +2486,47 @@ export interface Database {
         Args: { p_organization_id: string; p_visit_id: string };
         Returns: Json;
       };
+      upsert_room: {
+        Args: {
+          p_organization_id: string;
+          p_room_number: string;
+          p_name: string;
+          p_room_type: BathRoomType;
+          p_floor_type: BathFloorType;
+          p_capacity: number;
+          p_id?: string | null;
+          p_bathtub_count?: number;
+          p_has_scrub_station?: boolean;
+          p_has_shower?: boolean;
+          p_has_toilet?: boolean;
+          p_base_price?: number;
+          p_active?: boolean;
+          p_sort_order?: number;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      set_room_active: {
+        Args: { p_organization_id: string; p_room_id: string; p_active: boolean };
+        Returns: Json;
+      };
+      delete_room: {
+        Args: { p_organization_id: string; p_room_id: string };
+        Returns: Json;
+      };
     };
     Enums: {
       visit_status: BathVisitStatus;
+      room_type: BathRoomType;
+      floor_type: BathFloorType;
     };
     CompositeTypes: Record<string, never>;
   };
 }
 
 export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
+export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
+export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
 export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'make_up';
 export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
 export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';

@@ -69,6 +69,7 @@
     "test:pending-mutations": "tsx src/services/adapters/pendingMutations.test.ts",
     "test:hydrate-modules": "tsx src/services/adapters/hydrateModules.test.ts",
     "test:bath-visit": "tsx src/modules/bath/services/visitTransition.test.ts",
+    "test:bath-room": "tsx src/modules/bath/services/roomDomain.test.ts",
     "test:resource-reservation": "tsx src/core/resources/resourceReservation.test.ts",
     "test:textbook-sale-db-it": "tsx scripts/textbookSaleDbIntegration.test.ts",
     "test:skin-retail-migrate": "tsx src/modules/skin/services/skinRetailCatalogMigrate.test.ts",

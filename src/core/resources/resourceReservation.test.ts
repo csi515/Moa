@@ -109,7 +109,7 @@ function run() {
 
   const bathDir = join(root, 'src/modules/bath');
   const bathFiles = readdirSync(bathDir, { recursive: true })
-    .filter((name) => typeof name === 'string' && /\.(ts|tsx)$/.test(name))
+    .filter((name) => typeof name === 'string' && /\.(ts|tsx)$/.test(name) && !/\.test\./.test(name))
     .map((name) => readSrc(`src/modules/bath/${String(name).replace(/\\/g, '/')}`))
     .join('\n');
   assert.doesNotMatch(bathFiles, /EXCLUDE USING gist/);
