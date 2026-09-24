@@ -1,27 +1,27 @@
-import { saleService as coreSaleService } from '@/core/sales';
+import { saleService as commerceSaleService } from '@/core/commerce/sale';
+import type { SaleCreateInput, SaleWithItems } from '@/core/commerce/sale';
+import type { StockShortfall } from '@/core/commerce/inventory';
 import { pointEarnService } from '@/core/loyalty/pointEarnService';
-import type { SaleCreateInput, SaleWithItems } from '../types/sale';
-import type { StockShortfall } from '../types/inventory';
 
 /**
- * Retail 판매 서비스.
- * 상품·재고·판매·포인트 사용(redeem)은 Core create_sale 원자 RPC.
- * 적립(earn)은 판매 확정 후 best-effort (실패해도 판매·redeem 일관 유지).
+ * Retail 판매 facade.
+ * 상품·재고·판매·포인트 사용(redeem)은 Commerce → create_sale 원자 RPC.
+ * 적립(earn)만 Retail 후처리 (실패해도 판매·redeem 일관 유지).
  */
 export const saleService = {
-  listCatalog: coreSaleService.listCatalog.bind(coreSaleService),
+  listCatalog: commerceSaleService.listCatalog.bind(commerceSaleService),
 
   checkStockShortfalls(
     organizationId: string,
     items: SaleCreateInput['items']
   ): Promise<StockShortfall[]> {
-    return coreSaleService.checkStockShortfalls(organizationId, items);
+    return commerceSaleService.checkStockShortfalls(organizationId, items);
   },
 
   async createSale(input: SaleCreateInput): Promise<SaleWithItems> {
     // points_used > 0 이면 create_sale 내부에서 redeem까지 원자 처리
     // (부족/비활성 시 판매·재고 전체 rollback)
-    const sale = await coreSaleService.createSale(input);
+    const sale = await commerceSaleService.createSale(input);
 
     const eligibleEarnAmount = Math.max(0, sale.totalAmount - sale.pointsUsed);
     try {

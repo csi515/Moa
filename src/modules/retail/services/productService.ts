@@ -1,2 +1,2 @@
-/** Retail 상품 서비스 — Core productService 위임 */
-export { productService } from '@/core/product';
+/** Retail 상품 — Commerce Product facade */
+export { productService } from '@/core/commerce/product';

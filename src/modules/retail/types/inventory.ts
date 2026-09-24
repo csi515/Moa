@@ -11,14 +11,14 @@ export type {
   StockMovement,
   StockMovementType,
   StockShortfall,
-} from '@/core/inventory';
+} from '@/core/commerce/inventory';
 export {
   INVENTORY_LOW_STOCK_THRESHOLD,
   STOCK_ADJUSTMENT_REASONS,
   STOCK_MOVEMENT_TYPES,
   STOCK_MOVEMENT_TYPE_LABELS,
-} from '@/core/inventory';
-import { STOCK_ADJUSTMENT_REASONS } from '@/core/inventory';
+} from '@/core/commerce/inventory';
+import { STOCK_ADJUSTMENT_REASONS } from '@/core/commerce/inventory';
 
 export type InventoryStockFilter = 'ALL' | 'LOW' | 'OUT';
 

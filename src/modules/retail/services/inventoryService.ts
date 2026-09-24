@@ -1,2 +1,2 @@
-/** Retail 재고 서비스 — Core inventoryService 위임 */
-export { inventoryService } from '@/core/inventory';
+/** Retail 재고 — Commerce Inventory facade */
+export { inventoryService } from '@/core/commerce/inventory';

@@ -1,22 +1,22 @@
-import { saleReturnService as coreSaleReturnService } from '@/core/sales';
-import type { SaleReturnCreateInput, SaleReturnWithItems } from '@/core/sales';
+import { saleReturnService as commerceSaleReturnService } from '@/core/commerce/return';
+import type { SaleReturnCreateInput, SaleReturnWithItems } from '@/core/commerce/return';
 import { pointReturnService } from '@/core/loyalty';
 
 /**
- * Retail 반품 서비스.
- * Core create_sale_return(재고) 후 Loyalty 포인트 보정.
+ * Retail 반품 facade.
+ * Commerce create_sale_return(재고) 후 Loyalty 포인트 보정.
  * 포인트 실패 시에도 반품 본문은 유지 — 동일 returnId로 reverseForSaleReturn 재처리.
  */
 export const saleReturnService = {
-  getReturnedQtyBySaleItem: coreSaleReturnService.getReturnedQtyBySaleItem.bind(
-    coreSaleReturnService
+  getReturnedQtyBySaleItem: commerceSaleReturnService.getReturnedQtyBySaleItem.bind(
+    commerceSaleReturnService
   ),
-  buildReturnableLines: coreSaleReturnService.buildReturnableLines.bind(
-    coreSaleReturnService
+  buildReturnableLines: commerceSaleReturnService.buildReturnableLines.bind(
+    commerceSaleReturnService
   ),
 
   async listReturnsForSale(organizationId: string, saleId: string) {
-    const returns = await coreSaleReturnService.listReturnsForSale(
+    const returns = await commerceSaleReturnService.listReturnsForSale(
       organizationId,
       saleId
     );
@@ -41,7 +41,7 @@ export const saleReturnService = {
   },
 
   async createReturn(input: SaleReturnCreateInput): Promise<SaleReturnWithItems> {
-    const result = await coreSaleReturnService.createReturn(input);
+    const result = await commerceSaleReturnService.createReturn(input);
 
     try {
       await pointReturnService.reverseForSaleReturn({
@@ -51,7 +51,7 @@ export const saleReturnService = {
         returnAmount: result.totalAmount,
       });
     } catch (err) {
-      // Core 반품은 이미 완료. 포인트만 미처리일 수 있음 — 반품 재생성 금지.
+      // Commerce 반품은 이미 완료. 포인트만 미처리일 수 있음 — 반품 재생성 금지.
       // listReturnsForSale / reverseForSaleReturn(returnId) 로 재처리.
       console.error(
         '[retail.saleReturnService.createReturn] point reverse failed; return kept',

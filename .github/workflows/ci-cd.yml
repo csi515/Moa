@@ -110,6 +110,18 @@ jobs:
       - name: Static security — persist-policy
         run: npm run test:persist-policy
 
+      - name: Unit — commerce barrel
+        run: npm run test:commerce-barrel
+
+      - name: Unit — commerce revenue
+        run: npm run test:commerce-revenue
+
+      - name: Unit — commerce store capability
+        run: npm run test:commerce-store-capability
+
+      - name: Unit — retail revenue facade
+        run: npm run test:retail-revenue
+
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 
