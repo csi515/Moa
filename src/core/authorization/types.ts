@@ -4,7 +4,7 @@ export const AUTH_SCOPE_TYPES = ['organization', 'location', 'resource', 'custom
 
 export type AuthScopeType = (typeof AUTH_SCOPE_TYPES)[number];
 
-/** 권한 판정 범위. organization_id가 테넌트 경계이며 location/resource/customer는 하위 범위. */
+/** 권한 판정 범위. RequestContext.scope가 이 타입을 재사용한다. */
 export type AuthScope = {
   type: AuthScopeType;
   organizationId: string;
@@ -33,7 +33,7 @@ export type Permission =
   | 'reports.read'
   | 'finance.read';
 
-/** 향후 지점/리소스 한정 grant. 현재 화면은 쓰지 않는다. */
+/** core.authorization_grants 행. organization grant는 하위 scope를 포함한다. */
 export type AuthorizationGrant = {
   organizationId: string;
   userId?: string | null;
@@ -47,7 +47,10 @@ export type EvaluatePermissionInput = {
   role: string | null | undefined;
   permission: string;
   scope: AuthScope;
-  /** 지점 배정. 비어 있으면 제한 없음 (현재 staff 호환) */
+  /**
+   * 해당 scope_type 배정 목록.
+   * null/빈 배열은 배정 없음 → 전 범위 (core.has_permission 과 동일).
+   */
   assignedLocationIds?: readonly string[] | null;
   assignedCustomerIds?: readonly string[] | null;
   assignedResourceIds?: readonly string[] | null;

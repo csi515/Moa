@@ -10,6 +10,7 @@ import { MobileBootstrap } from './core/platform';
 import { getPublicLegalPage, LegalPageView, type LegalPageId } from './core/legal';
 import { PublicOrgLanding } from './core/public/PublicOrgLanding';
 import { PublicRouteErrorBoundary } from './core/public/PublicRouteErrorBoundary';
+import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import { CustomerSignUpFlow } from './core/customer/CustomerSignUpFlow';
 import { AttendanceKioskPage } from './core/attendance';
 
@@ -74,8 +75,15 @@ export default function App() {
               
               <Route path="/attendance-kiosk" element={<AttendanceKioskPage />} />
               
-              {/* Main app */}
-              <Route path="/*" element={<SupabaseAppGate />} />
+              {/* Main app — 업무 화면 오류는 AppErrorBoundary */}
+              <Route
+                path="/*"
+                element={
+                  <AppErrorBoundary>
+                    <SupabaseAppGate />
+                  </AppErrorBoundary>
+                }
+              />
             </Routes>
           </AppProvider>
         </OrganizationProvider>

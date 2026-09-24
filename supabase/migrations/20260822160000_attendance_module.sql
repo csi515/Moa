@@ -1,4 +1,6 @@
--- Optional attendance industry module: PIN check-in/out sessions
+-- Optional attendance industry module: PIN check-in sessions
+-- Attendance SoT: core.attendance_sessions.check_in_at
+-- Session(방문 사실)은 core.customer_sessions. 수업 출석은 piano.attendance.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -88,6 +90,137 @@ $$;
 GRANT EXECUTE ON FUNCTION core.is_attendance_module_enabled(UUID) TO authenticated;
 
 -- =============================================
+-- Location timezone → business date
+-- locations 테이블이 아직 없으면 기본 timezone 정책을 유지한다.
+-- =============================================
+
+CREATE OR REPLACE FUNCTION core.default_business_timezone()
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT 'Asia/Seoul'::text;
+$$;
+
+CREATE OR REPLACE FUNCTION core.resolve_business_timezone(p_timezone TEXT)
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+AS $$
+DECLARE
+  v_tz TEXT := NULLIF(btrim(COALESCE(p_timezone, '')), '');
+BEGIN
+  IF v_tz IS NULL THEN
+    RETURN core.default_business_timezone();
+  END IF;
+  PERFORM now() AT TIME ZONE v_tz;
+  RETURN v_tz;
+EXCEPTION
+  WHEN invalid_parameter_value THEN
+    RETURN core.default_business_timezone();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION core.resolve_location_timezone(
+  p_organization_id UUID,
+  p_location_id UUID DEFAULT NULL
+)
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = core, public
+AS $$
+DECLARE
+  v_tz TEXT;
+BEGIN
+  IF to_regclass('core.locations') IS NULL THEN
+    RETURN core.default_business_timezone();
+  END IF;
+
+  IF p_location_id IS NOT NULL AND p_organization_id IS NOT NULL THEN
+    SELECT l.timezone INTO v_tz
+    FROM core.locations l
+    WHERE l.id = p_location_id
+      AND l.organization_id = p_organization_id;
+    IF FOUND THEN
+      RETURN core.resolve_business_timezone(v_tz);
+    END IF;
+  END IF;
+
+  IF p_organization_id IS NOT NULL THEN
+    SELECT l.timezone INTO v_tz
+    FROM core.locations l
+    WHERE l.organization_id = p_organization_id
+    ORDER BY (l.code = 'main') DESC, l.is_active DESC, l.created_at ASC
+    LIMIT 1;
+    IF FOUND THEN
+      RETURN core.resolve_business_timezone(v_tz);
+    END IF;
+  END IF;
+
+  RETURN core.default_business_timezone();
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION core.business_date(
+  p_at TIMESTAMPTZ,
+  p_timezone TEXT DEFAULT NULL
+)
+RETURNS DATE
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT (p_at AT TIME ZONE core.resolve_business_timezone(p_timezone))::date;
+$$;
+
+CREATE OR REPLACE FUNCTION core.location_business_date(
+  p_organization_id UUID,
+  p_at TIMESTAMPTZ DEFAULT now(),
+  p_location_id UUID DEFAULT NULL
+)
+RETURNS DATE
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT core.business_date(
+    p_at,
+    core.resolve_location_timezone(p_organization_id, p_location_id)
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION core.business_time_text(
+  p_at TIMESTAMPTZ,
+  p_timezone TEXT DEFAULT NULL
+)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT to_char(p_at AT TIME ZONE core.resolve_business_timezone(p_timezone), 'HH24:MI');
+$$;
+
+CREATE OR REPLACE FUNCTION core.timestamptz_from_business_local(
+  p_date DATE,
+  p_time TIME,
+  p_timezone TEXT DEFAULT NULL
+)
+RETURNS TIMESTAMPTZ
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT (p_date::timestamp + p_time) AT TIME ZONE core.resolve_business_timezone(p_timezone);
+$$;
+
+GRANT EXECUTE ON FUNCTION core.default_business_timezone() TO authenticated;
+GRANT EXECUTE ON FUNCTION core.resolve_business_timezone(TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION core.resolve_location_timezone(UUID, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION core.business_date(TIMESTAMPTZ, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION core.location_business_date(UUID, TIMESTAMPTZ, UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION core.business_time_text(TIMESTAMPTZ, TEXT) TO authenticated;
+GRANT EXECUTE ON FUNCTION core.timestamptz_from_business_local(DATE, TIME, TEXT) TO authenticated;
+
+-- =============================================
 -- RPC: toggle check-in / check-out by PIN
 -- =============================================
 
@@ -105,7 +238,7 @@ DECLARE
   v_customer core.customers%ROWTYPE;
   v_session core.attendance_sessions%ROWTYPE;
   v_now TIMESTAMPTZ := now();
-  v_today DATE := (v_now AT TIME ZONE 'Asia/Seoul')::DATE;
+  v_today DATE := core.location_business_date(p_org_id, v_now);
 BEGIN
   IF NOT core.is_attendance_module_enabled(p_org_id) THEN
     RETURN jsonb_build_object('success', false, 'error', 'module_disabled');

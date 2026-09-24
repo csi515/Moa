@@ -5,7 +5,8 @@ import {
   PICKUP_ADDRESS_LABEL_PRESETS,
   SHUTTLE_DIRECTION_OPTIONS,
 } from '@/core/transport/types';
-import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui/FormField';
+import { FormField, FORM_CONTROL_CLASS, FORM_CONTROL_ERROR_CLASS } from '@/shared/components/ui/FormField';
+import { STUDENT_FORM_FIELD_IDS } from './studentFormValidation';
 import { useModuleLabels } from '@/core/labels';
 
 interface StudentPickupSectionProps {
@@ -15,6 +16,7 @@ interface StudentPickupSectionProps {
   onAddressChange: (address: string) => void;
   onUsesShuttleChange: (uses: boolean) => void;
   onPickupAddressesChange: (addresses: PickupAddress[]) => void;
+  pickupError?: string;
 }
 
 function setDefaultAddress(list: PickupAddress[], id: string): PickupAddress[] {
@@ -28,6 +30,7 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
   onAddressChange,
   onUsesShuttleChange,
   onPickupAddressesChange,
+  pickupError,
 }) => {
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular;
@@ -62,7 +65,10 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
   };
 
   return (
-    <section className="space-y-4 rounded-2xl border border-sky-100 bg-sky-50/40 p-4">
+    <section
+      id={STUDENT_FORM_FIELD_IDS.pickup}
+      className="space-y-4 rounded-2xl border border-sky-100 bg-sky-50/40 p-4"
+    >
       <div className="flex items-start gap-2">
         <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center shrink-0">
           <Bus className="w-4 h-4" />
@@ -165,7 +171,11 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
                 </FormField>
               </div>
 
-              <FormField label="주소" required>
+              <FormField
+                label="주소"
+                required
+                error={index === 0 ? pickupError : undefined}
+              >
                 <div className="relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                   <input
@@ -173,7 +183,10 @@ export const StudentPickupSection: React.FC<StudentPickupSectionProps> = ({
                     value={item.address}
                     onChange={(e) => updateAddress(item.id, { address: e.target.value })}
                     placeholder="도로명 또는 지번 주소"
-                    className={`${FORM_CONTROL_CLASS} pl-9`}
+                    aria-invalid={index === 0 && Boolean(pickupError)}
+                    className={`${FORM_CONTROL_CLASS} pl-9 ${
+                      index === 0 && pickupError ? FORM_CONTROL_ERROR_CLASS : ''
+                    }`}
                   />
                 </div>
               </FormField>

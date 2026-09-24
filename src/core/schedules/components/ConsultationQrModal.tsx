@@ -1,9 +1,10 @@
 import { useRef, type FC } from 'react';
-import { Download, Printer, QrCode, X } from 'lucide-react';
+import { Download, Printer } from 'lucide-react';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getPlaceLabel } from '@/core/industry/industryUi';
 import { getAppBaseUrl } from '@/core/parent/services/parentInviteService';
+import { Modal } from '@/shared/components/ui/Modal';
 
 interface ConsultationQrModalProps {
   organizationName: string;
@@ -37,28 +38,7 @@ export const ConsultationQrModal: FC<ConsultationQrModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden flex flex-col max-h-[92vh]">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50 no-print">
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
-              <QrCode className="w-5 h-5" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="font-bold text-slate-900 text-base truncate">상담 신청 QR</h3>
-              <p className="text-xs text-slate-500 truncate">{organizationName}</p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <Modal isOpen onClose={onClose} title="상담 신청 QR" description={organizationName}>
         <div className="p-6 overflow-y-auto printable-area">
           {!code ? (
             <div className="text-center space-y-2 py-8">
@@ -120,7 +100,6 @@ export const ConsultationQrModal: FC<ConsultationQrModalProps> = ({
             </button>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 };

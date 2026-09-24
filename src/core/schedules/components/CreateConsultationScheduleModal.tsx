@@ -1,7 +1,10 @@
-import { useState, type FC, type FormEvent } from 'react';
-import { CalendarPlus, Loader2, X } from 'lucide-react';
+import { useMemo, useState, type FC, type FormEvent } from 'react';
+import { Loader2 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
+import { Modal } from '@/shared/components/ui/Modal';
+import { FormField, FORM_CONTROL_CLASS, FORM_CONTROL_ERROR_CLASS } from '@/shared/components/ui/FormField';
+import { todayIsoLocal } from '@/shared/utils/localDate';
 import { coreScheduleService } from '../services/coreScheduleService';
 
 interface CreateConsultationScheduleModalProps {
@@ -18,22 +21,32 @@ export const CreateConsultationScheduleModal: FC<CreateConsultationScheduleModal
   onClose,
   onCreated,
 }) => {
-  const { showToast } = useApp();
+  const { showToast, openConfirmDialog } = useApp();
   const { currentOrganization } = useOrganization();
-  const today = new Date().toISOString().slice(0, 10);
+  const today = useMemo(() => todayIsoLocal(), []);
   const [title, setTitle] = useState(defaultTitle);
   const [date, setDate] = useState(today);
   const [startTime, setStartTime] = useState('14:00');
   const [duration, setDuration] = useState(defaultDurationMinutes);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [dateError, setDateError] = useState('');
+
+  const isDirty =
+    !saved &&
+    (title !== defaultTitle ||
+      date !== today ||
+      startTime !== '14:00' ||
+      duration !== defaultDurationMinutes);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!currentOrganization) return;
     if (!date || !startTime) {
-      showToast('날짜와 시작 시간을 입력하세요.', 'warning');
+      setDateError('날짜와 시작 시간을 입력하세요.');
       return;
     }
+    setDateError('');
 
     const [h, m] = startTime.split(':').map(Number);
     const starts = new Date(
@@ -57,6 +70,7 @@ export const CreateConsultationScheduleModal: FC<CreateConsultationScheduleModal
         max_capacity: 1,
       });
       showToast('상담 일정을 등록했습니다.', 'success');
+      setSaved(true);
       onCreated?.();
       onClose();
     } catch (err) {
@@ -68,23 +82,23 @@ export const CreateConsultationScheduleModal: FC<CreateConsultationScheduleModal
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
-      <div className="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
-          <div className="flex items-center gap-2">
-            <CalendarPlus className="w-5 h-5 text-indigo-600" />
-            <h3 className="font-bold text-slate-900">상담 일정 추가</h3>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-slate-600 rounded-xl"
-            aria-label="닫기"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
+    <Modal
+      isOpen
+      onClose={onClose}
+      title="상담 일정 추가"
+      intent="form"
+      dirty={isDirty}
+      confirmClose={(proceed) => {
+        openConfirmDialog({
+          title: '작성 중인 내용이 있습니다',
+          message: '저장하지 않은 내용은 사라집니다. 닫을까요?',
+          confirmText: '닫기',
+          cancelText: '계속 작성',
+          isDestructive: true,
+          onConfirm: proceed,
+        });
+      }}
+    >
         <form onSubmit={(e) => void handleSubmit(e)} className="p-5 space-y-3">
           <label className="block space-y-1">
             <span className="text-xs font-bold text-slate-500">제목</span>
@@ -95,26 +109,32 @@ export const CreateConsultationScheduleModal: FC<CreateConsultationScheduleModal
             />
           </label>
           <div className="grid grid-cols-2 gap-2">
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-slate-500">날짜</span>
+            <FormField label="날짜" htmlFor="consultation-date" required error={!date ? dateError : undefined}>
               <input
+                id="consultation-date"
                 type="date"
                 value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3 py-2.5 min-h-[44px] text-sm rounded-xl border border-slate-200 bg-slate-50"
+                onChange={(e) => {
+                  setDate(e.target.value);
+                  setDateError('');
+                }}
+                className={`${FORM_CONTROL_CLASS} min-h-[44px] ${!date && dateError ? FORM_CONTROL_ERROR_CLASS : ''}`}
                 required
               />
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-bold text-slate-500">시작</span>
+            </FormField>
+            <FormField label="시작" htmlFor="consultation-start" required error={!startTime ? dateError : undefined}>
               <input
+                id="consultation-start"
                 type="time"
                 value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2.5 min-h-[44px] text-sm rounded-xl border border-slate-200 bg-slate-50"
+                onChange={(e) => {
+                  setStartTime(e.target.value);
+                  setDateError('');
+                }}
+                className={`${FORM_CONTROL_CLASS} min-h-[44px] ${!startTime && dateError ? FORM_CONTROL_ERROR_CLASS : ''}`}
                 required
               />
-            </label>
+            </FormField>
           </div>
           <label className="block space-y-1">
             <span className="text-xs font-bold text-slate-500">상담 시간</span>
@@ -140,7 +160,6 @@ export const CreateConsultationScheduleModal: FC<CreateConsultationScheduleModal
             등록
           </button>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 };

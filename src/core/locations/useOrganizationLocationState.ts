@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useApp } from '@/context/AppContext';
+import type { AuthorizationGrant } from '@/core/authorization';
+import {
+  canAccessLocation,
+  filterAccessibleLocations,
+  hasLocationAssignment,
+  pickSafeLocation,
+} from './locationAware';
 import { resolveLocationSelection } from './locationHelpers';
 import {
   clearStoredLocationId,
@@ -6,39 +14,106 @@ import {
   locationService,
   storeLocationId,
 } from './locationService';
-import type { Location } from './types';
+import { formatLocationScopeLabel } from './locationLabels';
+import type { Location, LocationAccessContext, TrustedLocationSelection } from './types';
 
 /**
  * OrganizationProvider 확장점. 선택이 없어도 기존 org context 는 그대로 동작한다.
+ * 목록/선택은 authorization location scope 와 같은 기준을 쓴다.
  */
 export function useOrganizationLocationState(organizationId: string | null): {
   locations: Location[];
   currentLocation: Location | null;
   selectLocation: (locationId: string | null) => void;
+  trustedLocation: TrustedLocationSelection;
+  locationLabel: string;
+  canChangeLocation: boolean;
+  canClearLocation: boolean;
+  locationsStatus: 'loading' | 'ready';
 } {
-  const [locations, setLocations] = useState<Location[]>([]);
-  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(() =>
-    getStoredLocationId()
+  const { currentUser } = useApp();
+  const [catalog, setCatalog] = useState<Location[]>([]);
+  const [extraGrants, setExtraGrants] = useState<AuthorizationGrant[]>([]);
+  const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
+  const [catalogReady, setCatalogReady] = useState(false);
+  const [grantsReady, setGrantsReady] = useState(false);
+
+  const access = useMemo<LocationAccessContext>(
+    () => ({
+      organizationId: organizationId ?? '',
+      role: currentUser.role,
+      extraGrants,
+    }),
+    [organizationId, currentUser.role, extraGrants]
   );
 
+  const locations = useMemo(
+    () => (organizationId ? filterAccessibleLocations(catalog, access) : []),
+    [access, catalog, organizationId]
+  );
+
+  const restricted = hasLocationAssignment(access);
+
   useEffect(() => {
-    if (!organizationId) {
-      setLocations([]);
-      return;
-    }
+    setCatalog([]);
+    setExtraGrants([]);
+    setCatalogReady(false);
+    setGrantsReady(false);
+    setSelectedLocationId(organizationId ? getStoredLocationId(organizationId) : null);
+    if (!organizationId) return;
+
     let cancelled = false;
     void locationService.list(organizationId).then(
       (rows) => {
-        if (!cancelled) setLocations(rows);
+        if (cancelled) return;
+        setCatalog(rows);
+        setCatalogReady(true);
       },
       () => {
-        if (!cancelled) setLocations([]);
+        if (cancelled) return;
+        setCatalog([]);
+        setCatalogReady(true);
       }
     );
+    void locationService.listAccessGrants(organizationId).then((grants) => {
+      if (cancelled) return;
+      setExtraGrants(grants);
+      setGrantsReady(true);
+    });
     return () => {
       cancelled = true;
     };
   }, [organizationId]);
+
+  useEffect(() => {
+    if (!organizationId || !catalogReady || !grantsReady) return;
+    const preferred = resolveLocationSelection(locations, organizationId, selectedLocationId);
+    if (preferred) {
+      if (getStoredLocationId(organizationId) !== preferred.id) {
+        storeLocationId(preferred.id, organizationId);
+      }
+      return;
+    }
+    if (!restricted && !selectedLocationId) return;
+    const fallback = pickSafeLocation(locations, selectedLocationId);
+    if (!fallback) {
+      if (selectedLocationId) {
+        clearStoredLocationId();
+        setSelectedLocationId(null);
+      }
+      return;
+    }
+    if (fallback.id === selectedLocationId) return;
+    storeLocationId(fallback.id, organizationId);
+    setSelectedLocationId(fallback.id);
+  }, [
+    catalogReady,
+    grantsReady,
+    locations,
+    organizationId,
+    restricted,
+    selectedLocationId,
+  ]);
 
   const currentLocation = resolveLocationSelection(
     locations,
@@ -48,21 +123,49 @@ export function useOrganizationLocationState(organizationId: string | null): {
 
   const selectLocation = useCallback(
     (locationId: string | null) => {
+      if (!organizationId) return;
       if (!locationId) {
+        if (restricted) {
+          const fallback = pickSafeLocation(locations);
+          if (fallback) {
+            storeLocationId(fallback.id, organizationId);
+            setSelectedLocationId(fallback.id);
+          }
+          return;
+        }
         clearStoredLocationId();
         setSelectedLocationId(null);
         return;
       }
-      if (!organizationId) return;
+      if (!canAccessLocation(access, locationId)) return;
       const found = locations.find(
         (row) => row.id === locationId && row.organizationId === organizationId
       );
       if (!found) return;
-      storeLocationId(locationId);
+      storeLocationId(locationId, organizationId);
       setSelectedLocationId(locationId);
     },
-    [locations, organizationId]
+    [access, locations, organizationId, restricted]
   );
 
-  return { locations, currentLocation, selectLocation };
+  const trustedLocation = useMemo<TrustedLocationSelection>(
+    () => ({
+      organizationId: organizationId ?? '',
+      locationId: currentLocation?.id ?? null,
+      locations,
+    }),
+    [currentLocation, locations, organizationId]
+  );
+
+  return {
+    locations,
+    currentLocation,
+    selectLocation,
+    trustedLocation,
+    locationLabel: formatLocationScopeLabel(currentLocation, locations.length),
+    canChangeLocation: locations.length > 1,
+    canClearLocation: locations.length > 1 && !restricted,
+    locationsStatus:
+      organizationId && (!catalogReady || !grantsReady) ? 'loading' : 'ready',
+  };
 }

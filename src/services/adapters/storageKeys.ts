@@ -1,3 +1,9 @@
+import {
+  localWriteConfirmsPersist,
+  persistencePolicyFor,
+  type PersistencePolicy,
+} from '@/core/storage/persistencePolicy';
+
 /**
  * MOA storage key taxonomy.
  *
@@ -58,19 +64,19 @@ export const STORAGE_KEYS = {
   CARE_JOURNALS: 'daycare_care_journals',
   /** 어린이집 플러그인 — 투약 의뢰 */
   MEDICATION_REQUESTS: 'daycare_medication_requests',
-  /** 어린이집 — 원아 건강·귀가 기록 (device-local, remote 테이블 없음) */
+  /** 어린이집 — 원아 건강·귀가 기록 (core.care_child_records) */
   CARE_CHILD_RECORDS: 'daycare_care_child_records',
-  /** 어린이집 — 사고 기록 (device-local, remote 테이블 없음) */
+  /** 어린이집 — 사고 기록 (core.care_incidents) */
   CARE_INCIDENTS: 'daycare_care_incidents',
-  /** 어린이집 — 보건증 만료 (device-local) */
+  /** 어린이집 — 보건증 만료 (core.care_staff_health_certs) */
   CARE_STAFF_HEALTH_CERTS: 'daycare_care_staff_health_certs',
-  /** 어린이집 — 안전점검·대피훈련 (device-local) */
+  /** 어린이집 — 안전점검·대피훈련 (core.care_safety_logs) */
   CARE_SAFETY_LOGS: 'daycare_care_safety_logs',
-  /** 어린이집 — 보존식 (device-local) */
+  /** 어린이집 — 보존식 (core.care_meal_samples) */
   CARE_MEAL_SAMPLES: 'daycare_care_meal_samples',
-  /** 어린이집 — CCTV 열람 신청 (device-local) */
+  /** 어린이집 — CCTV 열람 신청 (core.care_cctv_requests) */
   CARE_CCTV_REQUESTS: 'daycare_care_cctv_requests',
-  /** 어린이집 — 하원 인수 (device-local) */
+  /** 어린이집 — 하원 인수 (core.care_pickup_logs) */
   CARE_PICKUP_LOGS: 'daycare_care_pickup_logs',
   /** device-only UI — 활성 사용자 표시 */
   ACTIVE_USER: 'piano_app_active_user',
@@ -149,10 +155,17 @@ export const PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: ReadonlySet<StorageKey> = new
   STORAGE_KEYS.TEXTBOOK_PAYMENTS,
 ]);
 
-/** 어린이집 플러그인 — remote sync + local mirror. 원본은 daycare 테이블. */
+/** 어린이집 플러그인 — remote sync + local mirror. 원본은 core.care_* . */
 export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.CARE_JOURNALS,
   STORAGE_KEYS.MEDICATION_REQUESTS,
+  STORAGE_KEYS.CARE_CHILD_RECORDS,
+  STORAGE_KEYS.CARE_INCIDENTS,
+  STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS,
+  STORAGE_KEYS.CARE_SAFETY_LOGS,
+  STORAGE_KEYS.CARE_MEAL_SAMPLES,
+  STORAGE_KEYS.CARE_CCTV_REQUESTS,
+  STORAGE_KEYS.CARE_PICKUP_LOGS,
 ]);
 
 /**
@@ -161,7 +174,7 @@ export const DAYCARE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
  *
  * - ACTIVE_USER / INITIALIZED / ONBOARDING_PROGRESS: device-only UI·온보딩 상태
  * - SLOT_RECRUITMENTS: 키는 LOCAL_ONLY이나 settings.slotRecruitments로 이중 저장·동기화
- * - SHUTTLE_* / CARE_* (저널·투약 제외): remote 테이블 없음 → device-local
+ * - SHUTTLE_*: remote 테이블 없음 → device-local
  */
 export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ACTIVE_USER,
@@ -169,13 +182,6 @@ export const LOCAL_ONLY_KEYS: ReadonlySet<StorageKey> = new Set([
   STORAGE_KEYS.ONBOARDING_PROGRESS,
   STORAGE_KEYS.SLOT_RECRUITMENTS, // settings.slotRecruitments 미러
   STORAGE_KEYS.SHUTTLE_RIDE_REQUESTS,
-  STORAGE_KEYS.CARE_CHILD_RECORDS,
-  STORAGE_KEYS.CARE_INCIDENTS,
-  STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS,
-  STORAGE_KEYS.CARE_SAFETY_LOGS,
-  STORAGE_KEYS.CARE_MEAL_SAMPLES,
-  STORAGE_KEYS.CARE_CCTV_REQUESTS,
-  STORAGE_KEYS.CARE_PICKUP_LOGS,
 ]);
 
 /**
@@ -193,3 +199,18 @@ export const SUPABASE_SYNC_KEYS: ReadonlySet<StorageKey> = new Set([
   ...PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS,
   ...DAYCARE_SYNC_KEYS,
 ]);
+
+/** 선언된 policy가 있으면 그걸 쓰고, 없으면 기존 SYNC/LOCAL_ONLY 분류를 유지한다. */
+export function storageKeyPolicy(key: StorageKey): PersistencePolicy {
+  const fallback: PersistencePolicy = LOCAL_ONLY_KEYS.has(key)
+    ? 'local-only'
+    : 'server-with-local-cache';
+  return persistencePolicyFor(key, fallback);
+}
+
+export function storageKeyLocalWriteConfirms(key: StorageKey): boolean {
+  const fallback: PersistencePolicy = LOCAL_ONLY_KEYS.has(key)
+    ? 'local-only'
+    : 'server-with-local-cache';
+  return localWriteConfirmsPersist(key, fallback);
+}

@@ -32,7 +32,8 @@ export async function findCustomerByPinAsync(
 }
 
 /**
- * PIN 출석(입실)만 처리. 퇴실 토글 없음.
+ * PIN Attendance 체크인만 처리 (core.attendance_sessions).
+ * 방문 Session·수업 출석 원장을 만들지 않는다. 퇴실 토글 없음.
  * 당일 이미 checkInAt이 있으면 already_checked_in.
  */
 export async function toggleCheckInByPinLocal(params: {

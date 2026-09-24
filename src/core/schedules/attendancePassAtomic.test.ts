@@ -132,7 +132,8 @@ function run() {
     join(here, '../../../supabase/migrations/20260924120000_attendance_status_with_pass_atomic.sql'),
     'utf8'
   );
-  assert.match(sql, /core\.update_attendance_status_with_pass/);
+  assert.match(sql, /core\.apply_attendance_session_pass/);
+  assert.match(sql, /piano\.update_attendance_status_with_pass/);
   assert.match(sql, /SECURITY DEFINER/);
   assert.match(sql, /is_org_staff_actor/);
   assert.match(sql, /FOR UPDATE/);
@@ -142,6 +143,12 @@ function run() {
   assert.match(sql, /idempotent/);
   assert.match(sql, /v_sibling_pass/);
   assert.match(sql, /status <> 'cancelled'/);
+  assert.doesNotMatch(sql, /CREATE OR REPLACE FUNCTION core\.update_attendance_status_with_pass/);
+  const coreApplySql = sql.slice(
+    sql.indexOf('core.apply_attendance_session_pass'),
+    sql.indexOf('piano.update_attendance_status_with_pass')
+  );
+  assert.doesNotMatch(coreApplySql, /piano\./);
 
   const keySql = readFileSync(
     join(here, '../../../supabase/migrations/20260924140000_attendance_key_notify_makeup.sql'),
@@ -151,8 +158,12 @@ function run() {
   assert.match(keySql, /pg_advisory_xact_lock/);
   assert.match(keySql, /unique_violation/);
   assert.match(keySql, /attendance_class_key/);
+  assert.match(keySql, /piano\.update_attendance_status_with_pass/);
+  assert.match(keySql, /DROP FUNCTION IF EXISTS core\.update_attendance_status_with_pass/);
+  assert.doesNotMatch(keySql, /CREATE OR REPLACE FUNCTION core\.update_attendance_status_with_pass/);
 
   const atomic = readFileSync(join(here, 'attendancePassAtomic.ts'), 'utf8');
+  assert.match(atomic, /getPianoClient/);
   assert.match(atomic, /update_attendance_status_with_pass/);
   assert.match(atomic, /writeLocalMirror/);
   assert.match(atomic, /Session pass refund failed/);

@@ -826,7 +826,7 @@ export interface ConsultationSubmission {
 /** 일정 상태 */
 export type ScheduleStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 
-/** 예약 상태 */
+/** 예약 상태. 전이는 src/core/schedules/reservationMachine.ts */
 export type ReservationStatus = 'requested' | 'confirmed' | 'cancelled';
 
 /** Core 일정 (조직의 시간 기반 활동 또는 예약 가능한 슬롯) */

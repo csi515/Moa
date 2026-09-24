@@ -1,10 +1,18 @@
 import type { ReactNode } from 'react';
 import type { NavTab } from '@/context/AppContext';
 
+export const MORE_NAV_SECTION = {
+  work: '업무',
+  manage: '관리',
+  settings: '설정',
+} as const;
+
 export interface NavMenuItem {
   tab: NavTab;
   label: string;
   icon: ReactNode;
+  /** More 시트 그룹. 없으면 기존처럼 단일 목록 */
+  section?: string;
 }
 
 export interface NavMenuSection {
@@ -30,6 +38,25 @@ export function filterNavSections(
 export function filterNavTabs<T extends { tab: NavTab }>(items: T[], allowedTabs: NavTab[]): T[] {
   const allowed = new Set(allowedTabs);
   return items.filter((item) => allowed.has(item.tab));
+}
+
+/** More 항목을 section 순서로 묶는다. section이 없으면 제목 없는 단일 그룹. */
+export function groupMoreNavItems(items: NavMenuItem[]): NavMenuSection[] {
+  if (items.length === 0) return [];
+  if (!items.some((item) => item.section)) {
+    return [{ title: '', items }];
+  }
+  const order: string[] = [];
+  const grouped = new Map<string, NavMenuItem[]>();
+  for (const item of items) {
+    const title = item.section || '';
+    if (!grouped.has(title)) {
+      grouped.set(title, []);
+      order.push(title);
+    }
+    grouped.get(title)!.push(item);
+  }
+  return order.map((title) => ({ title, items: grouped.get(title)! }));
 }
 
 /**

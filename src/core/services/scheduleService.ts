@@ -18,7 +18,8 @@ import { updateBookingStatusAtomic } from '@/core/schedules/bookingPassAtomic';
 import { cancelBookingAsParent } from '@/core/schedules/parentBookingCancel';
 
 /**
- * 예약·수업 종류·이용권 Domain Service.
+ * appointment Booking Domain Service (core.schedules 행).
+ * bookable 슬롯 신청(core.reservations)이나 Piano 수업 출석이 아니다.
  * - 읽기: hydrate된 local cache 위에서 조건 필터 (UI는 sync API 유지)
  * - online/offline 차이는 Adapter hydrate가 담당 — 조회 API는 동일
  * - 상태 전이+차감/복구: updateBookingStatusAtomic

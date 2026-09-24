@@ -7,7 +7,8 @@ import type {
 
 /**
  * Core Schedule Service
- * 조직의 시간 기반 활동 및 예약 가능한 슬롯 관리
+ * 예약 가능 시간·운영 슬롯 (core.schedules).
+ * 고객 신청 원장은 reservationService, 배정 Booking은 ScheduleService.
  */
 export const coreScheduleService = {
   /**

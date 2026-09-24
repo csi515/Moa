@@ -15,7 +15,14 @@ import {
   isDuplicateDelivery,
 } from './evaluate';
 import { reservationConfirmedPayload, withOutboxContext } from './payload';
-import { OUTBOX_EVENT_TYPES, OUTBOX_MAX_ATTEMPTS, OUTBOX_PILOT_EVENT, type OutboxEvent } from './types';
+import {
+  OUTBOX_EVENT_TYPES,
+  OUTBOX_MAX_ATTEMPTS,
+  OUTBOX_PILOT_EVENT,
+  outboxDedupeKey,
+  outboxEventDedupeKey,
+  type OutboxEvent,
+} from './types';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '../../..');
@@ -58,6 +65,27 @@ function run() {
   assert.equal(payload.organizationId, 'org-a');
   assert.equal(payload.locationId, 'loc-1');
   assert.equal(payload.eventType, 'reservation.confirmed');
+
+  const sameKey = outboxDedupeKey('reservation.confirmed', 'reservation', 'r1');
+  assert.equal(sameKey, outboxDedupeKey('reservation.confirmed', 'reservation', 'r1'));
+  assert.notEqual(sameKey, outboxDedupeKey('reservation.requested', 'reservation', 'r1'));
+  assert.equal(
+    outboxEventDedupeKey({
+      eventType: 'reservation.confirmed',
+      aggregateType: 'reservation',
+      aggregateId: 'r1',
+    }),
+    sameKey
+  );
+  assert.equal(
+    outboxEventDedupeKey({
+      eventType: 'reservation.confirmed',
+      aggregateType: 'reservation',
+      aggregateId: 'r1',
+      dedupeKey: 'custom-key',
+    }),
+    'custom-key'
+  );
 
   const first = event({ id: 'e1' });
   const later = event({ id: 'e2', availableAt: '2026-09-24T10:00:00.000Z' });
@@ -105,9 +133,27 @@ function run() {
   assert.match(sql, /locationId/);
   assert.match(sql, /reservation\.confirmed/);
   assert.match(sql, /PERFORM core\.enqueue_outbox_event/);
+  assert.match(sql, /dedupe_key/);
+  assert.match(sql, /uq_outbox_events_org_dedupe/);
+  assert.match(sql, /UNIQUE \(organization_id, dedupe_key\)/);
+  assert.match(sql, /ON CONFLICT ON CONSTRAINT uq_outbox_events_org_dedupe DO NOTHING/);
+  assert.match(sql, /core\.outbox_dedupe_key/);
   assert.match(sql, /RETURN true/);
   assert.match(sql, /assert_not_overbooked/);
   assert.match(sql, /FOR UPDATE OF s/);
+  assert.match(sql, /SECURITY INVOKER/);
+  assert.match(sql, /require_outbox_worker/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION core\.claim_outbox_events\(UUID, INT\) TO service_role/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION core\.complete_outbox_event\(UUID\) TO service_role/);
+  assert.match(sql, /GRANT EXECUTE ON FUNCTION core\.fail_outbox_event\(UUID, TEXT\) TO service_role/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION core\.enqueue_outbox_event\(UUID, TEXT, TEXT, TEXT, JSONB, UUID\) FROM anon, authenticated/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION core\.claim_outbox_events\(UUID, INT\) FROM anon, authenticated/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION core\.complete_outbox_event\(UUID\) FROM anon, authenticated/);
+  assert.match(sql, /REVOKE ALL ON FUNCTION core\.fail_outbox_event\(UUID, TEXT\) FROM anon, authenticated/);
+  assert.doesNotMatch(
+    sql,
+    /GRANT EXECUTE ON FUNCTION core\.(enqueue_outbox_event|claim_outbox_events|complete_outbox_event|fail_outbox_event).*TO authenticated/
+  );
   assert.doesNotMatch(sql, /twilio|ncp|aligo|solapi|fetch\(/i);
   assert.doesNotMatch(sql, /ALTER TABLE core\.(reservations|schedules|notifications)/);
 

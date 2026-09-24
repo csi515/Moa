@@ -28,6 +28,8 @@ export type OutboxEvent = {
   aggregateType: string;
   aggregateId: string;
   eventType: string;
+  /** durable business identity. 없으면 eventType+aggregate 로 계산한다. */
+  dedupeKey?: string;
   payload: Record<string, unknown>;
   status: OutboxStatus;
   attempts: number;
@@ -46,7 +48,24 @@ export type EnqueueOutboxInput = {
   locationId?: string | null;
 };
 
-/** 같은 event.id 가 두 번 와도 부작용을 한 번만 수행한다. */
+/** 조직 안에서 같은 비즈니스 이벤트를 가리키는 durable key. row id 와 다르다. */
+export function outboxDedupeKey(
+  eventType: string,
+  aggregateType: string,
+  aggregateId: string
+): string {
+  return `${eventType.trim()}\u001f${aggregateType.trim()}\u001f${aggregateId.trim()}`;
+}
+
+export function outboxEventDedupeKey(
+  event: Pick<OutboxEvent, 'dedupeKey' | 'eventType' | 'aggregateType' | 'aggregateId'>
+): string {
+  const explicit = event.dedupeKey?.trim();
+  if (explicit) return explicit;
+  return outboxDedupeKey(event.eventType, event.aggregateType, event.aggregateId);
+}
+
+/** 같은 비즈니스 이벤트가 두 번 와도 부작용을 한 번만 수행한다. */
 export type OutboxConsumerResult = 'processed' | 'retry';
 
 export type OutboxConsumer = {

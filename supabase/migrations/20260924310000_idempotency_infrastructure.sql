@@ -213,6 +213,30 @@ BEGIN
 END;
 $$;
 
+-- 수강료 수납 mutation 입력 전체. 같은 입력은 항상 같은 문자열.
+CREATE OR REPLACE FUNCTION core.tuition_payment_idempotency_canonical(
+  p_organization_id UUID,
+  p_invoice_id UUID,
+  p_amount NUMERIC,
+  p_payment_method core.payment_method,
+  p_paid_at DATE,
+  p_memo TEXT,
+  p_cash_receipt_issued BOOLEAN
+)
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT
+    p_organization_id::text || ':' ||
+    p_invoice_id::text || ':' ||
+    trim(both from to_char(COALESCE(p_amount, 0), 'FM999999999999990.00')) || ':' ||
+    p_payment_method::text || ':' ||
+    to_char(COALESCE(p_paid_at, CURRENT_DATE), 'YYYY-MM-DD') || ':' ||
+    CASE WHEN p_memo IS NULL THEN 'n' ELSE 's:' || p_memo END || ':' ||
+    CASE WHEN COALESCE(p_cash_receipt_issued, false) THEN 'true' ELSE 'false' END;
+$$;
+
 -- 파일럿: 수강료 수납. 기존 record_tuition_payment 를 호출만 한다.
 CREATE OR REPLACE FUNCTION core.record_tuition_payment_idempotent(
   p_organization_id UUID,
@@ -244,9 +268,15 @@ BEGIN
   END IF;
 
   v_hash := core.idempotency_request_hash(
-    p_organization_id::text || ':' || p_invoice_id::text || ':' ||
-    COALESCE(p_amount::text, '') || ':' || p_payment_method::text || ':' ||
-    COALESCE(p_paid_at, CURRENT_DATE)::text
+    core.tuition_payment_idempotency_canonical(
+      p_organization_id,
+      p_invoice_id,
+      p_amount,
+      p_payment_method,
+      p_paid_at,
+      p_memo,
+      p_cash_receipt_issued
+    )
   );
   v_begin := core.begin_idempotency(p_organization_id, v_key, 'payment', v_hash);
   IF v_begin->>'outcome' = 'replay' THEN
@@ -266,6 +296,8 @@ COMMENT ON FUNCTION core.begin_idempotency(UUID, TEXT, TEXT, TEXT) IS
   '동일 트랜잭션 advisory lock + FOR UPDATE. replay / execute. payload 불일치는 예외.';
 COMMENT ON FUNCTION core.update_booking_status_with_pass_idempotent(UUID, UUID, core.schedule_status, BOOLEAN, TEXT) IS
   '파일럿. 기존 update_booking_status_with_pass 호출. key 없으면 기존과 동일.';
+COMMENT ON FUNCTION core.tuition_payment_idempotency_canonical(UUID, UUID, NUMERIC, core.payment_method, DATE, TEXT, BOOLEAN) IS
+  '수강료 수납 request hash 입력. org/invoice/amount/method/paid_at/memo/cash_receipt 포함.';
 COMMENT ON FUNCTION core.record_tuition_payment_idempotent(UUID, UUID, NUMERIC, core.payment_method, DATE, TEXT, BOOLEAN, TEXT) IS
   '파일럿. 기존 record_tuition_payment 호출. 같은 key+다른 payload 는 mismatch.';
 
@@ -273,6 +305,7 @@ GRANT EXECUTE ON FUNCTION core.update_booking_status_with_pass_idempotent(UUID, 
 GRANT EXECUTE ON FUNCTION core.record_tuition_payment_idempotent(UUID, UUID, NUMERIC, core.payment_method, DATE, TEXT, BOOLEAN, TEXT) TO authenticated;
 REVOKE EXECUTE ON FUNCTION core.update_booking_status_with_pass_idempotent(UUID, UUID, core.schedule_status, BOOLEAN, TEXT) FROM anon;
 REVOKE EXECUTE ON FUNCTION core.record_tuition_payment_idempotent(UUID, UUID, NUMERIC, core.payment_method, DATE, TEXT, BOOLEAN, TEXT) FROM anon;
+REVOKE ALL ON FUNCTION core.tuition_payment_idempotency_canonical(UUID, UUID, NUMERIC, core.payment_method, DATE, TEXT, BOOLEAN) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION core.begin_idempotency(UUID, TEXT, TEXT, TEXT) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION core.complete_idempotency(UUID, TEXT, JSONB) FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION core.fail_idempotency(UUID, TEXT, TEXT) FROM PUBLIC, anon, authenticated;

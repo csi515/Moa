@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import type { BookableSchedule, ReservationRequest } from '@/types';
 import { reservationService } from '@/core/schedules';
+import { Modal } from '@/shared/components/ui/Modal';
 import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
 
 interface ReservationModalProps {
@@ -54,27 +55,29 @@ export function ReservationModal({
     }
   };
 
+  const title = bookingSubmitted
+    ? showMyReservations
+      ? '내 예약'
+      : '예약 신청 완료'
+    : '예약 신청';
+
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <Modal isOpen onClose={onClose} title={title} maxWidth="lg">
         {bookingSubmitted ? (
           <div className="p-6 sm:p-8">
             {showMyReservations ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="text-lg font-bold text-slate-900">내 예약</h3>
-                  <button
+                <button
                     type="button"
                     onClick={() => setShowMyReservations(false)}
                     className="text-sm font-bold text-indigo-600 min-h-[44px]"
                   >
                     완료 화면
                   </button>
-                </div>
                 <MyReservationsView />
               </div>
             ) : (
-              <div className="text-center">
+              <div className="text-center p-6 sm:p-8">
                 <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle2 className="w-8 h-8 text-white" />
                 </div>
@@ -108,17 +111,6 @@ export function ReservationModal({
           </div>
         ) : (
           <form onSubmit={handleBookingSubmit} className="p-6 space-y-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-slate-900">예약 신청</h3>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                ×
-              </button>
-            </div>
-
             <div className="bg-indigo-50 rounded-xl p-4 space-y-2">
               <h4 className="font-bold text-slate-900">{schedule.title}</h4>
               <p className="text-sm text-slate-600">{formatDateTime(schedule.starts_at)}</p>
@@ -196,7 +188,6 @@ export function ReservationModal({
             </div>
           </form>
         )}
-      </div>
-    </div>
+    </Modal>
   );
 }

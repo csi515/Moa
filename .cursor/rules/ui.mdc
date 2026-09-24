@@ -1,0 +1,70 @@
+---
+description: Moa UI, layout, form, modal, and feedback rules
+globs:
+  - "src/**/*.tsx"
+  - "src/shared/**"
+alwaysApply: false
+---
+
+# Moa UI
+
+상세: `docs/MOA_DEVELOPMENT_STANDARD.md` §8–9, `docs/UI_COMPONENT_GUIDE.md`, `docs/PAGE_PATTERNS.md`.
+Import: `@/shared/components` barrel.
+
+새 디자인 시스템·primitive를 발명하지 않는다. 기존 공통 컴포넌트를 먼저 쓴다.
+
+## 반드시 재사용할 것
+
+| 목적 | 사용 | 경로 |
+| --- | --- | --- |
+| 셸 | `ModuleAppShell` | `src/shared/components/layout/ModuleAppShell.tsx` |
+| 헤더 | `Header` (수정 시 기존 org/location/role 표시 유지) | `layout/Header.tsx` |
+| 사이드바 | `ModuleSidebar` | `layout/ModuleSidebar.tsx` |
+| 하단 네비 | `ModuleBottomNav` | `layout/ModuleBottomNav.tsx` |
+| 페이지 제목 | `PageHeader` (허브는 `density="compact"`) | `ui/PageHeader.tsx` |
+| 모달 | `Modal` | `ui/Modal.tsx` |
+| 확인 | `ConfirmDialog` via `openConfirmDialog` | `ConfirmDialog.tsx` |
+| 필드 | `FormField` | `ui/FormField.tsx` |
+| 빈 목록 | `EmptyState` | `ui/EmptyState.tsx` |
+| 로딩 | 아래 표 | `LoadingScreen` / `Skeleton` / `InlineBusy` |
+| 토스트 | `showToast` | `ToastContainer.tsx` |
+| 중요 결과 | `showWorkStatus` | `WorkStatusBanner.tsx` |
+| crash | `AppErrorBoundary` / `PublicRouteErrorBoundary` | 라우트에 이미 있음 |
+
+shared에 Button primitive는 없다. Tailwind + 기존 Form/Modal 패턴을 쓴다.
+
+## Modal / Confirm
+
+- 입력·수정·상세 오버레이는 `Modal`. `intent="form"` + `dirty`면 `confirmClose` → `openConfirmDialog`.
+- 신규 `fixed inset-0` 확인/입력 창, 두 번째 Confirm 시스템 금지. `ConfirmModal`은 제거됨.
+- 예외: 키오스크, 풀스크린 캘린더/시간표. 리뷰에 이유를 남긴다.
+- Escape/backdrop: view는 즉시 닫기. dirty form은 확인. 중첩 시 맨 위만 처리 (`modalFocus.ts`).
+
+## Form / Feedback
+
+- 긴 폼: 필드 오류 + 첫 오류 focus + Modal `footer` 저장/취소. 대표 `StudentFormModal`.
+- toast는 서버/전역 실패와 짧은 성공. validation 전용 toast 신규 금지.
+- 채널: toast | inline(`FormField.error`) | status(`workStatus`). `feedbackPolicy.ts`.
+
+## Loading / Empty / Error
+
+| 상황 | 사용 | 사용하지 않음 |
+| --- | --- | --- |
+| 앱/포털 첫 초기화 | `LoadingScreen` | 페이지 내부 조회 |
+| 페이지 데이터 | `PageListSkeleton` | `LoadingScreen` |
+| 저장 중 | 버튼 스피너+disabled | 전체 화면 스피너 |
+| 백그라운드 갱신 | `InlineBusy` | 화면을 가리는 로딩 |
+| 0건 | `EmptyState` | 에러 문구 |
+| 업무 crash | 기존 `AppErrorBoundary` | 공개 랜딩에 씌우기 |
+
+## Layout / Mobile
+
+- Mobile-first. 터치 영역 44px 이상. `src/shared/styles/density.ts`.
+- 하단 핵심 탭 권장 4, 상한 5. 5개면 `mobileNavPolicy` + config `reason`.
+- 사이드바와 하단 네비를 억지로 동일하게 맞추지 않는다.
+- toast/FAB는 하단 네비와 겹치지 않게.
+- 접근성: Modal `aria-modal`, focus trap, 키보드 Escape. 아이콘 버튼에 이름.
+
+## 승격
+
+한 화면 → 그 폴더. 같은 업종 2화면 → module components. 여러 업종 같은 의미 → core. generic 3번째 → shared 검토.

@@ -3,7 +3,7 @@ import { MoreHorizontal, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { NavTab } from '@/context/AppContext';
 import type { NavMenuItem } from '@/core/auth/navUtils';
-import { isNavItemActive, resolveNavHighlightTab } from '@/core/auth/navUtils';
+import { groupMoreNavItems, isNavItemActive, resolveNavHighlightTab } from '@/core/auth/navUtils';
 import type { ModuleTheme } from './moduleTheme';
 import { MODULE_THEMES } from './moduleTheme';
 
@@ -115,31 +115,42 @@ export function ModuleBottomNav({
                 </button>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 mt-3 pb-4 safe-area-pb">
-                {moreTabs.map((item) => {
-                  const isActive = isItemActive(item.tab, activeTab);
-                  return (
-                    <button
-                      key={item.tab}
-                      type="button"
-                      onClick={() => handleTab(item.tab)}
-                      className={`flex flex-col items-center justify-center min-h-[56px] p-2.5 rounded-2xl border transition-all text-center cursor-pointer ${
-                        isActive
-                          ? `${t.bottomSheetActive} font-bold shadow-xs`
-                          : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
-                      }`}
-                    >
-                      <div
-                        className={`p-2 rounded-xl mb-1.5 ${
-                          isActive ? t.bottomSheetActiveIcon : 'bg-white text-slate-700 shadow-xs'
-                        }`}
-                      >
-                        {item.icon}
-                      </div>
-                      <span className="text-xs">{item.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="mt-3 pb-4 space-y-4 safe-area-pb">
+                {groupMoreNavItems(moreTabs).map((section, sectionIdx) => (
+                  <div key={section.title || `more-${sectionIdx}`}>
+                    {section.title ? (
+                      <h4 className="text-[11px] font-bold text-slate-400 uppercase tracking-wider px-1 mb-2">
+                        {section.title}
+                      </h4>
+                    ) : null}
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {section.items.map((item) => {
+                        const isActive = isItemActive(item.tab, activeTab);
+                        return (
+                          <button
+                            key={item.tab}
+                            type="button"
+                            onClick={() => handleTab(item.tab)}
+                            className={`flex flex-col items-center justify-center min-h-[56px] p-2.5 rounded-2xl border transition-all text-center cursor-pointer ${
+                              isActive
+                                ? `${t.bottomSheetActive} font-bold shadow-xs`
+                                : 'bg-slate-50 border-slate-200/80 text-slate-700 hover:bg-slate-100'
+                            }`}
+                          >
+                            <div
+                              className={`p-2 rounded-xl mb-1.5 ${
+                                isActive ? t.bottomSheetActiveIcon : 'bg-white text-slate-700 shadow-xs'
+                              }`}
+                            >
+                              {item.icon}
+                            </div>
+                            <span className="text-xs">{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             </motion.div>
           </div>

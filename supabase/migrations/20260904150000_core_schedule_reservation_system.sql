@@ -1,4 +1,6 @@
 -- Core Schedule + Reservation System
+-- Schedule = core.schedules (슬롯). Reservation = core.reservations (고객 신청).
+-- bookable 슬롯 점유는 reservations.status. schedules.status 와 미러하지 않는다.
 -- 조직의 시간 기반 활동 기반 + 예약 시스템
 -- 
 -- Changes:

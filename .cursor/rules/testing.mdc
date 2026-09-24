@@ -1,0 +1,54 @@
+---
+description: Moa unit, invariant, and Playwright test rules
+globs:
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+  - "e2e/**"
+  - "scripts/**/*.ts"
+alwaysApply: false
+---
+
+# Moa Testing
+
+상세: `docs/MOA_DEVELOPMENT_STANDARD.md` §11. 프레임워크: `tsx`로 파일 직접 실행 (`package.json` `test:*`). E2E는 Playwright (`e2e/`, `playwright.config.ts`). Vitest/Jest 설정은 없다.
+
+## 어디에 두나
+
+| 종류 | 위치 | 실행 |
+| --- | --- | --- |
+| Unit | 대상 옆 `foo.test.ts` | `tsx src/.../foo.test.ts` + `package.json`에 `test:<name>` |
+| 스크립트/RLS | `scripts/*.test.ts`, `scripts/rls-*.ts` | 기존 `test:rls-*` 패턴 |
+| E2E | `e2e/*.spec.ts` | `npm run test:e2e` |
+
+이름: 대상 파일 + `.test.ts`. E2E는 `*-flow.spec.ts` / `deeplink-pwa.spec.ts`.
+
+## 언제 추가하나
+
+| 변경 | 테스트 |
+| --- | --- |
+| 순수 규칙, validation, 날짜, state machine, permission 계산 | Unit 필수 |
+| 돈·재고·이용권·출결 등 원자 mutation | 기존 `*Atomic.test.ts` / contract / db integration 패턴 |
+| 새 테이블·멤버십 RLS | `scripts/rls-*` 또는 invariant |
+| Core→Module import, DB 타입 | `npm run check:architecture` / `check:db-types` (`lint`에 포함) |
+| 원장/카운터 한 줄이 깨지면 사업 정지 | 기존 E2E 시나리오 확장. 새 spec은 남발하지 않음 |
+| 스타일·카피·레이아웃만 | 테스트 추가하지 않음 |
+
+불변조건 묶음: `npm run test:business-invariants` (`docs/architecture/business-invariants.md`).
+
+현재 E2E: `director-ops-flow`, `retail-ops-flow`, `public-consultation`, `deeplink-pwa`.
+
+## 권한 / Mutation
+
+- 권한: 클라이언트 `evaluatePermission` / `permissions.invariant.test.ts`와 서버 RLS 스크립트를 구분한다. UI 탭 숨김만 테스트하고 끝내지 않는다.
+- Mutation: RPC 입출력·에러 매핑·idempotent 재시도를 검증한다. Command Executor 테스트는 파일럿(`reservation.confirm`)용. 기존 RPC를 Executor 테스트로 바꾸지 않는다.
+
+## UI 테스트
+
+컴포넌트 렌더 테스트 러너는 없다. 폼 규칙은 `studentFormValidation.test.ts`처럼 순수 함수로 뺀다. Modal focus는 `modalFocus.test.ts`.
+
+## 하지 말 것
+
+- 새 테스트 프레임워크 도입
+- 모든 화면에 Playwright
+- 손대지 않은 기존 테스트 대량 삭제
+- 앱 코드 수정 없이 깨진 테스트를 스킵으로 숨기기

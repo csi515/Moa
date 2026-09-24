@@ -1,9 +1,10 @@
 /**
- * 출결 + 이용권 원자 클라이언트.
- * 온라인: core.update_attendance_status_with_pass
+ * Piano 수업 출석 + 이용권 원자 클라이언트.
+ * 온라인: piano.update_attendance_status_with_pass → core.apply_attendance_session_pass
+ * Attendance SoT는 piano.attendance. PIN 체크인(attendance_sessions)과 미러하지 않는다.
  * demo/offline: lessonPass 규칙 + local save (트랜잭션 없음)
  */
-import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
+import { getCoreClient, getPianoClient, isSupabaseConfigured } from '@/lib/supabase';
 import { getOrganizationId, getStorageAdapter, STORAGE_KEYS } from '@/services/adapters';
 import { StorageService } from '@/services/storage';
 import { isSessionPassBillingStudent } from '@/core/academy/utils/billingMode';
@@ -144,7 +145,7 @@ export async function saveAttendanceWithPass(
     return saveAttendanceLocally(input);
   }
 
-  const client = getCoreClient();
+  const client = getPianoClient();
   const applyPass = isSessionPassBillingStudent(input.student);
   const { data, error } = await client.rpc('update_attendance_status_with_pass' as never, {
     p_organization_id: orgId,

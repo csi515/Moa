@@ -9,6 +9,7 @@ import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
 import { ParentShell } from './modules/parent/ParentShell';
 import { CustomerShell } from './core/customer/CustomerShell';
 import { LoadingScreen } from './shared/components/LoadingScreen';
+import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import { PwaInstallPrompt } from './shared/components/PwaInstallPrompt';
 import { StorageHydrator } from './StorageHydrator';
 
@@ -19,6 +20,7 @@ export const SupabaseAppGate: React.FC = () => {
     currentRole,
     blockedOwnerOrgIds,
     loading: orgLoading,
+    organizationsStatus,
     isParentOnly,
     isCustomerOnly,
     parentPortalActive,
@@ -53,7 +55,7 @@ export const SupabaseAppGate: React.FC = () => {
     navigate,
   ]);
 
-  if (authLoading || (session && orgLoading)) {
+  if (authLoading || (session && orgLoading && organizationsStatus === 'loading')) {
     return <LoadingScreen />;
   }
 
@@ -86,7 +88,7 @@ export const SupabaseAppGate: React.FC = () => {
 
   return (
     <>
-      {content}
+      <AppErrorBoundary>{content}</AppErrorBoundary>
       <PwaInstallPrompt />
     </>
   );

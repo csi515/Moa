@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
+import { MORE_NAV_SECTION } from '@/core/auth/navUtils';
+import { defineMobileMainNav } from '@/core/auth/mobileNavPolicy';
 import { buildFinanceNavItem, buildNavSection } from '@/core/auth/navBuilders';
 import {
   Calendar,
@@ -41,6 +43,14 @@ export function getSkinSidebarSections(labels: ModuleLabels): NavMenuSection[] {
   ];
 }
 
+/**
+ * 피부 하단 핵심: 홈·고객·일정·재무.
+ * 상품·출입은 카운터 보조 업무라 더보기.
+ */
+export const SKIN_MOBILE_MAIN = defineMobileMainNav({
+  tabs: ['dashboard', 'members', 'bookings', 'finance'],
+});
+
 export function getSkinMainTabs(labels: ModuleLabels): NavMenuItem[] {
   return [
     { tab: 'dashboard', label: '홈', icon: icon(<LayoutDashboard className="w-5 h-5" />) },
@@ -52,8 +62,23 @@ export function getSkinMainTabs(labels: ModuleLabels): NavMenuItem[] {
 
 export function getSkinMoreTabs(): NavMenuItem[] {
   return [
-    { tab: 'retail', label: '상품', icon: icon(<ShoppingBag className="w-5 h-5" />) },
-    { tab: 'attendance', label: '출입', icon: icon(<KeyRound className="w-5 h-5" />) },
-    { tab: 'settings', label: '설정', icon: icon(<Settings className="w-5 h-5" />) },
+    {
+      tab: 'retail',
+      label: '상품',
+      icon: icon(<ShoppingBag className="w-5 h-5" />),
+      section: MORE_NAV_SECTION.work,
+    },
+    {
+      tab: 'attendance',
+      label: '출입',
+      icon: icon(<KeyRound className="w-5 h-5" />),
+      section: MORE_NAV_SECTION.work,
+    },
+    {
+      tab: 'settings',
+      label: '설정',
+      icon: icon(<Settings className="w-5 h-5" />),
+      section: MORE_NAV_SECTION.settings,
+    },
   ];
 }

@@ -1,4 +1,7 @@
-/** Core schedule / booking types (core.schedules, core.services) */
+/**
+ * Appointment Booking 타입 (core.schedules 행).
+ * bookable 슬롯 신청(core.reservations)이나 Session/Attendance가 아니다.
+ */
 
 export type BookingStatus = 'scheduled' | 'confirmed' | 'completed' | 'cancelled' | 'no_show';
 
@@ -16,6 +19,7 @@ export interface ServiceOffering {
   careIntervalDays?: number;
 }
 
+/** 고객이 배정된 수업/시술 예약. source of truth = core.schedules.status */
 export interface Booking {
   id: string;
   customerId: string;
@@ -45,7 +49,7 @@ export interface Booking {
   waitlist?: boolean;
 }
 
-/** 필라테스 등 횟수제 이용권 */
+/** 횟수권. Session(방문 사실)이 아니다. source of truth = core.session_passes */
 export type SessionPassStatus = 'active' | 'exhausted' | 'cancelled';
 
 export interface SessionPass {

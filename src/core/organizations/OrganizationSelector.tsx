@@ -17,7 +17,16 @@ import { TeacherJoinFlow } from './components/TeacherJoinFlow';
 import { useAuth } from '../auth/AuthProvider';
 
 export const OrganizationSelector: React.FC = () => {
-  const { organizations, selectOrganization, loading, blockedOwnerOrgIds } = useOrganization();
+  const {
+    organizations,
+    selectOrganization,
+    loading,
+    organizationsStatus,
+    organizationsError,
+    refreshOrganizations,
+    blockedOwnerOrgIds,
+  } = useOrganization();
+  const [retrying, setRetrying] = useState(false);
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
@@ -31,7 +40,12 @@ export const OrganizationSelector: React.FC = () => {
     void signOut().finally(() => setSigningOut(false));
   };
 
-  if (loading || signingOut) {
+  const handleRetry = () => {
+    setRetrying(true);
+    void refreshOrganizations().finally(() => setRetrying(false));
+  };
+
+  if (loading || signingOut || retrying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
@@ -63,9 +77,27 @@ export const OrganizationSelector: React.FC = () => {
             <Building2 className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">사업장 선택</h1>
-          <p className="text-sm text-slate-500 mt-2">
-            운영·근무할 사업장을 선택하거나 새로 등록하세요. 이용자 가입은 아래 별도 메뉴입니다.
-          </p>
+          {organizationsStatus === 'error' ? (
+            <div className="mt-3 text-left rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+              <p className="text-sm font-bold text-rose-800">사업장 정보를 불러오지 못했습니다</p>
+              <p className="text-xs text-rose-700 mt-1">
+                {organizationsError || '잠시 후 다시 시도해 주세요.'}
+              </p>
+              <button
+                type="button"
+                onClick={handleRetry}
+                className="mt-3 min-h-[44px] px-4 rounded-xl bg-rose-700 text-white text-sm font-bold"
+              >
+                다시 시도
+              </button>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-500 mt-2">
+              {organizations.length === 0
+                ? '등록된 사업장이 없습니다. 새로 등록하거나 기존 사업장에 가입하세요.'
+                : '운영·근무할 사업장을 선택하거나 새로 등록하세요. 이용자 가입은 아래 별도 메뉴입니다.'}
+            </p>
+          )}
           {missingEmail && (
             <p className="mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 text-left leading-relaxed">
               이 계정에 이메일이 없습니다. 알림·계정 복구를 위해 나중에 설정에서 이메일을

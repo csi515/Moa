@@ -2,7 +2,7 @@
  * Role + Permission + Scope Capability.
  * 기존 is_org_admin / is_org_staff_actor / RLS helper를 제거하지 않는다.
  */
-import { canAuthorize, evaluatePermission } from './authorizationService';
+import { canAuthorize, evaluatePermission, toAuthorizationGrant } from './authorizationService';
 import {
   compatIsOrgAdmin,
   compatIsOrgStaffActor,
@@ -26,7 +26,9 @@ import {
 import {
   customerScope,
   locationScope,
+  normalizeScopeId,
   organizationScope,
+  resolveAuthScope,
   resourceScope,
 } from './scopes';
 
@@ -41,10 +43,13 @@ export const authorizationCapability = {
   defaultPermissionsForRole,
   evaluate: evaluatePermission,
   can: canAuthorize,
+  toGrant: toAuthorizationGrant,
   organizationScope,
   locationScope,
   customerScope,
   resourceScope,
+  resolveScope: resolveAuthScope,
+  normalizeScopeId,
   isOrgAdmin,
   isOrgStaffActor: compatIsOrgStaffActor,
   compatIsOrgAdmin,

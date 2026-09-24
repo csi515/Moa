@@ -113,6 +113,7 @@ function run() {
   const service = readFileSync(join(here, 'locationService.ts'), 'utf8');
   assert.match(service, /upsert_location/);
   assert.match(service, /ensure_default_organization_location/);
+  assert.match(service, /resolveOrganizationTimezone/);
   assert.doesNotMatch(service, /create_sale/);
 
   const orgService = readFileSync(join(here, '../organizations/services/organizationService.ts'), 'utf8');

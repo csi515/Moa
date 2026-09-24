@@ -107,7 +107,10 @@ BEGIN
     FROM core.attendance_action_labels(v_industry, v_action) l;
 
     v_title := v_customer_name || v_action_label || v_title_suffix;
-    v_message := to_char(v_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI')
+    v_message := core.business_time_text(
+        v_at,
+        core.resolve_location_timezone(NEW.organization_id)
+      )
       || ' ' || v_action_label || ' 처리되었습니다.';
 
     IF NOT EXISTS (
@@ -155,7 +158,10 @@ BEGIN
     FROM core.attendance_action_labels(v_industry, v_action) l;
 
     v_title := v_customer_name || v_action_label || v_title_suffix;
-    v_message := to_char(v_at AT TIME ZONE 'Asia/Seoul', 'HH24:MI')
+    v_message := core.business_time_text(
+        v_at,
+        core.resolve_location_timezone(NEW.organization_id)
+      )
       || ' ' || v_action_label || ' 처리되었습니다.';
 
     IF NOT EXISTS (

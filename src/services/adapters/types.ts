@@ -40,6 +40,9 @@ export interface IStorageAdapter {
   /** org 스코프 outbox pending key 재 persist */
   flushSyncOutbox?(): Promise<void>;
 
+  /** local write만 있고 server commit이 끝나지 않은 mutation이 있는지 */
+  hasUncommittedWrites?(): boolean;
+
   /**
    * cache + localStorage만 갱신. persist / diff-delete를 예약하지 않음.
    * RPC 후 해당 row mirror 전용 — 전체 snapshot sync 경로가 아님.

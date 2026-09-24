@@ -1,5 +1,6 @@
 /**
- * 공통 고객 세션. 상태 변경은 RPC. 결제/이용권 차감 없음.
+ * 공통 고객 Session(방문 사실). 상태 변경은 RPC.
+ * 결제/이용권 차감 없음. 예약·출석 status를 미러하지 않는다.
  */
 import { getCoreClient } from '@/lib/supabase';
 import type {

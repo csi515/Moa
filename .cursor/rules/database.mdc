@@ -1,0 +1,72 @@
+---
+description: Moa Supabase, RLS, RPC, and persistence rules
+globs:
+  - "supabase/**/*.sql"
+  - "src/lib/supabase/**"
+  - "src/services/**"
+  - "src/core/**/*.ts"
+alwaysApply: false
+---
+
+# Moa Database
+
+상세: `docs/MOA_DEVELOPMENT_STANDARD.md` §7, `docs/DATA_FLOW.md`, `docs/DOMAIN_MAP.md`.
+이번 작업에서 migration을 요청받지 않았으면 생성·수정하지 않는다.
+
+## UI → DB
+
+**권장 신규:** 화면에서 `getCoreClient()` / `supabase.from` / RPC를 직접 호출하지 않는다. `src/core/<domain>` 또는 `src/modules/<x>/services`를 거친다.
+
+**현재:** 많은 화면이 `StorageService.getX()`를 직접 호출한다. 손대지 않는 화면을 일괄 바꾸지 않는다.
+
+클라이언트: `src/lib/supabase/client.ts` (`getCoreClient`). 업종 스키마는 `pianoClient.ts`, `bathClient.ts`, `platformClient.ts`.
+
+## Schema / Naming
+
+- 스키마(타입 기준): `core`, `piano`, `bath`, `platform`
+- 테이블 `snake_plural`, 컬럼 `snake_case`
+- RPC `동사_목적어` (`create_sale`, `confirm_reservation`, `begin_idempotency`)
+- Migration: `supabase/migrations/YYYYMMDDHHMMSS_snake_description.sql` 추가만. 기존 파일 수정 금지(이미 적용된 경우)
+
+## Tenant / Location
+
+- 모든 테넌트 테이블: `organization_id` uuid NOT NULL, FK `core.organizations`
+- RLS: `core.is_org_member(organization_id)` 등 기존 helper. 새 테이블은 RLS ON
+- Location은 테넌트를 대체하지 않는다. 기존 테이블에 `location_id` 일괄 추가 금지
+- 신규 location-scoped 테이블만 `organization_id` + `location_id` NOT NULL + `core.assert_location_in_organization`
+
+## Columns
+
+- `created_at` / `updated_at` timestamptz
+- 영업일: `date` 또는 YYYY-MM-DD. instant와 섞지 않음
+- Soft delete / revision: 전 테이블 표준 아님. 쓸 거면 해당 테이블에 명시
+
+## RPC / Transaction
+
+두 줄 이상 써야 일관되는 쓰기(판매+재고, 출결+이용권, 수납)는 Postgres 함수 한 트랜잭션.
+
+앱에서 여러 write를 이어 붙이지 않는다. 동작 중인 RPC를 Command Executor로 재작성하지 않는다.
+
+## Types
+
+- 스냅샷: `src/lib/supabase/database.types.ts` (수동 헬퍼 금지)
+- 별칭: `database.aliases.ts`
+- 생성: `npm run supabase:types` 검증: `npm run check:db-types`
+
+## Mutation extras
+
+인프라: `src/core/audit`, `idempotency`, `outbox`. 파일럿·일부 RPC만 연결.
+
+| 넣을 것 | 넣지 말 것 |
+| --- | --- |
+| 결제·판매·재고·이용권 차감 → 멱등 | 탭/토글/모달 open |
+| 상태 변경 이력 → audit allowlist (phone/pin 제외) | StorageService 일반 set에 무조건 audit |
+| TX 밖 알림 → outbox | UI에서 알림을 성공으로 간주 |
+
+## Persistence
+
+새 storage key는 `src/core/storage/persistencePolicy.ts`와 `storageKeys.ts`에 정책을 같이 선언한다.
+
+`server-authoritative` | `server-with-local-cache` | `offline-command` | `local-only`
+
+`setItem` 성공 ≠ 서버 커밋 (`DATA_FLOW.md` §7).

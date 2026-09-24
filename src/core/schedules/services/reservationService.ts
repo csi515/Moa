@@ -12,6 +12,7 @@ import type {
   ReservationRequest,
   ReservationStatus,
 } from '@/types';
+import { applyReservationCommand } from '../reservationMachine';
 import { jsonToRecord } from './scheduleJson';
 
 function mapReservationRow(row: ReservationRow): Reservation {
@@ -92,8 +93,9 @@ function mapMyReservation(row: MyReservationRpcRow): MyReservation {
 }
 
 /**
- * Reservation Service
- * 예약 신청 및 관리
+ * Schedule Reservation Service
+ * bookable Schedule(core.schedules)에 대한 고객 신청 (core.reservations).
+ * 슬롯 점유 status는 reservations만 바꾼다. 방문/출석 원장을 만들지 않는다.
  */
 export const reservationService = {
   capacitySnapshot: capacityCapability.reservationSnapshot,
@@ -117,7 +119,10 @@ export const reservationService = {
   /**
    * 예약 확정 (원장/관리자)
    */
-  async confirmReservation(reservationId: string): Promise<void> {
+  async confirmReservation(reservationId: string, fromStatus?: ReservationStatus): Promise<void> {
+    if (fromStatus) {
+      applyReservationCommand(fromStatus, 'confirm');
+    }
     const { error } = await getCoreClient().rpc('confirm_reservation', {
       p_reservation_id: reservationId,
     });
@@ -128,7 +133,14 @@ export const reservationService = {
   /**
    * 예약 취소
    */
-  async cancelReservation(reservationId: string, reason?: string): Promise<void> {
+  async cancelReservation(
+    reservationId: string,
+    reason?: string,
+    fromStatus?: ReservationStatus
+  ): Promise<void> {
+    if (fromStatus) {
+      applyReservationCommand(fromStatus, 'cancel');
+    }
     const { error } = await getCoreClient().rpc('cancel_reservation', {
       p_reservation_id: reservationId,
       p_cancel_reason: reason ?? null,

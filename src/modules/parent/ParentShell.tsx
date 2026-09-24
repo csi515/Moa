@@ -5,6 +5,7 @@ import { useAuth } from '@/core/auth/AuthProvider';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { ParentPortalProvider, useParentPortal } from '@/core/parent/context/ParentPortalContext';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
+import { PageListSkeleton } from '@/shared/components/ui/Skeleton';
 import { StorageHydrator } from '@/StorageHydrator';
 import { SupabaseRoleSync } from '@/SupabaseRoleSync';
 import { ParentChildrenHome } from './ParentChildrenHome';
@@ -78,8 +79,8 @@ function ParentShellContent() {
     }
   };
 
-  if ((loading && !portalTree) || redeeming) {
-    return <LoadingScreen message={redeeming ? '자녀 연결 중...' : '학부모 포털을 불러오는 중...'} />;
+  if (loading && !portalTree) {
+    return <LoadingScreen message="학부모 포털을 불러오는 중..." />;
   }
 
   return (
@@ -176,7 +177,14 @@ function ParentShellContent() {
                       disabled={redeeming || linkInput.length < 6}
                       className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
                     >
-                      {redeeming ? '연결 중...' : '연결'}
+                      {redeeming ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          연결 중...
+                        </span>
+                      ) : (
+                        '연결'
+                      )}
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
@@ -304,7 +312,7 @@ function ParentPortalWithStudent({
   }, [student, customerId]);
 
   if (!student && !waited) {
-    return <LoadingScreen message="자녀 정보를 불러오는 중..." />;
+    return <PageListSkeleton rows={3} message="자녀 정보를 불러오는 중..." />;
   }
 
   if (!student) {

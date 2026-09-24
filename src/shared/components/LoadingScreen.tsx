@@ -5,6 +5,7 @@ interface LoadingScreenProps {
   message?: string;
 }
 
+/** 앱 전체 초기화 전용. 페이지 데이터는 Skeleton, 버튼은 내부 spinner. */
 export const LoadingScreen: React.FC<LoadingScreenProps> = ({ message = '불러오는 중...' }) => (
   <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 p-6">
     <div className="flex flex-col items-center gap-3">

@@ -60,7 +60,7 @@ export interface AuthorizedPickup {
   phone: string;
 }
 
-/** 원아별 건강·귀가 기록 (보육 localStorage) */
+/** 원아별 건강·귀가 기록. SoT = core.care_child_records */
 export interface ChildLegalRecord {
   id: string;
   studentId: string;
@@ -73,7 +73,7 @@ export interface ChildLegalRecord {
   updatedAt: string;
 }
 
-/** 원내 사고 기록 — 관청 보고는 하지 않음 */
+/** 원내 사고 기록. SoT = core.care_incidents. 관청 보고는 하지 않음 */
 export interface CareIncident {
   id: string;
   studentId: string;
@@ -97,7 +97,7 @@ export const CHILD_RECORD_GAP_LABEL = {
 
 export type ChildRecordGap = keyof typeof CHILD_RECORD_GAP_LABEL;
 
-/** 교사 보건증 만료일 — 보육 localStorage */
+/** 교사 보건증 만료일. SoT = core.care_staff_health_certs */
 export interface StaffHealthCert {
   id: string;
   teacherId: string;
@@ -115,6 +115,7 @@ export interface SafetyChecklistItem {
   checked: boolean;
 }
 
+/** 안전점검·대피훈련. SoT = core.care_safety_logs */
 export interface SafetyInspectionLog {
   id: string;
   logDate: string;
@@ -127,7 +128,7 @@ export interface SafetyInspectionLog {
   updatedAt: string;
 }
 
-/** 보존식 — 저장 시각 + 144시간 */
+/** 보존식. SoT = core.care_meal_samples. 저장 시각 + 144시간 */
 export interface MealSampleLog {
   id: string;
   menuName: string;
@@ -141,6 +142,7 @@ export interface MealSampleLog {
 
 export type CctvViewStatus = 'requested' | 'approved' | 'rejected';
 
+/** CCTV 열람 신청. SoT = core.care_cctv_requests */
 export interface CctvViewRequest {
   id: string;
   requestedAt: string;
@@ -165,7 +167,7 @@ export const CCTV_VIEW_STATUS_LABEL: Record<CctvViewStatus, string> = {
   rejected: '반려',
 };
 
-/** 어린이집 하원 인수 — 출결 퇴실과 별도 */
+/** 어린이집 하원 인수. SoT = core.care_pickup_logs. 출결 퇴실과 별도 */
 export interface CarePickupLog {
   id: string;
   studentId: string;

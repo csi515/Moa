@@ -12,6 +12,7 @@ export const ConfirmDialog: React.FC = () => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return;
       e.preventDefault();
+      e.stopPropagation();
       confirmDialog.onCancel?.();
       closeConfirmDialog();
     };

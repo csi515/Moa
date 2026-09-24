@@ -7,7 +7,11 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  businessDateInTimezone,
   formatIsoDateLocal,
+  formatKoreanDateLocal,
+  instantFromBusinessLocal,
+  resolveIanaTimezone,
   startOfLocalDay,
   startOfNextLocalDay,
   weekStartIsoLocal,
@@ -56,7 +60,26 @@ function run() {
   assert.ok(kst001.getTime() < to.getTime());
   assert.equal(to.getTime() - from.getTime(), 24 * 60 * 60 * 1000);
 
+  const utcNearSeoulMidnight = new Date('2026-09-23T15:30:00.000Z');
+  assert.equal(utcNearSeoulMidnight.toISOString().slice(0, 10), '2026-09-23');
+  assert.equal(businessDateInTimezone(utcNearSeoulMidnight, 'Asia/Seoul'), '2026-09-24');
+  assert.equal(businessDateInTimezone(utcNearSeoulMidnight, 'America/Los_Angeles'), '2026-09-23');
+  assert.equal(businessDateInTimezone(utcNearSeoulMidnight, 'UTC'), '2026-09-23');
+  assert.equal(resolveIanaTimezone(null), 'Asia/Seoul');
+  assert.equal(resolveIanaTimezone('Not/AZone'), 'Asia/Seoul');
+  assert.equal(resolveIanaTimezone('Pacific/Honolulu'), 'Pacific/Honolulu');
+  assert.equal(
+    instantFromBusinessLocal('2026-09-24', '00:00', 'Asia/Seoul').toISOString(),
+    '2026-09-23T15:00:00.000Z'
+  );
+  assert.equal(
+    instantFromBusinessLocal('2026-09-24', '00:00', 'America/Los_Angeles').toISOString(),
+    '2026-09-24T07:00:00.000Z'
+  );
+
   const here = dirname(fileURLToPath(import.meta.url));
+  assert.equal(formatKoreanDateLocal('2026-09-24'), '2026년 9월 24일 (목)');
+
   const pianoFiles = [
     '../../../src/modules/piano/components/lessons/LessonRecordsView.tsx',
     '../../../src/modules/piano/components/practice/PracticeRecordsView.tsx',
@@ -66,6 +89,10 @@ function run() {
     '../../../src/core/finance/services/tuitionService.ts',
     '../../../src/core/finance/services/invoicePaymentService.ts',
     '../../../src/core/academy/components/students/useStudentDetailModal.ts',
+    '../../../src/core/schedules/components/CreateConsultationScheduleModal.tsx',
+    '../../../src/shared/components/layout/Header.tsx',
+    '../../../src/core/dashboard/IndustryDashboardShell.tsx',
+    '../../../src/core/academy/components/students/StudentListView.tsx',
   ];
   for (const rel of pianoFiles) {
     const src = readFileSync(join(here, rel), 'utf8');

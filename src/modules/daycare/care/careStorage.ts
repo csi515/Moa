@@ -51,7 +51,7 @@ function deleteById<T extends { id: string }>(list: T[], id: string): T[] | null
   return filtered.length === list.length ? null : filtered;
 }
 
-/** 어린이집 알림장·투약 localStorage CRUD */
+/** 어린이집 보육 기록 CRUD. local은 cache, SoT는 core.care_* */
 export function createDaycareCareStorage(_api: StorageApi) {
   return {
     getCareJournals(): CareJournal[] {

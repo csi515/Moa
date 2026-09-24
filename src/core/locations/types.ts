@@ -1,6 +1,9 @@
+import type { AuthorizationGrant } from '@/core/authorization';
+
 /** 사업자(Organization) 아래 실제 영업 지점. 기존 organization_id를 대체하지 않는다. */
 export const DEFAULT_LOCATION_CODE = 'main';
 export const DEFAULT_LOCATION_SLUG = 'main';
+/** location.timezone 이 없거나 유효하지 않을 때 business date 기본값 */
 export const DEFAULT_LOCATION_TIMEZONE = 'Asia/Seoul';
 
 /** 향후 Availability hours/override 가 Location 에 붙는 연결점 */
@@ -41,4 +44,18 @@ export type LocationListQuery = {
 export type OrganizationLocationScope = {
   organizationId: string;
   locationId?: string | null;
+};
+
+/** location 선택/목록 필터. authorization grant + role 과 동일 기준. */
+export type LocationAccessContext = {
+  organizationId: string;
+  role: string | null | undefined;
+  extraGrants?: readonly AuthorizationGrant[] | null;
+};
+
+/** UI 선택이 아니라 현재 조직 catalog로 검증된 실행 location. */
+export type TrustedLocationSelection = {
+  organizationId: string;
+  locationId: string | null;
+  locations: readonly Location[];
 };

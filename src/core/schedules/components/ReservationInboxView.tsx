@@ -2,6 +2,7 @@
 import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { reservationService } from '@/core/schedules';
+import { Modal } from '@/shared/components/ui/Modal';
 import type { ReservationDetail, ReservationStatus } from '@/types';
 import { 
   Inbox, 
@@ -14,7 +15,6 @@ import {
   MessageSquare,
   Calendar,
   Filter,
-  X,
 } from 'lucide-react';
 
 export const ReservationInboxView: React.FC<{
@@ -382,21 +382,13 @@ export const ReservationInboxView: React.FC<{
         </div>
       )}
 
-      {/* Cancel Modal */}
-      {showCancelModal && cancellingReservation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+      <Modal
+        isOpen={Boolean(showCancelModal && cancellingReservation)}
+        onClose={() => setShowCancelModal(false)}
+        title="예약 취소"
+      >
+        {cancellingReservation && (
             <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">예약 취소</h3>
-                <button
-                  onClick={() => setShowCancelModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
               <p className="text-sm text-slate-600">
                 <strong>{cancellingReservation.applicant_name}</strong>님의 예약을 취소하시겠습니까?
               </p>
@@ -429,25 +421,17 @@ export const ReservationInboxView: React.FC<{
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
-      {/* Detail Modal */}
-      {showDetailModal && selectedReservation && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl w-full max-w-lg">
+      <Modal
+        isOpen={Boolean(showDetailModal && selectedReservation)}
+        onClose={() => setShowDetailModal(false)}
+        title="예약 상세"
+        maxWidth="lg"
+      >
+        {selectedReservation && (
             <div className="p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-slate-900">예약 상세</h3>
-                <button
-                  onClick={() => setShowDetailModal(false)}
-                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
               <div className="space-y-3 text-sm">
                 <div>
                   <div className="text-slate-500 mb-1">예약 상태</div>
@@ -504,9 +488,8 @@ export const ReservationInboxView: React.FC<{
                 닫기
               </button>
             </div>
-          </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };

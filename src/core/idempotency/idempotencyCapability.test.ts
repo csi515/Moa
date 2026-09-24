@@ -150,16 +150,107 @@ function run() {
     assert.equal(retry.result.outcome, 'execute');
   }
 
+  const paySame = paymentIdempotencyCanonical({
+    organizationId: 'org-a',
+    invoiceId: 'inv-1',
+    amount: 10000,
+    method: 'cash',
+    paidAt: '2026-09-24',
+    memo: '월납',
+    cashReceiptIssued: false,
+  });
+  assert.equal(paySame, 'org-a:inv-1:10000.00:cash:2026-09-24:s:월납:false');
   assert.equal(
+    paymentIdempotencyCanonical({
+      organizationId: 'org-a',
+      invoiceId: 'inv-1',
+      amount: '10000',
+      method: 'cash',
+      paidAt: '2026-09-24',
+      memo: '월납',
+      cashReceiptIssued: false,
+    }),
+    paySame
+  );
+  assert.notEqual(
     paymentIdempotencyCanonical({
       organizationId: 'org-a',
       invoiceId: 'inv-1',
       amount: 10000,
       method: 'cash',
       paidAt: '2026-09-24',
+      memo: '다른메모',
+      cashReceiptIssued: false,
     }),
-    'org-a:inv-1:10000:cash:2026-09-24'
+    paySame
   );
+  assert.notEqual(
+    paymentIdempotencyCanonical({
+      organizationId: 'org-a',
+      invoiceId: 'inv-1',
+      amount: 10000,
+      method: 'cash',
+      paidAt: '2026-09-24',
+      memo: '월납',
+      cashReceiptIssued: true,
+    }),
+    paySame
+  );
+
+  {
+    const payHash = hashIdempotencyRequest(paySame);
+    const payMismatchHash = hashIdempotencyRequest(
+      paymentIdempotencyCanonical({
+        organizationId: 'org-a',
+        invoiceId: 'inv-1',
+        amount: 10000,
+        method: 'cash',
+        paidAt: '2026-09-24',
+        memo: '월납',
+        cashReceiptIssued: true,
+      })
+    );
+    let payStore = new Map();
+    const payFirst = beginIdempotency(payStore, {
+      organizationId: 'org-a',
+      key: 'pay-same',
+      operation: 'payment',
+      requestHash: payHash,
+    });
+    assert.equal(payFirst.result.outcome, 'execute');
+    payStore = completeIdempotency(payFirst.store, 'org-a', 'pay-same', { action: 'paid' });
+    const payReplay = beginIdempotency(payStore, {
+      organizationId: 'org-a',
+      key: 'pay-same',
+      operation: 'payment',
+      requestHash: payHash,
+    });
+    assert.equal(payReplay.result.outcome, 'replay');
+    const payMemoMismatch = beginIdempotency(payStore, {
+      organizationId: 'org-a',
+      key: 'pay-same',
+      operation: 'payment',
+      requestHash: hashIdempotencyRequest(
+        paymentIdempotencyCanonical({
+          organizationId: 'org-a',
+          invoiceId: 'inv-1',
+          amount: 10000,
+          method: 'cash',
+          paidAt: '2026-09-24',
+          memo: '변경',
+          cashReceiptIssued: false,
+        })
+      ),
+    });
+    assert.equal(payMemoMismatch.result.outcome, 'mismatch');
+    const payReceiptMismatch = beginIdempotency(payStore, {
+      organizationId: 'org-a',
+      key: 'pay-same',
+      operation: 'payment',
+      requestHash: payMismatchHash,
+    });
+    assert.equal(payReceiptMismatch.result.outcome, 'mismatch');
+  }
 
   const sql = readFileSync(
     join(root, 'supabase/migrations/20260924310000_idempotency_infrastructure.sql'),
@@ -175,6 +266,9 @@ function run() {
   assert.match(sql, /CREATE OR REPLACE FUNCTION core\.fail_idempotency/);
   assert.match(sql, /update_booking_status_with_pass_idempotent/);
   assert.match(sql, /record_tuition_payment_idempotent/);
+  assert.match(sql, /tuition_payment_idempotency_canonical/);
+  assert.match(sql, /p_memo/);
+  assert.match(sql, /p_cash_receipt_issued/);
   assert.match(sql, /RETURN core\.update_booking_status_with_pass\(/);
   assert.match(sql, /RETURN core\.record_tuition_payment\(/);
   assert.doesNotMatch(sql, /CREATE OR REPLACE FUNCTION core\.update_booking_status_with_pass\(/);

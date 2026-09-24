@@ -1,6 +1,6 @@
 /**
  * 업종 무관 Customer Session Capability.
- * 결제/예약 원장을 복사하거나 차감하지 않는다.
+ * 방문 사실만 기록한다. 결제/예약/출석 원장을 복사하거나 차감하지 않는다.
  */
 import { customerSessionService } from './sessionService';
 import { evaluateSessionCancel, evaluateSessionFinish, evaluateSessionStart } from './transitions';

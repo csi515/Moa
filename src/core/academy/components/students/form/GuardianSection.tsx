@@ -15,7 +15,9 @@ import {
 } from '@/core/parent/guardianHelpers';
 import type { GuardianFormEntry } from './studentFormTypes';
 import { RELATIONSHIP_OPTIONS } from './studentFormTypes';
+import { STUDENT_FORM_FIELD_IDS } from './studentFormValidation';
 import { useModuleLabels } from '@/core/labels';
+import { FORM_CONTROL_ERROR_CLASS } from '@/shared/components/ui/FormField';
 
 interface Props {
   isEdit: boolean;
@@ -29,6 +31,7 @@ interface Props {
   onRemoveGuardian: (idx: number) => void;
   onSelectExistingParent: (idx: number, parent: Parent) => void;
   onFocusSearch: (idx: number) => void;
+  errors?: Record<string, string>;
 }
 
 export const GuardianSection: React.FC<Props> = ({
@@ -43,12 +46,14 @@ export const GuardianSection: React.FC<Props> = ({
   onRemoveGuardian,
   onSelectExistingParent,
   onFocusSearch,
+  errors,
 }) => {
+  const fieldErrors = errors ?? {};
   const labels = useModuleLabels();
   const contactLabel = labels.contact.singular;
 
   return (
-  <section>
+  <section id={STUDENT_FORM_FIELD_IDS.guardians}>
     <div className="flex items-center justify-between mb-3">
       <div>
         <h4 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5">
@@ -57,6 +62,11 @@ export const GuardianSection: React.FC<Props> = ({
         {isEdit && (
           <p className="text-[11px] text-slate-500 mt-1">
             부·모 각각 별도 계정으로 연결할 수 있습니다. {contactLabel} 추가 후 저장하면 link가 반영됩니다.
+          </p>
+        )}
+        {fieldErrors.guardians && (
+          <p className="text-xs text-rose-600 mt-1" role="alert">
+            {fieldErrors.guardians}
           </p>
         )}
       </div>
@@ -136,6 +146,7 @@ export const GuardianSection: React.FC<Props> = ({
             <div className="relative">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
+                id={STUDENT_FORM_FIELD_IDS.guardianExisting(idx)}
                 type="search"
                 placeholder="이름·전화·자녀명으로 검색"
                 value={g.parentSearch}
@@ -146,8 +157,18 @@ export const GuardianSection: React.FC<Props> = ({
                     existingParentId: '',
                   })
                 }
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-200 rounded-xl bg-white"
+                aria-invalid={Boolean(fieldErrors[`guardian-${idx}-existing`])}
+                className={`w-full pl-9 pr-3 py-2 text-sm border rounded-xl bg-white min-h-[44px] ${
+                  fieldErrors[`guardian-${idx}-existing`]
+                    ? FORM_CONTROL_ERROR_CLASS
+                    : 'border-slate-200'
+                }`}
               />
+              {fieldErrors[`guardian-${idx}-existing`] && (
+                <p className="mt-1 text-xs text-rose-600" role="alert">
+                  {fieldErrors[`guardian-${idx}-existing`]}
+                </p>
+              )}
               {activeSearchIdx === idx && searchResults.length > 0 && (
                 <div className="absolute z-10 inset-x-0 top-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
                   {searchResults.map((p) => (
@@ -169,20 +190,42 @@ export const GuardianSection: React.FC<Props> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                placeholder={`${contactLabel} 이름 *`}
-                value={g.name}
-                onChange={(e) => onUpdateGuardian(idx, { name: e.target.value })}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white"
-              />
-              <input
-                type="tel"
-                placeholder="전화번호 *"
-                value={g.phone}
-                onChange={(e) => onUpdateGuardian(idx, { phone: e.target.value })}
-                className="px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white"
-              />
+              <div>
+                <input
+                  id={STUDENT_FORM_FIELD_IDS.guardianName(idx)}
+                  type="text"
+                  placeholder={`${contactLabel} 이름 *`}
+                  value={g.name}
+                  onChange={(e) => onUpdateGuardian(idx, { name: e.target.value })}
+                  aria-invalid={Boolean(fieldErrors[`guardian-${idx}-name`])}
+                  className={`w-full px-3 py-2 text-sm border rounded-xl bg-white min-h-[44px] ${
+                    fieldErrors[`guardian-${idx}-name`] ? FORM_CONTROL_ERROR_CLASS : 'border-slate-200'
+                  }`}
+                />
+                {fieldErrors[`guardian-${idx}-name`] && (
+                  <p className="mt-1 text-xs text-rose-600" role="alert">
+                    {fieldErrors[`guardian-${idx}-name`]}
+                  </p>
+                )}
+              </div>
+              <div>
+                <input
+                  id={STUDENT_FORM_FIELD_IDS.guardianPhone(idx)}
+                  type="tel"
+                  placeholder="전화번호 *"
+                  value={g.phone}
+                  onChange={(e) => onUpdateGuardian(idx, { phone: e.target.value })}
+                  aria-invalid={Boolean(fieldErrors[`guardian-${idx}-phone`])}
+                  className={`w-full px-3 py-2 text-sm border rounded-xl bg-white min-h-[44px] ${
+                    fieldErrors[`guardian-${idx}-phone`] ? FORM_CONTROL_ERROR_CLASS : 'border-slate-200'
+                  }`}
+                />
+                {fieldErrors[`guardian-${idx}-phone`] && (
+                  <p className="mt-1 text-xs text-rose-600" role="alert">
+                    {fieldErrors[`guardian-${idx}-phone`]}
+                  </p>
+                )}
+              </div>
             </div>
           )}
 
@@ -208,11 +251,20 @@ export const GuardianSection: React.FC<Props> = ({
                 <Mail className="w-3 h-3" /> 이메일
               </label>
               <input
+                id={STUDENT_FORM_FIELD_IDS.guardianEmail(idx)}
                 type="email"
                 value={g.email}
                 onChange={(e) => onUpdateGuardian(idx, { email: e.target.value })}
-                className="w-full px-3 py-2 text-sm border border-slate-200 rounded-xl bg-white"
+                aria-invalid={Boolean(fieldErrors[`guardian-${idx}-email`])}
+                className={`w-full px-3 py-2 text-sm border rounded-xl bg-white min-h-[44px] ${
+                  fieldErrors[`guardian-${idx}-email`] ? FORM_CONTROL_ERROR_CLASS : 'border-slate-200'
+                }`}
               />
+              {fieldErrors[`guardian-${idx}-email`] && (
+                <p className="mt-1 text-xs text-rose-600" role="alert">
+                  {fieldErrors[`guardian-${idx}-email`]}
+                </p>
+              )}
             </div>
           </div>
 

@@ -15,6 +15,7 @@ import {
   runRowUpserts,
   upsertThenDiffDelete,
 } from './persistHelpers';
+import { hydrateDaycareOpsEntities, persistDaycareOpsEntity } from './daycareOpsSync';
 
 /** 어린이집 알림장·투약 hydrate */
 export async function hydrateDaycareEntities(
@@ -45,6 +46,8 @@ export async function hydrateDaycareEntities(
     cache.set(key, value);
     writeLocal(key, value);
   }
+
+  await hydrateDaycareOpsEntities(organizationId, cache);
 }
 
 /** 어린이집 알림장·투약 persist — false면 soft-fail(outbox 유지) */
@@ -56,6 +59,9 @@ export async function persistDaycareEntity(
 ): Promise<boolean> {
   if (!DAYCARE_SYNC_KEYS.has(key)) return true;
   if (isAborted()) return false;
+
+  const ops = await persistDaycareOpsEntity(key, organizationId, cache, isAborted);
+  if (ops !== null) return ops;
 
   switch (key) {
     case STORAGE_KEYS.CARE_JOURNALS:

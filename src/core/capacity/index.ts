@@ -10,5 +10,10 @@ export {
 } from './capacityMath';
 export { countResourceOccupancy, resourceCapacitySnapshot } from './resourceOccupancy';
 export type { ResourceOccupancyReservation } from './resourceOccupancy';
-export { SCHEDULE_CONFIRMED_STATUSES, SCHEDULE_HOLDING_STATUSES } from './types';
-export type { CapacitySnapshot, ScheduleHoldingStatus } from './types';
+export {
+  RESERVATION_CONFIRMED_STATUSES,
+  RESERVATION_HOLDING_STATUSES,
+  SCHEDULE_CONFIRMED_STATUSES,
+  SCHEDULE_HOLDING_STATUSES,
+} from './types';
+export type { CapacitySnapshot, ReservationHoldingStatus, ScheduleHoldingStatus } from './types';

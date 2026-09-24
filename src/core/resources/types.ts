@@ -45,6 +45,7 @@ export type Resource = {
   updatedAt?: string;
 };
 
+/** 자원 점유 예약. core.room_reservations. Schedule Reservation(core.reservations)과 별도. */
 export type ResourceReservation = {
   id: string;
   organization_id: string;

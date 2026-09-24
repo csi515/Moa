@@ -1,11 +1,12 @@
 /**
  * retry 가능한 outbox worker.
+ * claim/complete/fail 은 service_role 전용이다. 사용자 세션으로 상태를 바꾸지 않는다.
  * 외부 side effect는 consumer에서만 수행한다. 업무 TX를 대체하지 않는다.
  */
 import { reservationConfirmedConsumer } from './consumers';
 import { dispatchOutboxEvent } from './evaluate';
 import { outboxService } from './outboxService';
-import type { OutboxConsumer, OutboxEvent } from './types';
+import { outboxEventDedupeKey, type OutboxConsumer, type OutboxEvent } from './types';
 
 const DEFAULT_CONSUMERS: readonly OutboxConsumer[] = [reservationConfirmedConsumer];
 
@@ -14,6 +15,7 @@ export async function processOutboxBatch(
   options?: {
     limit?: number;
     consumers?: readonly OutboxConsumer[];
+    /** 프로세스 안 최적화용. durable dedupe 의 대체재가 아니다. */
     deliveredIds?: Set<string>;
   }
 ): Promise<{ processed: number; retried: number }> {
@@ -37,6 +39,11 @@ export async function processClaimedEvent(
   deliveredIds: Set<string>
 ): Promise<'processed' | 'retry'> {
   const consumer = consumers.find((row) => row.eventType === event.eventType);
+  const identity = outboxEventDedupeKey(event);
+  if (deliveredIds.has(identity)) {
+    await outboxService.complete(event.id);
+    return 'processed';
+  }
   if (!consumer) {
     await outboxService.fail(event.id, `No consumer for ${event.eventType}`);
     return 'retry';
@@ -44,7 +51,7 @@ export async function processClaimedEvent(
   try {
     const result = dispatchOutboxEvent(event, consumer, deliveredIds);
     if (result === 'processed') {
-      deliveredIds.add(event.id);
+      deliveredIds.add(identity);
       await outboxService.complete(event.id);
       return 'processed';
     }

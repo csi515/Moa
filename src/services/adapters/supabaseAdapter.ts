@@ -8,6 +8,8 @@ import {
   CORE_SYNC_KEYS,
   STORAGE_KEYS,
   SUPABASE_SYNC_KEYS,
+  storageKeyLocalWriteConfirms,
+  storageKeyPolicy,
   type StorageKey,
 } from './storageKeys';
 import { hydrateCoreEntities, persistCoreEntity, type SyncCache } from './sync/coreEntitySync';
@@ -16,7 +18,15 @@ import {
   enqueueSyncOutbox,
   peekSyncOutbox,
 } from './syncOutbox';
-import { clearPendingForKey, markPendingUpsert } from './pendingMutations';
+import {
+  confirmServerCommit,
+  hasUncommittedMutations,
+  markPendingFromSnapshot,
+  maxPendingRevision,
+  peekPendingMutations,
+  setMutationPersistState,
+} from './pendingMutations';
+import { enqueueSyncOutboxMutation } from './syncOutbox';
 import {
   canPersistRemote,
   isPersistEpochCurrent,
@@ -36,7 +46,7 @@ const LOCAL_MISS = Symbol('local-miss');
  * - LOCAL_ONLY_KEYS: device-only UI·스키마 없는 데이터 (setItem → writeLocal만)
  *
  * setItem 성공(로컬 미러 기록) ≠ 원격 persist 성공.
- * persist 실패 키는 outbox에 남아 flushSyncOutbox로 재시도한다.
+ * local write는 pending/outbox에만 남기고, server commit 후에만 확정한다.
  */
 export class SupabaseAdapter implements IStorageAdapter {
   readonly backend = 'supabase' as const;
@@ -72,25 +82,29 @@ export class SupabaseAdapter implements IStorageAdapter {
   }
 
   setItem<T>(key: StorageKey, value: T): void {
+    const policy = storageKeyPolicy(key);
+    if (policy === 'local-only' || storageKeyLocalWriteConfirms(key) || !SUPABASE_SYNC_KEYS.has(key)) {
+      writeLocal(key, value);
+      this.notify(key);
+      return;
+    }
     if (SUPABASE_SYNC_KEYS.has(key)) {
+      const previous = this.cache.has(key) ? this.cache.get(key) : undefined;
       this.cache.set(key, value);
       // offline·재시작 대비 즉시 local mirror (원본은 이후 persist / 도메인 CRUD)
       writeLocal(key, value);
+      this.persistEpochs.set(key, nextPersistEpoch(this.persistEpochs.get(key)));
+      markPendingFromSnapshot(key, previous, value);
+      this.enqueueUncommitted(key);
       if (canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated })) {
         this.schedulePersist(key);
-      } else {
-        markPendingUpsert(key);
-        enqueueSyncOutbox(key);
       }
-    } else {
-      // LOCAL_ONLY / device-only
-      writeLocal(key, value);
     }
     this.notify(key);
   }
 
   /**
-   * RPC 후 해당 목록 cache/local만 맞춤.
+   * RPC가 이미 server commit한 뒤 cache/local만 맞춤.
    * schedulePersist / flushPersist / upsertThenDiffDelete 를 타지 않는다.
    */
   writeLocalMirror<T>(key: StorageKey, value: T): void {
@@ -106,12 +120,19 @@ export class SupabaseAdapter implements IStorageAdapter {
 
   removeItem(key: StorageKey): void {
     if (SUPABASE_SYNC_KEYS.has(key)) {
+      const previous = this.cache.has(key) ? this.cache.get(key) : undefined;
       this.cache.delete(key);
+      markPendingFromSnapshot(key, previous, []);
+      this.enqueueUncommitted(key);
       this.schedulePersist(key);
     } else {
       removeLocal(key);
     }
     this.notify(key);
+  }
+
+  hasUncommittedWrites(): boolean {
+    return hasUncommittedMutations() || peekSyncOutbox().length > 0;
   }
 
   subscribe(listener: StorageListener): () => void {
@@ -280,20 +301,22 @@ export class SupabaseAdapter implements IStorageAdapter {
 
     const generation = this.persistGeneration;
     const startedEpoch = this.persistEpochs.get(key) ?? 0;
+    const startedRevision = maxPendingRevision(key);
     const orgId = getOrganizationId();
     if (!orgId) return false;
 
-    // 시작 시점 스냅샷 + 가드 (in-flight 중 clear/org 전환·RPC mirror 시 중단)
+    // 시작 시점 스냅샷 + 가드 (in-flight 중 clear/org 전환·RPC mirror·새 mutation 시 중단)
     const snapshot = new Map(this.cache);
     const cacheAdapter = this.createSnapshotCacheAdapter(snapshot);
     const isAborted = () =>
       !this.isPersistValid(generation, orgId) ||
-      !isPersistEpochCurrent(startedEpoch, this.persistEpochs.get(key));
+      !isPersistEpochCurrent(startedEpoch, this.persistEpochs.get(key)) ||
+      maxPendingRevision(key) > startedRevision;
 
     /** org 유지 + RPC mirror로만 abort된 경우 — 최신 cache로 재시도 */
     const enqueueIfStillCurrentOrg = () => {
       if (this.isPersistValid(generation, orgId)) {
-        enqueueSyncOutbox(key);
+        this.enqueueUncommitted(key);
       }
     };
 
@@ -301,6 +324,8 @@ export class SupabaseAdapter implements IStorageAdapter {
       enqueueIfStillCurrentOrg();
       return false;
     }
+
+    setMutationPersistState(key, 'syncing', startedRevision);
 
     try {
       let ok = true;
@@ -322,19 +347,43 @@ export class SupabaseAdapter implements IStorageAdapter {
       // PIANO_TEXTBOOK_COMMERCE_HYDRATE_KEYS: adapter persist 대상 아님(DB direct CRUD)
 
       if (!ok) {
-        enqueueSyncOutbox(key);
-        markPendingUpsert(key);
-      } else {
-        clearSyncOutboxKeys([key]);
-        clearPendingForKey(key);
+        this.rememberPersistFailure(key, startedRevision);
+        return false;
       }
 
-      return ok;
+      confirmServerCommit(key, startedRevision);
+      clearSyncOutboxKeys([key], startedRevision);
+      return true;
     } catch (error) {
       console.error(`[storage] persist failed for ${key}`, error);
-      enqueueSyncOutbox(key);
-      markPendingUpsert(key);
+      this.rememberPersistFailure(key, startedRevision);
       return false;
+    }
+  }
+
+  private enqueueUncommitted(key: StorageKey): void {
+    this.enqueuePendingMutations(key);
+    enqueueSyncOutbox(key);
+    setMutationPersistState(key, 'pending');
+  }
+
+  private rememberPersistFailure(key: StorageKey, startedRevision: number): void {
+    this.enqueuePendingMutations(key);
+    enqueueSyncOutbox(key);
+    setMutationPersistState(key, 'failed', startedRevision);
+  }
+
+  private enqueuePendingMutations(key: StorageKey): void {
+    for (const row of peekPendingMutations()) {
+      if (row.key !== key) continue;
+      enqueueSyncOutboxMutation({
+        id: row.id,
+        key: row.key,
+        kind: row.kind,
+        entityId: row.entityId,
+        revision: row.revision,
+        enqueuedAt: row.updatedAt,
+      });
     }
   }
 

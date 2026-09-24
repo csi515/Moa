@@ -1,10 +1,164 @@
--- 피아노 출결 상태 + 이용권 차감/복구를 한 트랜잭션으로 처리.
--- 기존 lessonPassConsume 규칙: countable status, 같은 날짜 sibling 재사용, 1회 복구.
--- cancelled/missing refund 시 attendance를 바꾸지 않는다.
+-- Core: generic session pass consume/refund.
+-- Piano: class attendance 행 쓰기. Core는 piano 스키마를 모른다.
 
 BEGIN;
 
-CREATE OR REPLACE FUNCTION core.update_attendance_status_with_pass(
+CREATE OR REPLACE FUNCTION core.apply_attendance_session_pass(
+  p_organization_id UUID,
+  p_customer_id UUID,
+  p_new_status TEXT,
+  p_old_status TEXT DEFAULT NULL,
+  p_apply_pass BOOLEAN DEFAULT true,
+  p_current_pass_id UUID DEFAULT NULL,
+  p_sibling_pass_id UUID DEFAULT NULL,
+  p_sibling_still_uses_pass BOOLEAN DEFAULT false
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = core, public
+AS $$
+DECLARE
+  v_pass core.session_passes%ROWTYPE;
+  v_pass_id UUID := p_current_pass_id;
+  v_action TEXT := 'none';
+  v_next_counted BOOLEAN;
+  v_prev_counted BOOLEAN;
+  v_pass_consumable BOOLEAN;
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RAISE EXCEPTION 'Not authenticated';
+  END IF;
+  IF p_organization_id IS NULL OR p_customer_id IS NULL OR p_new_status IS NULL THEN
+    RAISE EXCEPTION 'Invalid arguments';
+  END IF;
+  IF NOT core.is_org_staff_actor(p_organization_id) THEN
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM core.customers c
+    WHERE c.id = p_customer_id AND c.organization_id = p_organization_id
+  ) THEN
+    RAISE EXCEPTION 'Customer not found in organization';
+  END IF;
+
+  IF p_old_status IS NOT NULL AND p_old_status = p_new_status THEN
+    RETURN jsonb_build_object(
+      'action', 'idempotent',
+      'session_pass_id', to_jsonb(v_pass_id)
+    );
+  END IF;
+
+  v_next_counted := p_new_status IN ('present', 'late', 'early_leave', 'make_up');
+  v_prev_counted := COALESCE(p_old_status, '') IN ('present', 'late', 'early_leave', 'make_up');
+
+  IF NOT COALESCE(p_apply_pass, true) THEN
+    RETURN jsonb_build_object('action', 'none', 'session_pass_id', to_jsonb(v_pass_id));
+  END IF;
+
+  IF (NOT v_prev_counted) AND v_next_counted THEN
+    IF p_sibling_pass_id IS NOT NULL THEN
+      v_pass_id := p_sibling_pass_id;
+      v_action := 'reuse';
+    ELSE
+      SELECT * INTO v_pass
+      FROM core.session_passes sp
+      WHERE sp.organization_id = p_organization_id
+        AND sp.customer_id = p_customer_id
+        AND sp.status = 'active'
+        AND sp.used_sessions < sp.total_sessions
+        AND (sp.expires_at IS NULL OR sp.expires_at >= now())
+      ORDER BY sp.expires_at ASC NULLS LAST,
+               (sp.total_sessions - sp.used_sessions) ASC,
+               sp.purchased_at ASC
+      LIMIT 1
+      FOR UPDATE;
+
+      v_pass_consumable :=
+        FOUND
+        AND v_pass.status = 'active'
+        AND v_pass.used_sessions < v_pass.total_sessions
+        AND (v_pass.expires_at IS NULL OR v_pass.expires_at >= now());
+
+      IF NOT v_pass_consumable THEN
+        RAISE EXCEPTION 'Insufficient session pass';
+      END IF;
+
+      UPDATE core.session_passes
+      SET
+        used_sessions = v_pass.used_sessions + 1,
+        status = CASE
+          WHEN v_pass.used_sessions + 1 >= v_pass.total_sessions THEN 'exhausted'
+          ELSE 'active'
+        END,
+        updated_at = now()
+      WHERE id = v_pass.id
+        AND organization_id = p_organization_id
+        AND status = 'active'
+        AND used_sessions < total_sessions
+        AND (expires_at IS NULL OR expires_at >= now());
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Insufficient session pass';
+      END IF;
+
+      v_pass_id := v_pass.id;
+      v_action := 'consume';
+    END IF;
+
+  ELSIF v_prev_counted AND NOT v_next_counted AND v_pass_id IS NOT NULL THEN
+    IF COALESCE(p_sibling_still_uses_pass, false) THEN
+      v_pass_id := NULL;
+      v_action := 'keep';
+    ELSE
+      SELECT * INTO v_pass
+      FROM core.session_passes sp
+      WHERE sp.id = v_pass_id
+        AND sp.organization_id = p_organization_id
+      FOR UPDATE;
+
+      IF NOT FOUND OR v_pass.status = 'cancelled' THEN
+        RAISE EXCEPTION 'Session pass refund failed';
+      END IF;
+
+      UPDATE core.session_passes
+      SET
+        used_sessions = GREATEST(0, v_pass.used_sessions - 1),
+        status = CASE
+          WHEN GREATEST(0, v_pass.used_sessions - 1) >= v_pass.total_sessions THEN 'exhausted'
+          ELSE 'active'
+        END,
+        updated_at = now()
+      WHERE id = v_pass.id
+        AND organization_id = p_organization_id
+        AND status <> 'cancelled';
+
+      IF NOT FOUND THEN
+        RAISE EXCEPTION 'Session pass refund failed';
+      END IF;
+
+      v_pass_id := NULL;
+      v_action := 'refund';
+    END IF;
+  ELSE
+    v_action := 'none';
+  END IF;
+
+  RETURN jsonb_build_object(
+    'action', v_action,
+    'session_pass_id', to_jsonb(v_pass_id)
+  );
+END;
+$$;
+
+COMMENT ON FUNCTION core.apply_attendance_session_pass(UUID, UUID, TEXT, TEXT, BOOLEAN, UUID, UUID, BOOLEAN) IS
+  '출결 상태 전이에 따른 이용권 차감/복구. 출결 행은 industry 계층이 담당.';
+
+REVOKE ALL ON FUNCTION core.apply_attendance_session_pass(UUID, UUID, TEXT, TEXT, BOOLEAN, UUID, UUID, BOOLEAN) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.apply_attendance_session_pass(UUID, UUID, TEXT, TEXT, BOOLEAN, UUID, UUID, BOOLEAN) FROM anon, authenticated;
+
+CREATE OR REPLACE FUNCTION piano.update_attendance_status_with_pass(
   p_organization_id UUID,
   p_attendance_id UUID,
   p_customer_id UUID,
@@ -21,11 +175,10 @@ CREATE OR REPLACE FUNCTION core.update_attendance_status_with_pass(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = core, piano, public
+SET search_path = piano, core, public
 AS $$
 DECLARE
   v_row piano.attendance%ROWTYPE;
-  v_pass core.session_passes%ROWTYPE;
   v_meta JSONB;
   v_pass_id UUID;
   v_pass_id_text TEXT;
@@ -34,11 +187,9 @@ DECLARE
   v_service_uuid UUID;
   v_class_id TEXT;
   v_sibling_pass TEXT;
-  v_still_used BOOLEAN;
-  v_next_counted BOOLEAN;
-  v_prev_counted BOOLEAN;
-  v_has_entitlement BOOLEAN;
-  v_pass_consumable BOOLEAN;
+  v_sibling_pass_id UUID;
+  v_still_used BOOLEAN := false;
+  v_pass_result JSONB;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -50,13 +201,6 @@ BEGIN
     RAISE EXCEPTION 'Permission denied';
   END IF;
 
-  IF NOT EXISTS (
-    SELECT 1 FROM core.customers c
-    WHERE c.id = p_customer_id AND c.organization_id = p_organization_id
-  ) THEN
-    RAISE EXCEPTION 'Customer not found in organization';
-  END IF;
-
   v_class_id := NULLIF(btrim(COALESCE(p_service_id, '')), '');
   BEGIN
     v_service_uuid := v_class_id::UUID;
@@ -65,7 +209,6 @@ BEGIN
       v_service_uuid := NULL;
   END;
 
-  -- 같은 학생·날짜 출결을 잠가 sibling/이중 차감을 직렬화
   PERFORM 1
   FROM piano.attendance a
   WHERE a.organization_id = p_organization_id
@@ -121,88 +264,27 @@ BEGIN
     );
   END IF;
 
-  v_next_counted := p_new_status IN ('present', 'late', 'early_leave', 'make_up');
-  v_prev_counted := COALESCE(v_old_status, '') IN ('present', 'late', 'early_leave', 'make_up');
+  SELECT NULLIF(btrim(COALESCE(s.metadata->>'sessionPassId', '')), '')
+    INTO v_sibling_pass
+  FROM piano.attendance s
+  WHERE s.organization_id = p_organization_id
+    AND s.customer_id = p_customer_id
+    AND s.attendance_date = p_attendance_date
+    AND (v_row.id IS NULL OR s.id <> v_row.id)
+    AND s.status IN ('present', 'late', 'early_leave', 'make_up')
+    AND NULLIF(btrim(COALESCE(s.metadata->>'sessionPassId', '')), '') IS NOT NULL
+  LIMIT 1;
 
-  IF p_apply_pass AND (NOT v_prev_counted) AND v_next_counted THEN
-    SELECT NULLIF(btrim(COALESCE(s.metadata->>'sessionPassId', '')), '')
-      INTO v_sibling_pass
-    FROM piano.attendance s
-    WHERE s.organization_id = p_organization_id
-      AND s.customer_id = p_customer_id
-      AND s.attendance_date = p_attendance_date
-      AND (v_row.id IS NULL OR s.id <> v_row.id)
-      AND s.status IN ('present', 'late', 'early_leave', 'make_up')
-      AND NULLIF(btrim(COALESCE(s.metadata->>'sessionPassId', '')), '') IS NOT NULL
-    LIMIT 1;
+  IF v_sibling_pass IS NOT NULL THEN
+    BEGIN
+      v_sibling_pass_id := v_sibling_pass::UUID;
+    EXCEPTION
+      WHEN invalid_text_representation THEN
+        v_sibling_pass_id := NULL;
+    END;
+  END IF;
 
-    IF v_sibling_pass IS NOT NULL THEN
-      BEGIN
-        v_pass_id := v_sibling_pass::UUID;
-      EXCEPTION
-        WHEN invalid_text_representation THEN
-          v_pass_id := NULL;
-      END;
-      v_meta := jsonb_set(v_meta, '{sessionPassId}', to_jsonb(v_sibling_pass), true);
-      v_action := 'reuse';
-    ELSE
-      SELECT EXISTS (
-        SELECT 1 FROM core.session_passes sp
-        WHERE sp.organization_id = p_organization_id
-          AND sp.customer_id = p_customer_id
-          AND sp.status <> 'cancelled'
-      ) INTO v_has_entitlement;
-
-      SELECT * INTO v_pass
-      FROM core.session_passes sp
-      WHERE sp.organization_id = p_organization_id
-        AND sp.customer_id = p_customer_id
-        AND sp.status = 'active'
-        AND sp.used_sessions < sp.total_sessions
-        AND (sp.expires_at IS NULL OR sp.expires_at >= now())
-      ORDER BY sp.expires_at ASC NULLS LAST,
-               (sp.total_sessions - sp.used_sessions) ASC,
-               sp.purchased_at ASC
-      LIMIT 1
-      FOR UPDATE;
-
-      v_pass_consumable :=
-        FOUND
-        AND v_pass.status = 'active'
-        AND v_pass.used_sessions < v_pass.total_sessions
-        AND (v_pass.expires_at IS NULL OR v_pass.expires_at >= now());
-
-      IF NOT v_pass_consumable THEN
-        IF v_has_entitlement THEN
-          RAISE EXCEPTION 'Insufficient session pass';
-        END IF;
-        RAISE EXCEPTION 'Insufficient session pass';
-      END IF;
-
-      UPDATE core.session_passes
-      SET
-        used_sessions = v_pass.used_sessions + 1,
-        status = CASE
-          WHEN v_pass.used_sessions + 1 >= v_pass.total_sessions THEN 'exhausted'
-          ELSE 'active'
-        END,
-        updated_at = now()
-      WHERE id = v_pass.id
-        AND organization_id = p_organization_id
-        AND status = 'active'
-        AND used_sessions < total_sessions
-        AND (expires_at IS NULL OR expires_at >= now());
-
-      IF NOT FOUND THEN
-        RAISE EXCEPTION 'Insufficient session pass';
-      END IF;
-
-      v_pass_id := v_pass.id;
-      v_meta := jsonb_set(v_meta, '{sessionPassId}', to_jsonb(v_pass_id::text), true);
-      v_action := 'consume';
-    END IF;
-
-  ELSIF p_apply_pass AND v_prev_counted AND NOT v_next_counted AND v_pass_id IS NOT NULL THEN
+  IF v_pass_id IS NOT NULL THEN
     SELECT EXISTS (
       SELECT 1 FROM piano.attendance s
       WHERE s.organization_id = p_organization_id
@@ -212,44 +294,26 @@ BEGIN
         AND s.status IN ('present', 'late', 'early_leave', 'make_up')
         AND COALESCE(s.metadata->>'sessionPassId', '') = v_pass_id::text
     ) INTO v_still_used;
+  END IF;
 
-    IF NOT v_still_used THEN
-      SELECT * INTO v_pass
-      FROM core.session_passes sp
-      WHERE sp.id = v_pass_id
-        AND sp.organization_id = p_organization_id
-      FOR UPDATE;
-
-      IF NOT FOUND OR v_pass.status = 'cancelled' THEN
-        RAISE EXCEPTION 'Session pass refund failed';
-      END IF;
-
-      UPDATE core.session_passes
-      SET
-        used_sessions = GREATEST(0, v_pass.used_sessions - 1),
-        status = CASE
-          WHEN GREATEST(0, v_pass.used_sessions - 1) >= v_pass.total_sessions THEN 'exhausted'
-          ELSE 'active'
-        END,
-        updated_at = now()
-      WHERE id = v_pass.id
-        AND organization_id = p_organization_id
-        AND status <> 'cancelled';
-
-      IF NOT FOUND THEN
-        RAISE EXCEPTION 'Session pass refund failed';
-      END IF;
-
-      v_meta := v_meta - 'sessionPassId';
-      v_pass_id := NULL;
-      v_action := 'refund';
-    ELSE
-      v_meta := v_meta - 'sessionPassId';
-      v_pass_id := NULL;
-      v_action := 'keep';
-    END IF;
+  v_pass_result := core.apply_attendance_session_pass(
+    p_organization_id,
+    p_customer_id,
+    p_new_status,
+    v_old_status,
+    p_apply_pass,
+    v_pass_id,
+    v_sibling_pass_id,
+    COALESCE(v_still_used, false)
+  );
+  v_action := COALESCE(v_pass_result->>'action', 'none');
+  IF v_pass_result ? 'session_pass_id'
+     AND jsonb_typeof(v_pass_result->'session_pass_id') <> 'null' THEN
+    v_pass_id := (v_pass_result->>'session_pass_id')::UUID;
+    v_meta := jsonb_set(v_meta, '{sessionPassId}', to_jsonb(v_pass_id::text), true);
   ELSE
-    v_action := 'none';
+    v_meta := v_meta - 'sessionPassId';
+    v_pass_id := NULL;
   END IF;
 
   IF v_class_id IS NOT NULL THEN
@@ -313,18 +377,18 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION core.update_attendance_status_with_pass(
+COMMENT ON FUNCTION piano.update_attendance_status_with_pass(
   UUID, UUID, UUID, TEXT, DATE, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT
 ) IS
-  '출결 상태 + 이용권 차감/복구 원자 RPC. sibling 재사용, cancelled refund는 출결 미변경.';
+  'Piano 수업 출결 쓰기 + Core 이용권 차감. 한 트랜잭션.';
 
-REVOKE ALL ON FUNCTION core.update_attendance_status_with_pass(
+REVOKE ALL ON FUNCTION piano.update_attendance_status_with_pass(
   UUID, UUID, UUID, TEXT, DATE, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT
 ) FROM PUBLIC;
-REVOKE ALL ON FUNCTION core.update_attendance_status_with_pass(
+REVOKE ALL ON FUNCTION piano.update_attendance_status_with_pass(
   UUID, UUID, UUID, TEXT, DATE, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT
 ) FROM anon;
-GRANT EXECUTE ON FUNCTION core.update_attendance_status_with_pass(
+GRANT EXECUTE ON FUNCTION piano.update_attendance_status_with_pass(
   UUID, UUID, UUID, TEXT, DATE, TEXT, BOOLEAN, TEXT, TEXT, TEXT, TEXT, TEXT
 ) TO authenticated;
 

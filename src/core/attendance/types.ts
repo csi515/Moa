@@ -1,7 +1,11 @@
 /** 출결 체크 방식 (PIN 외 QR·NFC·키오스크 확장) */
 export type CheckInMethod = 'pin' | 'qr' | 'nfc' | 'kiosk' | 'manual';
 
-/** PIN 기반 출석(입실) 세션 — 퇴실은 제품 범위 밖(레거시 필드만 보존) */
+/**
+ * Attendance 체크인 행 (core.attendance_sessions).
+ * Session(방문 사실, customer_sessions)이나 수업 출석(piano.attendance)이 아니다.
+ * 출석 여부는 checkInAt. 별도 status를 schedules/reservations에 미러하지 않는다.
+ */
 export interface AttendanceSession {
   id: string;
   customerId: string;
@@ -17,6 +21,9 @@ export interface AttendanceSession {
   createdAt?: string;
   updatedAt?: string;
 }
+
+/** Attendance 체크인. 이름 호환용 — 방문 Session이 아님 */
+export type AttendanceCheckIn = AttendanceSession;
 
 /** PIN 입력 결과 (출석만) */
 export type PinCheckResult =

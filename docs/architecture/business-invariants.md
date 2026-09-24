@@ -15,6 +15,7 @@
 | 권한 | Role+Permission+Scope 호환 | `test:authorization` (+ `test:permissions-invariant`) |
 | 권한 | membership 승격 불가 | `test:rls-membership-policy`, `test:rls-membership-escalation` |
 | 지점 | LocationAware 분류·레거시 호환 | `test:location-aware` |
+| 일정/예약 | Schedule·Reservation·Session·Attendance 원장 분리 | `test:domain-roles` |
 | 감사 | tenant audit allowlist·pilot | `test:audit` |
 | 멱등 | org+key 재시도·payload mismatch | `test:idempotency` |
 | Outbox | TX와 side effect 분리·중복 delivery | `test:outbox` |

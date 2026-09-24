@@ -10,6 +10,8 @@ import {
   GraduationCap,
   UserRound,
   UserPlus,
+  Loader2,
+  MapPin,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { useOptionalAuth } from '../auth/AuthProvider';
@@ -18,6 +20,13 @@ import { getRoleLabel } from './services/organizationService';
 import type { MemberRole } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
+import { LOCATION_SCOPE_LABELS } from '@/core/locations/locationLabels';
+import {
+  isManagerLikeRole,
+  isStaffLikeRole,
+  roleSectionLabel,
+  switchErrorMessage,
+} from './roleContextHelpers';
 
 interface MembershipGroup {
   organizationId: string;
@@ -30,17 +39,17 @@ interface MembershipGroup {
   }>;
 }
 
-/** 사업장·역할 전환 + 내 계정 + 로그아웃 통합 메뉴 */
+/** 업무 컨텍스트(사업장·역할·지점)와 계정 기능을 구분한 메뉴 */
 export const RoleContextSwitcher: React.FC = () => {
   const auth = useOptionalAuth();
   const org = useOptionalOrganization();
   const navigate = useNavigate();
-  const { currentUser, setActiveTab } = useApp();
+  const { currentUser, setActiveTab, showToast } = useApp();
   const [open, setOpen] = useState(false);
+  const [switchingId, setSwitchingId] = useState<string | null>(null);
 
   const memberships = org?.memberships ?? [];
   const selectedMembership = org?.selectedMembership;
-  // 설정에서 학원명 변경 시 재렌더
   useStorageRefresh('settings');
   const settingsName = StorageService.getSettings().name?.trim();
   const currentOrgId = selectedMembership?.organizationId;
@@ -72,10 +81,23 @@ export const RoleContextSwitcher: React.FC = () => {
 
   if (!auth || !org || memberships.length === 0) return null;
 
-  const { switchMembership, clearOrganization, enterParentPortal, canAccessParentPortal, enterCustomerPortal, canAccessCustomerPortal } = org;
+  const {
+    switchMembership,
+    clearOrganization,
+    enterParentPortal,
+    canAccessParentPortal,
+    enterCustomerPortal,
+    canAccessCustomerPortal,
+    selectLocation,
+    locations,
+    currentLocation,
+    locationLabel,
+    canChangeLocation,
+    canClearLocation,
+    portalMode,
+  } = org;
 
-  const currentOrgName =
-    settingsName || selectedMembership?.organization.name || '';
+  const currentOrgName = settingsName || selectedMembership?.organization.name || '';
   const currentRoleLabel = selectedMembership
     ? getRoleLabel(
         selectedMembership.role,
@@ -85,52 +107,33 @@ export const RoleContextSwitcher: React.FC = () => {
   const displayName = currentUser.name?.trim() || auth.user?.email || '사용자';
 
   const handleSwitchMembership = async (membershipId: string) => {
+    if (switchingId) return;
+    if (selectedMembership?.id === membershipId) {
+      setOpen(false);
+      return;
+    }
+    setSwitchingId(membershipId);
     try {
       await switchMembership(membershipId);
       setOpen(false);
     } catch (error) {
-      console.error('Failed to switch membership:', error);
+      showToast(switchErrorMessage(error), 'error', '전환 실패');
+    } finally {
+      setSwitchingId(null);
     }
   };
 
   const handleLogout = async () => {
+    if (switchingId) return;
     clearOrganization();
     setOpen(false);
     await auth.signOut();
   };
 
-  const handleOpenAccount = () => {
-    setActiveTab('account');
-    setOpen(false);
-  };
-
   const getRoleIcon = (role: MemberRole) => {
-    if (role === 'owner' || role === 'admin' || role === 'manager') {
-      return <Briefcase className="w-3.5 h-3.5" />;
-    }
-    if (role === 'staff' || role === 'instructor') {
-      return <GraduationCap className="w-3.5 h-3.5" />;
-    }
-    if (role === 'parent' || role === 'guardian') {
-      return <Users className="w-3.5 h-3.5" />;
-    }
+    if (isManagerLikeRole(role)) return <Briefcase className="w-3.5 h-3.5" />;
+    if (isStaffLikeRole(role)) return <GraduationCap className="w-3.5 h-3.5" />;
     return <Users className="w-3.5 h-3.5" />;
-  };
-
-  const getSectionLabel = (role: MemberRole): string => {
-    if (role === 'owner' || role === 'admin' || role === 'manager') {
-      return '사업장 관리';
-    }
-    if (role === 'staff' || role === 'instructor') {
-      return '강사 활동';
-    }
-    if (role === 'member' || role === 'customer') {
-      return '내가 다니는 곳';
-    }
-    if (role === 'parent' || role === 'guardian') {
-      return '학부모 포털';
-    }
-    return '역할';
   };
 
   return (
@@ -140,19 +143,17 @@ export const RoleContextSwitcher: React.FC = () => {
         onClick={() => setOpen(!open)}
         aria-expanded={open}
         aria-haspopup="menu"
-        aria-label={`계정 · 사업장: ${currentOrgName || '선택'}`}
+        aria-label={`역할: ${currentRoleLabel || '선택'}`}
         className="flex items-center gap-2 pl-2 pr-3 py-1.5 min-h-[44px] rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer text-left max-w-[180px] sm:max-w-none"
       >
         <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0">
-          <Building2 className="w-4 h-4" />
+          <Briefcase className="w-4 h-4" />
         </div>
         <div className="hidden sm:block min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-indigo-500">전환</p>
           <p className="text-xs font-bold text-indigo-950 leading-tight truncate">
-            {currentOrgName || '사업장'}
+            {currentRoleLabel || '역할'}
           </p>
-          {currentRoleLabel && (
-            <p className="text-[10px] text-indigo-600">{currentRoleLabel}</p>
-          )}
         </div>
         <ChevronDown className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
       </button>
@@ -165,21 +166,71 @@ export const RoleContextSwitcher: React.FC = () => {
             className="fixed left-4 right-4 bottom-20 sm:absolute sm:left-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:w-80 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50"
           >
             <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
-              계정 · 사업장
+              업무 환경
             </p>
-
-            <div className="px-3 py-2.5 mb-1 rounded-xl bg-slate-50 border border-slate-100">
-              <p className="text-sm font-bold text-slate-900 truncate">{displayName}</p>
-              {auth.user?.email && (
-                <p className="text-[11px] text-slate-500 truncate mt-0.5">{auth.user.email}</p>
-              )}
-              {currentRoleLabel && (
-                <p className="text-[11px] text-indigo-600 font-semibold mt-1">{currentRoleLabel}</p>
+            <div className="px-3 py-2.5 mb-1 rounded-xl bg-teal-50/80 border border-teal-100 space-y-2">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">사업장</p>
+                <p className="text-sm font-bold text-slate-900 truncate">{currentOrgName || '사업장'}</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">지점</p>
+                <p className="flex items-center gap-1 text-[11px] font-semibold text-slate-600">
+                  <MapPin className="w-3.5 h-3.5 text-teal-600" />
+                  {locationLabel}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">역할</p>
+                <p className="text-[11px] font-semibold text-slate-700">{currentRoleLabel || '-'}</p>
+              </div>
+              {portalMode !== 'none' && (
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-violet-700">모드</p>
+                  <p className="text-[11px] font-semibold text-violet-800">
+                    {portalMode === 'parent' ? '학부모 포털' : '수강생 포털'}
+                  </p>
+                </div>
               )}
             </div>
 
+            {canChangeLocation && (
+              <div className="mb-2 px-1">
+                <p className="text-[11px] font-bold text-slate-400 px-2 py-1">지점 전환</p>
+                {canClearLocation && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={Boolean(switchingId)}
+                    onClick={() => selectLocation(null)}
+                    className={`w-full text-left px-3 py-2 min-h-[44px] rounded-xl text-xs font-semibold ${
+                      !currentLocation ? 'bg-teal-50 text-teal-900' : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {LOCATION_SCOPE_LABELS.all}
+                  </button>
+                )}
+                {locations.map((row) => (
+                  <button
+                    key={row.id}
+                    type="button"
+                    role="menuitem"
+                    disabled={Boolean(switchingId)}
+                    onClick={() => selectLocation(row.id)}
+                    className={`w-full text-left px-3 py-2 min-h-[44px] rounded-xl text-xs font-semibold ${
+                      currentLocation?.id === row.id
+                        ? 'bg-teal-50 text-teal-900'
+                        : 'text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {row.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <p className="text-[11px] font-bold text-slate-400 px-3 py-1.5 uppercase tracking-wider">
-              사업장 / 역할
+              사업장 / 역할 전환
             </p>
 
             {groupedMemberships.map((group) => (
@@ -195,16 +246,15 @@ export const RoleContextSwitcher: React.FC = () => {
                       membership.role,
                       fullMembership?.organization.industry_type
                     );
-                    const sectionLabel = getSectionLabel(membership.role);
-                    const roleIcon = getRoleIcon(membership.role);
-
+                    const busy = switchingId === membership.id;
                     return (
                       <button
                         key={membership.id}
                         type="button"
                         role="menuitem"
-                        onClick={() => handleSwitchMembership(membership.id)}
-                        className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors cursor-pointer min-h-[44px] ${
+                        disabled={Boolean(switchingId)}
+                        onClick={() => void handleSwitchMembership(membership.id)}
+                        className={`w-full text-left p-2.5 rounded-xl flex items-center justify-between text-xs transition-colors min-h-[44px] disabled:opacity-60 ${
                           isSelected
                             ? 'bg-indigo-50 text-indigo-900 font-bold border border-indigo-200'
                             : 'hover:bg-slate-100 text-slate-700'
@@ -213,19 +263,17 @@ export const RoleContextSwitcher: React.FC = () => {
                         <div className="flex items-center gap-2 min-w-0">
                           <div
                             className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                              isSelected
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-200 text-slate-600'
+                              isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'
                             }`}
                           >
-                            {roleIcon}
+                            {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : getRoleIcon(membership.role)}
                           </div>
                           <div className="min-w-0">
                             <p className="font-bold truncate">{roleLabel}</p>
-                            <p className="text-[10px] text-slate-500">{sectionLabel}</p>
+                            <p className="text-[10px] text-slate-500">{roleSectionLabel(membership.role)}</p>
                           </div>
                         </div>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />}
+                        {isSelected && !busy && <CheckCircle2 className="w-4 h-4 text-indigo-600 shrink-0" />}
                       </button>
                     );
                   })}
@@ -233,43 +281,77 @@ export const RoleContextSwitcher: React.FC = () => {
               </div>
             ))}
 
-            <div className="border-t border-slate-100 mt-1 pt-2 space-y-1">
-              {canAccessParentPortal && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    enterParentPortal();
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
-                >
-                  <Users className="w-4 h-4" />
-                  학부모 포털
-                </button>
-              )}
-              {canAccessCustomerPortal && (
-                <button
-                  type="button"
-                  role="menuitem"
-                  onClick={() => {
-                    enterCustomerPortal();
-                    setOpen(false);
-                  }}
-                  className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
-                >
-                  <UserRound className="w-4 h-4" />
-                  이용자 포털
-                </button>
-              )}
+            <button
+              type="button"
+              role="menuitem"
+              disabled={Boolean(switchingId)}
+              onClick={() => {
+                clearOrganization();
+                setOpen(false);
+              }}
+              className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
+            >
+              <Building2 className="w-4 h-4 shrink-0" />
+              사업장 추가/선택
+            </button>
+
+            {(canAccessParentPortal || canAccessCustomerPortal) && (
+              <div className="border-t border-slate-100 mt-2 pt-2">
+                <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
+                  보기 전환
+                </p>
+                {canAccessParentPortal && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={Boolean(switchingId)}
+                    onClick={() => {
+                      enterParentPortal();
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
+                  >
+                    <Users className="w-4 h-4" />
+                    학부모 포털
+                  </button>
+                )}
+                {canAccessCustomerPortal && (
+                  <button
+                    type="button"
+                    role="menuitem"
+                    disabled={Boolean(switchingId)}
+                    onClick={() => {
+                      enterCustomerPortal();
+                      setOpen(false);
+                    }}
+                    className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
+                  >
+                    <UserRound className="w-4 h-4" />
+                    이용자 포털
+                  </button>
+                )}
+              </div>
+            )}
+
+            <div className="border-t border-slate-100 mt-2 pt-2 space-y-1">
+              <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
+                계정
+              </p>
+              <div className="px-3 py-2 mb-1 rounded-xl bg-slate-50 border border-slate-100">
+                <p className="text-sm font-bold text-slate-900 truncate">{displayName}</p>
+                {auth.user?.email && (
+                  <p className="text-[11px] text-slate-500 truncate mt-0.5">{auth.user.email}</p>
+                )}
+              </div>
               <button
                 type="button"
                 role="menuitem"
+                disabled={Boolean(switchingId)}
                 onClick={() => {
                   setOpen(false);
                   navigate('/signup/customer');
                 }}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
               >
                 <UserPlus className="w-4 h-4 shrink-0" />
                 다른 사업장에 이용 신청
@@ -277,20 +359,12 @@ export const RoleContextSwitcher: React.FC = () => {
               <button
                 type="button"
                 role="menuitem"
+                disabled={Boolean(switchingId)}
                 onClick={() => {
-                  clearOrganization();
+                  setActiveTab('account');
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 transition-colors min-h-[44px]"
-              >
-                <Building2 className="w-4 h-4 shrink-0" />
-                사업장 추가/선택
-              </button>
-              <button
-                type="button"
-                role="menuitem"
-                onClick={handleOpenAccount}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors min-h-[44px]"
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 min-h-[44px]"
               >
                 <UserRound className="w-4 h-4" />
                 내 계정
@@ -298,8 +372,9 @@ export const RoleContextSwitcher: React.FC = () => {
               <button
                 type="button"
                 role="menuitem"
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-colors min-h-[44px]"
+                disabled={Boolean(switchingId)}
+                onClick={() => void handleLogout()}
+                className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 min-h-[44px]"
               >
                 <LogOut className="w-4 h-4" />
                 로그아웃

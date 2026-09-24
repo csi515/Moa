@@ -1,7 +1,7 @@
 ﻿import type { ReactNode } from 'react';
 import type { Student } from '@/types';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
-import { formatKoreanDate } from '@/utils/formatters';
+import { formatKoreanDateLocal } from '@/shared/utils/localDate';
 import { CheckSquare, UserPlus, Users } from 'lucide-react';
 
 export interface DashboardMetricCard {
@@ -79,7 +79,7 @@ export function IndustryDashboardShell({
         icon={icon}
         iconClassName={iconClassName}
         title={title}
-        description={`${formatKoreanDate(today)} · ${description}`}
+        description={`${formatKoreanDateLocal(today)} · ${description}`}
       />
 
       <div className={metricsGridClassName}>

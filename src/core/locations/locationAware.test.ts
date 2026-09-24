@@ -10,6 +10,9 @@ import {
   LOCATION_SCOPE_POLICY,
   NEW_LOCATION_SCOPED_TABLE_RULES,
   ORGANIZATION_SCOPE_POLICY,
+  locationBusinessDate,
+  pickOrganizationTimezone,
+  resolveLocationTimezone,
   toLocationAware,
 } from './locationAware';
 import {
@@ -110,6 +113,38 @@ function run() {
   assert.doesNotMatch(sql, /ADD COLUMN\s+location_id/);
   assert.doesNotMatch(sql, /DROP POLICY/);
   assert.doesNotMatch(sql, /CREATE OR REPLACE FUNCTION core\.(create_sale|create_organization|request_reservation)/);
+
+  assert.equal(resolveLocationTimezone(null), 'Asia/Seoul');
+  assert.equal(resolveLocationTimezone('  '), 'Asia/Seoul');
+  assert.equal(resolveLocationTimezone('Not/AZone'), 'Asia/Seoul');
+  assert.equal(resolveLocationTimezone('America/Los_Angeles'), 'America/Los_Angeles');
+
+  const nearMidnight = '2026-09-23T15:30:00.000Z';
+  assert.equal(new Date(nearMidnight).toISOString().slice(0, 10), '2026-09-23');
+  assert.equal(locationBusinessDate(nearMidnight, 'Asia/Seoul'), '2026-09-24');
+  assert.equal(locationBusinessDate(nearMidnight, 'America/Los_Angeles'), '2026-09-23');
+  assert.notEqual(
+    locationBusinessDate(nearMidnight, 'Asia/Seoul'),
+    locationBusinessDate(nearMidnight, 'America/Los_Angeles')
+  );
+
+  const branches = [
+    { id: 'la', code: 'main', active: true, timezone: 'America/Los_Angeles' },
+    { id: 'se', code: 'east', active: true, timezone: 'Asia/Seoul' },
+  ];
+  assert.equal(pickOrganizationTimezone(branches, 'se'), 'Asia/Seoul');
+  assert.equal(pickOrganizationTimezone(branches, null), 'America/Los_Angeles');
+  assert.equal(pickOrganizationTimezone([], null), 'Asia/Seoul');
+
+  for (const rel of [
+    'supabase/migrations/20260822160000_attendance_module.sql',
+    'supabase/migrations/20260826250000_attendance_notifications.sql',
+    'supabase/migrations/20260924140000_attendance_key_notify_makeup.sql',
+  ]) {
+    const attendanceSql = readFileSync(join(root, rel), 'utf8');
+    assert.doesNotMatch(attendanceSql, /AT TIME ZONE 'Asia\/Seoul'/);
+    assert.match(attendanceSql, /core\.(location_business_date|resolve_location_timezone|timestamptz_from_business_local|business_time_text)/);
+  }
 
   const locSql = readFileSync(
     join(root, 'supabase/migrations/20260924270000_organization_locations.sql'),

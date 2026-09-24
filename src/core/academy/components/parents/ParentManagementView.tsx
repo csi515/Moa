@@ -22,6 +22,7 @@ import { StorageService } from '@/services/storage';
 import { Parent } from '@/types';
 import { formatPhone, getLevelColor } from '@/utils/formatters';
 import { PageHeader, FilterBar, SearchField, EmptyState } from '@/shared/components';
+import { Modal } from '@/shared/components/ui/Modal';
 import {
   UserSquare2,
   Phone,
@@ -29,7 +30,6 @@ import {
   Mail,
   Link2,
   Loader2,
-  X,
 } from 'lucide-react';
 
 export const ParentManagementView: React.FC = () => {
@@ -310,13 +310,14 @@ export const ParentManagementView: React.FC = () => {
         />
       )}
 
-      {inviteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold">{contactLabel} 포털 초대</h3>
-              <button onClick={() => setInviteTarget(null)}><X className="w-5 h-5" /></button>
-            </div>
+      <Modal
+        isOpen={Boolean(inviteTarget)}
+        onClose={() => setInviteTarget(null)}
+        title={`${contactLabel} 포털 초대`}
+        maxWidth="sm"
+      >
+        {inviteTarget && (
+          <div className="p-6">
             <p className="text-sm text-slate-600 mb-3">
               {inviteTarget.name} — 같은 이메일로 가입하면 자동 연결되며, 연결 코드도 함께
               생성됩니다.
@@ -338,8 +339,8 @@ export const ParentManagementView: React.FC = () => {
               초대 보내기
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {inviteResult && inviteResult.status === 'invited' && (
         <ParentInviteResultModal

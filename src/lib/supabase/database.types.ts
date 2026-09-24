@@ -1,6 +1,8 @@
 /**
- * Core schema types for Supabase multi-tenant SaaS platform.
- * Regenerate with: npm run supabase:types
+ * Supabase schema snapshot (Database / Json / enum unions).
+ * 앱 헬퍼(Organization, ReservationRow 등)는 database.aliases.ts.
+ * 생성: npm run supabase:types  → database.generated.ts
+ * 검증: npm run check:db-types
  */
 
 export type Json =
@@ -390,6 +392,204 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['medication_requests']['Insert']>;
         Relationships: [];
       };
+      care_child_records: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          vaccination_checked_at: string | null;
+          health_check_date: string | null;
+          allergy_note: string | null;
+          authorized_pickups: Json;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          vaccination_checked_at?: string | null;
+          health_check_date?: string | null;
+          allergy_note?: string | null;
+          authorized_pickups?: Json;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_child_records']['Insert']>;
+        Relationships: [];
+      };
+      care_incidents: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          occurred_at: string;
+          content: string;
+          action_taken: string;
+          parent_notified_at: string | null;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          occurred_at: string;
+          content?: string;
+          action_taken?: string;
+          parent_notified_at?: string | null;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_incidents']['Insert']>;
+        Relationships: [];
+      };
+      care_staff_health_certs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          staff_id: string;
+          expires_at: string;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          staff_id: string;
+          expires_at: string;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_staff_health_certs']['Insert']>;
+        Relationships: [];
+      };
+      care_safety_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          log_date: string;
+          kind: 'fire_drill' | 'safety_inspection';
+          items: Json;
+          note: string | null;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          log_date: string;
+          kind: 'fire_drill' | 'safety_inspection';
+          items?: Json;
+          note?: string | null;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_safety_logs']['Insert']>;
+        Relationships: [];
+      };
+      care_meal_samples: {
+        Row: {
+          id: string;
+          organization_id: string;
+          menu_name: string;
+          stored_at: string;
+          dispose_at: string;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          menu_name: string;
+          stored_at: string;
+          dispose_at: string;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_meal_samples']['Insert']>;
+        Relationships: [];
+      };
+      care_cctv_requests: {
+        Row: {
+          id: string;
+          organization_id: string;
+          requested_at: string;
+          purpose: string;
+          applicant_name: string;
+          applicant_staff_id: string | null;
+          status: 'requested' | 'approved' | 'rejected';
+          reviewed_at: string | null;
+          reviewed_by: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          requested_at: string;
+          purpose?: string;
+          applicant_name?: string;
+          applicant_staff_id?: string | null;
+          status?: 'requested' | 'approved' | 'rejected';
+          reviewed_at?: string | null;
+          reviewed_by?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_cctv_requests']['Insert']>;
+        Relationships: [];
+      };
+      care_pickup_logs: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          pickup_date: string;
+          picked_up_at: string;
+          picker_name: string;
+          relation: string;
+          outside_consent: boolean;
+          staff_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          pickup_date: string;
+          picked_up_at: string;
+          picker_name?: string;
+          relation?: string;
+          outside_consent?: boolean;
+          staff_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['care_pickup_logs']['Insert']>;
+        Relationships: [];
+      };
       customer_contacts: {
         Row: {
           id: string;
@@ -580,7 +780,14 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'schedules_session_pass_id_fkey';
+            columns: ['session_pass_id'];
+            referencedRelation: 'session_passes';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       payments: {
         Row: {
@@ -1631,7 +1838,14 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['core']['Tables']['locations']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'locations_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       permission_catalog: {
         Row: {
@@ -1705,7 +1919,20 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['core']['Tables']['audit_logs']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'audit_logs_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'audit_logs_location_id_fkey';
+            columns: ['location_id'];
+            referencedRelation: 'locations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       idempotency_keys: {
         Row: {
@@ -1715,7 +1942,7 @@ export interface Database {
           operation: string;
           actor_user_id: string | null;
           request_hash: string;
-          status: string;
+          status: IdempotencyKeyStatus;
           response_payload: Json | null;
           error_message: string | null;
           created_at: string;
@@ -1728,14 +1955,21 @@ export interface Database {
           operation: string;
           actor_user_id?: string | null;
           request_hash: string;
-          status: string;
+          status: IdempotencyKeyStatus;
           response_payload?: Json | null;
           error_message?: string | null;
           created_at?: string;
           expires_at?: string;
         };
         Update: Partial<Database['core']['Tables']['idempotency_keys']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'idempotency_keys_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       outbox_events: {
         Row: {
@@ -1744,9 +1978,9 @@ export interface Database {
           location_id: string | null;
           aggregate_type: string;
           aggregate_id: string;
-          event_type: string;
+          event_type: OutboxEventType;
           payload: Json;
-          status: string;
+          status: OutboxEventStatus;
           attempts: number;
           available_at: string;
           processed_at: string | null;
@@ -1759,9 +1993,9 @@ export interface Database {
           location_id?: string | null;
           aggregate_type: string;
           aggregate_id: string;
-          event_type: string;
+          event_type: OutboxEventType;
           payload?: Json;
-          status?: string;
+          status?: OutboxEventStatus;
           attempts?: number;
           available_at?: string;
           processed_at?: string | null;
@@ -1769,7 +2003,75 @@ export interface Database {
           created_at?: string;
         };
         Update: Partial<Database['core']['Tables']['outbox_events']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'outbox_events_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'outbox_events_location_id_fkey';
+            columns: ['location_id'];
+            referencedRelation: 'locations';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
+      session_passes: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          customer_name: string;
+          label: string;
+          total_sessions: number;
+          used_sessions: number;
+          status: SessionPassStatus;
+          purchased_at: string;
+          expires_at: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          customer_name?: string;
+          label?: string;
+          total_sessions: number;
+          used_sessions?: number;
+          status?: SessionPassStatus;
+          purchased_at?: string;
+          expires_at?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['session_passes']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'session_passes_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'session_passes_customer_id_fkey';
+            columns: ['customer_id'];
+            referencedRelation: 'customers';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'session_passes_customer_org_fkey';
+            columns: ['customer_id', 'organization_id'];
+            referencedRelation: 'customers';
+            referencedColumns: ['id', 'organization_id'];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
@@ -1868,6 +2170,36 @@ export interface Database {
           p_idempotency_key?: string | null;
         };
         Returns: string;
+      };
+      insert_default_organization_location: {
+        Args: { p_organization_id: string };
+        Returns: string;
+      };
+      begin_idempotency: {
+        Args: {
+          p_organization_id: string;
+          p_key: string;
+          p_operation: string;
+          p_request_hash: string;
+        };
+        Returns: Json;
+      };
+      complete_idempotency: {
+        Args: { p_organization_id: string; p_key: string; p_response: Json };
+        Returns: undefined;
+      };
+      fail_idempotency: {
+        Args: { p_organization_id: string; p_key: string; p_error?: string | null };
+        Returns: undefined;
+      };
+      update_booking_status_with_pass: {
+        Args: {
+          p_organization_id: string;
+          p_booking_id: string;
+          p_new_status: ScheduleStatus;
+          p_consume_on_no_show?: boolean;
+        };
+        Returns: Json;
       };
       update_booking_status_with_pass_idempotent: {
         Args: {
@@ -3465,19 +3797,26 @@ export interface Database {
         Row: {
           id: string;
           plan_id: string;
-          feature_key: string;
+          feature_key: PlatformFeatureKey;
           enabled: boolean;
           created_at: string;
         };
         Insert: {
           id?: string;
           plan_id: string;
-          feature_key: string;
+          feature_key: PlatformFeatureKey;
           enabled?: boolean;
           created_at?: string;
         };
         Update: Partial<Database['platform']['Tables']['feature_entitlements']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'feature_entitlements_plan_id_fkey';
+            columns: ['plan_id'];
+            referencedRelation: 'plans';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       subscriptions: {
         Row: {
@@ -3503,14 +3842,27 @@ export interface Database {
           updated_at?: string;
         };
         Update: Partial<Database['platform']['Tables']['subscriptions']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'subscriptions_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'subscriptions_plan_id_fkey';
+            columns: ['plan_id'];
+            referencedRelation: 'plans';
+            referencedColumns: ['id'];
+          },
+        ];
       };
       subscription_items: {
         Row: {
           id: string;
           organization_id: string;
           subscription_id: string;
-          feature_key: string;
+          feature_key: PlatformFeatureKey;
           enabled: boolean;
           created_at: string;
           updated_at: string;
@@ -3519,13 +3871,26 @@ export interface Database {
           id?: string;
           organization_id: string;
           subscription_id: string;
-          feature_key: string;
+          feature_key: PlatformFeatureKey;
           enabled: boolean;
           created_at?: string;
           updated_at?: string;
         };
         Update: Partial<Database['platform']['Tables']['subscription_items']['Insert']>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: 'subscription_items_organization_id_fkey';
+            columns: ['organization_id'];
+            referencedRelation: 'organizations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'subscription_items_subscription_id_fkey';
+            columns: ['subscription_id'];
+            referencedRelation: 'subscriptions';
+            referencedColumns: ['id'];
+          },
+        ];
       };
     };
     Views: Record<string, never>;
@@ -3547,6 +3912,19 @@ export type PlatformBillingStatus =
   | 'paused'
   | 'canceled'
   | 'expired';
+export type PlatformFeatureKey = 'booking' | 'loyalty' | 'maintenance';
+export type SessionPassStatus = 'active' | 'exhausted' | 'cancelled';
+export type IdempotencyKeyStatus = 'processing' | 'succeeded' | 'failed';
+export type OutboxEventStatus = 'pending' | 'processing' | 'processed' | 'failed';
+export type OutboxEventType =
+  | 'reservation.confirmed'
+  | 'reservation.requested'
+  | 'booking.completed'
+  | 'payment.completed'
+  | 'refund.completed'
+  | 'pass.purchased'
+  | 'staff.assigned'
+  | 'waitlist.notified';
 export type CustomerSessionStatus = 'active' | 'completed' | 'cancelled';
 export type WaitlistStatus = 'waiting' | 'notified' | 'assigned' | 'cancelled' | 'expired';
 export type OpsTaskStatus = 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
@@ -3562,31 +3940,36 @@ export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave
 export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
 export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';
 
-/** Core 테이블 Row 타입 헬퍼 */
-export type CoreTables<T extends keyof Database['core']['Tables']> =
-  Database['core']['Tables'][T]['Row'];
-
-export type Organization = CoreTables<'organizations'>;
-export type Profile = CoreTables<'profiles'>;
-export type OrganizationMember = CoreTables<'organization_members'>;
-export type Customer = CoreTables<'customers'>;
-export type CustomerContact = CoreTables<'customer_contacts'>;
-export type Staff = CoreTables<'staff'>;
-export type Service = CoreTables<'services'>;
-export type Schedule = CoreTables<'schedules'>;
-export type Payment = CoreTables<'payments'>;
-export type PaymentTransaction = CoreTables<'payment_transactions'>;
-export type Consultation = CoreTables<'consultations'>;
-export type Notification = CoreTables<'notifications'>;
-export type AvailabilityRuleRow = CoreTables<'availability_rules'>;
-export type AvailabilityOverrideRow = CoreTables<'availability_overrides'>;
-export type ReservationRow = CoreTables<'reservations'>;
-export type SaleRow = CoreTables<'sales'>;
-export type SaleItemRow = CoreTables<'sale_items'>;
-export type PointAccountRow = CoreTables<'point_accounts'>;
-export type PointTransactionRow = CoreTables<'point_transactions'>;
-
-export type OrganizationReservationRpcRow =
-  Database['core']['Functions']['get_organization_reservations']['Returns'][number];
-export type MyReservationRpcRow =
-  Database['core']['Functions']['get_my_reservations']['Returns'][number];
+export type {
+  AuditLogRow,
+  AvailabilityOverrideRow,
+  AvailabilityRuleRow,
+  Consultation,
+  CoreTables,
+  Customer,
+  CustomerContact,
+  IdempotencyKeyRow,
+  LocationRow,
+  MyReservationRpcRow,
+  Notification,
+  Organization,
+  OrganizationMember,
+  OrganizationReservationRpcRow,
+  OutboxEventRow,
+  Payment,
+  PaymentTransaction,
+  PlatformFeatureEntitlementRow,
+  PlatformPlanRow,
+  PlatformSubscriptionItemRow,
+  PlatformSubscriptionRow,
+  PointAccountRow,
+  PointTransactionRow,
+  Profile,
+  ReservationRow,
+  SaleItemRow,
+  SaleRow,
+  Schedule,
+  Service,
+  SessionPassRow,
+  Staff,
+} from './database.aliases';

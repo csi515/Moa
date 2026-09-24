@@ -1,19 +1,57 @@
 /**
  * 지점 CRUD. 쓰기는 RPC. 기존 organization_id 테넌트 경계를 유지한다.
  */
-import { getCoreClient } from '@/lib/supabase';
+import { toAuthorizationGrant } from '@/core/authorization/authorizationService';
+import type { AuthorizationGrant } from '@/core/authorization';
+import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
+import { filterAccessibleLocations, pickOrganizationTimezone, resolveLocationTimezone } from './locationAware';
 import { mapLocationRpcError } from './locationErrors';
 import { rowToLocation, type LocationRow } from './locationMappers';
 import { getLocationById, listLocations } from './locationRepository';
-import type { Location, LocationListQuery, UpsertLocationInput } from './types';
+import type { Location, LocationAccessContext, LocationListQuery, UpsertLocationInput } from './types';
 
 const LOCATION_ID_STORAGE_KEY = 'moa_current_location_id';
 
-export function getStoredLocationId(): string | null {
-  return localStorage.getItem(LOCATION_ID_STORAGE_KEY);
+type StoredLocationSelection = {
+  organizationId: string;
+  locationId: string;
+};
+
+function readStoredSelection(): StoredLocationSelection | string | null {
+  const raw = localStorage.getItem(LOCATION_ID_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as unknown;
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof (parsed as StoredLocationSelection).organizationId === 'string' &&
+      typeof (parsed as StoredLocationSelection).locationId === 'string'
+    ) {
+      return parsed as StoredLocationSelection;
+    }
+  } catch {
+    /* 레거시: location id 문자열 */
+  }
+  return raw;
 }
 
-export function storeLocationId(locationId: string): void {
+export function getStoredLocationId(organizationId?: string | null): string | null {
+  const stored = readStoredSelection();
+  if (!stored) return null;
+  if (typeof stored === 'string') return stored;
+  if (organizationId && stored.organizationId !== organizationId) return null;
+  return stored.locationId;
+}
+
+export function storeLocationId(locationId: string, organizationId?: string | null): void {
+  if (organizationId) {
+    localStorage.setItem(
+      LOCATION_ID_STORAGE_KEY,
+      JSON.stringify({ organizationId, locationId } satisfies StoredLocationSelection)
+    );
+    return;
+  }
   localStorage.setItem(LOCATION_ID_STORAGE_KEY, locationId);
 }
 
@@ -34,8 +72,50 @@ export const locationService = {
     return listLocations(organizationId, query);
   },
 
+  async listAccessible(
+    organizationId: string,
+    access: Omit<LocationAccessContext, 'organizationId'>,
+    query: LocationListQuery = {}
+  ): Promise<Location[]> {
+    const rows = await listLocations(organizationId, query);
+    return filterAccessibleLocations(rows, { ...access, organizationId });
+  },
+
+  async listAccessGrants(organizationId: string): Promise<AuthorizationGrant[]> {
+    if (!organizationId || !isSupabaseConfigured()) return [];
+    try {
+      const client = getCoreClient();
+      const { data: authData, error: authError } = await client.auth.getUser();
+      const userId = authData.user?.id;
+      if (authError || !userId) return [];
+      const { data, error } = await client
+        .from('authorization_grants')
+        .select('organization_id, user_id, permission, scope_type, scope_id, is_active')
+        .eq('organization_id', organizationId)
+        .eq('user_id', userId);
+      if (error || !data) return [];
+      return data
+        .map(toAuthorizationGrant)
+        .filter((grant): grant is AuthorizationGrant => grant != null);
+    } catch {
+      return [];
+    }
+  },
+
   getById(organizationId: string, locationId: string) {
     return getLocationById(organizationId, locationId);
+  },
+
+  resolveTimezone(timezone?: string | null): string {
+    return resolveLocationTimezone(timezone);
+  },
+
+  async resolveOrganizationTimezone(
+    organizationId: string,
+    locationId?: string | null
+  ): Promise<string> {
+    const rows = await listLocations(organizationId);
+    return pickOrganizationTimezone(rows, locationId);
   },
 
   async upsert(organizationId: string, input: UpsertLocationInput): Promise<Location> {

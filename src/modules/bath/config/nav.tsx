@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
+import { defineMobileMainNav } from '@/core/auth/mobileNavPolicy';
 import { buildNavSection } from '@/core/auth/navBuilders';
 import { CalendarDays, LayoutDashboard, Settings, Users } from 'lucide-react';
 
@@ -22,6 +23,11 @@ export function getBathSidebarSections(labels: ModuleLabels): NavMenuSection[] {
     ]),
   ];
 }
+
+/** 목욕탕은 기능 면이 작아 핵심 3 + 설정 더보기 */
+export const BATH_MOBILE_MAIN = defineMobileMainNav({
+  tabs: ['dashboard', 'members', 'bookings'],
+});
 
 export function getBathMainTabs(labels: ModuleLabels): NavMenuItem[] {
   return [

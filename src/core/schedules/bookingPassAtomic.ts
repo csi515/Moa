@@ -1,6 +1,7 @@
 /**
- * 예약 상태 + 이용권 차감/복구 원자 클라이언트.
- * DB: core.update_booking_status_with_pass 가 source of truth.
+ * appointment Booking 상태 + 이용권 차감/복구 원자 클라이언트.
+ * DB: core.update_booking_status_with_pass 가 source of truth (core.schedules + session_passes).
+ * reservations / attendance / customer_sessions 상태를 바꾸지 않는다.
  * 온라인 경로에서 SCHEDULES/SESSION_PASSES 전체 snapshot flush·diff-delete 금지.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';

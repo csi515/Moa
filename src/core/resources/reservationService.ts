@@ -1,6 +1,7 @@
 /**
- * 공통 자원 예약. 겹침은 book_room_reservation_guarded / EXCLUDE 재사용.
- * 업종 분기를 두지 않는다.
+ * 공통 자원 예약 (core.room_reservations).
+ * bookable Schedule 신청(core.reservations)과 원장을 공유하지 않는다.
+ * 겹침은 book_room_reservation_guarded / EXCLUDE 재사용.
  */
 import { getCoreClient } from '@/lib/supabase';
 import { mapResourceReservationError } from './reservationErrors';

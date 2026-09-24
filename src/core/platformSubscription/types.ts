@@ -2,10 +2,18 @@
  * Moa Platform SaaS 구독.
  * 사업장 회원권/회차권(core.session_passes) · 매출 · 수강료와 다른 개념이다.
  */
+import type {
+  PlatformBillingStatus,
+  PlatformFeatureKey,
+} from '@/lib/supabase/database.types';
 
-export const PLATFORM_FEATURE_KEYS = ['booking', 'loyalty', 'maintenance'] as const;
+export type { PlatformBillingStatus, PlatformFeatureKey };
 
-export type PlatformFeatureKey = (typeof PLATFORM_FEATURE_KEYS)[number];
+export const PLATFORM_FEATURE_KEYS = [
+  'booking',
+  'loyalty',
+  'maintenance',
+] as const satisfies readonly PlatformFeatureKey[];
 
 export const PLATFORM_BILLING_STATUSES = [
   'trialing',
@@ -14,9 +22,7 @@ export const PLATFORM_BILLING_STATUSES = [
   'paused',
   'canceled',
   'expired',
-] as const;
-
-export type PlatformBillingStatus = (typeof PLATFORM_BILLING_STATUSES)[number];
+] as const satisfies readonly PlatformBillingStatus[];
 
 /** 기능 사용을 허용하는 청구 상태. provider 연동 전 수동 값. */
 export const ENTITLED_BILLING_STATUSES: readonly PlatformBillingStatus[] = [

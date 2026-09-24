@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import type { NavTab } from '@/context/AppContext';
 import type { ModuleLabels } from './labels';
 import type { NavMenuItem, NavMenuSection } from '@/core/auth/navUtils';
+import { MORE_NAV_SECTION } from '@/core/auth/navUtils';
+import { defineMobileMainNav } from '@/core/auth/mobileNavPolicy';
 import { buildNavSection } from '@/core/auth/navBuilders';
 import {
   BarChart3,
@@ -17,13 +19,12 @@ const icon = (node: ReactNode) => node;
 
 const FINANCE_LABEL = '수납·재무';
 
-/** 모바일 하단 고정 탭 (더보기 제외) */
-export const PIANO_MOBILE_MAIN_TABS: readonly NavTab[] = [
-  'dashboard',
-  'students',
-  'timetable',
-  'attendance',
-] as const;
+/** 모바일 하단 고정 탭 (더보기 제외). 일일 핵심: 학생·일정·출결 */
+export const PIANO_MOBILE_MAIN = defineMobileMainNav({
+  tabs: ['dashboard', 'students', 'timetable', 'attendance'],
+});
+
+export const PIANO_MOBILE_MAIN_TABS: readonly NavTab[] = PIANO_MOBILE_MAIN.tabs;
 
 /** 모바일 더보기 — 하단 미노출 핵심 + 설정 */
 export const PIANO_MOBILE_MORE_TABS: readonly NavTab[] = [
@@ -100,7 +101,12 @@ export function getPianoMainTabs(labels: ModuleLabels): NavMenuItem[] {
 /** 더보기 — 상담 · 수납·재무 · 설정 */
 export function getPianoMoreTabs(labels: ModuleLabels): NavMenuItem[] {
   const byTab = new Map(getPianoCoreNavItems(labels, 'md').map((item) => [item.tab, item]));
-  return PIANO_MOBILE_MORE_TABS.map((tab) =>
-    tab === 'settings' ? settingsNavItem('md') : byTab.get(tab)!
-  ).filter(Boolean);
+  return PIANO_MOBILE_MORE_TABS.map((tab) => {
+    const item = tab === 'settings' ? settingsNavItem('md') : byTab.get(tab)!;
+    if (!item) return item;
+    return {
+      ...item,
+      section: tab === 'settings' ? MORE_NAV_SECTION.settings : MORE_NAV_SECTION.work,
+    };
+  }).filter(Boolean);
 }

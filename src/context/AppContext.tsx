@@ -9,6 +9,12 @@ import React, {
 import { StorageService } from '../services/storage';
 import { STORAGE_KEYS } from '../services/adapters/storageKeys';
 import { User } from '../types';
+import {
+  MAX_VISIBLE_TOASTS,
+  nextWorkStatusId,
+  type FeedbackTone,
+  type WorkStatusMessage,
+} from '@/shared/feedback/feedbackPolicy';
 
 /**
  * AppContext 역할:
@@ -111,6 +117,13 @@ interface AppContextType {
   openConfirmDialog: (options: ConfirmDialogOptions) => void;
   closeConfirmDialog: () => void;
   /**
+   * 결제/예약/등록처럼 화면에 남겨야 하는 결과.
+   * 짧은 성공/경고는 showToast, 필드 수정은 FormField.error.
+   */
+  workStatus: WorkStatusMessage | null;
+  showWorkStatus: (input: { title: string; message: string; tone?: FeedbackTone }) => void;
+  clearWorkStatus: () => void;
+  /**
    * 명시적 전역 UI 무효화 카운터.
    * StorageService 매 변경으로 증가하지 않음 — triggerRefresh() 또는 hydrate('*') 연동 화면만.
    */
@@ -119,16 +132,38 @@ interface AppContextType {
   triggerRefresh: () => void;
 }
 
+const WORK_SCROLL_ROOT = '[data-work-scroll-root]';
+
+/** 업무 탭 전환 시 새 화면을 상단에서 시작. 상세 내부 탭은 activeTab을 바꾸지 않는다. */
+function resetWorkTabScroll() {
+  if (typeof window === 'undefined') return;
+  window.scrollTo(0, 0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  document.querySelectorAll<HTMLElement>(WORK_SCROLL_ROOT).forEach((el) => {
+    el.scrollTop = 0;
+  });
+}
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [activeTab, setActiveTabState] = useState<NavTab>('dashboard');
+  const setActiveTab = useCallback((tab: NavTab) => {
+    setActiveTabState((prev) => {
+      if (prev !== tab) {
+        requestAnimationFrame(resetWorkTabScroll);
+      }
+      return tab;
+    });
+  }, []);
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedStudentDetailTab, setSelectedStudentDetailTab] =
     useState<StudentDetailTab | null>(null);
   const [currentUser, setCurrentUser] = useState<User>(StorageService.getActiveUser());
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogOptions | null>(null);
+  const [workStatus, setWorkStatus] = useState<WorkStatusMessage | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const triggerRefresh = useCallback(() => {
@@ -152,7 +187,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       title?: string
     ) => {
       const id = Date.now().toString() + Math.random().toString(36).slice(2, 6);
-      setToasts((prev) => [...prev, { id, message, type, title }]);
+      setToasts((prev) => [...prev, { id, message, type, title }].slice(-MAX_VISIBLE_TOASTS));
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, 4000);
@@ -172,6 +207,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setConfirmDialog(null);
   }, []);
 
+  const showWorkStatus = useCallback(
+    (input: { title: string; message: string; tone?: FeedbackTone }) => {
+      setWorkStatus({
+        id: nextWorkStatusId(),
+        title: input.title,
+        message: input.message,
+        tone: input.tone ?? 'info',
+      });
+    },
+    []
+  );
+
+  const clearWorkStatus = useCallback(() => {
+    setWorkStatus(null);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -188,6 +239,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         confirmDialog,
         openConfirmDialog,
         closeConfirmDialog,
+        workStatus,
+        showWorkStatus,
+        clearWorkStatus,
         refreshKey,
         triggerRefresh,
       }}

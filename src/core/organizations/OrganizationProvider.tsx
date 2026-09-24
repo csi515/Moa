@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -60,6 +61,13 @@ interface OrganizationContextType {
   currentOrganization: Organization | null;
   locations: Location[];
   currentLocation: Location | null;
+  locationLabel: string;
+  canChangeLocation: boolean;
+  canClearLocation: boolean;
+  locationsStatus: 'loading' | 'ready';
+  portalMode: AppPortalMode;
+  organizationsStatus: 'loading' | 'ready' | 'error';
+  organizationsError: string | null;
   currentRole: MemberRole | null;
   currentStaffId: string | null;
   currentParentCustomerId: string | null;
@@ -113,6 +121,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const [portalChildCount, setPortalChildCount] = useState(0);
   const [blockedOwnerOrgIds, setBlockedOwnerOrgIds] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [organizationsStatus, setOrganizationsStatus] = useState<
+    'loading' | 'ready' | 'error'
+  >('loading');
+  const [organizationsError, setOrganizationsError] = useState<string | null>(null);
+  const hasMembershipsRef = useRef(false);
 
   // ── Derived: selection ────────────────────────────────────────
   const {
@@ -121,9 +134,16 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     currentStaffId,
     currentParentCustomerId,
   } = deriveSelectionFields(selectedMembership);
-  const { locations, currentLocation, selectLocation } = useOrganizationLocationState(
-    currentOrganization?.id ?? null
-  );
+  const {
+    locations,
+    currentLocation,
+    selectLocation,
+    locationLabel,
+    canChangeLocation,
+    canClearLocation,
+    locationsStatus,
+  } = useOrganizationLocationState(currentOrganization?.id ?? null);
+  hasMembershipsRef.current = memberships.length > 0;
 
   // ── Derived: portal access (membership 조회 결과 기반, parent 단정 금지) ──
   const portalAccess = useMemo(
@@ -175,6 +195,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     setGlobalParentId(null);
     setPortalChildCount(0);
     setBlockedOwnerOrgIds([]);
+    setOrganizationsStatus('ready');
+    setOrganizationsError(null);
     commitPortalMode('none');
     orgService.clearStoredOrganizationId();
   }, [commitPortalMode]);
@@ -186,7 +208,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       return;
     }
 
-    if (!opts?.quiet) setLoading(true);
+    if (!opts?.quiet) {
+      setLoading(true);
+      setOrganizationsStatus('loading');
+      setOrganizationsError(null);
+    }
     try {
       await applyOAuthSignupIntentIfAny();
       await runLoginAccountSync();
@@ -246,14 +272,23 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       } else {
         applyOrgSelection(nextMemberships, plan.selection.organizationId);
       }
+      setOrganizationsError(null);
+      setOrganizationsStatus('ready');
     } catch (err) {
       console.error('[org] refreshOrganizations failed', err);
-      // quiet(foreground): 기존 선택 유지 — 전체 비우면 stale보다 UX가 나쁨
-      if (!opts?.quiet) {
-        setMemberships([]);
-        setBlockedOwnerOrgIds([]);
-        applyMembershipSelection([], null);
+      const message =
+        err instanceof TypeError ||
+        (err instanceof Error && /failed to fetch|network|offline|load failed/i.test(err.message))
+          ? '네트워크 연결을 확인한 뒤 다시 시도해 주세요.'
+          : err instanceof Error && err.message
+            ? err.message
+            : '사업장 정보를 불러오지 못했습니다.';
+      // quiet + 기존 데이터: 선택 유지. 초기/강제 새로고침 실패만 error.
+      if (opts?.quiet && hasMembershipsRef.current) {
+        return;
       }
+      setOrganizationsError(message);
+      setOrganizationsStatus('error');
     } finally {
       if (!opts?.quiet) setLoading(false);
     }
@@ -392,6 +427,13 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         currentOrganization,
         locations,
         currentLocation,
+        locationLabel,
+        canChangeLocation,
+        canClearLocation,
+        locationsStatus,
+        portalMode,
+        organizationsStatus,
+        organizationsError,
         currentRole,
         currentStaffId,
         currentParentCustomerId,

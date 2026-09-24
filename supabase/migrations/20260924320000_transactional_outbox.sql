@@ -10,6 +10,7 @@ CREATE TABLE core.outbox_events (
   aggregate_type  TEXT NOT NULL,
   aggregate_id    TEXT NOT NULL,
   event_type      TEXT NOT NULL,
+  dedupe_key      TEXT NOT NULL,
   payload         JSONB NOT NULL DEFAULT '{}'::jsonb,
   status          TEXT NOT NULL DEFAULT 'pending',
   attempts        INT NOT NULL DEFAULT 0,
@@ -19,6 +20,8 @@ CREATE TABLE core.outbox_events (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   CONSTRAINT outbox_events_aggregate_check
     CHECK (length(btrim(aggregate_type)) > 0 AND length(btrim(aggregate_id)) > 0),
+  CONSTRAINT outbox_events_dedupe_check CHECK (length(btrim(dedupe_key)) > 0),
+  CONSTRAINT uq_outbox_events_org_dedupe UNIQUE (organization_id, dedupe_key),
   CONSTRAINT outbox_events_attempts_check CHECK (attempts >= 0),
   CONSTRAINT outbox_events_status_check
     CHECK (status IN ('pending', 'processing', 'processed', 'failed')),
@@ -38,6 +41,10 @@ CREATE TABLE core.outbox_events (
 
 COMMENT ON TABLE core.outbox_events IS
   '업무 TX에서 적재하는 외부 side effect 대기열. push/SMS/CRM은 worker가 처리한다.';
+COMMENT ON COLUMN core.outbox_events.dedupe_key IS
+  '비즈니스 이벤트 identity. organization_id 와 함께 UNIQUE. id 는 row identity.';
+COMMENT ON COLUMN core.outbox_events.id IS
+  'outbox row identity. 비즈니스 중복 방지에는 dedupe_key 를 쓴다.';
 
 CREATE INDEX idx_outbox_events_claim
   ON core.outbox_events (organization_id, status, available_at);
@@ -53,6 +60,31 @@ CREATE POLICY outbox_events_staff_select ON core.outbox_events
 GRANT SELECT ON core.outbox_events TO authenticated;
 REVOKE INSERT, UPDATE, DELETE ON core.outbox_events FROM authenticated, anon;
 
+CREATE OR REPLACE FUNCTION core.outbox_dedupe_key(
+  p_event_type TEXT,
+  p_aggregate_type TEXT,
+  p_aggregate_id TEXT
+)
+RETURNS TEXT
+LANGUAGE sql
+IMMUTABLE
+AS $$
+  SELECT btrim(p_event_type) || E'\x1f' || btrim(p_aggregate_type) || E'\x1f' || btrim(p_aggregate_id);
+$$;
+
+-- worker만 상태를 바꾼다. 일반 authenticated 세션은 SELECT만 가능하다.
+CREATE OR REPLACE FUNCTION core.require_outbox_worker()
+RETURNS VOID
+LANGUAGE plpgsql
+STABLE
+AS $$
+BEGIN
+  IF COALESCE(auth.role(), auth.jwt() ->> 'role', '') IS DISTINCT FROM 'service_role' THEN
+    RAISE EXCEPTION 'Permission denied';
+  END IF;
+END;
+$$;
+
 CREATE OR REPLACE FUNCTION core.enqueue_outbox_event(
   p_organization_id UUID,
   p_aggregate_type TEXT,
@@ -63,31 +95,25 @@ CREATE OR REPLACE FUNCTION core.enqueue_outbox_event(
 )
 RETURNS UUID
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = core, public
 AS $$
 DECLARE
   v_id UUID;
   v_location UUID;
   v_payload JSONB;
+  v_dedupe TEXT;
 BEGIN
   IF p_organization_id IS NULL THEN
     RAISE EXCEPTION 'Organization mismatch';
-  END IF;
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
-  END IF;
-  IF NOT (
-    core.is_org_staff_actor(p_organization_id)
-    OR core.is_org_owner_or_admin(p_organization_id)
-  ) THEN
-    RAISE EXCEPTION 'Permission denied';
   END IF;
 
   v_location := NULL;
   IF p_location_id IS NOT NULL THEN
     v_location := core.assert_location_in_organization(p_organization_id, p_location_id, false);
   END IF;
+
+  v_dedupe := core.outbox_dedupe_key(p_event_type, p_aggregate_type, p_aggregate_id);
 
   v_payload := COALESCE(p_payload, '{}'::jsonb) || jsonb_build_object(
     'organizationId', p_organization_id,
@@ -98,12 +124,20 @@ BEGIN
   );
 
   INSERT INTO core.outbox_events (
-    organization_id, location_id, aggregate_type, aggregate_id, event_type, payload
+    organization_id, location_id, aggregate_type, aggregate_id, event_type, dedupe_key, payload
   ) VALUES (
     p_organization_id, v_location, btrim(p_aggregate_type), btrim(p_aggregate_id),
-    p_event_type, v_payload
+    p_event_type, v_dedupe, v_payload
   )
+  ON CONFLICT ON CONSTRAINT uq_outbox_events_org_dedupe DO NOTHING
   RETURNING id INTO v_id;
+
+  IF v_id IS NULL THEN
+    SELECT e.id INTO v_id
+    FROM core.outbox_events e
+    WHERE e.organization_id = p_organization_id
+      AND e.dedupe_key = v_dedupe;
+  END IF;
   RETURN v_id;
 END;
 $$;
@@ -118,12 +152,7 @@ SECURITY DEFINER
 SET search_path = core, public
 AS $$
 BEGIN
-  IF auth.uid() IS NULL THEN
-    RAISE EXCEPTION 'Not authenticated';
-  END IF;
-  IF NOT core.is_org_staff_actor(p_organization_id) THEN
-    RAISE EXCEPTION 'Permission denied';
-  END IF;
+  PERFORM core.require_outbox_worker();
 
   RETURN QUERY
   UPDATE core.outbox_events e
@@ -155,16 +184,11 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = core, public
 AS $$
-DECLARE
-  v_org UUID;
 BEGIN
-  SELECT organization_id INTO v_org FROM core.outbox_events WHERE id = p_event_id;
-  IF NOT FOUND THEN
+  IF NOT EXISTS (SELECT 1 FROM core.outbox_events WHERE id = p_event_id) THEN
     RAISE EXCEPTION 'Outbox event not found';
   END IF;
-  IF NOT core.is_org_staff_actor(v_org) THEN
-    RAISE EXCEPTION 'Permission denied';
-  END IF;
+  PERFORM core.require_outbox_worker();
   UPDATE core.outbox_events
   SET status = 'processed',
       processed_at = now(),
@@ -189,9 +213,7 @@ BEGIN
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Outbox event not found';
   END IF;
-  IF NOT core.is_org_staff_actor(v_row.organization_id) THEN
-    RAISE EXCEPTION 'Permission denied';
-  END IF;
+  PERFORM core.require_outbox_worker();
   IF v_row.attempts >= 8 THEN
     UPDATE core.outbox_events
     SET status = 'failed',
@@ -278,19 +300,27 @@ END;
 $$;
 
 COMMENT ON FUNCTION core.enqueue_outbox_event(UUID, TEXT, TEXT, TEXT, JSONB, UUID) IS
-  '업무 TX에서 outbox 행을 함께 만든다. 외부 API는 호출하지 않는다.';
+  '업무 DEFINER RPC 같은 TX에서만 호출. 같은 (org, dedupe_key) 는 한 행만 만든다.';
 COMMENT ON FUNCTION core.claim_outbox_events(UUID, INT) IS
-  'worker claim. FOR UPDATE SKIP LOCKED. 중복 delivery는 consumer가 event.id로 멱등 처리.';
+  'service_role worker 전용 claim. FOR UPDATE SKIP LOCKED. 비즈니스 중복은 dedupe_key UNIQUE 가 막는다.';
 COMMENT ON FUNCTION core.confirm_reservation(UUID) IS
   '예약 확정. 용량 가드는 기존과 동일. 성공 시 reservation.confirmed outbox를 같은 TX에 적재.';
 
-GRANT EXECUTE ON FUNCTION core.enqueue_outbox_event(UUID, TEXT, TEXT, TEXT, JSONB, UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION core.claim_outbox_events(UUID, INT) TO authenticated;
-GRANT EXECUTE ON FUNCTION core.complete_outbox_event(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION core.fail_outbox_event(UUID, TEXT) TO authenticated;
-REVOKE EXECUTE ON FUNCTION core.enqueue_outbox_event(UUID, TEXT, TEXT, TEXT, JSONB, UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION core.claim_outbox_events(UUID, INT) FROM anon;
-REVOKE EXECUTE ON FUNCTION core.complete_outbox_event(UUID) FROM anon;
-REVOKE EXECUTE ON FUNCTION core.fail_outbox_event(UUID, TEXT) FROM anon;
+REVOKE ALL ON FUNCTION core.outbox_dedupe_key(TEXT, TEXT, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.outbox_dedupe_key(TEXT, TEXT, TEXT) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION core.require_outbox_worker() FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.require_outbox_worker() FROM anon, authenticated;
+REVOKE ALL ON FUNCTION core.enqueue_outbox_event(UUID, TEXT, TEXT, TEXT, JSONB, UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.enqueue_outbox_event(UUID, TEXT, TEXT, TEXT, JSONB, UUID) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION core.claim_outbox_events(UUID, INT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.claim_outbox_events(UUID, INT) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION core.complete_outbox_event(UUID) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.complete_outbox_event(UUID) FROM anon, authenticated;
+REVOKE ALL ON FUNCTION core.fail_outbox_event(UUID, TEXT) FROM PUBLIC;
+REVOKE ALL ON FUNCTION core.fail_outbox_event(UUID, TEXT) FROM anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION core.claim_outbox_events(UUID, INT) TO service_role;
+GRANT EXECUTE ON FUNCTION core.complete_outbox_event(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION core.fail_outbox_event(UUID, TEXT) TO service_role;
 
 COMMIT;

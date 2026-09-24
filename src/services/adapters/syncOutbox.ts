@@ -1,16 +1,38 @@
 /**
- * Sync outbox — remote persist 재시도 대기열.
+ * Sync outbox — remote persist 재시도 대기열. offline-command 큐.
  *
- * localStorage(`moa:sync-outbox:{orgId}`)에 저장되지만
- * 업무 엔티티(학생·교재·청구 등) 자체가 아니다.
- * debounced Supabase persist가 실패한 StorageKey 목록만 담아
- * online/visibility 시 flushPersist로 재시도한다.
+ * v1: StorageKey[] (스냅샷 재시도)
+ * v2: keys + mutation identity/revision
  *
- * = pending sync / remote persistence retry state (cache가 아님, SoT도 아님)
+ * 스냅샷 flush는 유지한다. 같은 entity의 낮은 revision은 적용하지 않는다.
  */
+import { OFFLINE_COMMAND_STORE_POLICIES } from '@/core/storage/persistencePolicy';
 import type { StorageKey } from './storageKeys';
+
+export const SYNC_OUTBOX_POLICY = OFFLINE_COMMAND_STORE_POLICIES.syncOutbox;
 import { getOrganizationId } from './storageContext';
 import { readLocalRaw, writeLocalRaw } from './localStorageEngine';
+import {
+  isSameMutationTarget,
+  isStaleMutation,
+  latestMutationForTarget,
+  type PendingMutationKind,
+} from './mutationRecord';
+
+export type SyncOutboxMutation = {
+  id: string;
+  key: StorageKey;
+  kind: PendingMutationKind;
+  entityId?: string;
+  revision: number;
+  enqueuedAt: string;
+};
+
+type OutboxStoreV2 = {
+  v: 2;
+  keys: StorageKey[];
+  mutations: SyncOutboxMutation[];
+};
 
 const OUTBOX_PREFIX = 'moa:sync-outbox:';
 
@@ -18,41 +40,97 @@ function outboxKey(orgId: string): string {
   return `${OUTBOX_PREFIX}${orgId}`;
 }
 
-function readOutbox(orgId: string): StorageKey[] {
+function emptyStore(): OutboxStoreV2 {
+  return { v: 2, keys: [], mutations: [] };
+}
+
+function migrateOutbox(raw: unknown): OutboxStoreV2 {
+  if (Array.isArray(raw)) {
+    return {
+      v: 2,
+      keys: raw.filter((item): item is StorageKey => typeof item === 'string'),
+      mutations: [],
+    };
+  }
+  if (!raw || typeof raw !== 'object') return emptyStore();
+  const parsed = raw as Partial<OutboxStoreV2>;
+  const keys = Array.isArray(parsed.keys)
+    ? parsed.keys.filter((item): item is StorageKey => typeof item === 'string')
+    : [];
+  const mutations = Array.isArray(parsed.mutations)
+    ? parsed.mutations.filter((item): item is SyncOutboxMutation => {
+        return !!item && typeof item === 'object' && typeof item.id === 'string' && typeof item.key === 'string';
+      })
+    : [];
+  return { v: 2, keys, mutations };
+}
+
+function readStore(orgId: string): OutboxStoreV2 {
   try {
     const raw = readLocalRaw(outboxKey(orgId));
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as string[];
-    return Array.isArray(parsed) ? (parsed as StorageKey[]) : [];
+    if (!raw) return emptyStore();
+    return migrateOutbox(JSON.parse(raw));
   } catch {
-    return [];
+    return emptyStore();
   }
 }
 
-function writeOutbox(orgId: string, keys: StorageKey[]): void {
-  writeLocalRaw(outboxKey(orgId), JSON.stringify([...new Set(keys)]));
+function writeStore(orgId: string, store: OutboxStoreV2): void {
+  writeLocalRaw(outboxKey(orgId), JSON.stringify(store));
 }
 
 /** remote persist 실패 키를 org 스코프 outbox에 적재 (업무 데이터 저장 아님) */
 export function enqueueSyncOutbox(key: StorageKey): void {
   const orgId = getOrganizationId();
   if (!orgId) return;
-  const next = readOutbox(orgId);
-  if (!next.includes(key)) next.push(key);
-  writeOutbox(orgId, next);
+  const store = readStore(orgId);
+  if (!store.keys.includes(key)) store.keys.push(key);
+  writeStore(orgId, store);
+}
+
+export function enqueueSyncOutboxMutation(record: SyncOutboxMutation): void {
+  const orgId = getOrganizationId();
+  if (!orgId) return;
+  const store = readStore(orgId);
+  if (!store.keys.includes(record.key)) store.keys.push(record.key);
+  const existing = latestMutationForTarget(store.mutations, record);
+  if (existing && isStaleMutation(record, existing)) {
+    writeStore(orgId, store);
+    return;
+  }
+  store.mutations = store.mutations.filter((row) => !isSameMutationTarget(row, record));
+  store.mutations.push(record);
+  writeStore(orgId, store);
 }
 
 export function peekSyncOutbox(): StorageKey[] {
   const orgId = getOrganizationId();
   if (!orgId) return [];
-  return readOutbox(orgId);
+  const store = readStore(orgId);
+  const keys = [...store.keys];
+  for (const row of store.mutations) {
+    if (!keys.includes(row.key)) keys.push(row.key);
+  }
+  return keys;
 }
 
-export function clearSyncOutboxKeys(keys: StorageKey[]): void {
+export function peekSyncOutboxMutations(): SyncOutboxMutation[] {
+  const orgId = getOrganizationId();
+  if (!orgId) return [];
+  return readStore(orgId).mutations;
+}
+
+export function clearSyncOutboxKeys(keys: StorageKey[], upToRevision?: number): void {
   const orgId = getOrganizationId();
   if (!orgId) return;
-  const remaining = readOutbox(orgId).filter((k) => !keys.includes(k));
-  writeOutbox(orgId, remaining);
+  const store = readStore(orgId);
+  store.keys = store.keys.filter((key) => !keys.includes(key));
+  if (upToRevision != null) {
+    store.mutations = store.mutations.filter(
+      (row) => !keys.includes(row.key) || row.revision > upToRevision
+    );
+  }
+  writeStore(orgId, store);
 }
 
 export function hasPendingSyncOutbox(): boolean {
