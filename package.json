@@ -68,6 +68,7 @@
     "test:lesson-homework-sync": "tsx src/modules/piano/services/lessonHomeworkSync.test.ts",
     "test:pending-mutations": "tsx src/services/adapters/pendingMutations.test.ts",
     "test:hydrate-modules": "tsx src/services/adapters/hydrateModules.test.ts",
+    "test:bath-visit": "tsx src/modules/bath/services/visitTransition.test.ts",
     "test:textbook-sale-db-it": "tsx scripts/textbookSaleDbIntegration.test.ts",
     "test:skin-retail-migrate": "tsx src/modules/skin/services/skinRetailCatalogMigrate.test.ts",
     "test:sale-return-points": "tsx src/core/loyalty/saleReturnPointReverse.test.ts",

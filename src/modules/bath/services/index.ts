@@ -1,2 +1,9 @@
-/** Bath 도메인 서비스 — 이후 visit/locker/room 확장용 자리 */
-export {};
+export { bathVisitService } from './visitService';
+export { listBathVisits, listOpenBathVisits, getBathVisitById } from './visitRepository';
+export {
+  evaluateVisitCheckIn,
+  evaluateVisitCheckOut,
+  evaluateVisitCancel,
+} from './visitTransition';
+export { mapBathVisitRpcError } from './visitErrors';
+export { rowToBathVisit } from './visitMappers';

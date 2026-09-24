@@ -1,5 +1,6 @@
 export { supabase, isSupabaseConfigured, getCoreClient } from './client';
 export { getPianoClient } from './pianoClient';
+export { getBathClient } from './bathClient';
 export type {
   Database,
   Organization,

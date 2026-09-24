@@ -2377,8 +2377,80 @@ export interface Database {
     };
     CompositeTypes: Record<string, never>;
   };
+  bath: {
+    Tables: {
+      visits: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          check_in_at: string;
+          check_out_at: string | null;
+          status: BathVisitStatus;
+          entry_product_id: string | null;
+          pass_id: string | null;
+          locker_id: string | null;
+          room_reservation_id: string | null;
+          staff_id: string | null;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          check_in_at?: string;
+          check_out_at?: string | null;
+          status?: BathVisitStatus;
+          entry_product_id?: string | null;
+          pass_id?: string | null;
+          locker_id?: string | null;
+          room_reservation_id?: string | null;
+          staff_id?: string | null;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['visits']['Insert']>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: {
+      check_in_visit: {
+        Args: {
+          p_organization_id: string;
+          p_customer_id: string;
+          p_staff_id?: string | null;
+          p_entry_product_id?: string | null;
+          p_pass_id?: string | null;
+          p_locker_id?: string | null;
+          p_room_reservation_id?: string | null;
+          p_memo?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      check_out_visit: {
+        Args: { p_organization_id: string; p_visit_id: string };
+        Returns: Json;
+      };
+      cancel_visit: {
+        Args: { p_organization_id: string; p_visit_id: string };
+        Returns: Json;
+      };
+    };
+    Enums: {
+      visit_status: BathVisitStatus;
+    };
+    CompositeTypes: Record<string, never>;
+  };
 }
 
+export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'make_up';
 export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
 export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';
