@@ -13,6 +13,13 @@ import type { StaffMetadata } from '../../types';
 import type { AcademySettings, Teacher } from '../../../../types';
 import type { Booking, ServiceOffering } from '../../../../core/types/schedule';
 import type { PickupAddress } from '../../../../core/transport/types';
+import {
+  schedulePromotedWrite,
+  scheduleRoom,
+  scheduleRoomId,
+  scheduleSessionPassId,
+  scheduleStaffId,
+} from '@/core/metadata';
 
 
 // ─── Schedules (Attendance) ───────────────────────────────────────
@@ -211,16 +218,26 @@ export function bookingToScheduleRow(booking: Booking, organizationId: string) {
     sessionPassId: booking.sessionPassId,
   };
 
+  const promoted = schedulePromotedWrite({
+    staffId: booking.staffId,
+    sessionPassId: booking.sessionPassId,
+    room: booking.roomName,
+    roomId: booking.roomId,
+  });
+
   return {
     id: booking.id,
     organization_id: organizationId,
     customer_id: booking.customerId,
-    staff_id: booking.staffId || null,
+    staff_id: promoted.staff_id,
     service_id: booking.serviceId || null,
     starts_at: booking.startsAt,
     ends_at: booking.endsAt,
     status: booking.status,
     memo: booking.memo || null,
+    session_pass_id: promoted.session_pass_id,
+    room: promoted.room,
+    room_id: promoted.room_id,
     metadata: metadata as unknown as Json,
   };
 }
@@ -236,13 +253,16 @@ export function scheduleRowToBooking(row: {
   memo: string | null;
   metadata: Json;
   created_at: string;
+  session_pass_id?: string | null;
+  room?: string | null;
+  room_id?: string | null;
 }): Booking {
   const meta = (row.metadata || {}) as unknown as BookingMetadata;
   return {
     id: row.id,
     customerId: row.customer_id || '',
     customerName: meta.customerName || '',
-    staffId: row.staff_id || undefined,
+    staffId: scheduleStaffId(row),
     staffName: meta.staffName,
     serviceId: row.service_id || undefined,
     serviceName: meta.serviceName,
@@ -251,14 +271,14 @@ export function scheduleRowToBooking(row: {
     status: row.status as Booking['status'],
     memo: row.memo || undefined,
     createdAt: row.created_at,
-    roomId: meta.roomId,
-    roomName: meta.kind === 'practice_room' ? undefined : meta.room,
+    roomId: scheduleRoomId(row),
+    roomName: meta.kind === 'practice_room' ? undefined : scheduleRoom(row),
     skinCondition: meta.skinCondition,
     chartNote: meta.chartNote,
     requestedBy: meta.requestedBy,
     depositStatus: meta.depositStatus,
     waitlist: meta.waitlist,
-    sessionPassId: meta.sessionPassId,
+    sessionPassId: scheduleSessionPassId(row),
   };
 }
 
@@ -300,16 +320,22 @@ export function practiceRoomBookingToScheduleRow(
     createdBy: booking.createdBy,
   };
 
+  const promoted = schedulePromotedWrite({
+    staffId: booking.teacherId,
+    room: booking.room,
+  });
+
   return {
     id: booking.id,
     organization_id: organizationId,
     customer_id: booking.studentId || null,
-    staff_id: booking.teacherId || null,
+    staff_id: promoted.staff_id,
     service_id: null,
     starts_at: `${booking.date}T${booking.startTime}:00`,
     ends_at: `${booking.date}T${booking.endTime}:00`,
     status: PRACTICE_STATUS_TO_DB[booking.status] || 'scheduled',
     memo: booking.memo || null,
+    room: promoted.room,
     metadata: metadata as unknown as Json,
   };
 }
@@ -324,6 +350,7 @@ export function scheduleRowToPracticeRoomBooking(row: {
   memo: string | null;
   metadata: Json;
   created_at: string;
+  room?: string | null;
 }): PracticeRoomBooking {
   const meta = (row.metadata || {}) as unknown as BookingMetadata;
   const date = meta.date || row.starts_at.slice(0, 10);
@@ -334,11 +361,11 @@ export function scheduleRowToPracticeRoomBooking(row: {
     id: row.id,
     studentId: row.customer_id || '',
     studentName: meta.customerName || '',
-    room: meta.room || '',
+    room: scheduleRoom(row) || '',
     date,
     startTime,
     endTime,
-    teacherId: row.staff_id || undefined,
+    teacherId: scheduleStaffId(row),
     teacherName: meta.staffName,
     memo: row.memo || undefined,
     createdBy: meta.createdBy || '',

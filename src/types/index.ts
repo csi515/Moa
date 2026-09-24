@@ -838,12 +838,15 @@ export interface CoreSchedule {
   customer_id: string | null;
   staff_id: string | null;
   service_id: string | null;
+  session_pass_id: string | null;
   starts_at: string; // ISO timestamp
   ends_at: string; // ISO timestamp
   status: ScheduleStatus;
   is_bookable: boolean;
   max_capacity: number;
   memo: string | null;
+  room: string | null;
+  room_id: string | null;
   metadata: Record<string, unknown>;
   created_by: string | null;
   created_at: string;

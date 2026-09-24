@@ -537,6 +537,9 @@ export interface Database {
           status: ScheduleStatus;
           memo: string | null;
           metadata: Json;
+          session_pass_id: string | null;
+          room: string | null;
+          room_id: string | null;
           created_by: string | null;
           created_at: string;
           updated_at: string;
@@ -552,6 +555,9 @@ export interface Database {
           status?: ScheduleStatus;
           memo?: string | null;
           metadata?: Json;
+          session_pass_id?: string | null;
+          room?: string | null;
+          room_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -567,6 +573,9 @@ export interface Database {
           status?: ScheduleStatus;
           memo?: string | null;
           metadata?: Json;
+          session_pass_id?: string | null;
+          room?: string | null;
+          room_id?: string | null;
           created_by?: string | null;
           created_at?: string;
           updated_at?: string;
