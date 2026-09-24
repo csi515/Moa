@@ -1394,6 +1394,54 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['customer_sessions']['Insert']>;
         Relationships: [];
       };
+      waitlist_entries: {
+        Row: {
+          id: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          customer_id: string;
+          schedule_id: string | null;
+          requested_time: string | null;
+          status: WaitlistStatus;
+          position: number;
+          joined_at: string;
+          notified_at: string | null;
+          assigned_at: string | null;
+          cancelled_at: string | null;
+          expired_at: string | null;
+          booking_id: string | null;
+          reservation_id: string | null;
+          notification_id: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          target_type: string;
+          target_id: string;
+          customer_id: string;
+          schedule_id?: string | null;
+          requested_time?: string | null;
+          status?: WaitlistStatus;
+          position: number;
+          joined_at?: string;
+          notified_at?: string | null;
+          assigned_at?: string | null;
+          cancelled_at?: string | null;
+          expired_at?: string | null;
+          booking_id?: string | null;
+          reservation_id?: string | null;
+          notification_id?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['waitlist_entries']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1789,6 +1837,42 @@ export interface Database {
         Args: { p_organization_id: string; p_session_id: string };
         Returns: Json;
       };
+      join_waitlist: {
+        Args: {
+          p_organization_id: string;
+          p_target_type: string;
+          p_target_id: string;
+          p_customer_id: string;
+          p_schedule_id?: string | null;
+          p_requested_time?: string | null;
+          p_booking_id?: string | null;
+          p_reservation_id?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      cancel_waitlist: {
+        Args: { p_organization_id: string; p_entry_id: string };
+        Returns: Json;
+      };
+      expire_waitlist: {
+        Args: { p_organization_id: string; p_entry_id: string };
+        Returns: Json;
+      };
+      notify_waitlist: {
+        Args: { p_organization_id: string; p_entry_id: string };
+        Returns: Json;
+      };
+      claim_waitlist_vacancy: {
+        Args: {
+          p_organization_id: string;
+          p_target_type: string;
+          p_target_id: string;
+          p_booking_id?: string | null;
+          p_reservation_id?: string | null;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       member_role: MemberRole;
@@ -1802,6 +1886,7 @@ export interface Database {
       notification_channel: NotificationChannel;
       stock_movement_type: 'inbound' | 'sale' | 'return' | 'adjustment';
       customer_session_status: CustomerSessionStatus;
+      waitlist_status: WaitlistStatus;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -2830,6 +2915,7 @@ export interface Database {
 }
 
 export type CustomerSessionStatus = 'active' | 'completed' | 'cancelled';
+export type WaitlistStatus = 'waiting' | 'notified' | 'assigned' | 'cancelled' | 'expired';
 export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
 export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
