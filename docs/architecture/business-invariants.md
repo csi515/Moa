@@ -17,5 +17,6 @@
 | 지점 | LocationAware 분류·레거시 호환 | `test:location-aware` |
 | 감사 | tenant audit allowlist·pilot | `test:audit` |
 | 멱등 | org+key 재시도·payload mismatch | `test:idempotency` |
+| Outbox | TX와 side effect 분리·중복 delivery | `test:outbox` |
 
 실행: `npm run test:business-invariants`

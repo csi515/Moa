@@ -1728,6 +1728,40 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['idempotency_keys']['Insert']>;
         Relationships: [];
       };
+      outbox_events: {
+        Row: {
+          id: string;
+          organization_id: string;
+          location_id: string | null;
+          aggregate_type: string;
+          aggregate_id: string;
+          event_type: string;
+          payload: Json;
+          status: string;
+          attempts: number;
+          available_at: string;
+          processed_at: string | null;
+          last_error: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          location_id?: string | null;
+          aggregate_type: string;
+          aggregate_id: string;
+          event_type: string;
+          payload?: Json;
+          status?: string;
+          attempts?: number;
+          available_at?: string;
+          processed_at?: string | null;
+          last_error?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['outbox_events']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1848,6 +1882,29 @@ export interface Database {
           p_idempotency_key?: string | null;
         };
         Returns: Json;
+      };
+      enqueue_outbox_event: {
+        Args: {
+          p_organization_id: string;
+          p_aggregate_type: string;
+          p_aggregate_id: string;
+          p_event_type: string;
+          p_payload?: Json;
+          p_location_id?: string | null;
+        };
+        Returns: string;
+      };
+      claim_outbox_events: {
+        Args: { p_organization_id: string; p_limit?: number };
+        Returns: Json;
+      };
+      complete_outbox_event: {
+        Args: { p_event_id: string };
+        Returns: undefined;
+      };
+      fail_outbox_event: {
+        Args: { p_event_id: string; p_last_error?: string | null };
+        Returns: undefined;
       };
       ensure_guest_customer: {
         Args: {
