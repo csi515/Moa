@@ -7,6 +7,7 @@ import type { IndustryType } from '@/core/industry/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { applyStaffGrantTabs, normalizeStaffGrants } from '@/core/staff/staffGrants';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
+import { evaluatePermission, type AuthScopeType, type Permission } from '@/core/authorization';
 import {
   getAllowedTabs,
   getDefaultTab,
@@ -27,6 +28,8 @@ export function usePermissions() {
   const role = currentUser.role;
   const staffId = currentUser.staffId ?? org?.currentStaffId ?? null;
   const parentCustomerId = currentUser.parentCustomerId ?? org?.currentParentCustomerId ?? null;
+  const organizationId = org?.currentOrganization?.id ?? '';
+  const locationId = org?.currentLocation?.id ?? null;
   const industry = (org?.currentOrganization?.industry_type ?? 'piano') as IndustryType;
   const settings = StorageService.getSettings();
 
@@ -64,6 +67,12 @@ export function usePermissions() {
     isOwner: isOrgOwner(role),
     isStaff: isStaffRole(role),
     isParent: isParentRole(role),
+    canPermission: (permission: Permission | string, scopeType: AuthScopeType = 'organization') =>
+      evaluatePermission({
+        role,
+        permission,
+        scope: { type: scopeType, organizationId, locationId },
+      }),
     allowedTabs,
     canAccess: (tab: NavTab) => allowedTabs.includes(tab),
     defaultTab: getDefaultTab(role, industry),

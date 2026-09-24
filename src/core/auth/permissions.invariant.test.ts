@@ -6,12 +6,21 @@
  *   - unknown role → admin 권한 없음
  *   - customer → staff/admin 등급 아님 (탭 none)
  *   - null/member → admin 폴백 금지
+ *   - Role+Permission+Scope 가 기존 isOrgAdmin / staff actor 계약을 유지
  *
  * 순수 role 헬퍼만 검사 (plugin/supabase 로드 없음).
  * 탭 목록 조립은 getAllowedTabs → resolveRoleAccessKind('none')이면 [].
- * DB 권한: test:rls-* / test:multi-role-helpers
+ * DB 권한: test:rls-* / test:multi-role-helpers / test:authorization
  */
 import assert from 'node:assert/strict';
+import {
+  canAuthorize,
+  compatibilityRoleContractsHold,
+  compatIsOrgAdmin,
+  compatIsOrgStaffActor,
+  evaluatePermission,
+  organizationScope,
+} from '@/core/authorization';
 import {
   isOrgAdmin,
   isStaffRole,
@@ -57,6 +66,35 @@ import {
   assert.equal(resolveRoleAccessKind('instructor'), 'staff');
   assert.equal(isOrgAdmin('owner'), true);
   assert.equal(isOrgAdmin('staff'), false);
+}
+
+// ── 호환 레이어: 기존 helper와 동일 ────────────────────────────────
+{
+  assert.equal(compatibilityRoleContractsHold(), true);
+  assert.equal(compatIsOrgAdmin('owner'), isOrgAdmin('owner'));
+  assert.equal(compatIsOrgAdmin('admin'), true);
+  assert.equal(compatIsOrgAdmin('manager'), true);
+  assert.equal(compatIsOrgAdmin('staff'), false);
+  assert.equal(compatIsOrgAdmin('instructor'), false);
+  assert.equal(compatIsOrgStaffActor('owner'), true);
+  assert.equal(compatIsOrgStaffActor('staff'), true);
+  assert.equal(compatIsOrgStaffActor('instructor'), true);
+  assert.equal(compatIsOrgStaffActor('parent'), false);
+  assert.equal(compatIsOrgStaffActor('customer'), false);
+  assert.equal(compatIsOrgStaffActor('unknown'), false);
+}
+
+// ── Permission+Scope: 기존 등급과 동일한 fail-closed ───────────────
+{
+  const org = organizationScope('org-a');
+  assert.equal(evaluatePermission({ role: 'unknown', permission: 'customers.read', scope: org }), false);
+  assert.equal(evaluatePermission({ role: 'customer', permission: 'sales.create', scope: org }), false);
+  assert.equal(evaluatePermission({ role: 'member', permission: 'staff.manage', scope: org }), false);
+  assert.equal(evaluatePermission({ role: 'owner', permission: 'not.a.permission', scope: org }), false);
+  assert.equal(canAuthorize('owner', 'customers.read', org), true);
+  assert.equal(canAuthorize('staff', 'customers.read', org), true);
+  assert.equal(canAuthorize('staff', 'staff.manage', org), false);
+  assert.equal(canAuthorize('parent', 'reports.read', org), false);
 }
 
 console.log('permissions.invariant.test.ts: ok');

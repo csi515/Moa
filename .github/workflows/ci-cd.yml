@@ -167,6 +167,9 @@ jobs:
       - name: Static security — permissions-invariant
         run: npm run test:permissions-invariant
 
+      - name: Static security — authorization foundation
+        run: npm run test:authorization
+
       - name: Static security — org-access-invariant
         run: npm run test:org-access-invariant
 

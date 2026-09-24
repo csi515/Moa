@@ -1624,6 +1624,48 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['locations']['Insert']>;
         Relationships: [];
       };
+      permission_catalog: {
+        Row: {
+          permission: string;
+          resource: string;
+          action: string;
+          description: string;
+        };
+        Insert: {
+          permission: string;
+          resource: string;
+          action: string;
+          description: string;
+        };
+        Update: Partial<Database['core']['Tables']['permission_catalog']['Insert']>;
+        Relationships: [];
+      };
+      authorization_grants: {
+        Row: {
+          id: string;
+          organization_id: string;
+          user_id: string;
+          permission: string;
+          scope_type: string;
+          scope_id: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          user_id: string;
+          permission: string;
+          scope_type?: string;
+          scope_id?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['authorization_grants']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1658,6 +1700,27 @@ export interface Database {
       };
       is_org_admin: {
         Args: { org_id: string };
+        Returns: boolean;
+      };
+      is_org_staff_actor: {
+        Args: { p_org_id: string };
+        Returns: boolean;
+      };
+      is_known_permission: {
+        Args: { p_permission: string };
+        Returns: boolean;
+      };
+      role_has_default_permission: {
+        Args: { p_role: MemberRole; p_permission: string };
+        Returns: boolean;
+      };
+      has_permission: {
+        Args: {
+          p_organization_id: string;
+          p_permission: string;
+          p_scope_type?: string;
+          p_scope_id?: string | null;
+        };
         Returns: boolean;
       };
       is_org_owner_or_admin: {

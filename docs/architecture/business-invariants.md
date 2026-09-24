@@ -12,6 +12,7 @@
 | 포인트 | 적립·반품·멱등 잔액 | `test:point-balance-invariant` (+ `test:point-atomic`, `test:sale-return-points`) |
 | 조직 | Org A≠B Isolation | `test:org-access-invariant` (+ `test:rls-audit`) |
 | 권한 | unknown/customer fail-closed | `test:permissions-invariant` (+ `test:multi-role-helpers`) |
+| 권한 | Role+Permission+Scope 호환 | `test:authorization` (+ `test:permissions-invariant`) |
 | 권한 | membership 승격 불가 | `test:rls-membership-policy`, `test:rls-membership-escalation` |
 
 실행: `npm run test:business-invariants`

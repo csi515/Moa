@@ -20,6 +20,13 @@ export {
   resolveRoleAccessKind,
 } from './permissionsRole';
 export type { RoleAccessKind } from './permissionsRole';
+export {
+  canAuthorize,
+  compatIsOrgAdmin,
+  compatIsOrgStaffActor,
+  evaluatePermission,
+} from '@/core/authorization';
+export type { AuthScope, AuthScopeType, Permission } from '@/core/authorization';
 
 function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
   return normalizeIndustryType(industry);
