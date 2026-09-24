@@ -98,6 +98,9 @@ jobs:
       - name: Static security — rls-member-scope-harden
         run: npm run test:rls-member-scope-harden
 
+      - name: Static security — session-pass-org-integrity
+        run: npm run test:session-pass-org-integrity
+
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 
