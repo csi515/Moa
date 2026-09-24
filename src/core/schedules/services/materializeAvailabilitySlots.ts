@@ -1,13 +1,7 @@
+import { AVAILABILITY_SOURCE } from '@/core/availability/types';
+import { chunkSlots, resolveWindowsForDate } from '@/core/availability/windows';
 import { getCoreClient } from '@/lib/supabase';
 import type { CoreSchedule } from '@/types';
-import {
-  AVAILABILITY_SOURCE,
-  getIntervalMinutes,
-  getOverrideWindows,
-  type AvailabilityOverride,
-  type AvailabilityRule,
-  type AvailabilitySlotMinutes,
-} from '../types/availability';
 import { availabilityService } from './availabilityService';
 import { coreScheduleService } from './coreScheduleService';
 
@@ -20,44 +14,8 @@ function toDateKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-function parseHm(value: string): { h: number; m: number } {
-  const [h, m] = value.slice(0, 5).split(':').map(Number);
-  return { h, m };
-}
-
-function combineLocal(dateKey: string, time: string): Date {
-  const { h, m } = parseHm(time);
-  const [y, mo, d] = dateKey.split('-').map(Number);
-  return new Date(y, mo - 1, d, h, m, 0, 0);
-}
-
 function overlaps(aStart: Date, aEnd: Date, bStart: Date, bEnd: Date): boolean {
   return aStart < bEnd && bStart < aEnd;
-}
-
-/**
- * 상담 시간(duration)과 예약 시작 간격(interval)을 구분해 슬롯 생성.
- * interval 미지정 시 duration과 동일(기존 동작).
- */
-function chunkSlots(
-  dateKey: string,
-  startTime: string,
-  endTime: string,
-  slotMinutes: AvailabilitySlotMinutes,
-  intervalMinutes?: AvailabilitySlotMinutes
-): Array<{ starts: Date; ends: Date }> {
-  const slots: Array<{ starts: Date; ends: Date }> = [];
-  let cursor = combineLocal(dateKey, startTime);
-  const end = combineLocal(dateKey, endTime);
-  const durationMs = slotMinutes * 60 * 1000;
-  const stepMs = (intervalMinutes ?? slotMinutes) * 60 * 1000;
-
-  while (cursor.getTime() + durationMs <= end.getTime()) {
-    const slotEnd = new Date(cursor.getTime() + durationMs);
-    slots.push({ starts: cursor, ends: slotEnd });
-    cursor = new Date(cursor.getTime() + stepMs);
-  }
-  return slots;
 }
 
 function slotKey(orgId: string, startsAt: string, endsAt: string): string {
@@ -85,8 +43,11 @@ export async function materializeAvailabilitySlots(
   horizonEnd.setDate(horizonEnd.getDate() + horizonDays);
 
   const [rules, overrides, schedules] = await Promise.all([
-    availabilityService.listRules(organizationId, true),
-    availabilityService.listOverrides(organizationId, toDateKey(today), true),
+    availabilityService.listRules(organizationId, { activeOnly: true, staffId: null }),
+    availabilityService.listOverrides(organizationId, toDateKey(today), {
+      activeOnly: true,
+      staffId: null,
+    }),
     coreScheduleService.getOrganizationSchedules(
       organizationId,
       today.toISOString(),
@@ -94,7 +55,6 @@ export async function materializeAvailabilitySlots(
     ),
   ]);
 
-  const overrideByDate = new Map(overrides.map((o) => [o.override_date, o]));
   const desiredKeys = new Set<string>();
   const desiredSlots: Array<{
     key: string;
@@ -110,54 +70,19 @@ export async function materializeAvailabilitySlots(
     const date = new Date(today);
     date.setDate(today.getDate() + offset);
     const dateKey = toDateKey(date);
-    const dow = date.getDay() as AvailabilityRule['day_of_week'];
-    const override = overrideByDate.get(dateKey);
+    const resolved = resolveWindowsForDate({
+      date: dateKey,
+      rules,
+      overrides,
+      staffId: null,
+      defaultTitle: '상담',
+    });
 
-    let windows: Array<{
-      start: string;
-      end: string;
-      slotMinutes: AvailabilitySlotMinutes;
-      intervalMinutes: AvailabilitySlotMinutes;
-      title: string;
-      maxCapacity: number;
-      ruleId?: string;
-      overrideId?: string;
-    }> = [];
-
-    if (override?.is_closed) {
-      windows = [];
-    } else if (override && !override.is_closed) {
-      const overrideWindows = getOverrideWindows(override);
-      const slotMinutes = (override.slot_minutes ?? 30) as AvailabilitySlotMinutes;
-      const intervalMinutes = getIntervalMinutes(slotMinutes, override.metadata);
-      windows = overrideWindows.map((w) => ({
-        start: w.start_time,
-        end: w.end_time,
-        slotMinutes,
-        intervalMinutes,
-        title: override.title || '상담',
-        maxCapacity: override.max_capacity ?? 1,
-        overrideId: override.id,
-      }));
-    } else {
-      windows = rules
-        .filter((r) => r.day_of_week === dow)
-        .map((r) => ({
-          start: r.start_time,
-          end: r.end_time,
-          slotMinutes: r.slot_minutes,
-          intervalMinutes: getIntervalMinutes(r.slot_minutes, r.metadata),
-          title: r.title,
-          maxCapacity: r.max_capacity,
-          ruleId: r.id,
-        }));
-    }
-
-    for (const win of windows) {
+    for (const win of resolved.windows) {
       for (const slot of chunkSlots(
         dateKey,
-        win.start,
-        win.end,
+        win.start_time,
+        win.end_time,
         win.slotMinutes,
         win.intervalMinutes
       )) {
@@ -258,4 +183,4 @@ export async function materializeAvailabilitySlots(
   return { created, kept, hidden };
 }
 
-export type { AvailabilityRule, AvailabilityOverride };
+export type { AvailabilityOverride, AvailabilityRule } from '@/core/availability/types';

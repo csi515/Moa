@@ -6,7 +6,7 @@ import { StorageService } from '@/services/storage';
 import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
 import { formatBankAccountText } from '@/core/finance/paymentMethodLabels';
 import { findStaffTimeConflict } from '@/modules/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/modules/skin/staffHours';
+import { isOutsideStaffHours } from '@/core/availability/windows';
 import type { Student } from '@/types';
 
 /** 피부관리 고객 — 시술 예약 신청 */

@@ -5,13 +5,19 @@ import type {
 } from '@/lib/supabase/database.types';
 import type {
   AvailabilityDayOfWeek,
+  AvailabilityListQuery,
   AvailabilityOverride,
   AvailabilityOverrideInput,
   AvailabilityRule,
   AvailabilityRuleInput,
   AvailabilitySlotMinutes,
-} from '../types/availability';
+} from '@/core/availability/types';
 import { jsonToRecord, recordToJson } from './scheduleJson';
+
+function asListQuery(value: boolean | AvailabilityListQuery | undefined): AvailabilityListQuery {
+  if (typeof value === 'object' && value) return value;
+  return { activeOnly: value !== false };
+}
 
 function normalizeTime(value: string): string {
   const trimmed = value.trim();
@@ -69,7 +75,11 @@ function mapOverride(row: AvailabilityOverrideRow): AvailabilityOverride {
 
 /** Availability CRUD (숨김= is_active false, 하드 삭제 최소화) */
 export const availabilityService = {
-  async listRules(organizationId: string, activeOnly = true): Promise<AvailabilityRule[]> {
+  async listRules(
+    organizationId: string,
+    activeOnlyOrQuery: boolean | AvailabilityListQuery = true
+  ): Promise<AvailabilityRule[]> {
+    const listQuery = asListQuery(activeOnlyOrQuery);
     let query = getCoreClient()
       .from('availability_rules')
       .select('*')
@@ -77,7 +87,9 @@ export const availabilityService = {
       .order('day_of_week', { ascending: true })
       .order('start_time', { ascending: true });
 
-    if (activeOnly) query = query.eq('is_active', true);
+    if (listQuery.activeOnly !== false) query = query.eq('is_active', true);
+    if (listQuery.staffId === null) query = query.is('staff_id', null);
+    else if (listQuery.staffId) query = query.eq('staff_id', listQuery.staffId);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -102,6 +114,7 @@ export const availabilityService = {
       .from('availability_rules')
       .insert({
         organization_id: organizationId,
+        staff_id: input.staff_id ?? null,
         day_of_week: input.day_of_week,
         start_time: normalizeTime(input.start_time),
         end_time: normalizeTime(input.end_time),
@@ -121,14 +134,17 @@ export const availabilityService = {
   /** 요일의 활성 규칙을 모두 비활성화 (일괄 교체 전) */
   async deactivateRulesForDay(
     organizationId: string,
-    dayOfWeek: AvailabilityRule['day_of_week']
+    dayOfWeek: AvailabilityRule['day_of_week'],
+    staffId: string | null = null
   ): Promise<void> {
-    const { error } = await getCoreClient()
+    let query = getCoreClient()
       .from('availability_rules')
       .update({ is_active: false })
       .eq('organization_id', organizationId)
       .eq('day_of_week', dayOfWeek)
       .eq('is_active', true);
+    query = staffId == null ? query.is('staff_id', null) : query.eq('staff_id', staffId);
+    const { error } = await query;
     if (error) throw error;
   },
 
@@ -143,16 +159,19 @@ export const availabilityService = {
   async listOverrides(
     organizationId: string,
     fromDate?: string,
-    activeOnly = true
+    activeOnlyOrQuery: boolean | AvailabilityListQuery = true
   ): Promise<AvailabilityOverride[]> {
+    const listQuery = asListQuery(activeOnlyOrQuery);
     let query = getCoreClient()
       .from('availability_overrides')
       .select('*')
       .eq('organization_id', organizationId)
       .order('override_date', { ascending: true });
 
-    if (activeOnly) query = query.eq('is_active', true);
+    if (listQuery.activeOnly !== false) query = query.eq('is_active', true);
     if (fromDate) query = query.gte('override_date', fromDate);
+    if (listQuery.staffId === null) query = query.is('staff_id', null);
+    else if (listQuery.staffId) query = query.eq('staff_id', listQuery.staffId);
 
     const { data, error } = await query;
     if (error) throw error;
@@ -163,7 +182,10 @@ export const availabilityService = {
     organizationId: string,
     input: AvailabilityOverrideInput
   ): Promise<AvailabilityOverride> {
-    const existing = await this.listOverrides(organizationId, input.override_date, true);
+    const existing = await this.listOverrides(organizationId, input.override_date, {
+      activeOnly: true,
+      staffId: input.staff_id ?? null,
+    });
     const sameDay = existing.find((o) => o.override_date === input.override_date);
 
     const windows = input.windows?.filter((w) => w.start_time && w.end_time) ?? [];
@@ -180,6 +202,7 @@ export const availabilityService = {
 
     const payload = {
       organization_id: organizationId,
+      staff_id: input.staff_id ?? null,
       override_date: input.override_date,
       is_closed: input.is_closed,
       start_time: input.is_closed

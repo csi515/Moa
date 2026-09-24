@@ -9,7 +9,7 @@ import {
   findStaffTimeConflict,
   findTreatmentRoomConflict,
 } from '@/modules/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/modules/skin/staffHours';
+import { isOutsideStaffHours } from '@/core/availability/windows';
 import type { StaffWorkWindow } from '@/types';
 
 export type BookingFormLabels = {

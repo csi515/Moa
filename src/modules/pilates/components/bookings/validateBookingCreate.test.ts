@@ -107,6 +107,20 @@ const labels = { customer: '회원', staff: '강사', service: '수업' };
 }
 
 {
+  const hours = validateSkinCreateRules({
+    instructor: { id: 't1', name: '관리사' },
+    startsAt: '2026-09-24T19:00:00',
+    endsAt: '2026-09-24T20:00:00',
+    bookings: [],
+    staffHours: [{ staffId: 't1', days: ['목'], startTime: '10:00', endTime: '18:00' }],
+    selectedRoom: undefined,
+    staffLabel: '관리사',
+  });
+  assert.equal(hours.ok, false);
+  if (!hours.ok) assert.match(hours.message, /근무시간/);
+}
+
+{
   const skin = validateSkinCreateRules({
     instructor: { id: 't1', name: '관리사' },
     startsAt: '2026-09-22T10:00:00',

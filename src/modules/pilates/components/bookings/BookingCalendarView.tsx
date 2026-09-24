@@ -18,7 +18,7 @@ import {
   findStaffTimeConflict,
   findTreatmentRoomConflict,
 } from '@/modules/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/modules/skin/staffHours';
+import { isOutsideStaffHours } from '@/core/availability/windows';
 import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
 import { EmptyState, FilterTabs, Modal, PageHeader } from '@/shared/components';
 import { executeBookingCreate } from './executeBookingCreate';

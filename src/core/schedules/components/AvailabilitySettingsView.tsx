@@ -3,8 +3,7 @@ import { CalendarOff, Clock, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-rea
 import { useApp } from '@/context/AppContext';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { PageHeader, EmptyState } from '@/shared/components';
-import { availabilityService } from '../services/availabilityService';
-import { materializeAvailabilitySlots } from '../services/materializeAvailabilitySlots';
+import { availabilityCapability } from '@/core/availability';
 import {
   DAY_OF_WEEK_LABELS,
   getIntervalMinutes,
@@ -14,7 +13,7 @@ import {
   type AvailabilityRule,
   type AvailabilitySlotMinutes,
   type AvailabilityTimeWindow,
-} from '../types/availability';
+} from '@/core/availability';
 
 const WEEKDAYS: AvailabilityDayOfWeek[] = [1, 2, 3, 4, 5, 6, 0];
 const WEEKDAYS_MON_FRI: AvailabilityDayOfWeek[] = [1, 2, 3, 4, 5];
@@ -96,8 +95,8 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
     setLoading(true);
     try {
       const [nextRules, nextOverrides] = await Promise.all([
-        availabilityService.listRules(currentOrganization.id),
-        availabilityService.listOverrides(currentOrganization.id),
+        availabilityCapability.listOrgRules(currentOrganization.id),
+        availabilityCapability.listOrgOverrides(currentOrganization.id),
       ]);
       setRules(nextRules);
       setOverrides(nextOverrides);
@@ -123,7 +122,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
     if (!currentOrganization) return;
     setSyncing(true);
     try {
-      const result = await materializeAvailabilitySlots(currentOrganization.id);
+      const result = await availabilityCapability.materializeSlots(currentOrganization.id);
       showToast(
         `슬롯 동기화 완료 · 생성 ${result.created} · 유지 ${result.kept} · 숨김 ${result.hidden}`,
         'success'
@@ -189,11 +188,11 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
     setSaving(true);
     try {
       for (const d of WEEKDAYS) {
-        await availabilityService.deactivateRulesForDay(currentOrganization.id, d);
+        await availabilityCapability.deactivateRulesForDay(currentOrganization.id, d);
         const draft = dayDraft[d];
         if (!draft.enabled) continue;
         for (const w of draft.windows) {
-          await availabilityService.createRule(currentOrganization.id, {
+          await availabilityCapability.createRule(currentOrganization.id, {
             day_of_week: d,
             start_time: w.start_time,
             end_time: w.end_time,
@@ -228,7 +227,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
       }
     }
     try {
-      await availabilityService.upsertOverride(currentOrganization.id, {
+      await availabilityCapability.upsertOverride(currentOrganization.id, {
         override_date: overrideDate,
         is_closed: overrideClosed,
         start_time: overrideClosed ? null : overrideWindows[0]?.start_time,
@@ -249,7 +248,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
 
   const handleRemoveOverride = async (id: string) => {
     try {
-      await availabilityService.deactivateOverride(id);
+      await availabilityCapability.deactivateOverride(id);
       showToast('예외를 삭제했습니다.', 'info');
       await load();
       await syncSlots();
