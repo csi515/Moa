@@ -34,3 +34,17 @@ export type {
   BathServiceTimeSlot,
   BathServiceWriteInput,
 } from './service';
+
+export {
+  BATH_BOOKING_KINDS,
+  BATH_BOOKING_KIND_LABELS,
+  STAFF_RESOURCE_KIND,
+} from './booking';
+export type {
+  BathAvailabilityQuery,
+  BathBooking,
+  BathBookingCreateInput,
+  BathBookingKind,
+  BathBookingListQuery,
+  BathBookingStatus,
+} from './booking';

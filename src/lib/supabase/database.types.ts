@@ -2529,6 +2529,50 @@ export interface Database {
         Update: Partial<Database['bath']['Tables']['service_staff']['Insert']>;
         Relationships: [];
       };
+      bookings: {
+        Row: {
+          id: string;
+          organization_id: string;
+          customer_id: string;
+          reservation_id: string;
+          staff_reservation_id: string | null;
+          service_id: string | null;
+          resource_id: string;
+          staff_id: string | null;
+          room_id: string | null;
+          kind: BathBookingKind;
+          starts_at: string;
+          ends_at: string;
+          status: BathBookingStatus;
+          memo: string | null;
+          idempotency_key: string;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          customer_id: string;
+          reservation_id: string;
+          staff_reservation_id?: string | null;
+          service_id?: string | null;
+          resource_id: string;
+          staff_id?: string | null;
+          room_id?: string | null;
+          kind: BathBookingKind;
+          starts_at: string;
+          ends_at: string;
+          status?: BathBookingStatus;
+          memo?: string | null;
+          idempotency_key: string;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['bath']['Tables']['bookings']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2623,12 +2667,40 @@ export interface Database {
         };
         Returns: Json;
       };
+      create_booking: {
+        Args: {
+          p_organization_id: string;
+          p_customer_id: string;
+          p_resource_id: string;
+          p_starts_at: string;
+          p_ends_at: string;
+          p_service_id?: string | null;
+          p_staff_id?: string | null;
+          p_room_id?: string | null;
+          p_memo?: string | null;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Json;
+      };
+      cancel_booking: {
+        Args: { p_organization_id: string; p_booking_id: string };
+        Returns: Json;
+      };
+      set_booking_status: {
+        Args: {
+          p_organization_id: string;
+          p_booking_id: string;
+          p_status: BathBookingStatus;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       visit_status: BathVisitStatus;
       room_type: BathRoomType;
       floor_type: BathFloorType;
       service_category: BathServiceCategory;
+      booking_kind: BathBookingKind;
     };
     CompositeTypes: Record<string, never>;
   };
@@ -2638,6 +2710,8 @@ export type BathVisitStatus = 'checked_in' | 'checked_out' | 'cancelled';
 export type BathRoomType = 'private' | 'family' | 'couple' | 'vip' | 'rest';
 export type BathFloorType = 'ondol' | 'wood' | 'tile' | 'mixed';
 export type BathServiceCategory = 'scrub' | 'massage' | 'other';
+export type BathBookingKind = 'room' | 'scrub' | 'massage' | 'other';
+export type BathBookingStatus = 'pending' | 'approved' | 'cancelled' | 'rejected' | 'completed';
 export type PianoAttendanceStatus = 'present' | 'absent' | 'late' | 'early_leave' | 'make_up';
 export type PianoInventoryTransactionType = 'inbound' | 'sale' | 'return' | 'adjust';
 export type PianoTextbookPaymentStatus = 'unpaid' | 'partial' | 'paid';
