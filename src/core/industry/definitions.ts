@@ -8,6 +8,7 @@ export const MODULE_INDUSTRY_IDS = [
   'daycare',
   'skin_clinic',
   'retail',
+  'sauna_jjimjilbang',
 ] as const;
 export type ModuleIndustryId = (typeof MODULE_INDUSTRY_IDS)[number];
 
@@ -70,7 +71,7 @@ const DEFINITION_LIST = [
   def('massage_spa', '마사지·스파', '전신·스웨디시 등', 'wellness'),
   def('thai_massage', '타이마사지', '타이·아로마', 'wellness'),
   def('foot_reflexology', '발마사지', '족부·리플렉솔로지', 'wellness'),
-  def('sauna_jjimjilbang', '사우나·찜질방', '사우나·찜질', 'wellness'),
+  def('sauna_jjimjilbang', '사우나·찜질방', '사우나·찜질', 'wellness', 'sauna_jjimjilbang'),
 
   def('daycare', '어린이집', '원아·보호자·반·출결·보육료 중심 운영', 'childcare', 'daycare'),
   def('kids_cafe', '키즈카페', '놀이·돌봄 키즈카페', 'childcare'),
@@ -154,6 +155,7 @@ export const PUBLIC_SELECTABLE_INDUSTRY_IDS = [
   'daycare',
   'skin_clinic',
   'retail',
+  'sauna_jjimjilbang',
 ] as const satisfies readonly IndustryType[];
 
 const PUBLIC_SELECTABLE_SET = new Set<string>(PUBLIC_SELECTABLE_INDUSTRY_IDS);
@@ -177,4 +179,5 @@ export const INDUSTRY_ALIASES: Record<string, IndustryType> = {
   taekwondo: 'gym',
   preschool: 'daycare',
   kindergarten: 'daycare',
+  sauna_jjimjbang: 'sauna_jjimjilbang',
 };

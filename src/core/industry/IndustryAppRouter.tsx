@@ -13,6 +13,8 @@ import { ModuleLabelsProvider as SkinLabelsProvider } from '@/modules/skin';
 import { SkinAppContent } from '@/modules/skin/SkinAppContent';
 import { ModuleLabelsProvider as RetailLabelsProvider } from '@/modules/retail';
 import { RetailAppContent } from '@/modules/retail/RetailAppContent';
+import { ModuleLabelsProvider as BathLabelsProvider } from '@/modules/bath';
+import { BathAppContent } from '@/modules/bath/BathAppContent';
 import { ParentShell } from '@/modules/parent/ParentShell';
 import { GenericIndustryShell } from './GenericIndustryShell';
 
@@ -29,6 +31,7 @@ const APP_BY_INDUSTRY: Partial<Record<IndustryType, AppEntry>> = {
   daycare: { LabelsProvider: DaycareLabelsProvider, AppContent: DaycareAppContent },
   skin_clinic: { LabelsProvider: SkinLabelsProvider, AppContent: SkinAppContent },
   retail: { LabelsProvider: RetailLabelsProvider, AppContent: RetailAppContent },
+  sauna_jjimjilbang: { LabelsProvider: BathLabelsProvider, AppContent: BathAppContent },
 };
 
 const GENERIC_ENTRY: AppEntry = {

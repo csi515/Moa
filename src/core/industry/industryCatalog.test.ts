@@ -62,7 +62,9 @@ function run(): void {
   assert.equal(normalizeIndustryType('taekwondo'), 'gym');
   assert.equal(normalizeIndustryType('preschool'), 'daycare');
   assert.equal(normalizeIndustryType('kindergarten'), 'daycare');
+  assert.equal(normalizeIndustryType('sauna_jjimjbang'), 'sauna_jjimjilbang');
   assert.equal(INDUSTRY_ALIASES.taekwondo, 'gym');
+  assert.equal(INDUSTRY_ALIASES.sauna_jjimjbang, 'sauna_jjimjilbang');
 
   assert.equal(normalizeIndustryType('not_a_real_type'), 'piano');
   assert.equal(normalizeIndustryType(null), 'piano');
@@ -86,6 +88,7 @@ function run(): void {
   assert.ok(selectable.some((d) => d.id === 'daycare'));
   assert.ok(selectable.some((d) => d.id === 'skin_clinic'));
   assert.ok(selectable.some((d) => d.id === 'retail'));
+  assert.ok(selectable.some((d) => d.id === 'sauna_jjimjilbang'));
   assert.equal(INDUSTRY_DEFINITIONS.piano.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.pilates.selectable, true);
   assert.equal(INDUSTRY_DEFINITIONS.gym.selectable, true);
@@ -96,6 +99,11 @@ function run(): void {
   assert.equal(INDUSTRY_DEFINITIONS.skin_clinic.moduleId, 'skin_clinic');
   assert.equal(hasIndustryModule('retail'), true);
   assert.equal(INDUSTRY_DEFINITIONS.retail.moduleId, 'retail');
+  assert.equal(hasIndustryModule('sauna_jjimjilbang'), true);
+  assert.equal(INDUSTRY_DEFINITIONS.sauna_jjimjilbang.moduleId, 'sauna_jjimjilbang');
+  assert.equal(INDUSTRY_DEFINITIONS.sauna_jjimjilbang.selectable, true);
+  assert.equal(shouldUseGenericShell('sauna_jjimjilbang'), false);
+  assert.equal(getIndustryDefinition('sauna_jjimjbang')?.id, 'sauna_jjimjilbang');
 
   // 모듈 업종은 공개·모듈 정의 유지
   assert.equal(hasIndustryModule('pilates'), true);
