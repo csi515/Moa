@@ -1,39 +1,36 @@
 /**
  * 업종 무관 자원 예약 Capability.
- * 겹침 방지 RPC/EXCLUDE를 복사하지 않고 기존 원장을 호출한다.
+ * Resource 카탈로그는 resourceCapability. 겹침은 기존 EXCLUDE/RPC.
  */
+import { resourceCapability } from './resourceCapability';
 import {
   cancelResourceReservation,
   createStaffResourceReservation,
-  listBookableResources,
-  listPracticeRooms,
   listReservationsByDate,
   listReservationsByRange,
   listResourceReservationRows,
   listResourceReservations,
   requestResourceReservation,
   reviewResourceReservation,
-  toPracticeRoomRow,
   toResourceReservation,
   toRoomReservationRow,
-  upsertBookableResource,
 } from './reservationService';
 import { RESOURCE_RESERVATION_BLOCKING_STATUSES } from './types';
 import { dayRangeSeoul } from './seoulTime';
 
 export const resourceReservationCapability = {
-  listResources: listBookableResources,
-  upsertResource: upsertBookableResource,
+  listResources: resourceCapability.listBookable,
+  upsertResource: resourceCapability.upsert,
   listReservations: listResourceReservations,
   request: requestResourceReservation,
   createStaff: createStaffResourceReservation,
   cancel: cancelResourceReservation,
   review: reviewResourceReservation,
-  toPracticeRoomRow,
+  toPracticeRoomRow: resourceCapability.toPracticeRoom,
   toRoomReservationRow,
   toResourceReservation,
   blockingStatuses: RESOURCE_RESERVATION_BLOCKING_STATUSES,
-  listPracticeRooms,
+  listPracticeRooms: resourceCapability.listPracticeRooms,
   listByDate: listReservationsByDate,
   listByRange: listReservationsByRange,
   async listMyReservations(organizationId: string) {

@@ -1,4 +1,9 @@
+/** Piano 연습실 호환 kind. 공통 유형은 RESOURCE_KINDS. */
 export const PRACTICE_ROOM_RESOURCE_KIND = 'practice_room';
+
+/** 업종 무관 Resource 유형. Core는 이 값으로 분기하지 않는다. */
+export const RESOURCE_KINDS = ['room', 'station', 'equipment', 'seat', 'facility'] as const;
+export type ResourceKind = (typeof RESOURCE_KINDS)[number];
 
 export const RESOURCE_RESERVATION_BLOCKING_STATUSES = ['pending', 'approved'] as const;
 
@@ -20,6 +25,24 @@ export type BookableResource = {
   is_active: boolean;
   memo?: string | null;
   metadata?: Record<string, unknown> | null;
+  created_at?: string;
+  updated_at?: string;
+};
+
+/** 공통 Resource. bookable_resources 행의 도메인 표현. */
+export type Resource = {
+  id: string;
+  organizationId: string;
+  name: string;
+  kind: string;
+  active: boolean;
+  capacity: number;
+  openTime: string;
+  closeTime: string;
+  memo?: string;
+  metadata: Record<string, unknown>;
+  createdAt?: string;
+  updatedAt?: string;
 };
 
 export type ResourceReservation = {
@@ -78,6 +101,12 @@ export type UpsertBookableResourceInput = {
   closeTime?: string;
   id?: string;
   memo?: string;
+};
+
+export type ListResourcesQuery = {
+  organizationId: string;
+  kind?: string;
+  activeOnly?: boolean;
 };
 
 export type CreateResourceReservationInput = {

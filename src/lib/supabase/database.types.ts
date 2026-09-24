@@ -1318,6 +1318,38 @@ export interface Database {
         };
         Relationships: [];
       };
+      bookable_resources: {
+        Row: {
+          id: string;
+          organization_id: string;
+          kind: string;
+          name: string;
+          capacity: number;
+          open_time: string;
+          close_time: string;
+          is_active: boolean;
+          memo: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          kind: string;
+          name: string;
+          capacity?: number;
+          open_time?: string;
+          close_time?: string;
+          is_active?: boolean;
+          memo?: string | null;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['bookable_resources']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1666,6 +1698,27 @@ export interface Database {
           p_preferred_time?: string | null;
         };
         Returns: string;
+      };
+      list_org_bookable_resources: {
+        Args: { p_org_id: string; p_kind?: string | null };
+        Returns: Database['core']['Tables']['bookable_resources']['Row'][];
+      };
+      upsert_bookable_resource: {
+        Args: {
+          p_org_id: string;
+          p_kind: string;
+          p_name: string;
+          p_capacity?: number;
+          p_open_time?: string;
+          p_close_time?: string;
+          p_id?: string | null;
+          p_memo?: string | null;
+        };
+        Returns: string;
+      };
+      set_bookable_resource_active: {
+        Args: { p_org_id: string; p_id: string; p_active: boolean };
+        Returns: boolean;
       };
     };
     Enums: {

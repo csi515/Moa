@@ -104,6 +104,11 @@ function run() {
   assert.doesNotMatch(service, /from '@\/modules\//);
   assert.doesNotMatch(service, /sauna_jjimjilbang/);
 
+  const catalog = readSrc('src/core/resources/resourceService.ts');
+  assert.match(catalog, /upsert_bookable_resource/);
+  assert.match(catalog, /list_org_bookable_resources/);
+  assert.match(catalog, /upsert_practice_room/);
+
   const pianoView = readSrc('src/modules/piano/components/practiceRooms/PracticeRoomBookingView.tsx');
   assert.match(pianoView, /practiceRoomReservationService/);
 

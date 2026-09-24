@@ -4,18 +4,22 @@
  */
 import { getCoreClient } from '@/lib/supabase';
 import { mapResourceReservationError } from './reservationErrors';
-import { PRACTICE_ROOM_RESOURCE_KIND, RESOURCE_RESERVATION_BLOCKING_STATUSES } from './types';
+import { RESOURCE_RESERVATION_BLOCKING_STATUSES } from './types';
 import type {
-  BookableResource,
   CreateResourceReservationInput,
   ListResourceReservationsQuery,
-  PracticeRoomRow,
   RequestResourceReservationInput,
   ResourceReservation,
   RoomReservationRow,
-  UpsertBookableResourceInput,
 } from './types';
 import { dayRangeSeoul } from './seoulTime';
+
+export {
+  listBookableResources,
+  listPracticeRooms,
+  upsertBookableResource,
+} from './resourceService';
+export { toPracticeRoomRow } from './resourceMappers';
 
 type ReservationQueryRow = RoomReservationRow & {
   bookable_resources?: { name: string; kind: string } | null;
@@ -23,19 +27,6 @@ type ReservationQueryRow = RoomReservationRow & {
 
 function client() {
   return getCoreClient();
-}
-
-export function toPracticeRoomRow(resource: BookableResource): PracticeRoomRow {
-  return {
-    id: resource.id,
-    organization_id: resource.organization_id,
-    name: resource.name,
-    capacity: resource.capacity,
-    open_time: resource.open_time,
-    close_time: resource.close_time,
-    is_active: resource.is_active,
-    memo: resource.memo,
-  };
 }
 
 export function toRoomReservationRow(row: ReservationQueryRow): RoomReservationRow {
@@ -65,52 +56,6 @@ export function toResourceReservation(row: ReservationQueryRow): ResourceReserva
     resourceKind: row.bookable_resources?.kind,
     customerName: mapped.customers?.name,
   };
-}
-
-export async function listBookableResources(params: {
-  organizationId: string;
-  kind?: string;
-}): Promise<BookableResource[]> {
-  const { data, error } = await client().rpc('list_org_bookable_resources' as never, {
-    p_org_id: params.organizationId,
-    p_kind: params.kind ?? null,
-  } as never);
-  if (error) throw new Error(error.message || '자원 목록을 불러오지 못했습니다.');
-  return ((data as BookableResource[] | null) ?? []).map((row) => ({
-    ...row,
-    metadata:
-      row.metadata && typeof row.metadata === 'object' && !Array.isArray(row.metadata)
-        ? row.metadata
-        : {},
-  }));
-}
-
-export async function upsertBookableResource(params: UpsertBookableResourceInput): Promise<string> {
-  if (params.kind === PRACTICE_ROOM_RESOURCE_KIND) {
-    const { data, error } = await client().rpc('upsert_practice_room' as never, {
-      p_org_id: params.organizationId,
-      p_name: params.name,
-      p_capacity: params.capacity ?? 1,
-      p_open_time: params.openTime ?? '09:00',
-      p_close_time: params.closeTime ?? '22:00',
-      p_id: params.id ?? null,
-    } as never);
-    if (error) throw new Error(error.message || '자원 저장에 실패했습니다.');
-    return data as string;
-  }
-
-  const { data, error } = await client().rpc('upsert_bookable_resource' as never, {
-    p_org_id: params.organizationId,
-    p_kind: params.kind,
-    p_name: params.name,
-    p_capacity: params.capacity ?? 1,
-    p_open_time: params.openTime ?? '09:00',
-    p_close_time: params.closeTime ?? '22:00',
-    p_id: params.id ?? null,
-    p_memo: params.memo ?? null,
-  } as never);
-  if (error) throw new Error(error.message || '자원 저장에 실패했습니다.');
-  return data as string;
 }
 
 export async function listResourceReservationRows(
@@ -203,14 +148,6 @@ export async function reviewResourceReservation(
     p_memo: memo ?? null,
   } as never);
   if (error) throw mapResourceReservationError(error.message, '예약 처리에 실패했습니다.');
-}
-
-export async function listPracticeRooms(organizationId: string): Promise<PracticeRoomRow[]> {
-  const rows = await listBookableResources({
-    organizationId,
-    kind: PRACTICE_ROOM_RESOURCE_KIND,
-  });
-  return rows.map(toPracticeRoomRow);
 }
 
 export async function listReservationsByDate(organizationId: string, date: string) {
