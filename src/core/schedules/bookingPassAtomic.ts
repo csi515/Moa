@@ -95,7 +95,7 @@ export async function refreshAffectedPassMirror(
 export async function updateBookingStatusAtomic(
   bookingId: string,
   status: BookingStatus,
-  options?: { consumeOnNoShow?: boolean }
+  options?: { consumeOnNoShow?: boolean; idempotencyKey?: string }
 ): Promise<Booking | null> {
   const existing = StorageService.getBookings().find((b) => b.id === bookingId);
   if (!existing) return null;
@@ -110,15 +110,17 @@ export async function updateBookingStatusAtomic(
   return runOnlineBookingPassUpdate(existing, status, {
     rpc: async () => {
       const client = getCoreClient();
-      const { data, error } = await client.rpc(
-        'update_booking_status_with_pass' as never,
-        {
-          p_organization_id: orgId,
-          p_booking_id: bookingId,
-          p_new_status: status,
-          p_consume_on_no_show: options?.consumeOnNoShow === true,
-        } as never
-      );
+      const idempotencyKey = options?.idempotencyKey?.trim();
+      const rpcName = idempotencyKey
+        ? 'update_booking_status_with_pass_idempotent'
+        : 'update_booking_status_with_pass';
+      const { data, error } = await client.rpc(rpcName as never, {
+        p_organization_id: orgId,
+        p_booking_id: bookingId,
+        p_new_status: status,
+        p_consume_on_no_show: options?.consumeOnNoShow === true,
+        ...(idempotencyKey ? { p_idempotency_key: idempotencyKey } : {}),
+      } as never);
       return {
         data: data as {
           action?: string;

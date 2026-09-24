@@ -73,7 +73,7 @@ export async function recordTuitionPaymentAtomic(params: {
   const existing = StorageService.getInvoices().find((i) => i.id === params.invoiceId);
   const client = getCoreClient();
   const key = params.idempotencyKey || newPaymentIdempotencyKey();
-  const { data, error } = await client.rpc('record_tuition_payment' as never, {
+  const { data, error } = await client.rpc('record_tuition_payment_idempotent' as never, {
     p_organization_id: orgId,
     p_invoice_id: params.invoiceId,
     p_amount: params.amount,

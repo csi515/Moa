@@ -1698,6 +1698,36 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['audit_logs']['Insert']>;
         Relationships: [];
       };
+      idempotency_keys: {
+        Row: {
+          id: string;
+          organization_id: string;
+          key: string;
+          operation: string;
+          actor_user_id: string | null;
+          request_hash: string;
+          status: string;
+          response_payload: Json | null;
+          error_message: string | null;
+          created_at: string;
+          expires_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          key: string;
+          operation: string;
+          actor_user_id?: string | null;
+          request_hash: string;
+          status: string;
+          response_payload?: Json | null;
+          error_message?: string | null;
+          created_at?: string;
+          expires_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['idempotency_keys']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1795,6 +1825,29 @@ export interface Database {
           p_idempotency_key?: string | null;
         };
         Returns: string;
+      };
+      update_booking_status_with_pass_idempotent: {
+        Args: {
+          p_organization_id: string;
+          p_booking_id: string;
+          p_new_status: ScheduleStatus;
+          p_consume_on_no_show?: boolean;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Json;
+      };
+      record_tuition_payment_idempotent: {
+        Args: {
+          p_organization_id: string;
+          p_invoice_id: string;
+          p_amount: number;
+          p_payment_method: string;
+          p_paid_at?: string;
+          p_memo?: string | null;
+          p_cash_receipt_issued?: boolean;
+          p_idempotency_key?: string | null;
+        };
+        Returns: Json;
       };
       ensure_guest_customer: {
         Args: {
