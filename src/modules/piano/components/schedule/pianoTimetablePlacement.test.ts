@@ -1,7 +1,8 @@
 /**
  * 피아노 시간표 배치 로직 단위 테스트
  * 실행: npm run test:timetable-placement
- * (또는 node --experimental-test-module-mocks --import tsx src/modules/piano/components/schedule/pianoTimetablePlacement.test.ts)
+ * mock.module 지정자는 import.meta.resolve로 절대 URL을 쓴다.
+ * (Node 20은 '@/…'를 테스트 파일 기준 상대 URL로 해석해 CI에서 ERR_MODULE_NOT_FOUND가 난다)
  */
 import assert from 'node:assert/strict';
 import { mock } from 'node:test';
@@ -102,7 +103,7 @@ function installStorageMock(store: Store) {
     },
   };
 
-  mock.module('@/services/storage', {
+  mock.module(new URL('../../../../services/storage.ts', import.meta.url).href, {
     namedExports: { StorageService },
   });
 
