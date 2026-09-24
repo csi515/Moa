@@ -5,6 +5,7 @@ import {
   type OrganizationAddressValue,
 } from '@/core/address';
 import type { AcademySettings } from '@/types';
+import { locationService } from '@/core/locations/locationService';
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
 
@@ -247,7 +248,13 @@ export async function createOrganization(
   if (error) throw error;
   if (!data) throw new Error('사업장 생성에 실패했습니다.');
 
-  return data as string;
+  const orgId = data as string;
+  try {
+    await locationService.ensureDefault(orgId);
+  } catch {
+    /* 트리거가 이미 만들었거나 마이그레이션 전에도 조직 생성은 유지 */
+  }
+  return orgId;
 }
 
 /** org 멤버 role 라벨 */

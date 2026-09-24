@@ -1592,6 +1592,38 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['maintenance_issues']['Insert']>;
         Relationships: [];
       };
+      locations: {
+        Row: {
+          id: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          slug: string;
+          address: string | null;
+          phone: string | null;
+          timezone: string;
+          is_active: boolean;
+          metadata: Json;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          name: string;
+          code: string;
+          slug: string;
+          address?: string | null;
+          phone?: string | null;
+          timezone?: string;
+          is_active?: boolean;
+          metadata?: Json;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['locations']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2088,6 +2120,28 @@ export interface Database {
           p_status: OpsIssueStatus;
           p_resolution?: string | null;
         };
+        Returns: Json;
+      };
+      ensure_default_organization_location: {
+        Args: { p_organization_id: string };
+        Returns: string;
+      };
+      upsert_location: {
+        Args: {
+          p_organization_id: string;
+          p_name: string;
+          p_code?: string | null;
+          p_slug?: string | null;
+          p_address?: string | null;
+          p_phone?: string | null;
+          p_timezone?: string | null;
+          p_id?: string | null;
+          p_metadata?: Json;
+        };
+        Returns: Json;
+      };
+      set_location_active: {
+        Args: { p_organization_id: string; p_location_id: string; p_active: boolean };
         Returns: Json;
       };
     };

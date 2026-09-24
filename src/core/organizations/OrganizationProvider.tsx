@@ -38,6 +38,8 @@ import {
   type AppPortalMode,
   type MembershipSelectionResult,
 } from './resolveOrganizationContext';
+import { useOrganizationLocationState } from '@/core/locations/useOrganizationLocationState';
+import type { Location } from '@/core/locations/types';
 import { isNativeApp } from '@/core/platform/capacitorPlatform';
 import { MOBILE_FOREGROUND_EVENT } from '@/core/platform/mobileLifecycle';
 
@@ -56,6 +58,8 @@ interface OrganizationContextType {
   memberships: orgService.OrganizationMembership[];
   selectedMembership: orgService.OrganizationMembership | null;
   currentOrganization: Organization | null;
+  locations: Location[];
+  currentLocation: Location | null;
   currentRole: MemberRole | null;
   currentStaffId: string | null;
   currentParentCustomerId: string | null;
@@ -70,6 +74,7 @@ interface OrganizationContextType {
   blockedOwnerOrgIds: string[];
   loading: boolean;
   selectOrganization: (organizationId: string) => void;
+  selectLocation: (locationId: string | null) => void;
   switchMembership: (membershipId: string) => Promise<void>;
   clearOrganization: () => void;
   createOrganization: (
@@ -116,6 +121,9 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     currentStaffId,
     currentParentCustomerId,
   } = deriveSelectionFields(selectedMembership);
+  const { locations, currentLocation, selectLocation } = useOrganizationLocationState(
+    currentOrganization?.id ?? null
+  );
 
   // ── Derived: portal access (membership 조회 결과 기반, parent 단정 금지) ──
   const portalAccess = useMemo(
@@ -382,6 +390,8 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         memberships,
         selectedMembership,
         currentOrganization,
+        locations,
+        currentLocation,
         currentRole,
         currentStaffId,
         currentParentCustomerId,
@@ -396,6 +406,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         blockedOwnerOrgIds,
         loading,
         selectOrganization,
+        selectLocation,
         switchMembership,
         clearOrganization,
         createOrganization,
