@@ -3437,8 +3437,116 @@ export interface Database {
     };
     CompositeTypes: Record<string, never>;
   };
+  platform: {
+    Tables: {
+      plans: {
+        Row: {
+          id: string;
+          code: string;
+          name: string;
+          description: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          code: string;
+          name: string;
+          description?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['platform']['Tables']['plans']['Insert']>;
+        Relationships: [];
+      };
+      feature_entitlements: {
+        Row: {
+          id: string;
+          plan_id: string;
+          feature_key: string;
+          enabled: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          feature_key: string;
+          enabled?: boolean;
+          created_at?: string;
+        };
+        Update: Partial<Database['platform']['Tables']['feature_entitlements']['Insert']>;
+        Relationships: [];
+      };
+      subscriptions: {
+        Row: {
+          id: string;
+          organization_id: string;
+          plan_id: string;
+          billing_status: PlatformBillingStatus;
+          starts_at: string;
+          ends_at: string | null;
+          canceled_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          plan_id: string;
+          billing_status?: PlatformBillingStatus;
+          starts_at?: string;
+          ends_at?: string | null;
+          canceled_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['platform']['Tables']['subscriptions']['Insert']>;
+        Relationships: [];
+      };
+      subscription_items: {
+        Row: {
+          id: string;
+          organization_id: string;
+          subscription_id: string;
+          feature_key: string;
+          enabled: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          organization_id: string;
+          subscription_id: string;
+          feature_key: string;
+          enabled: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['platform']['Tables']['subscription_items']['Insert']>;
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: {
+      is_feature_enabled: {
+        Args: { p_organization_id: string; p_feature_key: string };
+        Returns: boolean;
+      };
+    };
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
 }
 
+export type PlatformBillingStatus =
+  | 'trialing'
+  | 'active'
+  | 'past_due'
+  | 'paused'
+  | 'canceled'
+  | 'expired';
 export type CustomerSessionStatus = 'active' | 'completed' | 'cancelled';
 export type WaitlistStatus = 'waiting' | 'notified' | 'assigned' | 'cancelled' | 'expired';
 export type OpsTaskStatus = 'open' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';

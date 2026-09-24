@@ -19,5 +19,6 @@
 | 멱등 | org+key 재시도·payload mismatch | `test:idempotency` |
 | Outbox | TX와 side effect 분리·중복 delivery | `test:outbox` |
 | 데이터 | schedules 핵심필드 dual-read | `test:metadata-promotion` |
+| 플랫폼 | SaaS 구독과 이용권/매출 원장 분리 | `test:platform-subscription` |
 
 실행: `npm run test:business-invariants`
