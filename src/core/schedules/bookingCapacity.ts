@@ -1,3 +1,4 @@
+import { computeCapacitySnapshot } from '@/core/capacity';
 import type { Booking, BookingStatus, ServiceOffering, SlotRecruitment } from '@/core/types/schedule';
 
 const ACTIVE_STATUSES: BookingStatus[] = ['scheduled', 'confirmed', 'completed', 'no_show'];
@@ -143,20 +144,21 @@ export function getSlotCapacityInfo(params: {
         : buildSlotKey(r.serviceId, r.staffId ?? UNASSIGNED_STAFF_TOKEN, r.startsAt);
     return key === slotKey;
   });
-  const maxCapacity = Math.max(1, recruitment?.maxCapacity || service.maxCapacity || 1);
+  const snapshot = computeCapacitySnapshot({
+    capacity: recruitment?.maxCapacity || service.maxCapacity || 1,
+    booked: occupied,
+  });
   const closedManually = recruitment?.closedManually === true;
-  const remaining = Math.max(0, maxCapacity - occupied);
-  const isClosed = closedManually || remaining <= 0;
 
   return {
     slotKey,
     serviceId: service.id,
     staffId: normalizedStaffId,
     startsAt,
-    occupied,
-    maxCapacity,
-    remaining,
+    occupied: snapshot.booked,
+    maxCapacity: snapshot.capacity,
+    remaining: snapshot.available,
     closedManually,
-    isClosed,
+    isClosed: closedManually || snapshot.isFull,
   };
 }

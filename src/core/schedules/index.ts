@@ -11,6 +11,7 @@ export { reservationService } from './services/reservationService';
 export { availabilityService } from './services/availabilityService';
 export { materializeAvailabilitySlots } from './services/materializeAvailabilitySlots';
 export { availabilityCapability } from '@/core/availability';
+export { capacityCapability } from '@/core/capacity';
 export { sessionPassService } from './sessionPassService';
 export { updateBookingStatusAtomic } from './bookingPassAtomic';
 export {

@@ -29,5 +29,6 @@ export { mapResourceReservationError } from './reservationErrors';
 export { dayRangeSeoul, seoulDateFromIso, seoulTimeFromIso, toSeoulIso } from './seoulTime';
 export { resourceCapability } from './resourceCapability';
 export type { ResourceCapability } from './resourceCapability';
+export { capacityCapability } from '@/core/capacity';
 export { resourceReservationCapability } from './resourceReservationCapability';
 export type { ResourceReservationCapability } from './resourceReservationCapability';

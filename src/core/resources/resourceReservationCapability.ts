@@ -33,6 +33,7 @@ export const resourceReservationCapability = {
   listPracticeRooms: resourceCapability.listPracticeRooms,
   listByDate: listReservationsByDate,
   listByRange: listReservationsByRange,
+  capacitySnapshot: resourceCapability.capacitySnapshot,
   async listMyReservations(organizationId: string) {
     const rows = await listResourceReservationRows({
       organizationId,

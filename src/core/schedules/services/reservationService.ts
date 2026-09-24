@@ -1,3 +1,4 @@
+import { capacityCapability } from '@/core/capacity';
 import { getCoreClient } from '@/lib/supabase';
 import type {
   MyReservationRpcRow,
@@ -95,6 +96,8 @@ function mapMyReservation(row: MyReservationRpcRow): MyReservation {
  * 예약 신청 및 관리
  */
 export const reservationService = {
+  capacitySnapshot: capacityCapability.reservationSnapshot,
+
   /**
    * 예약 신청 (고객)
    */
