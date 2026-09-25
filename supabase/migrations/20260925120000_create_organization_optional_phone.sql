@@ -1,6 +1,6 @@
--- 신규 조직 생성 시 사업자등록번호는 선택값.
--- 컬럼은 이미 NULL 허용. 스키마/기존 행은 변경하지 않는다.
--- 빈 값·000-00-00000 등 placeholder는 저장하지 않는다.
+-- 신규 조직 생성 시 사업장 전화번호는 선택값.
+-- 마법사는 전화번호를 받지 않는다. 빈 값·NULL은 저장하지 않는다.
+-- 스키마/기존 행은 변경하지 않는다.
 
 CREATE OR REPLACE FUNCTION core.create_organization(
   p_name TEXT,
@@ -32,6 +32,7 @@ DECLARE
   v_public_code VARCHAR(8);
   v_display_address TEXT;
   v_brn_digits TEXT;
+  v_phone TEXT;
 BEGIN
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -56,10 +57,6 @@ BEGIN
     RAISE EXCEPTION '대표자명을 입력해 주세요.';
   END IF;
 
-  IF trim(p_business_phone) = '' THEN
-    RAISE EXCEPTION '사업장 전화번호를 입력해 주세요.';
-  END IF;
-
   IF trim(p_business_address) = '' THEN
     RAISE EXCEPTION '사업장 주소를 입력해 주세요.';
   END IF;
@@ -67,6 +64,8 @@ BEGIN
   IF trim(p_industry_category) = '' THEN
     RAISE EXCEPTION '업종을 입력해 주세요.';
   END IF;
+
+  v_phone := NULLIF(btrim(COALESCE(p_business_phone, '')), '');
 
   v_normalized_brn := NULL;
   IF p_business_registration_number IS NOT NULL AND trim(p_business_registration_number) <> '' THEN
@@ -98,13 +97,17 @@ BEGIN
 
   p_settings := p_settings || jsonb_build_object(
     'representativeName', trim(p_representative_name),
-    'businessPhone', trim(p_business_phone),
     'businessAddress', v_display_address,
     'industryCategory', trim(p_industry_category),
     'directorName', trim(p_representative_name),
-    'phone', trim(p_business_phone),
     'address', v_display_address
   );
+  IF v_phone IS NOT NULL THEN
+    p_settings := p_settings || jsonb_build_object(
+      'businessPhone', v_phone,
+      'phone', v_phone
+    );
+  END IF;
 
   INSERT INTO core.organizations (
     name,
@@ -138,7 +141,7 @@ BEGIN
     NULLIF(trim(COALESCE(p_dong, '')), ''),
     NULLIF(trim(COALESCE(p_jibun, '')), ''),
     NULLIF(trim(COALESCE(p_road_address, '')), ''),
-    NULLIF(trim(COALESCE(p_address_detail, '')), '')
+    NULLIF(trim(COALESCE(p_address_detail), '')), '')
   )
   RETURNING id INTO v_org_id;
 
@@ -160,4 +163,4 @@ COMMENT ON FUNCTION core.create_organization(
   TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB,
   TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
 ) IS
-  '조직 생성: 사업자등록번호는 선택. 있으면 형식·중복 검사. 구조화 주소 선택.';
+  '조직 생성: 사업자등록번호·사업장 전화번호는 선택. 주소는 필수.';

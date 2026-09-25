@@ -14,6 +14,17 @@ import { locationService } from '@/core/locations/locationService';
 import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
+import {
+  prepareCreateOrganizationInput,
+  resolveCreateBusinessPhone,
+  resolveCreateBusinessRegistrationNumber,
+} from './createOrganizationInput';
+
+export {
+  prepareCreateOrganizationInput,
+  resolveCreateBusinessPhone,
+  resolveCreateBusinessRegistrationNumber,
+} from './createOrganizationInput';
 
 const ORG_STORAGE_KEY = 'moa_current_organization_id';
 
@@ -30,14 +41,6 @@ export class OrganizationLocationSetupError extends Error {
 
 export async function ensureOrganizationDefaultLocation(organizationId: string): Promise<string> {
   return locationService.ensureDefault(organizationId);
-}
-
-function resolveCreateBusinessRegistrationNumber(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) return undefined;
-  const digits = trimmed.replace(/\D/g, '');
-  if (!digits || /^0+$/.test(digits)) return undefined;
-  return trimmed;
 }
 
 export interface CreateOrganizationOptions {
@@ -89,7 +92,7 @@ export function toCreateOrganizationOptions(
       extras?.businessNumber
     ),
     representativeName,
-    businessPhone: extras?.phone?.trim() || undefined,
+    businessPhone: resolveCreateBusinessPhone(extras?.phone) ?? undefined,
     businessAddress: formatted,
     industryCategory: resolveIndustryCategoryForCreate(
       industryType,
@@ -240,38 +243,24 @@ export async function createOrganization(
   }
 
   const options: CreateOrganizationOptions = nameOrOptions;
+  const prepared = prepareCreateOrganizationInput(options);
 
-  const name = options.name.trim();
   const resolvedIndustryType = options.industryType ?? 'piano';
-  const slug = name
+  const slug = prepared.name
     .toLowerCase()
     .replace(/[^a-z0-9가-힣]+/g, '-')
     .replace(/^-|-$/g, '')
     .slice(0, 40) || `org-${Date.now()}`;
 
-  const businessRegistrationNumber = resolveCreateBusinessRegistrationNumber(
-    options.businessRegistrationNumber
-  );
-
-  if (!options.representativeName?.trim()) {
-    throw new Error('대표자명을 입력해 주세요.');
-  }
-  if (!options.businessAddress?.trim()) {
-    throw new Error('사업장 주소를 입력해 주세요.');
-  }
-  if (!options.industryCategory?.trim()) {
-    throw new Error('업종을 입력해 주세요.');
-  }
-
   const parts = options.addressParts;
   const { data, error } = await getCoreClient().rpc('create_organization', {
-    p_name: name,
+    p_name: prepared.name,
     p_business_registration_number:
-      businessRegistrationNumber ?? (null as unknown as string),
-    p_representative_name: options.representativeName.trim(),
-    p_business_phone: options.businessPhone?.trim() || (null as unknown as string),
-    p_business_address: options.businessAddress.trim(),
-    p_industry_category: options.industryCategory.trim(),
+      prepared.businessRegistrationNumber ?? (null as unknown as string),
+    p_representative_name: prepared.representativeName,
+    p_business_phone: prepared.businessPhone,
+    p_business_address: prepared.businessAddress,
+    p_industry_category: prepared.industryCategory,
     p_industry_type: resolvedIndustryType,
     p_slug: slug,
     p_settings: (options.settings ?? {}) as Record<string, unknown>,

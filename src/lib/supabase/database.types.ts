@@ -2081,7 +2081,7 @@ export interface Database {
           p_name: string;
           p_business_registration_number: string;
           p_representative_name: string;
-          p_business_phone: string;
+          p_business_phone?: string | null;
           p_business_address: string;
           p_industry_category: string;
           p_industry_type?: string;
