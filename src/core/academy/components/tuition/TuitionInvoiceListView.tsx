@@ -1,6 +1,7 @@
 import React from 'react';
 import { Student, TuitionInvoice } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
+import { resolveInvoiceBaseFee } from '@/core/finance/invoiceModel';
 
 interface TuitionInvoiceListViewProps {
   customerLabel: string;
@@ -65,7 +66,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-600">
-                        {formatCurrency(inv.baseTuition ?? inv.baseFee ?? 0)}
+                        {formatCurrency(resolveInvoiceBaseFee(inv))}
                       </td>
                       <td className="py-3.5 px-4 text-rose-500 font-medium">
                         {(inv.discountAmount ?? inv.discount ?? 0) > 0

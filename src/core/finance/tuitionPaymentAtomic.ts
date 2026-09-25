@@ -2,17 +2,27 @@
  * 수강료 수납·월 청구 원자 클라이언트.
  * 온라인: core.record_tuition_payment / core.ensure_monthly_tuition_invoice
  * demo/offline: invoicePaymentService local 경로
+ * Remote 성공 후 local projection은 financePaymentMirror가 담당한다.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { getOrganizationId, getStorageAdapter, STORAGE_KEYS } from '@/services/adapters';
+import { getOrganizationId } from '@/services/adapters';
 import { paymentRowToInvoice } from '@/services/adapters/sync/mappers/invoiceMappers';
 import { transactionRowToTuitionPayment } from '@/services/adapters/sync/financeEntityMappers';
-import type { PaymentMethod, TuitionInvoice, TuitionPayment } from '@/types';
+import type { PaymentMethod, TuitionInvoice } from '@/types';
 import type { Json } from '@/lib/supabase/database.types';
 import { upsertLinkedIncome } from '@/core/finance/billingIncomeLink';
 import { settleLinkedTextbookSalesOnTuitionPaid } from '@/core/finance/linkedTextbookSettle';
 import { StorageService } from '@/services/storage';
 import { todayIsoLocal } from '@/shared/utils/localDate';
+import {
+  classifyTuitionPaymentRpcResult,
+  tuitionPaymentRejectMessage,
+} from './tuitionPaymentRpcResult';
+import { createAdapterFinanceMirrorPort } from './financePaymentMirrorAdapter';
+import {
+  projectIfRemoteApplied,
+  tuitionPaymentMirrorJobs,
+} from './financePaymentMirror';
 
 const APP_TO_DB: Record<string, string> = {
   card: 'card',
@@ -30,23 +40,22 @@ export function newPaymentIdempotencyKey(): string {
 type InvoiceRow = Parameters<typeof paymentRowToInvoice>[0];
 type TxRow = Parameters<typeof transactionRowToTuitionPayment>[0];
 
-function writeInvoiceMirror(invoice: TuitionInvoice): void {
-  const adapter = getStorageAdapter();
-  const list = adapter.getItem<TuitionInvoice[]>(STORAGE_KEYS.INVOICES, []);
-  const idx = list.findIndex((i) => i.id === invoice.id);
-  const next = list.slice();
-  if (idx >= 0) next[idx] = invoice;
-  else next.unshift(invoice);
-  if (adapter.writeLocalMirror) adapter.writeLocalMirror(STORAGE_KEYS.INVOICES, next);
-  else StorageService.saveInvoice(invoice);
-}
-
-function writeTuitionPaymentMirror(payment: TuitionPayment): void {
-  const adapter = getStorageAdapter();
-  const list = adapter.getItem<TuitionPayment[]>(STORAGE_KEYS.TUITION_PAYMENTS, []);
-  if (list.some((p) => p.id === payment.id)) return;
-  const next = [payment, ...list];
-  if (adapter.writeLocalMirror) adapter.writeLocalMirror(STORAGE_KEYS.TUITION_PAYMENTS, next);
+async function refreshInvoiceMirrorFromServer(
+  invoiceId: string
+): Promise<TuitionInvoice | null> {
+  const { data, error } = await getCoreClient()
+    .from('payments')
+    .select('*')
+    .eq('id', invoiceId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const invoice = paymentRowToInvoice(data);
+  projectIfRemoteApplied({
+    remoteStatus: 'applied',
+    jobs: tuitionPaymentMirrorJobs({ invoice }),
+    port: createAdapterFinanceMirrorPort(),
+  });
+  return invoice;
 }
 
 export async function recordTuitionPaymentAtomic(params: {
@@ -70,7 +79,6 @@ export async function recordTuitionPaymentAtomic(params: {
     );
   }
 
-  const existing = StorageService.getInvoices().find((i) => i.id === params.invoiceId);
   const client = getCoreClient();
   const key = params.idempotencyKey || newPaymentIdempotencyKey();
   const { data, error } = await client.rpc('record_tuition_payment_idempotent' as never, {
@@ -84,19 +92,21 @@ export async function recordTuitionPaymentAtomic(params: {
     p_idempotency_key: key,
   } as never);
 
-  if (error) {
-    const message = error.message || '수강료 수납에 실패했습니다.';
-    if (message.includes('Invoice already paid') || message.includes('Invalid payment amount')) {
-      return existing || null;
-    }
-    throw new Error(message);
-  }
-
   const payload = data as {
     action?: string;
     invoice?: InvoiceRow;
     transaction?: TxRow;
   } | null;
+  const classified = classifyTuitionPaymentRpcResult({
+    errorMessage: error?.message,
+    invoice: payload?.invoice,
+  });
+  if (classified.kind !== 'applied') {
+    if (classified.kind === 'already_paid' || classified.kind === 'invalid_amount') {
+      await refreshInvoiceMirrorFromServer(params.invoiceId);
+    }
+    throw new Error(tuitionPaymentRejectMessage(classified));
+  }
   if (!payload?.invoice) {
     throw new Error('수강료 수납 응답이 비어 있습니다.');
   }
@@ -109,28 +119,25 @@ export async function recordTuitionPaymentAtomic(params: {
     ? transactionRowToTuitionPayment(payload.transaction, lookup)
     : undefined;
 
-  writeInvoiceMirror(invoice);
-  if (tx) {
-    writeTuitionPaymentMirror(tx);
-    upsertLinkedIncome({
-      sourceType: 'tuition',
-      paymentId: tx.id,
-      date: tx.paymentDate,
-      amount: tx.amount,
-      paymentMethod: tx.paymentMethod,
-      description: `${invoice.yearMonth} 수강료 · ${invoice.studentName}`,
-      payer: invoice.studentName,
+  projectIfRemoteApplied({
+    remoteStatus: payload.action === 'idempotent' ? 'replay' : 'applied',
+    jobs: tuitionPaymentMirrorJobs({
+      invoice,
+      payment: tx,
       memo: params.notes,
-    });
-    if (invoice.status === 'paid' && (invoice.linkedTextbookSaleIds || []).length > 0) {
-      void settleLinkedTextbookSalesOnTuitionPaid({
-        api: StorageService,
-        invoice,
-        paymentId: tx.id,
-        method: params.method,
-        paymentDate: tx.paymentDate,
-      }).catch((err) => console.error('[recordTuitionPaymentAtomic] linked textbook settle', err));
-    }
+      upsertIncome: upsertLinkedIncome,
+    }),
+    port: createAdapterFinanceMirrorPort(),
+  });
+
+  if (tx && invoice.status === 'paid' && (invoice.linkedTextbookSaleIds || []).length > 0) {
+    void settleLinkedTextbookSalesOnTuitionPaid({
+      api: StorageService,
+      invoice,
+      paymentId: tx.id,
+      method: params.method,
+      paymentDate: tx.paymentDate,
+    }).catch((err) => console.error('[recordTuitionPaymentAtomic] linked textbook settle', err));
   }
   return invoice;
 }
@@ -168,7 +175,11 @@ export async function ensureMonthlyTuitionInvoiceAtomic(params: {
   const payload = data as { invoice?: InvoiceRow } | null;
   if (!payload?.invoice) return null;
   const invoice = paymentRowToInvoice(payload.invoice);
-  writeInvoiceMirror(invoice);
+  projectIfRemoteApplied({
+    remoteStatus: 'applied',
+    jobs: tuitionPaymentMirrorJobs({ invoice }),
+    port: createAdapterFinanceMirrorPort(),
+  });
   return invoice;
 }
 

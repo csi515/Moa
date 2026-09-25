@@ -15,10 +15,12 @@ import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
 import { filterMonthlyTuitionAutoGenerateStudents } from '@/core/finance/monthlyTuitionEligibility';
 import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
 import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
+import { recordCombinedPayment } from '@/core/finance/application/recordCombinedPayment';
 import {
   ensureMonthlyTuitionInvoiceAtomic,
   recordTuitionPaymentAtomic,
 } from '@/core/finance/tuitionPaymentAtomic';
+import { planInvoiceTextbookRelink } from '@/core/finance/invoiceTextbookLink';
 import { yearMonthLocal } from '@/shared/utils/localDate';
 
 const ensureMonthInflight = new Map<string, Promise<{ created: number; existing: number }>>();
@@ -105,7 +107,25 @@ export const TuitionService = {
         invoiceId: local.id,
       });
       if (remote && remote.id !== local.id) {
+        const plan = planInvoiceTextbookRelink({
+          localInvoiceId: local.id,
+          remoteInvoiceId: remote.id,
+          localLinkedSaleIds: local.linkedTextbookSaleIds,
+          remoteLinkedSaleIds: remote.linkedTextbookSaleIds,
+          sales: StorageService.getTextbookSales(),
+        });
+        if (plan.saleIdsToRelink.length > 0) {
+          StorageService.linkTextbookSalesToInvoice(plan.saleIdsToRelink, remote.id);
+        }
+        if (plan.invoiceLinksChanged) {
+          StorageService.saveInvoice({
+            ...remote,
+            linkedTextbookSaleIds:
+              plan.nextLinkedSaleIds.length > 0 ? plan.nextLinkedSaleIds : undefined,
+          });
+        }
         StorageService.deleteInvoice(local.id);
+        return this.getInvoiceById(remote.id) || remote;
       }
       return remote || local;
     } catch (err) {
@@ -190,12 +210,8 @@ export const TuitionService = {
     });
   },
 
-  async recordCombinedPayment(req: CombinedPaymentRequest): Promise<{
-    tuitionInvoice?: TuitionInvoice;
-    textbookPayments: unknown[];
-    totalPaidAmount: number;
-  }> {
-    return StorageService.recordCombinedPayment(req);
+  async recordCombinedPayment(req: CombinedPaymentRequest) {
+    return recordCombinedPayment(req);
   },
 
   getTuitionPayments(): TuitionPayment[] {

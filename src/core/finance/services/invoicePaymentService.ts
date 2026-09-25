@@ -5,9 +5,9 @@ import type {
   Student,
   TextbookSale,
   TuitionInvoice,
+  TuitionPayment,
 } from '@/types';
-import { STORAGE_KEYS } from '@/services/adapters';
-import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
+import type { StorageApi } from '@/services/storage/helpers';
 import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
 import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 import {
@@ -17,53 +17,76 @@ import {
   computeInvoiceTotal,
   resolveIncludeExtras,
 } from '@/core/academy/utils/invoiceExtras';
-import {
-  backfillLinkedIncomeFromPayments,
-  deleteLinkedIncome,
-  getTuitionPayments as readTuitionPayments,
-  saveTuitionPaymentDirect,
-  upsertLinkedIncome,
-} from '@/core/finance/billingIncomeLink';
 import { defaultDueDateForMonth } from '@/core/academy/components/tuition/tuitionUtils';
 import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
 import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
 import type { IncomeEntry } from '@/core/finance/types';
-import {
-  reverseLinkedTextbookPaymentsForTuition,
-  settleLinkedTextbookSalesOnTuitionPaid,
-} from '@/core/finance/linkedTextbookSettle';
+
+type LinkedIncomeSource = 'tuition' | 'textbook' | 'booking' | 'retail';
+
+type InvoicePaymentStore = {
+  getInvoices: () => TuitionInvoice[];
+  saveInvoice: (inv: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice;
+  deleteInvoiceRecord: (id: string) => boolean;
+  getTuitionPayments: () => TuitionPayment[];
+  getTuitionPaymentsByInvoiceId: (invoiceId: string) => TuitionPayment[];
+  saveTuitionPayment: (
+    data: Omit<TuitionPayment, 'id' | 'createdAt' | 'receiptNumber'> & { receiptNumber?: string }
+  ) => TuitionPayment;
+  removeTuitionPayment: (paymentId: string) => boolean;
+  removeTuitionPaymentsByInvoiceId: (invoiceId: string) => TuitionPayment[];
+  getIncomeEntries: () => IncomeEntry[];
+  deleteIncomeEntryRecord: (id: string) => boolean;
+  upsertLinkedIncome: (params: {
+    sourceType: LinkedIncomeSource;
+    paymentId: string;
+    date: string;
+    amount: number;
+    paymentMethod: PaymentMethod;
+    description: string;
+    payer: string;
+    memo?: string;
+  }) => IncomeEntry;
+  deleteLinkedIncome: (sourceType: LinkedIncomeSource, paymentId: string) => boolean;
+  backfillBillingLinkedIncome: () => { tuitionCreated: number; textbookCreated: number };
+  getSettings: () => AcademySettings;
+  getTextbookSales: () => TextbookSale[];
+  getEvents?: () => AcademyEvent[];
+  getStudents: () => Student[];
+  setTextbookBillingInvoice: (saleIds: string[], invoiceId: string | undefined) => void;
+  clearTextbookBillingInvoiceForInvoice: (invoiceId: string) => void;
+  createInvoiceForStudent: (
+    student: Student,
+    yearMonth?: string
+  ) => TuitionInvoice | null;
+  reverseTuitionPayment: (paymentId: string) => boolean;
+  reverseTextbookPayment: (id: string) => boolean | Promise<boolean>;
+  reverseLinkedTextbookPaymentsForTuition?: (paymentId: string) => void | Promise<void>;
+};
+
+function storeOf(api: StorageApi): InvoicePaymentStore {
+  return api as InvoicePaymentStore;
+}
 
 /**
  * 수강료 납부·청구·수입 연동 orchestration.
- * localStorage CRUD는 financeStorage, 이 계층은 업무 흐름만 담당한다.
+ * persistence는 finance/textbook Storage API만 사용한다.
  */
 export function createInvoicePaymentService(api: StorageApi) {
+  const store = storeOf(api);
+
   return {
     deleteInvoice(id: string): boolean {
-      const list = (api.getInvoices as () => TuitionInvoice[])();
-      const target = list.find((i) => i.id === id);
+      const target = store.getInvoices().find((invoice) => invoice.id === id);
       if (!target) return false;
 
-      const filtered = list.filter((i) => i.id !== id);
-      const payments = readTuitionPayments().filter((p) => p.invoiceId === id);
-      for (const p of payments) {
-        deleteLinkedIncome('tuition', p.id);
+      const payments = store.getTuitionPaymentsByInvoiceId(id);
+      for (const payment of payments) {
+        store.deleteLinkedIncome('tuition', payment.id);
       }
-      setItem(
-        STORAGE_KEYS.TUITION_PAYMENTS,
-        readTuitionPayments().filter((p) => p.invoiceId !== id)
-      );
-      setItem(STORAGE_KEYS.INVOICES, filtered);
-
-      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-      let salesChanged = false;
-      const nextSales = sales.map((s) => {
-        if (s.billingInvoiceId !== id) return s;
-        salesChanged = true;
-        return { ...s, billingInvoiceId: undefined, updatedAt: new Date().toISOString() };
-      });
-      if (salesChanged) setItem(STORAGE_KEYS.TEXTBOOK_SALES, nextSales);
-
+      store.removeTuitionPaymentsByInvoiceId(id);
+      store.deleteInvoiceRecord(id);
+      store.clearTextbookBillingInvoiceForInvoice(id);
       return true;
     },
 
@@ -75,11 +98,10 @@ export function createInvoicePaymentService(api: StorageApi) {
       paymentDate?: string,
       options?: { cashReceiptIssued?: boolean }
     ): TuitionInvoice | null {
-      const list = (api.getInvoices as () => TuitionInvoice[])();
-      const idx = list.findIndex((i) => i.id === invoiceId);
-      if (idx === -1) return null;
+      const list = store.getInvoices();
+      const inv = list.find((invoice) => invoice.id === invoiceId);
+      if (!inv) return null;
 
-      const inv = list[idx];
       const payAmount = Math.min(amount, Math.max(0, inv.unpaidAmount));
       if (payAmount <= 0) return inv;
 
@@ -101,10 +123,9 @@ export function createInvoicePaymentService(api: StorageApi) {
         receiptNumber: inv.receiptNumber || receiptNum,
       };
 
-      list[idx] = updated;
-      setItem(STORAGE_KEYS.INVOICES, list);
+      store.saveInvoice(updated);
 
-      const payment = saveTuitionPaymentDirect({
+      const payment = store.saveTuitionPayment({
         invoiceId: inv.id,
         studentId: inv.studentId,
         studentName: inv.studentName,
@@ -117,8 +138,7 @@ export function createInvoicePaymentService(api: StorageApi) {
         cashReceiptIssued: options?.cashReceiptIssued === true,
       });
 
-      // sourceId=payment.id upsert — 동일 payment 재호출 시 수입 중복 생성 없음
-      upsertLinkedIncome({
+      store.upsertLinkedIncome({
         sourceType: 'tuition',
         paymentId: payment.id,
         date: pDate,
@@ -129,50 +149,53 @@ export function createInvoicePaymentService(api: StorageApi) {
         memo: notes,
       });
 
-      // 월 청구 완납 시 합산 교재 미납분 정산 — 수입은 수강료 income에만 계상(이중 수입 방지)
       if (updated.status === 'paid' && (inv.linkedTextbookSaleIds || []).length > 0) {
-        void settleLinkedTextbookSalesOnTuitionPaid({
-          api,
-          invoice: inv,
-          paymentId: payment.id,
-          method,
-          paymentDate: pDate,
-        }).catch((err) => console.error('[recordPayment] linked textbook settle', err));
+        void import('@/core/finance/linkedTextbookSettle')
+          .then(({ settleLinkedTextbookSalesOnTuitionPaid }) =>
+            settleLinkedTextbookSalesOnTuitionPaid({
+              api,
+              invoice: inv,
+              paymentId: payment.id,
+              method,
+              paymentDate: pDate,
+            })
+          )
+          .catch((err) => console.error('[recordPayment] linked textbook settle', err));
       }
 
       return updated;
     },
 
-    /** 연동 납부 삭제 — charge 잔액·income·합산 교재 정산 동시 복원 */
     reverseTuitionPayment(paymentId: string): boolean {
-      const payments = readTuitionPayments();
-      const payment = payments.find((p) => p.id === paymentId);
+      const payment = store.getTuitionPayments().find((row) => row.id === paymentId);
       if (!payment) return false;
 
-      const list = (api.getInvoices as () => TuitionInvoice[])();
-      const idx = list.findIndex((i) => i.id === payment.invoiceId);
-      if (idx >= 0) {
-        const inv = list[idx];
+      const inv = store.getInvoices().find((invoice) => invoice.id === payment.invoiceId);
+      if (inv) {
         const newPaid = Math.max(0, inv.paidAmount - payment.amount);
         const newUnpaid = Math.max(0, inv.totalAmount - newPaid);
-        list[idx] = {
+        store.saveInvoice({
           ...inv,
           paidAmount: newPaid,
           unpaidAmount: newUnpaid,
           status: newUnpaid === 0 ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid',
-        };
-        setItem(STORAGE_KEYS.INVOICES, list);
+        });
       }
 
-      void reverseLinkedTextbookPaymentsForTuition(api, paymentId).catch((err) =>
-        console.error('[reversePayment] linked textbook reverse', err)
-      );
+      if (store.reverseLinkedTextbookPaymentsForTuition) {
+        void Promise.resolve(store.reverseLinkedTextbookPaymentsForTuition(paymentId)).catch((err) =>
+          console.error('[reversePayment] linked textbook reverse', err)
+        );
+      } else {
+        void import('@/core/finance/linkedTextbookSettle')
+          .then(({ reverseLinkedTextbookPaymentsForTuition }) =>
+            reverseLinkedTextbookPaymentsForTuition(api, paymentId)
+          )
+          .catch((err) => console.error('[reversePayment] linked textbook reverse', err));
+      }
 
-      setItem(
-        STORAGE_KEYS.TUITION_PAYMENTS,
-        payments.filter((p) => p.id !== paymentId)
-      );
-      deleteLinkedIncome('tuition', paymentId);
+      store.removeTuitionPayment(paymentId);
+      store.deleteLinkedIncome('tuition', paymentId);
       return true;
     },
 
@@ -186,20 +209,11 @@ export function createInvoicePaymentService(api: StorageApi) {
       }
       const ym = yearMonth || yearMonthLocal();
 
-      const existing = findMonthlyTuitionInvoice(
-        (api.getInvoices as () => TuitionInvoice[])(),
-        student.id,
-        ym
-      );
+      const existing = findMonthlyTuitionInvoice(store.getInvoices(), student.id, ym);
       if (existing) return existing;
 
       const dueDate = defaultDueDateForMonth(ym, student.paymentDay || 10);
-      const settings = getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, {
-        name: '',
-        address: '',
-        phone: '',
-        defaultTuitionFee: 180000,
-      });
+      const settings = store.getSettings();
       const includeExtras = resolveIncludeExtras(settings, options?.includeExtras);
 
       let textbookFee = 0;
@@ -209,29 +223,20 @@ export function createInvoicePaymentService(api: StorageApi) {
       let extraFeeLabel = options?.extraFeeLabel;
 
       if (includeExtras) {
-        const pendingSales = collectPendingTextbookSales(
-          getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []),
-          student.id
-        );
-        textbookFee = pendingSales.reduce((sum, s) => sum + s.unpaidAmount, 0);
-        linkedTextbookSaleIds = pendingSales.map((s) => s.id);
+        const pendingSales = collectPendingTextbookSales(store.getTextbookSales(), student.id);
+        textbookFee = pendingSales.reduce((sum, sale) => sum + sale.unpaidAmount, 0);
+        linkedTextbookSaleIds = pendingSales.map((sale) => sale.id);
 
-        const existingInvoices = (api.getInvoices as () => TuitionInvoice[])();
-        const events =
-          typeof api.getEvents === 'function'
-            ? (api.getEvents as () => AcademyEvent[])()
-            : getItem<AcademyEvent[]>(STORAGE_KEYS.EVENTS, []);
         const recitalItems = collectPendingRecitalFees({
-          events,
+          events: store.getEvents ? store.getEvents() : [],
           studentId: student.id,
           yearMonth: ym,
-          existingInvoices,
+          existingInvoices: store.getInvoices(),
         });
         linkedExtraItems = recitalItems;
-        const recitalTotal = recitalItems.reduce((sum, i) => sum + i.amount, 0);
-        extraFee += recitalTotal;
+        extraFee += recitalItems.reduce((sum, item) => sum + item.amount, 0);
         if (!extraFeeLabel && recitalItems.length > 0) {
-          extraFeeLabel = recitalItems.map((i) => i.label).join(', ');
+          extraFeeLabel = recitalItems.map((item) => item.label).join(', ');
         }
       }
 
@@ -244,8 +249,8 @@ export function createInvoicePaymentService(api: StorageApi) {
         extraFee,
       });
 
-      const newInv: TuitionInvoice = {
-        id: generateEntityId('inv'),
+      const saved = store.saveInvoice({
+        id: crypto.randomUUID(),
         studentId: student.id,
         studentName: student.name,
         yearMonth: ym,
@@ -273,38 +278,23 @@ export function createInvoicePaymentService(api: StorageApi) {
           linkedExtraItems && linkedExtraItems.length > 0 ? linkedExtraItems : undefined,
         invoiceSent: false,
         sentAt: null,
-      };
-
-      const saved = (
-        api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice
-      )(newInv);
+      });
 
       if (linkedTextbookSaleIds.length > 0) {
-        const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-        const linked = new Set(linkedTextbookSaleIds);
-        setItem(
-          STORAGE_KEYS.TEXTBOOK_SALES,
-          sales.map((s) =>
-            linked.has(s.id)
-              ? { ...s, billingInvoiceId: saved.id, updatedAt: new Date().toISOString() }
-              : s
-          )
-        );
+        store.setTextbookBillingInvoice(linkedTextbookSaleIds, saved.id);
       }
 
       return saved;
     },
 
     generateMonthlyInvoicesForAllActive(yearMonth: string): number {
-      const students = (api.getStudents as () => Student[])();
-      const currentInvoices = (api.getInvoices as () => TuitionInvoice[])();
+      const students = store.getStudents();
+      const currentInvoices = store.getInvoices();
       const missing = listMonthlyTuitionMissingInvoices(students, currentInvoices, yearMonth);
       let generatedCount = 0;
 
       missing.forEach((student) => {
-        const created = (
-          api.createInvoiceForStudent as (s: Student, ym?: string) => TuitionInvoice | null
-        )(student, yearMonth);
+        const created = store.createInvoiceForStudent(student, yearMonth);
         if (created) generatedCount += 1;
       });
 
@@ -312,30 +302,25 @@ export function createInvoicePaymentService(api: StorageApi) {
     },
 
     deleteIncomeEntry(id: string): boolean {
-      const list = (api.getIncomeEntries as () => IncomeEntry[])();
-      const entry = list.find((e) => e.id === id);
+      const entry = store.getIncomeEntries().find((row) => row.id === id);
       if (!entry) return false;
 
       if (entry.sourceType === 'tuition' && entry.sourceId) {
-        (api.reverseTuitionPayment as (paymentId: string) => boolean)(entry.sourceId);
+        store.reverseTuitionPayment(entry.sourceId);
         return true;
       }
       if (entry.sourceType === 'textbook' && entry.sourceId) {
-        void Promise.resolve(
-          (api.reverseTextbookPayment as (paymentId: string) => boolean | Promise<boolean>)(
-            entry.sourceId
-          )
-        ).catch((err) => console.error('[deleteIncomeEntry] reverse textbook', err));
+        void Promise.resolve(store.reverseTextbookPayment(entry.sourceId)).catch((err) =>
+          console.error('[deleteIncomeEntry] reverse textbook', err)
+        );
         return true;
       }
 
-      const filtered = list.filter((e) => e.id !== id);
-      setItem(STORAGE_KEYS.INCOME_ENTRIES, filtered);
-      return true;
+      return store.deleteIncomeEntryRecord(id);
     },
 
     backfillBillingLinkedIncome() {
-      return backfillLinkedIncomeFromPayments();
+      return store.backfillBillingLinkedIncome();
     },
   };
 }

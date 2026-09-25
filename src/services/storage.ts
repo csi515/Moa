@@ -6,6 +6,7 @@ import { createCustomerStorage } from './storage/customerStorage';
 import { createDashboardStatsStorage } from './storage/dashboardStatsStorage';
 import { createEventsStorage } from './storage/eventsStorage';
 import { createFinanceStorage } from './storage/financeStorage';
+import { createFinanceInvoicePersist } from './storage/financeInvoicePersist';
 import { createInvoicePaymentService } from '@/core/finance/services/invoicePaymentService';
 import { createNotificationsStorage } from './storage/notificationsStorage';
 import { createParentEducationStorage } from './storage/parentEducationStorage';
@@ -85,6 +86,7 @@ export const StorageService = Object.assign(
   createParentEducationStorage(storageApi),
   createAttendanceStorage(storageApi),
   createFinanceStorage(storageApi),
+  createFinanceInvoicePersist(storageApi),
   createInvoicePaymentService(storageApi),
   createTextbookStorage(storageApi),
   createPracticeRoomBookingStorage(storageApi),

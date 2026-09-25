@@ -76,6 +76,33 @@ export function createTextbookSalesStorage(api: StorageApi) {
       return (api.getTextbookSales as () => TextbookSale[])().find((s) => s.id === id);
     },
 
+    /** 월청구 연결만 로컬 미러에 반영. DB 수납 경로는 바꾸지 않는다. */
+    setTextbookBillingInvoice(saleIds: string[], invoiceId: string | undefined): void {
+      if (saleIds.length === 0) return;
+      const linkSet = new Set(saleIds);
+      const now = new Date().toISOString();
+      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      mirrorSales(
+        sales.map((sale) =>
+          linkSet.has(sale.id)
+            ? { ...sale, billingInvoiceId: invoiceId, updatedAt: now }
+            : sale
+        )
+      );
+    },
+
+    clearTextbookBillingInvoiceForInvoice(invoiceId: string): void {
+      const now = new Date().toISOString();
+      const sales = getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
+      let changed = false;
+      const next = sales.map((sale) => {
+        if (sale.billingInvoiceId !== invoiceId) return sale;
+        changed = true;
+        return { ...sale, billingInvoiceId: undefined, updatedAt: now };
+      });
+      if (changed) mirrorSales(next);
+    },
+
     getSalesByStudentId(studentId: string): TextbookSale[] {
       return (api.getTextbookSales as () => TextbookSale[])().filter((s) => s.studentId === studentId);
     },

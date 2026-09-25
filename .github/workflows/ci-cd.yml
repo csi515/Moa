@@ -69,8 +69,8 @@ jobs:
       - name: Unit — deeplink
         run: npm run test:deeplink
 
-      - name: Unit — invoice-dedupe
-        run: npm run test:invoice-dedupe
+      - name: Unit — finance suite
+        run: npm run test:finance
 
       - name: Unit — timetable-placement
         run: npm run test:timetable-placement
@@ -112,12 +112,6 @@ jobs:
 
       - name: Unit — persist-schedules
         run: npm run test:persist-schedules
-
-      - name: Unit — tuition-payment-atomic
-        run: npm run test:tuition-payment-atomic
-
-      - name: Unit — textbook-payment-atomic
-        run: npm run test:textbook-payment-atomic
 
       - name: Unit — attendance-pass-atomic
         run: npm run test:attendance-pass-atomic

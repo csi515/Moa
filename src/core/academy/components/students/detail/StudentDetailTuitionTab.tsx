@@ -2,6 +2,7 @@ import React from 'react';
 import { TuitionInvoice, StudentMonthlyBillingSummary, TextbookSale, PaymentMethod } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
 import { ONSITE_PAYMENT_METHOD_OPTIONS } from '@/core/finance/paymentMethodLabels';
+import { resolveInvoiceBaseFee } from '@/core/finance/invoiceModel';
 import { BookOpen, Plus } from 'lucide-react';
 
 interface StudentDetailTuitionTabProps {
@@ -273,7 +274,7 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
                   </p>
                   {((inv.textbookFee || 0) > 0 || (inv.extraFee || 0) > 0) && (
                     <p className="text-[11px] text-indigo-700 mt-1">
-                      월회비 {formatCurrency(inv.baseTuition ?? inv.baseFee ?? 0)}
+                      월회비 {formatCurrency(resolveInvoiceBaseFee(inv))}
                       {(inv.textbookFee || 0) > 0 && ` · 교재 ${formatCurrency(inv.textbookFee || 0)}`}
                       {(inv.extraFee || 0) > 0 &&
                         ` · ${inv.extraFeeLabel || '기타'} ${formatCurrency(inv.extraFee || 0)}`}

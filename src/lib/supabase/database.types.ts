@@ -2224,6 +2224,19 @@ export interface Database {
         };
         Returns: Json;
       };
+      record_combined_payment: {
+        Args: {
+          p_organization_id: string;
+          p_tuition_items: Json;
+          p_textbook_items: Json;
+          p_payment_method: string;
+          p_paid_at?: string;
+          p_memo?: string | null;
+          p_cash_receipt_issued?: boolean;
+          p_command_key?: string | null;
+        };
+        Returns: Json;
+      };
       enqueue_outbox_event: {
         Args: {
           p_organization_id: string;

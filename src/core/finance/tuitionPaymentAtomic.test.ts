@@ -6,6 +6,11 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  classifyTuitionPaymentRpcResult,
+  isTuitionPaymentApplied,
+  tuitionPaymentRejectMessage,
+} from './tuitionPaymentRpcResult';
 import { modelSerializedTuitionPayments } from './tuitionPaymentPlan';
 
 function run() {
@@ -68,10 +73,49 @@ function run() {
   assert.match(sql, /unique_violation/);
   assert.match(sql, /REVOKE ALL[\s\S]*record_tuition_payment[\s\S]*anon/);
 
+  // Case 1: 서버 완납 오류는 성공이 아님. 로컬 미납 invoice를 성공으로 쓰지 않음
+  const alreadyPaid = classifyTuitionPaymentRpcResult({
+    errorMessage: 'Invoice already paid',
+    invoice: { id: 'stale-unpaid' },
+  });
+  assert.equal(alreadyPaid.kind, 'already_paid');
+  assert.equal(isTuitionPaymentApplied(alreadyPaid), false);
+  assert.match(tuitionPaymentRejectMessage(alreadyPaid), /이미 완납된 청구서/);
+
+  // Case 2: 정상 RPC 성공
+  const applied = classifyTuitionPaymentRpcResult({
+    invoice: { id: 'inv-1', status: 'paid' },
+  });
+  assert.equal(applied.kind, 'applied');
+  assert.equal(isTuitionPaymentApplied(applied), true);
+
+  // Case 3: idempotency replay — 서버가 invoice를 돌려주면 성공
+  const replay = classifyTuitionPaymentRpcResult({
+    invoice: { id: 'inv-1', action: 'idempotent' },
+  });
+  assert.equal(replay.kind, 'applied');
+  assert.equal(isTuitionPaymentApplied(replay), true);
+
+  // Case 4: invalid amount는 성공 처리하지 않음
+  const invalidAmount = classifyTuitionPaymentRpcResult({
+    errorMessage: 'Invalid payment amount',
+  });
+  assert.equal(invalidAmount.kind, 'invalid_amount');
+  assert.equal(isTuitionPaymentApplied(invalidAmount), false);
+  assert.match(tuitionPaymentRejectMessage(invalidAmount), /납부 금액이 올바르지 않습니다/);
+
   const client = readFileSync(join(here, 'tuitionPaymentAtomic.ts'), 'utf8');
   assert.match(client, /record_tuition_payment/);
-  assert.match(client, /writeLocalMirror/);
+  assert.match(client, /projectIfRemoteApplied/);
   assert.equal(client.includes('upsertThenDiffDelete'), false);
+  assert.equal(client.includes('return existing || null'), false);
+  assert.match(client, /classifyTuitionPaymentRpcResult/);
+  assert.match(client, /tuitionPaymentRejectMessage/);
+  assert.match(client, /refreshInvoiceMirrorFromServer/);
+
+  const rejectHelper = readFileSync(join(here, 'tuitionPaymentRpcResult.ts'), 'utf8');
+  assert.match(rejectHelper, /이미 완납된 청구서입니다/);
+  assert.match(rejectHelper, /납부 금액이 올바르지 않습니다/);
 
   const tuitionService = readFileSync(join(here, 'services/tuitionService.ts'), 'utf8');
   assert.match(tuitionService, /recordTuitionPaymentAtomic/);

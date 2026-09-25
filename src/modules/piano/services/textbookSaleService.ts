@@ -1,12 +1,10 @@
 import type {
-  CombinedPaymentRequest,
   PaymentMethod,
   Student,
   Textbook,
   TextbookInventoryTransaction,
   TextbookPayment,
   TextbookSale,
-  TuitionInvoice,
 } from '@/types';
 import { STORAGE_KEYS } from '@/services/adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
@@ -15,7 +13,6 @@ import {
   deleteLinkedIncomesForPaymentIds,
   upsertLinkedIncome,
 } from '@/core/finance/billingIncomeLink';
-import { recordTuitionPaymentAtomic } from '@/core/finance/tuitionPaymentAtomic';
 import type { LinkedTextbookPaymentOptions } from '@/core/finance/linkedTextbookSettle';
 import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
 import { todayIsoLocal } from '@/shared/utils/localDate';
@@ -491,67 +488,6 @@ export function createTextbookSaleService(api: StorageApi) {
       mirrorPayments(payments.filter((p) => p.id !== paymentId));
       deleteLinkedIncome('textbook', paymentId);
       return true;
-    },
-
-    async recordCombinedPayment(req: CombinedPaymentRequest): Promise<{
-      tuitionInvoice?: TuitionInvoice;
-      textbookPayments: TextbookPayment[];
-      totalPaidAmount: number;
-    }> {
-      let tuitionInvoice: TuitionInvoice | undefined;
-      const textbookPayments: TextbookPayment[] = [];
-      let totalPaid = 0;
-
-      const tuitionItems =
-        req.tuitionPayments && req.tuitionPayments.length > 0
-          ? req.tuitionPayments
-          : req.tuitionAmount && req.tuitionAmount > 0
-            ? (() => {
-                const invoices = (api.getInvoices as () => TuitionInvoice[])().filter(
-                  (i) => i.studentId === req.studentId && i.yearMonth === req.yearMonth
-                );
-                return invoices[0]
-                  ? [{ invoiceId: invoices[0].id, amount: req.tuitionAmount }]
-                  : [];
-              })()
-            : [];
-
-      for (const item of tuitionItems) {
-        if (item.amount <= 0) continue;
-        const res = await recordTuitionPaymentAtomic({
-          invoiceId: item.invoiceId,
-          amount: item.amount,
-          method: req.paymentMethod,
-          notes: req.memo,
-          paymentDate: req.paymentDate,
-        });
-        if (res) {
-          tuitionInvoice = res;
-          totalPaid += item.amount;
-        }
-      }
-
-      if (req.textbookPayments && req.textbookPayments.length > 0) {
-        for (const item of req.textbookPayments) {
-          if (item.amount > 0) {
-            const res = await (
-              api.recordTextbookPayment as (
-                saleId: string,
-                amount: number,
-                method?: PaymentMethod,
-                date?: string,
-                memo?: string
-              ) => Promise<{ payment: TextbookPayment; updatedSale: TextbookSale }>
-            )(item.saleId, item.amount, req.paymentMethod, req.paymentDate, req.memo);
-            if (res) {
-              textbookPayments.push(res.payment);
-              totalPaid += item.amount;
-            }
-          }
-        }
-      }
-
-      return { tuitionInvoice, textbookPayments, totalPaidAmount: totalPaid };
     },
   };
 }

@@ -2,13 +2,19 @@
  * 교재비 수납 원자 클라이언트.
  * 온라인: core.record_textbook_payment
  * 로컬 스냅샷 updatedSale 로 DB를 덮지 않는다.
+ * Remote 성공 후 local projection은 financePaymentMirror가 담당한다.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { getOrganizationId, getStorageAdapter, STORAGE_KEYS } from '@/services/adapters';
+import { getOrganizationId } from '@/services/adapters';
 import { pianoRowToPayment } from '@/services/adapters/sync/piano/textbookPaymentMappers';
 import { pianoRowToSale } from '@/services/adapters/sync/piano/textbookSalesMappers';
 import type { PaymentMethod, TextbookPayment, TextbookSale } from '@/types';
 import { upsertLinkedIncome } from '@/core/finance/billingIncomeLink';
+import { createAdapterFinanceMirrorPort } from '@/core/finance/financePaymentMirrorAdapter';
+import {
+  projectIfRemoteApplied,
+  textbookPaymentMirrorJobs,
+} from '@/core/finance/financePaymentMirror';
 import { requireTextbookOrgId } from './textbookSaleDb';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 
@@ -23,25 +29,6 @@ const APP_TO_DB: Record<string, string> = {
 
 export function newTextbookPaymentIdempotencyKey(): string {
   return crypto.randomUUID();
-}
-
-function writeSaleMirror(sale: TextbookSale): void {
-  const adapter = getStorageAdapter();
-  const list = adapter.getItem<TextbookSale[]>(STORAGE_KEYS.TEXTBOOK_SALES, []);
-  const idx = list.findIndex((s) => s.id === sale.id);
-  const next = list.slice();
-  if (idx >= 0) next[idx] = { ...list[idx], ...sale };
-  else next.unshift(sale);
-  if (adapter.writeLocalMirror) adapter.writeLocalMirror(STORAGE_KEYS.TEXTBOOK_SALES, next);
-}
-
-function writePaymentMirror(payment: TextbookPayment): void {
-  const adapter = getStorageAdapter();
-  const list = adapter.getItem<TextbookPayment[]>(STORAGE_KEYS.TEXTBOOK_PAYMENTS, []);
-  if (list.some((p) => p.id === payment.id)) return;
-  if (adapter.writeLocalMirror) {
-    adapter.writeLocalMirror(STORAGE_KEYS.TEXTBOOK_PAYMENTS, [payment, ...list]);
-  }
 }
 
 export async function recordTextbookPaymentAtomic(params: {
@@ -97,21 +84,16 @@ export async function recordTextbookPaymentAtomic(params: {
   payment.studentName = payment.studentName || params.sale.studentName;
   payment.textbookTitle = payment.textbookTitle || params.sale.textbookTitle;
 
-  writeSaleMirror(updatedSale);
-  writePaymentMirror(payment);
-
-  if (!params.skipIncome) {
-    upsertLinkedIncome({
-      sourceType: 'textbook',
-      paymentId: payment.id,
-      date: payment.paymentDate,
-      amount: payment.amount,
-      paymentMethod: payment.paymentMethod,
-      description: `교재비 · ${updatedSale.textbookTitle} · ${updatedSale.studentName}`,
-      payer: updatedSale.studentName,
-      memo: payment.memo,
-    });
-  }
+  projectIfRemoteApplied({
+    remoteStatus: payload.action === 'idempotent' ? 'replay' : 'applied',
+    jobs: textbookPaymentMirrorJobs({
+      sale: updatedSale,
+      payment,
+      skipIncome: params.skipIncome,
+      upsertIncome: upsertLinkedIncome,
+    }),
+    port: createAdapterFinanceMirrorPort(),
+  });
 
   return { payment, updatedSale };
 }

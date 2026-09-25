@@ -17,6 +17,7 @@ interface TuitionPaymentModalProps {
   onPayDateChange: (date: string) => void;
   cashReceiptIssued: boolean;
   onCashReceiptIssuedChange: (value: boolean) => void;
+  submitting?: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onClose: () => void;
 }
@@ -34,6 +35,7 @@ export const TuitionPaymentModal: React.FC<TuitionPaymentModalProps> = ({
   onPayDateChange,
   cashReceiptIssued,
   onCashReceiptIssuedChange,
+  submitting = false,
   onSubmit,
   onClose,
 }) => (
@@ -131,7 +133,8 @@ export const TuitionPaymentModal: React.FC<TuitionPaymentModalProps> = ({
         </button>
         <button
           type="submit"
-          className="px-5 py-2.5 min-h-[44px] text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md"
+          disabled={submitting}
+          className="px-5 py-2.5 min-h-[44px] text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-xl shadow-md disabled:opacity-50"
         >
           확인
         </button>

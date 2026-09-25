@@ -79,6 +79,11 @@ function run() {
   assert.equal(sql.includes("RAISE EXCEPTION '사업장 전화번호를 입력해 주세요.'"), false);
   assert.match(sql, /사업장 주소를 입력해 주세요/);
   assert.match(sql, /사업장 전화번호는 선택/);
+  assert.equal(
+    sql.includes("NULLIF(trim(COALESCE(p_address_detail), '')), '')"),
+    false
+  );
+  assert.match(sql, /NULLIF\(trim\(COALESCE\(p_address_detail, ''\)\), ''\)/);
 
   console.log('createOrganizationPhone.test.ts: ok');
 }

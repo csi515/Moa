@@ -516,6 +516,8 @@ export interface CombinedPaymentRequest {
   paymentMethod: PaymentMethod;
   paymentDate: string;
   memo?: string;
+  /** 동일 통합 수납 재시도 키. 없으면 command 입력으로 파생한다. */
+  commandKey?: string;
 }
 
 export interface Song {

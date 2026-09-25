@@ -141,7 +141,7 @@ BEGIN
     NULLIF(trim(COALESCE(p_dong, '')), ''),
     NULLIF(trim(COALESCE(p_jibun, '')), ''),
     NULLIF(trim(COALESCE(p_road_address, '')), ''),
-    NULLIF(trim(COALESCE(p_address_detail), '')), '')
+    NULLIF(trim(COALESCE(p_address_detail, '')), '')
   )
   RETURNING id INTO v_org_id;
 

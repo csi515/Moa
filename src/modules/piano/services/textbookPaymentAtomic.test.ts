@@ -57,13 +57,13 @@ function run() {
 
   const client = readFileSync(join(here, 'textbookPaymentAtomic.ts'), 'utf8');
   assert.match(client, /record_textbook_payment/);
-  assert.match(client, /writeLocalMirror/);
+  assert.match(client, /projectIfRemoteApplied/);
   assert.equal(client.includes('updatedSale'), true);
   assert.equal(client.includes('recordPaymentOnDb'), false);
 
   const service = readFileSync(join(here, 'textbookSaleService.ts'), 'utf8');
   assert.match(service, /recordTextbookPaymentAtomic/);
-  assert.match(service, /recordTuitionPaymentAtomic/);
+  assert.equal(service.includes('recordCombinedPayment'), false);
   assert.equal(service.includes('recordPaymentOnDb'), false);
 
   const persist = readFileSync(join(here, 'textbookSalePersist.ts'), 'utf8');

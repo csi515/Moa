@@ -1,27 +1,6 @@
 import type { TuitionInvoice } from '../../../../types';
 import type { Json, PaymentMethod as DbPaymentMethod, PaymentStatus } from '../../../../lib/supabase/database.types';
-
-// ─── Payments (Invoices) ──────────────────────────────────────────
-
-interface PaymentMetadata {
-  studentName: string;
-  yearMonth: string;
-  baseTuition?: number;
-  baseFee?: number;
-  discount?: number;
-  discountAmount?: number;
-  textbookFee?: number;
-  additionalAmount?: number;
-  extraFee?: number;
-  extraFeeLabel?: string;
-  unpaidAmount?: number;
-  notes?: string;
-  includeExtras?: boolean;
-  linkedTextbookSaleIds?: string[];
-  linkedExtraItems?: TuitionInvoice['linkedExtraItems'];
-  invoiceSent?: boolean;
-  cashReceiptRequested?: boolean;
-}
+import { packInvoicePaymentMetadata, unpackInvoicePaymentMetadata } from './invoiceMetadata';
 
 const INVOICE_STATUS_MAP: Record<TuitionInvoice['status'], PaymentStatus> = {
   paid: 'paid',
@@ -41,26 +20,6 @@ const APP_PAYMENT_METHOD_MAP: Record<string, DbPaymentMethod> = {
 };
 
 export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string) {
-  const metadata: PaymentMetadata = {
-    studentName: inv.studentName,
-    yearMonth: inv.yearMonth,
-    baseTuition: inv.baseTuition ?? inv.baseFee,
-    baseFee: inv.baseFee,
-    discount: inv.discount,
-    discountAmount: inv.discountAmount,
-    textbookFee: inv.textbookFee,
-    additionalAmount: inv.additionalAmount,
-    extraFee: inv.extraFee,
-    extraFeeLabel: inv.extraFeeLabel,
-    unpaidAmount: inv.unpaidAmount,
-    notes: inv.notes,
-    includeExtras: inv.includeExtras,
-    linkedTextbookSaleIds: inv.linkedTextbookSaleIds,
-    linkedExtraItems: inv.linkedExtraItems,
-    invoiceSent: inv.invoiceSent,
-    cashReceiptRequested: inv.cashReceiptRequested,
-  };
-
   return {
     id: inv.id,
     organization_id: organizationId,
@@ -77,7 +36,7 @@ export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string)
     receipt_number: inv.receiptNumber || null,
     memo: inv.notes || null,
     sent_at: inv.sentAt || null,
-    metadata: metadata as unknown as Json,
+    metadata: packInvoicePaymentMetadata(inv) as unknown as Json,
   };
 }
 
@@ -96,7 +55,7 @@ export function paymentRowToInvoice(row: {
   metadata: Json;
   sent_at?: string | null;
 }): TuitionInvoice {
-  const meta = (row.metadata || {}) as unknown as PaymentMetadata;
+  const meta = unpackInvoicePaymentMetadata(row.metadata);
   const yearMonth = meta.yearMonth || row.title.replace(' 수강료', '');
   const unpaidAmount = meta.unpaidAmount ?? Math.max(0, row.billed_amount - row.paid_amount);
 
@@ -121,7 +80,7 @@ export function paymentRowToInvoice(row: {
   return {
     id: row.id,
     studentId: row.customer_id,
-    studentName: meta.studentName || '',
+    studentName: meta.studentName,
     yearMonth,
     title: row.title || undefined,
     baseTuition: meta.baseTuition,

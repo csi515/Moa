@@ -5,6 +5,21 @@ export { IncomeManagementView } from './components/IncomeManagementView';
 export { TeacherPayrollView } from './components/TeacherPayrollView';
 export { TuitionService } from './services/tuitionService';
 export {
+  listInvoiceChargeLines,
+  resolveInvoiceBaseFee,
+  resolveInvoiceDiscount,
+} from './invoiceModel';
+export type {
+  InvoiceBalanceSnapshot,
+  InvoiceChargeBreakdown,
+  InvoiceChargeLine,
+  InvoiceDeliveryState,
+  InvoiceHeader,
+  InvoiceLastPaymentSnapshot,
+} from './invoiceModel';
+export { recordCombinedPayment } from './application/recordCombinedPayment';
+export type { CombinedPaymentResult } from './application/recordCombinedPayment';
+export {
   countMonthlyTuitionWorkStatuses,
   filterMonthlyTuitionWorkStudents,
   findMonthlyTuitionInvoice,

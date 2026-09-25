@@ -1,7 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import { Student, PaymentMethod } from '@/types';
 import { TuitionService } from '@/core/finance';
-import { useApp } from '@/context/AppContext';
+import { useCombinedPaymentSubmit } from '@/core/finance/application/useCombinedPaymentSubmit';
+import {
+  buildCombinedPaymentRequest,
+  clampPayableAmount,
+  sumSelectedPayable,
+  unpaidCombinedBillingLines,
+} from '@/core/finance/application/combinedPaymentSelection';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
@@ -26,15 +32,17 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   onSuccess,
   onClose,
 }) => {
-  const { showToast, triggerRefresh } = useApp();
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = customerLabelProp || labels.customer.singular || getCustomerLabel(industry);
-  const effectiveYearMonth = yearMonth ?? new Date().toISOString().slice(0, 7);
+  const { submit, submitting } = useCombinedPaymentSubmit({
+    studentName: student.name,
+    customerLabel,
+    onSuccess,
+  });
 
   const billingSummary = TuitionService.getStudentBillingSummary(student.id, yearMonth);
-  const unpaidInvoices = (billingSummary.invoices || []).filter((i) => i.unpaidAmount > 0);
-  const unpaidSales = (billingSummary.textbookSales || []).filter((s) => s.unpaidAmount > 0);
+  const { invoices: unpaidInvoices, sales: unpaidSales } = unpaidCombinedBillingLines(billingSummary);
 
   const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>(
     unpaidInvoices.map((i) => i.id)
@@ -51,22 +59,8 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
   const [paymentDate, setPaymentDate] = useState(todayIsoLocal);
   const [memo, setMemo] = useState('');
 
-  const selectedInvoiceTotal = useMemo(
-    () =>
-      unpaidInvoices
-        .filter((i) => selectedInvoiceIds.includes(i.id))
-        .reduce((sum, i) => sum + Math.min(invoiceAmounts[i.id] ?? 0, i.unpaidAmount), 0),
-    [unpaidInvoices, selectedInvoiceIds, invoiceAmounts]
-  );
-
-  const selectedSaleTotal = useMemo(
-    () =>
-      unpaidSales
-        .filter((s) => selectedSaleIds.includes(s.id))
-        .reduce((sum, s) => sum + Math.min(saleAmounts[s.id] ?? 0, s.unpaidAmount), 0),
-    [unpaidSales, selectedSaleIds, saleAmounts]
-  );
-
+  const selectedInvoiceTotal = sumSelectedPayable(unpaidInvoices, selectedInvoiceIds, invoiceAmounts);
+  const selectedSaleTotal = sumSelectedPayable(unpaidSales, selectedSaleIds, saleAmounts);
   const grandSelectedTotal = selectedInvoiceTotal + selectedSaleTotal;
 
   const toggleInvoice = (id: string) => {
@@ -81,51 +75,23 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
     );
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (grandSelectedTotal <= 0) {
-      showToast('납부할 항목을 1개 이상 선택하고 금액을 입력해주세요.', 'warning');
-      return;
-    }
-
-    try {
-      const tuitionPayments = unpaidInvoices
-        .filter((i) => selectedInvoiceIds.includes(i.id))
-        .map((i) => ({
-          invoiceId: i.id,
-          amount: Math.min(Math.max(0, invoiceAmounts[i.id] ?? 0), i.unpaidAmount),
-        }))
-        .filter((i) => i.amount > 0);
-
-      const textbookPayments = unpaidSales
-        .filter((s) => selectedSaleIds.includes(s.id))
-        .map((s) => ({
-          saleId: s.id,
-          amount: Math.min(Math.max(0, saleAmounts[s.id] ?? 0), s.unpaidAmount),
-        }))
-        .filter((s) => s.amount > 0);
-
-      const res = await TuitionService.recordCombinedPayment({
+    void submit(
+      buildCombinedPaymentRequest({
         studentId: student.id,
-        yearMonth: effectiveYearMonth,
-        tuitionPayments,
-        textbookPayments,
+        yearMonth,
+        invoices: unpaidInvoices,
+        sales: unpaidSales,
+        selectedInvoiceIds,
+        selectedSaleIds,
+        invoiceAmounts,
+        saleAmounts,
         paymentMethod,
         paymentDate,
-        memo: memo.trim() || undefined,
-      });
-
-      showToast(
-        `${student.name} ${customerLabel} 통합 수납 ${formatCurrency(res.totalPaidAmount)} 처리 · 재무 수입에 반영됨`,
-        'success'
-      );
-      triggerRefresh();
-      onSuccess();
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : '통합 수납 처리 중 오류가 발생했습니다.';
-      showToast(message, 'error');
-    }
+        memo,
+      })
+    );
   };
 
   return (
@@ -178,10 +144,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
                         onChange={(e) =>
                           setInvoiceAmounts((prev) => ({
                             ...prev,
-                            [inv.id]: Math.min(
-                              inv.unpaidAmount,
-                              Math.max(0, Number(e.target.value) || 0)
-                            ),
+                            [inv.id]: clampPayableAmount(Number(e.target.value) || 0, inv.unpaidAmount),
                           }))
                         }
                         className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold min-h-[44px]"
@@ -236,10 +199,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
                         onChange={(e) =>
                           setSaleAmounts((prev) => ({
                             ...prev,
-                            [sale.id]: Math.min(
-                              sale.unpaidAmount,
-                              Math.max(0, Number(e.target.value) || 0)
-                            ),
+                            [sale.id]: clampPayableAmount(Number(e.target.value) || 0, sale.unpaidAmount),
                           }))
                         }
                         className="mt-1 w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-bold min-h-[44px]"
@@ -311,7 +271,7 @@ export const CombinedPaymentModal: React.FC<CombinedPaymentModalProps> = ({
           </button>
           <button
             type="submit"
-            disabled={grandSelectedTotal <= 0}
+            disabled={grandSelectedTotal <= 0 || submitting}
             className="inline-flex items-center gap-1.5 px-5 py-2.5 text-xs font-semibold rounded-xl bg-emerald-600 text-white disabled:opacity-50 min-h-[44px]"
           >
             <CheckCircle2 className="w-4 h-4" />

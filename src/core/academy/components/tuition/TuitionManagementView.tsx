@@ -5,8 +5,8 @@ import { getCustomerLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { StudentService } from '@/core/students';
 import { TuitionService } from '@/core/finance';
+import { useTuitionInvoicePayment } from '@/core/finance/application/useTuitionInvoicePayment';
 import { TuitionInvoice, PaymentMethod, Student } from '@/types';
-import { formatCurrency } from '@/utils/formatters';
 import { useStorageRefresh } from '@/hooks';
 import { buildYearMonthOptions } from '@/core/finance/categories';
 import { CreditCard } from 'lucide-react';
@@ -26,6 +26,8 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const { industry } = usePermissions();
   const labels = useModuleLabels();
   const customerLabel = labels.customer.singular || getCustomerLabel(industry);
+  const { submit: submitInvoicePayment, submitting: invoicePaymentSubmitting } =
+    useTuitionInvoicePayment(customerLabel);
   const refreshKey = useStorageRefresh('finance');
 
   const [selectedMonth, setSelectedMonth] = useState(getCurrentYearMonth);
@@ -97,36 +99,15 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
   const handleProcessPayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!payModalInvoice) return;
-
-    if (payAmount <= 0) {
-      showToast('납부 금액은 0원보다 커야 합니다.', 'warning');
-      return;
-    }
-    if (payAmount > payModalInvoice.unpaidAmount) {
-      showToast('미납 금액을 초과할 수 없습니다.', 'warning');
-      return;
-    }
-
-    try {
-      const updated = await TuitionService.recordPayment(
-        payModalInvoice.id,
-        payAmount,
-        payMethod,
-        payMemo,
-        payDate,
-        { cashReceiptIssued }
-      );
-      if (!updated) {
-        showToast('수납 처리에 실패했습니다.', 'error');
-        return;
-      }
-
-      showToast(`${payModalInvoice.studentName} ${customerLabel} ${formatCurrency(payAmount)} 수납 완료`, 'success');
-      setPayModalInvoice(null);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '수납 처리에 실패했습니다.', 'error');
-    }
+    const ok = await submitInvoicePayment({
+      invoice: payModalInvoice,
+      amount: payAmount,
+      method: payMethod,
+      memo: payMemo,
+      paymentDate: payDate,
+      cashReceiptIssued,
+    });
+    if (ok) setPayModalInvoice(null);
   };
 
   const handleSelectStudentFromInvoice = (studentId: string) => {
@@ -208,6 +189,7 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           onPayDateChange={setPayDate}
           cashReceiptIssued={cashReceiptIssued}
           onCashReceiptIssuedChange={setCashReceiptIssued}
+          submitting={invoicePaymentSubmitting}
           onSubmit={handleProcessPayment}
           onClose={() => setPayModalInvoice(null)}
         />
