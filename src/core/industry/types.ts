@@ -9,7 +9,7 @@ import {
   shouldUseGenericShell,
   type IndustryType,
 } from './catalog';
-import type { IndustryCategory } from './categories';
+import { INDUSTRY_CATEGORY_OPTIONS, type IndustryCategory } from './categories';
 
 export type { IndustryType, ModuleIndustryId, IndustryDefinition } from './catalog';
 export {
@@ -68,6 +68,28 @@ export function getIndustryLabel(value?: string | null): string {
 
 export function getIndustryCategoryForType(value?: string | null): IndustryCategory {
   return getIndustryDefinition(value)?.category ?? 'education';
+}
+
+export function isIndustryCategory(value?: string | null): value is IndustryCategory {
+  return Boolean(value && INDUSTRY_CATEGORY_OPTIONS.some((item) => item.id === value));
+}
+
+/**
+ * 생성 시 저장할 대분류.
+ * 업종 ID(piano 등)를 industryCategory에 넣지 않는다.
+ * 명시값이 대분류 id면 그대로, 업종 ID/alias면 대분류로 변환, 그 외 자유텍스트는 호환 유지.
+ */
+export function resolveIndustryCategoryForCreate(
+  industryType?: string | null,
+  explicitCategory?: string | null
+): string {
+  const trimmed = explicitCategory?.trim();
+  if (trimmed) {
+    if (isIndustryCategory(trimmed)) return trimmed;
+    if (getIndustryDefinition(trimmed)) return getIndustryCategoryForType(trimmed);
+    return trimmed;
+  }
+  return getIndustryCategoryForType(industryType);
 }
 
 /** 카탈로그 id ↔ definition 일치 검증 (테스트용) */

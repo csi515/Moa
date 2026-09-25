@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  Building2,
-  MapPin,
-  Phone,
-  Clock,
-  CheckCircle2,
+import { 
+  Building2, 
+  MapPin, 
+  Phone, 
+  Clock, 
+  CheckCircle2, 
   MessageSquare,
   ArrowLeft,
   QrCode,
@@ -282,7 +282,7 @@ export function PublicOrgLanding({ code, mode = 'default' }: PublicOrgLandingPro
                 <QrCode className="w-5 h-5" />
                 {showQR ? 'QR 코드 숨기기' : 'QR 코드 보기'}
               </button>
-
+              
               {showQR && (
                 <div className="mt-6 inline-block p-4 bg-white rounded-2xl border-2 border-slate-200">
                   <QRCodeSVG value={currentUrl} size={200} level="H" includeMargin />

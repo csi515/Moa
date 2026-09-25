@@ -20,6 +20,8 @@ export {
   getIndustryLabel,
   getIndustryCategoryLabel,
   getIndustryCategoryForType,
+  isIndustryCategory,
+  resolveIndustryCategoryForCreate,
   getIndustryDefinition,
   isIndustryType,
   isModuleIndustryId,

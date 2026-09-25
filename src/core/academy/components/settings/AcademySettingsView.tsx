@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
@@ -331,7 +331,7 @@ export const AcademySettingsView: FC = () => {
           (m) => m.organizationId !== org.currentOrganization?.id
         );
         if (otherOrg) {
-          org.selectOrganization(otherOrg.organizationId);
+          await org.selectOrganization(otherOrg.organizationId);
         } else {
           org.clearOrganization();
         }

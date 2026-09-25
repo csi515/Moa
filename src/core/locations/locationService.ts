@@ -5,10 +5,17 @@ import { toAuthorizationGrant } from '@/core/authorization/authorizationService'
 import type { AuthorizationGrant } from '@/core/authorization';
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
 import { filterAccessibleLocations, pickOrganizationTimezone, resolveLocationTimezone } from './locationAware';
+import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
 import { mapLocationRpcError } from './locationErrors';
 import { rowToLocation, type LocationRow } from './locationMappers';
 import { getLocationById, listLocations } from './locationRepository';
-import type { Location, LocationAccessContext, LocationListQuery, UpsertLocationInput } from './types';
+import {
+  DEFAULT_LOCATION_CODE,
+  type Location,
+  type LocationAccessContext,
+  type LocationListQuery,
+  type UpsertLocationInput,
+} from './types';
 
 const LOCATION_ID_STORAGE_KEY = 'moa_current_location_id';
 
@@ -142,13 +149,26 @@ export const locationService = {
     return rowToLocation(data as LocationRow);
   },
 
-  /** 조직 생성 후 기본 지점. 트리거와 멱등. 실패해도 조직 생성은 유지. */
-  async ensureDefault(organizationId: string): Promise<string | null> {
+  /** 기본 지점 확인. 이미 있으면 RPC를 호출하지 않는다. */
+  async ensureDefault(organizationId: string): Promise<string> {
+    let existing: Location[];
+    try {
+      existing = await listLocations(organizationId);
+    } catch (error) {
+      throw new Error(userFacingErrorMessage(error));
+    }
+    const found =
+      existing.find((row) => row.code === DEFAULT_LOCATION_CODE) ?? existing[0];
+    if (found) return found.id;
+
     const client = getCoreClient();
     const { data, error } = await client.rpc('ensure_default_organization_location', {
       p_organization_id: organizationId,
     });
-    if (error) return null;
-    return data ? String(data) : null;
+    if (error) throw new Error(userFacingErrorMessage(error));
+    if (!data) {
+      throw new Error(userFacingErrorMessage(new Error('Location not found')));
+    }
+    return String(data);
   },
 };

@@ -64,7 +64,7 @@ interface OrganizationContextType {
   locationLabel: string;
   canChangeLocation: boolean;
   canClearLocation: boolean;
-  locationsStatus: 'loading' | 'ready';
+  locationsStatus: 'loading' | 'ready' | 'error';
   portalMode: AppPortalMode;
   organizationsStatus: 'loading' | 'ready' | 'error';
   organizationsError: string | null;
@@ -81,7 +81,7 @@ interface OrganizationContextType {
   portalChildCount: number;
   blockedOwnerOrgIds: string[];
   loading: boolean;
-  selectOrganization: (organizationId: string) => void;
+  selectOrganization: (organizationId: string) => Promise<void>;
   selectLocation: (locationId: string | null) => void;
   switchMembership: (membershipId: string) => Promise<void>;
   clearOrganization: () => void;
@@ -89,7 +89,7 @@ interface OrganizationContextType {
     name: string,
     industryType?: IndustryType | string,
     settings?: orgService.CreateOrganizationFormExtras
-  ) => Promise<void>;
+  ) => Promise<string>;
   refreshOrganizations: (opts?: { quiet?: boolean }) => Promise<void>;
   /** 설정 저장 직후 헤더·사업장 선택 UI에 이름 반영 */
   patchOrganization: (organizationId: string, patch: { name: string }) => void;
@@ -313,16 +313,6 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     });
   }, [user, refreshOrganizations]);
 
-  const selectOrganization = useCallback(
-    (organizationId: string) => {
-      if (currentOrganization?.id !== organizationId) {
-        StorageService.clearOrganization();
-      }
-      applyOrgSelection(memberships, organizationId);
-    },
-    [memberships, applyOrgSelection, currentOrganization?.id]
-  );
-
   const switchMembership = useCallback(
     async (membershipId: string) => {
       const membership = memberships.find((m) => m.id === membershipId);
@@ -330,22 +320,31 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         throw new Error('소속 정보를 찾을 수 없습니다.');
       }
 
+      await orgService.setActiveMembership(membershipId);
+
       if (currentOrganization?.id !== membership.organizationId) {
         StorageService.clearOrganization();
       }
-
-      try {
-        await orgService.setActiveMembership(membershipId);
-        if (STAFF_ROLES.has(membership.role)) {
-          commitPortalMode('none');
-        }
-        applyMembershipSelection(memberships, membershipId);
-      } catch (error) {
-        console.error('Failed to switch membership:', error);
-        throw error;
+      if (STAFF_ROLES.has(membership.role)) {
+        commitPortalMode('none');
       }
+      applyMembershipSelection(memberships, membershipId);
+      setMemberships((prev) =>
+        prev.map((item) => ({ ...item, isCurrentContext: item.id === membershipId }))
+      );
     },
     [memberships, applyMembershipSelection, currentOrganization?.id, commitPortalMode]
+  );
+
+  const selectOrganization = useCallback(
+    async (organizationId: string) => {
+      const resolved = resolveMembershipByOrganizationId(memberships, organizationId);
+      if (!resolved.membership) {
+        throw new Error('소속 정보를 찾을 수 없습니다.');
+      }
+      await switchMembership(resolved.membership.id);
+    },
+    [memberships, switchMembership]
   );
 
   const clearOrganization = useCallback(async () => {
@@ -371,10 +370,9 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (settings?.businessNumber) {
         await saveOrganizationBusinessStatus(orgId, '01');
       }
-      await refreshOrganizations();
-      selectOrganization(orgId);
+      return orgId;
     },
-    [refreshOrganizations, selectOrganization]
+    []
   );
 
   const patchOrganization = useCallback((organizationId: string, patch: { name: string }) => {

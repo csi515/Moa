@@ -76,6 +76,10 @@ export const Header: React.FC = () => {
                 </p>
                 {locationLoading ? (
                   <InlineBusy label="확인 중" />
+                ) : supabaseOrg.locationsStatus === 'error' ? (
+                  <p className="text-xs font-semibold text-rose-600">
+                    지점을 불러오지 못했습니다
+                  </p>
                 ) : (
                   <HeaderLocationControl />
                 )}

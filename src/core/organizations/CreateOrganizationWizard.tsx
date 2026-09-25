@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useOrganization } from './OrganizationProvider';
 import {
   Building2,
@@ -12,13 +12,17 @@ import {
 import { type IndustryType } from '../industry/types';
 import { IndustryPicker } from '../industry/IndustryPicker';
 import {
-  getOwnerLabel,
   getPlaceLabel,
   getPlaceNamePlaceholder,
   isAppointmentIndustry,
 } from '../industry/industryUi';
 import { StorageService } from '@/services/storage';
 import { withAttendanceModuleEnabled } from '@/core/attendance/features';
+import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
+import {
+  OrganizationLocationSetupError,
+  ensureOrganizationDefaultLocation,
+} from './services/organizationService';
 import {
   EMPTY_ORGANIZATION_ADDRESS,
   OrganizationAddressFields,
@@ -40,15 +44,16 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
   initialIndustryType = 'piano',
 }) => {
   const org = useOrganization();
+  const submittingRef = useRef(false);
   const [step, setStep] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isEntering, setIsEntering] = useState(false);
+  const [createdOrgId, setCreatedOrgId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attendanceChoice, setAttendanceChoice] = useState<AttendanceChoice>('later');
 
   const [formData, setFormData] = useState({
     name: '',
-    directorName: '',
-    phone: '',
     industryType: initialIndustryType,
   });
   const [addressParts, setAddressParts] = useState<OrganizationAddressValue>(
@@ -56,12 +61,11 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
   );
 
   const placeLabel = getPlaceLabel(formData.industryType);
-  const ownerLabel = getOwnerLabel(formData.industryType);
   const appointmentStyle = isAppointmentIndustry(formData.industryType);
 
   const handleStepInfo = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.directorName.trim() || !formData.phone.trim()) {
+    if (!formData.name.trim() || !formatOrganizationAddress(addressParts)) {
       setError('필수 항목을 모두 입력해 주세요');
       return;
     }
@@ -70,30 +74,54 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
   };
 
   const handleFinish = async (choice: AttendanceChoice = attendanceChoice) => {
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setIsSaving(true);
     setError(null);
     const pinEnabled = choice === 'pin';
     try {
-      await org.createOrganization(formData.name.trim(), formData.industryType, {
-        directorName: formData.directorName.trim(),
-        phone: formData.phone.trim(),
-        address: formatOrganizationAddress(addressParts) || '-',
-        addressParts,
-        features: {
-          attendance: { enabled: pinEnabled },
-        },
-      });
-
-      const local = StorageService.getSettings();
-      StorageService.saveSettings(withAttendanceModuleEnabled(local, pinEnabled));
+      let orgId = createdOrgId;
+      if (orgId) {
+        await ensureOrganizationDefaultLocation(orgId);
+      } else {
+        orgId = await org.createOrganization(formData.name.trim(), formData.industryType, {
+          directorName: StorageService.getActiveUser().name.trim(),
+          address: formatOrganizationAddress(addressParts),
+          addressParts,
+          features: {
+            attendance: { enabled: pinEnabled },
+          },
+        });
+        const local = StorageService.getSettings();
+        StorageService.saveSettings(withAttendanceModuleEnabled(local, pinEnabled));
+        setCreatedOrgId(orgId);
+      }
 
       setStep(2);
-      setTimeout(() => {
-        onComplete();
-      }, 1500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : '사업장 등록 중 오류가 발생했습니다');
+      submittingRef.current = false;
+      if (err instanceof OrganizationLocationSetupError) {
+        setCreatedOrgId(err.organizationId);
+        setError(err.message);
+      } else {
+        setError(userFacingErrorMessage(err));
+      }
+    } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleEnterOrganization = async () => {
+    if (!createdOrgId || isEntering) return;
+    setIsEntering(true);
+    setError(null);
+    try {
+      await org.refreshOrganizations({ quiet: true });
+      await org.selectOrganization(createdOrgId);
+      onComplete();
+    } catch (err) {
+      setError(userFacingErrorMessage(err));
+      setIsEntering(false);
     }
   };
 
@@ -183,35 +211,10 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
                 autoFocus
               />
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {ownerLabel} 성함 <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="text"
-                required
-                placeholder={ownerLabel === '원장' ? '예: 김원장' : '예: 김대표'}
-                value={formData.directorName}
-                onChange={(e) => setFormData({ ...formData, directorName: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none min-h-[44px]"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                {placeLabel} 대표 전화번호 <span className="text-rose-500">*</span>
-              </label>
-              <input
-                type="tel"
-                required
-                placeholder="예: 010-1234-5678"
-                value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full px-3 py-2.5 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none font-mono min-h-[44px]"
-              />
-            </div>
             <OrganizationAddressFields
               value={addressParts}
               onChange={setAddressParts}
+              required
               label={`${placeLabel} 주소`}
             />
 
@@ -304,24 +307,31 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
                 이전
               </button>
               <div className="flex-1 flex flex-col sm:flex-row gap-2 sm:justify-end">
+                {!createdOrgId && (
+                  <button
+                    type="button"
+                    disabled={isSaving}
+                    onClick={() => void handleFinish('later')}
+                    className="px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl min-h-[44px] disabled:opacity-50"
+                  >
+                    나중에 설정하기
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={isSaving}
-                  onClick={() => void handleFinish('later')}
-                  className="px-4 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 rounded-xl min-h-[44px] disabled:opacity-50"
-                >
-                  나중에 설정하기
-                </button>
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={() => void handleFinish(attendanceChoice === 'later' ? 'manual' : attendanceChoice)}
+                  onClick={() =>
+                    void handleFinish(attendanceChoice === 'later' ? 'manual' : attendanceChoice)
+                  }
                   className="px-5 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center justify-center gap-1 min-h-[44px] disabled:opacity-50"
                 >
                   {isSaving ? (
                     <>
-                      <Loader2 className="w-4 h-4 animate-spin" /> 등록 중...
+                      <Loader2 className="w-4 h-4 animate-spin" />{' '}
+                      {createdOrgId ? '지점 준비 중...' : '등록 중...'}
                     </>
+                  ) : createdOrgId ? (
+                    '기본 지점 다시 준비'
                   ) : (
                     <>
                       등록하기 <CheckCircle2 className="w-4 h-4" />
@@ -339,13 +349,34 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               <CheckCircle2 className="w-8 h-8 text-emerald-600" />
             </div>
             <div>
-              <h3 className="font-bold text-lg text-slate-900">사업장 등록 완료!</h3>
+              <h3 className="font-bold text-lg text-slate-900">사업장 등록이 완료되었습니다</h3>
               <p className="text-sm text-slate-500 mt-2 leading-relaxed">
-                {formData.name} 등록이 완료되었습니다
+                {formData.name}
                 <br />
-                이어서 사업장 설정을 진행할 수 있습니다.
+                아래 버튼을 눌러 사업장으로 들어가세요.
               </p>
             </div>
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700 text-left">
+                {error}
+              </div>
+            )}
+            <button
+              type="button"
+              disabled={isEntering || !createdOrgId}
+              onClick={() => void handleEnterOrganization()}
+              className="w-full px-5 py-3 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50"
+            >
+              {isEntering ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" /> 들어가는 중...
+                </>
+              ) : (
+                <>
+                  사업장으로 들어가기 <CheckCircle2 className="w-4 h-4" />
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>

@@ -1,4 +1,8 @@
-/** 업종 대분류 (가입 UI 1단계). settings.industryCategory(사업자 한글 자유텍스트)와 별개 */
+/**
+ * 업종 대분류 (교육·학원, 운동·피트니스 등).
+ * 신규 저장: settings.industryCategory 에 이 id를 넣는다.
+ * 레거시 행은 업종 ID(piano) 또는 한글 자유텍스트일 수 있다. 라우팅에는 쓰지 않는다.
+ */
 export type IndustryCategory =
   | 'education'
   | 'fitness'

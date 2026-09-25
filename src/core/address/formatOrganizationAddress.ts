@@ -14,3 +14,14 @@ export function formatOrganizationAddress(parts: AddressDisplayParts): string {
   }
   return (parts.businessAddress || parts.address || '').trim();
 }
+
+/** 생성 시 저장할 주소. '-' 등 placeholder는 빈 값으로 본다. */
+export function normalizeCreateOrganizationAddress(
+  parts?: AddressDisplayParts,
+  fallback?: string
+): string {
+  const formatted =
+    (parts && formatOrganizationAddress(parts)) || fallback?.trim() || '';
+  if (!formatted || formatted === '-') return '';
+  return formatted;
+}

@@ -20,6 +20,8 @@ import { INDUSTRY_CATEGORY_OPTIONS } from './categories';
 import {
   normalizeIndustryType,
   getIndustryLabel,
+  getIndustryCategoryForType,
+  resolveIndustryCategoryForCreate,
   assertCatalogIntegrity,
 } from './types';
 
@@ -120,6 +122,14 @@ function run(): void {
       assert.ok(items.length > 0, `expected selectable items in: ${cat.id}`);
     }
   }
+
+  assert.equal(getIndustryCategoryForType('piano'), 'education');
+  assert.equal(getIndustryCategoryForType('pilates'), 'fitness');
+  assert.equal(resolveIndustryCategoryForCreate('piano'), 'education');
+  assert.equal(resolveIndustryCategoryForCreate('pilates', 'piano'), 'education');
+  assert.equal(resolveIndustryCategoryForCreate('piano', 'fitness'), 'fitness');
+  assert.equal(resolveIndustryCategoryForCreate('piano', '학원'), '학원');
+  assert.equal(normalizeIndustryType('piano'), 'piano');
 
   console.log(`industryCatalog.test.ts OK (${INDUSTRY_IDS.length} industries)`);
 }

@@ -32,12 +32,13 @@ export function useOrganizationLocationState(
   locationLabel: string;
   canChangeLocation: boolean;
   canClearLocation: boolean;
-  locationsStatus: 'loading' | 'ready';
+  locationsStatus: 'loading' | 'ready' | 'error';
 } {
   const [catalog, setCatalog] = useState<Location[]>([]);
   const [extraGrants, setExtraGrants] = useState<AuthorizationGrant[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
   const [catalogReady, setCatalogReady] = useState(false);
+  const [catalogFailed, setCatalogFailed] = useState(false);
   const [grantsReady, setGrantsReady] = useState(false);
 
   const access = useMemo<LocationAccessContext>(
@@ -60,6 +61,7 @@ export function useOrganizationLocationState(
     setCatalog([]);
     setExtraGrants([]);
     setCatalogReady(false);
+    setCatalogFailed(false);
     setGrantsReady(false);
     setSelectedLocationId(organizationId ? getStoredLocationId(organizationId) : null);
     if (!organizationId) return;
@@ -69,11 +71,13 @@ export function useOrganizationLocationState(
       (rows) => {
         if (cancelled) return;
         setCatalog(rows);
+        setCatalogFailed(false);
         setCatalogReady(true);
       },
       () => {
         if (cancelled) return;
         setCatalog([]);
+        setCatalogFailed(true);
         setCatalogReady(true);
       }
     );
@@ -168,6 +172,10 @@ export function useOrganizationLocationState(
     canChangeLocation: locations.length > 1,
     canClearLocation: locations.length > 1 && !restricted,
     locationsStatus:
-      organizationId && (!catalogReady || !grantsReady) ? 'loading' : 'ready',
+      organizationId && (!catalogReady || !grantsReady)
+        ? 'loading'
+        : catalogFailed
+          ? 'error'
+          : 'ready',
   };
 }

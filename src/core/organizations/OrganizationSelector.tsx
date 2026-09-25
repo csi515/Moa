@@ -15,6 +15,8 @@ import { getIndustryLabel, type IndustryType } from '../industry/types';
 import { CreateOrganizationWizard } from './CreateOrganizationWizard';
 import { TeacherJoinFlow } from './components/TeacherJoinFlow';
 import { useAuth } from '../auth/AuthProvider';
+import { useApp } from '@/context/AppContext';
+import { switchErrorMessage } from './roleContextHelpers';
 
 export const OrganizationSelector: React.FC = () => {
   const {
@@ -27,7 +29,9 @@ export const OrganizationSelector: React.FC = () => {
     blockedOwnerOrgIds,
   } = useOrganization();
   const [retrying, setRetrying] = useState(false);
+  const [selectingId, setSelectingId] = useState<string | null>(null);
   const { signOut, user } = useAuth();
+  const { showToast } = useApp();
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [showTeacherFlow, setShowTeacherFlow] = useState(false);
@@ -43,6 +47,18 @@ export const OrganizationSelector: React.FC = () => {
   const handleRetry = () => {
     setRetrying(true);
     void refreshOrganizations().finally(() => setRetrying(false));
+  };
+
+  const handleSelectOrganization = async (organizationId: string) => {
+    if (selectingId) return;
+    setSelectingId(organizationId);
+    try {
+      await selectOrganization(organizationId);
+    } catch (error) {
+      showToast(switchErrorMessage(error), 'error', '사업장 선택 실패');
+    } finally {
+      setSelectingId(null);
+    }
   };
 
   if (loading || signingOut || retrying) {
@@ -117,8 +133,9 @@ export const OrganizationSelector: React.FC = () => {
                   <button
                     key={membership.id}
                     type="button"
-                    onClick={() => selectOrganization(membership.organizationId)}
-                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-left min-h-[44px]"
+                    disabled={Boolean(selectingId)}
+                    onClick={() => void handleSelectOrganization(membership.organizationId)}
+                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-left min-h-[44px] disabled:opacity-60"
                   >
                     <div className="flex items-center gap-3 min-w-0">
                       <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center shrink-0">
@@ -141,7 +158,11 @@ export const OrganizationSelector: React.FC = () => {
                         </p>
                       </div>
                     </div>
-                    <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+                    {selectingId === membership.organizationId ? (
+                      <Loader2 className="w-5 h-5 text-indigo-600 animate-spin shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-5 h-5 text-slate-400 shrink-0" />
+                    )}
                   </button>
                 ))}
               </div>

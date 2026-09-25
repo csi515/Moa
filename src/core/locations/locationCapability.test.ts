@@ -114,11 +114,15 @@ function run() {
   assert.match(service, /upsert_location/);
   assert.match(service, /ensure_default_organization_location/);
   assert.match(service, /resolveOrganizationTimezone/);
+  assert.match(service, /userFacingErrorMessage/);
+  assert.doesNotMatch(service, /if \(error\) return null/);
   assert.doesNotMatch(service, /create_sale/);
 
   const orgService = readFileSync(join(here, '../organizations/services/organizationService.ts'), 'utf8');
   assert.match(orgService, /ensureDefault/);
+  assert.match(orgService, /OrganizationLocationSetupError/);
   assert.match(orgService, /create_organization/);
+  assert.doesNotMatch(orgService, /트리거가 이미 만들었거나/);
 
   const provider = readFileSync(join(here, '../organizations/OrganizationProvider.tsx'), 'utf8');
   assert.match(provider, /useOrganizationLocationState/);
@@ -136,6 +140,7 @@ function run() {
 
   const hook = readFileSync(join(here, 'useOrganizationLocationState.ts'), 'utf8');
   assert.match(hook, /role: MemberRole \| null/);
+  assert.match(hook, /catalogFailed/);
   assert.doesNotMatch(hook, /useApp/);
   assert.doesNotMatch(hook, /currentUser\.role/);
 

@@ -1,21 +1,50 @@
-import type { IndustryType } from '@/core/industry/types';
+import {
+  resolveIndustryCategoryForCreate,
+  type IndustryType,
+} from '@/core/industry/types';
 import { getOwnerLabel } from '@/core/industry/industryUi';
 import {
   formatOrganizationAddress,
+  normalizeCreateOrganizationAddress,
   type OrganizationAddressValue,
 } from '@/core/address';
 import type { AcademySettings } from '@/types';
+import { StorageService } from '@/services/storage';
 import { locationService } from '@/core/locations/locationService';
+import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
 import { getCoreClient } from '../../../lib/supabase';
 import type { MemberRole, Organization } from '../../../lib/supabase';
 
 const ORG_STORAGE_KEY = 'moa_current_organization_id';
 
+/** 사업장은 만들어졌지만 기본 지점 준비가 실패한 경우 */
+export class OrganizationLocationSetupError extends Error {
+  readonly organizationId: string;
+
+  constructor(organizationId: string, cause: unknown) {
+    super(`기본 지점을 준비하지 못했습니다. ${userFacingErrorMessage(cause)}`);
+    this.name = 'OrganizationLocationSetupError';
+    this.organizationId = organizationId;
+  }
+}
+
+export async function ensureOrganizationDefaultLocation(organizationId: string): Promise<string> {
+  return locationService.ensureDefault(organizationId);
+}
+
+function resolveCreateBusinessRegistrationNumber(value?: string): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  const digits = trimmed.replace(/\D/g, '');
+  if (!digits || /^0+$/.test(digits)) return undefined;
+  return trimmed;
+}
+
 export interface CreateOrganizationOptions {
   name: string;
-  businessRegistrationNumber: string;
+  businessRegistrationNumber?: string;
   representativeName: string;
-  businessPhone: string;
+  businessPhone?: string;
   businessAddress: string;
   industryCategory: string;
   industryType?: IndustryType | string;
@@ -40,20 +69,32 @@ export function toCreateOrganizationOptions(
   extras?: CreateOrganizationFormExtras
 ): CreateOrganizationOptions {
   const addressParts = extras?.addressParts;
-  const formatted =
-    (addressParts && formatOrganizationAddress(addressParts)) ||
-    extras?.address?.trim() ||
-    '-';
+  const formatted = normalizeCreateOrganizationAddress(
+    addressParts,
+    extras?.address
+  );
+  const representativeName =
+    extras?.directorName?.trim() ||
+    StorageService.getActiveUser().name.trim() ||
+    name;
 
   return {
     name,
     industryType,
-    settings: extras,
-    businessRegistrationNumber: extras?.businessNumber?.trim() || '000-00-00000',
-    representativeName: extras?.directorName?.trim() || name,
-    businessPhone: extras?.phone?.trim() || '00000000000',
+    settings: {
+      ...extras,
+      directorName: representativeName,
+    },
+    businessRegistrationNumber: resolveCreateBusinessRegistrationNumber(
+      extras?.businessNumber
+    ),
+    representativeName,
+    businessPhone: extras?.phone?.trim() || undefined,
     businessAddress: formatted,
-    industryCategory: extras?.industryCategory?.trim() || String(industryType),
+    industryCategory: resolveIndustryCategoryForCreate(
+      industryType,
+      extras?.industryCategory
+    ),
     addressParts,
   };
 }
@@ -208,15 +249,12 @@ export async function createOrganization(
     .replace(/^-|-$/g, '')
     .slice(0, 40) || `org-${Date.now()}`;
 
-  // Validate required fields
-  if (!options.businessRegistrationNumber?.trim()) {
-    throw new Error('사업자등록번호를 입력해 주세요.');
-  }
+  const businessRegistrationNumber = resolveCreateBusinessRegistrationNumber(
+    options.businessRegistrationNumber
+  );
+
   if (!options.representativeName?.trim()) {
     throw new Error('대표자명을 입력해 주세요.');
-  }
-  if (!options.businessPhone?.trim()) {
-    throw new Error('사업장 전화번호를 입력해 주세요.');
   }
   if (!options.businessAddress?.trim()) {
     throw new Error('사업장 주소를 입력해 주세요.');
@@ -228,9 +266,10 @@ export async function createOrganization(
   const parts = options.addressParts;
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: name,
-    p_business_registration_number: options.businessRegistrationNumber.trim(),
+    p_business_registration_number:
+      businessRegistrationNumber ?? (null as unknown as string),
     p_representative_name: options.representativeName.trim(),
-    p_business_phone: options.businessPhone.trim(),
+    p_business_phone: options.businessPhone?.trim() || (null as unknown as string),
     p_business_address: options.businessAddress.trim(),
     p_industry_category: options.industryCategory.trim(),
     p_industry_type: resolvedIndustryType,
@@ -250,9 +289,9 @@ export async function createOrganization(
 
   const orgId = data as string;
   try {
-    await locationService.ensureDefault(orgId);
-  } catch {
-    /* 트리거가 이미 만들었거나 마이그레이션 전에도 조직 생성은 유지 */
+    await ensureOrganizationDefaultLocation(orgId);
+  } catch (error) {
+    throw new OrganizationLocationSetupError(orgId, error);
   }
   return orgId;
 }
