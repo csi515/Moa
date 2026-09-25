@@ -63,11 +63,47 @@ function run() {
     assert.equal(evaluatePermission({ role: 'manager', permission, scope: locB }), true);
   }
 
+  assert.equal(isKnownPermission('locations.read'), true);
+  assert.equal(roleHasDefaultPermission('staff', 'locations.read'), true);
   assert.equal(roleHasDefaultPermission('staff', 'customers.read'), true);
   assert.equal(roleHasDefaultPermission('staff', 'sales.refund'), true);
   assert.equal(roleHasDefaultPermission('staff', 'staff.manage'), false);
   assert.equal(roleHasDefaultPermission('staff', 'rooms.manage'), false);
   assert.equal(roleHasDefaultPermission('staff', 'finance.read'), false);
+  assert.equal(
+    evaluatePermission({
+      role: 'member',
+      permission: 'locations.read',
+      scope: locA,
+    }),
+    false
+  );
+  assert.equal(
+    evaluatePermission({
+      role: 'staff',
+      permission: 'locations.read',
+      scope: locA,
+    }),
+    true
+  );
+  assert.equal(
+    evaluatePermission({
+      role: 'member',
+      permission: 'locations.read',
+      scope: locA,
+      extraGrants: [
+        {
+          organizationId: ORG,
+          permission: 'customers.read',
+          scopeType: 'organization',
+          active: true,
+        },
+      ],
+    }),
+    false
+  );
+  assert.equal(evaluatePermission({ role: 'staff', permission: 'customers.read', scope: org }), true);
+  assert.equal(evaluatePermission({ role: 'owner', permission: 'locations.read', scope: locA }), true);
   assert.equal(evaluatePermission({ role: 'instructor', permission: 'customers.read', scope: org }), true);
   assert.equal(evaluatePermission({ role: 'staff', permission: 'staff.manage', scope: org }), false);
   assert.equal(evaluatePermission({ role: 'staff', permission: 'finance.read', scope: org }), false);
@@ -137,10 +173,16 @@ function run() {
   assert.equal(defaultPermissionsForRole('admin').length, PERMISSION_KEYS.length);
   assert.equal(STAFF_DEFAULT_PERMISSIONS.includes('staff.manage'), false);
 
-  const sql = readFileSync(
-    join(root, 'supabase/migrations/20260924280000_authorization_permission_scope.sql'),
-    'utf8'
-  );
+  const sql = [
+    readFileSync(
+      join(root, 'supabase/migrations/20260924280000_authorization_permission_scope.sql'),
+      'utf8'
+    ),
+    readFileSync(
+      join(root, 'supabase/migrations/20260924380000_locations_read_permission.sql'),
+      'utf8'
+    ),
+  ].join('\n');
   assert.match(sql, /CREATE TABLE core\.permission_catalog/);
   assert.match(sql, /CREATE TABLE core\.authorization_grants/);
   assert.match(sql, /CREATE OR REPLACE FUNCTION core\.has_permission/);

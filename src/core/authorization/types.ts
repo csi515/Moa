@@ -26,6 +26,7 @@ export type Permission =
   | 'sales.read'
   | 'sales.create'
   | 'sales.refund'
+  | 'locations.read'
   | 'rooms.read'
   | 'rooms.manage'
   | 'staff.read'

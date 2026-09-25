@@ -18,6 +18,7 @@ import {
   latestMutationForTarget,
   type PendingMutationKind,
 } from './mutationRecord';
+import { peekPendingMutations } from './pendingMutations';
 
 export type SyncOutboxMutation = {
   id: string;
@@ -135,4 +136,26 @@ export function clearSyncOutboxKeys(keys: StorageKey[], upToRevision?: number): 
 
 export function hasPendingSyncOutbox(): boolean {
   return peekSyncOutbox().length > 0;
+}
+
+/**
+ * outbox key만 있고 pending이 없으면 이미 확정된 leftover.
+ * 로그아웃 차단은 pending persistState를 기준으로 한다.
+ */
+export function hasActionableSyncOutbox(orgId?: string | null): boolean {
+  const id = orgId ?? getOrganizationId();
+  if (!id) return false;
+  const pending = peekPendingMutations(id);
+  if (pending.length === 0) return false;
+  const pendingKeys = new Set(pending.map((row) => row.key));
+  const store = readStore(id);
+  if (store.keys.some((key) => pendingKeys.has(key))) return true;
+  return store.mutations.some((row) =>
+    pending.some(
+      (item) =>
+        item.key === row.key &&
+        (item.entityId ?? '') === (row.entityId ?? '') &&
+        item.revision >= row.revision
+    )
+  );
 }

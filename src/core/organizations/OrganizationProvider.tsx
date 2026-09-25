@@ -142,7 +142,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     canChangeLocation,
     canClearLocation,
     locationsStatus,
-  } = useOrganizationLocationState(currentOrganization?.id ?? null);
+  } = useOrganizationLocationState(currentOrganization?.id ?? null, currentRole);
   hasMembershipsRef.current = memberships.length > 0;
 
   // ── Derived: portal access (membership 조회 결과 기반, parent 단정 금지) ──

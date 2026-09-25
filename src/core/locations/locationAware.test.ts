@@ -10,11 +10,14 @@ import {
   LOCATION_SCOPE_POLICY,
   NEW_LOCATION_SCOPED_TABLE_RULES,
   ORGANIZATION_SCOPE_POLICY,
+  canAccessLocation,
+  filterAccessibleLocations,
   locationBusinessDate,
   pickOrganizationTimezone,
   resolveLocationTimezone,
   toLocationAware,
 } from './locationAware';
+import type { LocationAccessContext } from './types';
 import {
   domainScopeKind,
   LOCATION_AWARE_ENTITIES,
@@ -145,6 +148,76 @@ function run() {
     assert.doesNotMatch(attendanceSql, /AT TIME ZONE 'Asia\/Seoul'/);
     assert.match(attendanceSql, /core\.(location_business_date|resolve_location_timezone|timestamptz_from_business_local|business_time_text)/);
   }
+
+  const catalogA = [
+    { id: 'a1', organizationId: 'org-a' },
+    { id: 'a2', organizationId: 'org-a' },
+  ];
+  const catalogB = [{ id: 'b1', organizationId: 'org-b' }];
+  const staffAGrant = {
+    organizationId: 'org-a',
+    permission: 'locations.read',
+    scopeType: 'location' as const,
+    scopeId: 'a1',
+    active: true,
+  };
+  const staffBGrant = {
+    organizationId: 'org-b',
+    permission: 'locations.read',
+    scopeType: 'location' as const,
+    scopeId: 'b1',
+    active: true,
+  };
+  const customersOnlyGrant = {
+    organizationId: 'org-a',
+    permission: 'customers.read',
+    scopeType: 'organization' as const,
+    active: true,
+  };
+
+  const ownerA: LocationAccessContext = { organizationId: 'org-a', role: 'owner' };
+  const staffA: LocationAccessContext = {
+    organizationId: 'org-a',
+    role: 'staff',
+    extraGrants: [staffAGrant],
+  };
+  const staffB: LocationAccessContext = {
+    organizationId: 'org-b',
+    role: 'staff',
+    extraGrants: [staffBGrant],
+  };
+  const undecided: LocationAccessContext = { organizationId: 'org-a', role: null };
+
+  assert.deepEqual(
+    filterAccessibleLocations(catalogA, ownerA).map((row) => row.id),
+    ['a1', 'a2']
+  );
+  assert.deepEqual(
+    filterAccessibleLocations(catalogA, staffA).map((row) => row.id),
+    ['a1']
+  );
+  assert.deepEqual(
+    filterAccessibleLocations([...catalogA, ...catalogB], staffB).map((row) => row.id),
+    ['b1']
+  );
+  assert.deepEqual(filterAccessibleLocations(catalogA, staffB), []);
+  assert.deepEqual(filterAccessibleLocations(catalogA, undecided), []);
+  assert.equal(canAccessLocation(undecided, 'a1'), false);
+  assert.equal(
+    canAccessLocation(
+      { organizationId: 'org-a', role: 'member', extraGrants: [customersOnlyGrant] },
+      'a1'
+    ),
+    false
+  );
+  assert.equal(canAccessLocation(ownerA, 'a1'), true);
+  assert.equal(canAccessLocation({ organizationId: 'org-a', role: 'staff' }, 'a2'), true);
+  assert.deepEqual(
+    filterAccessibleLocations(catalogA, { ...ownerA, role: 'staff', extraGrants: [staffAGrant] }).map(
+      (row) => row.id
+    ),
+    ['a1']
+  );
 
   const locSql = readFileSync(
     join(root, 'supabase/migrations/20260924270000_organization_locations.sql'),

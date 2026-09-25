@@ -10,6 +10,7 @@ import {
   decideHydrateRow,
   diffEntityListSnapshots,
   isSameMutationTarget,
+  MUTATION_PERSIST_STATES,
   normalizePersistState,
   type MutationPersistState,
   type PendingMutationKind,
@@ -17,6 +18,11 @@ import {
 } from './mutationRecord';
 
 export type { MutationPersistState, PendingMutationKind, PendingMutationRecord };
+
+/** server commit 전 persistState. committed 기록은 저장소에서 삭제된다. */
+export function isUncommittedMutation(row: PendingMutationRecord): boolean {
+  return MUTATION_PERSIST_STATES.includes(row.persistState);
+}
 
 type PendingStore = {
   v: 2;
@@ -191,7 +197,44 @@ export function setMutationPersistState(
 }
 
 export function hasUncommittedMutations(orgId?: string | null): boolean {
-  return peekPendingMutations(orgId).length > 0;
+  return peekPendingMutations(orgId).some(isUncommittedMutation);
+}
+
+function listPendingStoreOrgIds(): string[] {
+  const ids = new Set<string>();
+  const current = getOrganizationId();
+  if (current) ids.add(current);
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(PREFIX)) ids.add(key.slice(PREFIX.length));
+    }
+  } catch {
+    /* ignore */
+  }
+  return [...ids];
+}
+
+/** 모든 조직의 미확정 mutation. 빈 store·stale outbox key는 포함하지 않는다. */
+export function hasUncommittedMutationsOnDevice(): boolean {
+  return listPendingStoreOrgIds().some((orgId) => hasUncommittedMutations(orgId));
+}
+
+export type SignOutPrepareStatus = 'ready' | 'blocked';
+
+/** 로그아웃 전 flush. 실패해도 pending을 지우지 않는다. */
+export async function prepareBusinessSignOut(options: {
+  discardUnsynced?: boolean;
+  flush: () => Promise<void>;
+}): Promise<SignOutPrepareStatus> {
+  if (options.discardUnsynced) return 'ready';
+  if (!hasUncommittedMutationsOnDevice()) return 'ready';
+  try {
+    await options.flush();
+  } catch (error) {
+    console.error('[storage] sign-out flush failed', error);
+  }
+  return hasUncommittedMutationsOnDevice() ? 'blocked' : 'ready';
 }
 
 export function markPendingConflict(key: StorageKey, entityId?: string): void {

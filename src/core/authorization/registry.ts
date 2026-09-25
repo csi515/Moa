@@ -10,6 +10,7 @@ export const PERMISSION_DEFINITIONS: readonly PermissionDefinition[] = [
   { key: 'sales.read', resource: 'sales', action: 'read', description: '판매 조회' },
   { key: 'sales.create', resource: 'sales', action: 'create', description: '판매 생성' },
   { key: 'sales.refund', resource: 'sales', action: 'refund', description: '판매 반품·환불' },
+  { key: 'locations.read', resource: 'locations', action: 'read', description: '지점 접근' },
   { key: 'rooms.read', resource: 'rooms', action: 'read', description: '객실·공간 조회' },
   { key: 'rooms.manage', resource: 'rooms', action: 'manage', description: '객실·공간 관리' },
   { key: 'staff.read', resource: 'staff', action: 'read', description: '직원 조회' },

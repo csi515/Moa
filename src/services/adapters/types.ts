@@ -46,6 +46,9 @@ export interface IStorageAdapter {
   /** local write만 있고 server commit이 끝나지 않은 mutation이 있는지 */
   hasUncommittedWrites?(): boolean;
 
+  /** 로그아웃 전 flush. blocked면 pending을 지우지 말고 로그아웃을 중단한다. */
+  prepareSignOut?(options?: { discardUnsynced?: boolean }): Promise<'ready' | 'blocked'>;
+
   /**
    * cache + localStorage만 갱신. persist / diff-delete를 예약하지 않음.
    * RPC 후 해당 row mirror 전용 — 전체 snapshot sync 경로가 아님.

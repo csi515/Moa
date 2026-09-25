@@ -26,6 +26,7 @@ export const STAFF_DEFAULT_PERMISSIONS: readonly Permission[] = [
   'sales.read',
   'sales.create',
   'sales.refund',
+  'locations.read',
   'rooms.read',
   'staff.read',
   'reports.read',

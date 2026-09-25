@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useApp } from '@/context/AppContext';
 import type { AuthorizationGrant } from '@/core/authorization';
+import type { MemberRole } from '@/lib/supabase';
 import {
   canAccessLocation,
   filterAccessibleLocations,
@@ -21,7 +21,10 @@ import type { Location, LocationAccessContext, TrustedLocationSelection } from '
  * OrganizationProvider 확장점. 선택이 없어도 기존 org context 는 그대로 동작한다.
  * 목록/선택은 authorization location scope 와 같은 기준을 쓴다.
  */
-export function useOrganizationLocationState(organizationId: string | null): {
+export function useOrganizationLocationState(
+  organizationId: string | null,
+  role: MemberRole | null
+): {
   locations: Location[];
   currentLocation: Location | null;
   selectLocation: (locationId: string | null) => void;
@@ -31,7 +34,6 @@ export function useOrganizationLocationState(organizationId: string | null): {
   canClearLocation: boolean;
   locationsStatus: 'loading' | 'ready';
 } {
-  const { currentUser } = useApp();
   const [catalog, setCatalog] = useState<Location[]>([]);
   const [extraGrants, setExtraGrants] = useState<AuthorizationGrant[]>([]);
   const [selectedLocationId, setSelectedLocationId] = useState<string | null>(null);
@@ -41,10 +43,10 @@ export function useOrganizationLocationState(organizationId: string | null): {
   const access = useMemo<LocationAccessContext>(
     () => ({
       organizationId: organizationId ?? '',
-      role: currentUser.role,
+      role,
       extraGrants,
     }),
-    [organizationId, currentUser.role, extraGrants]
+    [organizationId, role, extraGrants]
   );
 
   const locations = useMemo(

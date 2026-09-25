@@ -50,6 +50,19 @@ const storageCore = {
     await getStorageAdapter().flushSyncOutbox?.();
   },
 
+  hasUnsyncedBusinessChanges(): boolean {
+    return getStorageAdapter().hasUncommittedWrites?.() ?? false;
+  },
+
+  async prepareSignOut(options?: { discardUnsynced?: boolean }): Promise<'ready' | 'blocked'> {
+    const adapter = getStorageAdapter();
+    if (adapter.prepareSignOut) return adapter.prepareSignOut(options);
+    if (options?.discardUnsynced) return 'ready';
+    if (!adapter.hasUncommittedWrites?.()) return 'ready';
+    await adapter.flushSyncOutbox?.();
+    return adapter.hasUncommittedWrites?.() ? 'blocked' : 'ready';
+  },
+
   subscribe(listener: StorageListener): () => void {
     return getStorageAdapter().subscribe(listener);
   },

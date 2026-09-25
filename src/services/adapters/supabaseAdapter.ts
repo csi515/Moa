@@ -21,10 +21,12 @@ import {
 } from './syncOutbox';
 import {
   confirmServerCommit,
-  hasUncommittedMutations,
+  hasUncommittedMutationsOnDevice,
+  isUncommittedMutation,
   markPendingFromSnapshot,
   maxPendingRevision,
   peekPendingMutations,
+  prepareBusinessSignOut,
   setMutationPersistState,
 } from './pendingMutations';
 import { enqueueSyncOutboxMutation } from './syncOutbox';
@@ -133,7 +135,14 @@ export class SupabaseAdapter implements IStorageAdapter {
   }
 
   hasUncommittedWrites(): boolean {
-    return hasUncommittedMutations() || peekSyncOutbox().length > 0;
+    return hasUncommittedMutationsOnDevice();
+  }
+
+  async prepareSignOut(options?: { discardUnsynced?: boolean }): Promise<'ready' | 'blocked'> {
+    return prepareBusinessSignOut({
+      discardUnsynced: options?.discardUnsynced,
+      flush: () => this.flushSyncOutbox(),
+    });
   }
 
   subscribe(listener: StorageListener): () => void {
@@ -421,7 +430,7 @@ export class SupabaseAdapter implements IStorageAdapter {
     });
   }
 
-  /** outbox에 쌓인 StorageKey만 재 persist — 업무 엔티티 저장소가 아님 */
+  /** outbox + 미확정 pending key만 재 persist — 업무 엔티티 저장소가 아님 */
   async flushSyncOutbox(): Promise<void> {
     if (
       !canPersistRemote({ hydrated: this.hydrated, offlineHydrated: this.offlineHydrated }) ||
@@ -429,10 +438,14 @@ export class SupabaseAdapter implements IStorageAdapter {
     ) {
       return;
     }
-    const keys = peekSyncOutbox();
-    if (keys.length === 0) return;
-    const ok = await this.flushPersist(keys);
-    if (ok) clearSyncOutboxKeys(keys);
+    const keys = new Set(peekSyncOutbox());
+    for (const row of peekPendingMutations()) {
+      if (isUncommittedMutation(row)) keys.add(row.key);
+    }
+    if (keys.size === 0) return;
+    const list = [...keys];
+    const ok = await this.flushPersist(list);
+    if (ok) clearSyncOutboxKeys(list);
   }
 
   private notify(changedKey: StorageChangeKey): void {

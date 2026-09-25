@@ -139,7 +139,6 @@ export const RoleContextSwitcher: React.FC = () => {
 
   const handleLogout = async () => {
     if (switchingId) return;
-    clearOrganization();
     closeMenu();
     await auth.signOut();
   };

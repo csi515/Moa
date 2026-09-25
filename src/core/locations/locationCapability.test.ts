@@ -122,9 +122,22 @@ function run() {
 
   const provider = readFileSync(join(here, '../organizations/OrganizationProvider.tsx'), 'utf8');
   assert.match(provider, /useOrganizationLocationState/);
+  assert.match(provider, /useOrganizationLocationState\(currentOrganization\?\.id \?\? null, currentRole\)/);
   assert.match(provider, /currentLocation/);
   assert.match(provider, /selectLocation/);
   assert.match(provider, /currentOrganization/);
+
+  const aware = readFileSync(join(here, 'locationAware.ts'), 'utf8');
+  assert.match(aware, /LOCATION_ACCESS_PERMISSION = 'locations\.read'/);
+  assert.doesNotMatch(
+    aware.slice(aware.indexOf('export function canAccessLocation'), aware.indexOf('export function hasLocationAssignment')),
+    /customers\.read/
+  );
+
+  const hook = readFileSync(join(here, 'useOrganizationLocationState.ts'), 'utf8');
+  assert.match(hook, /role: MemberRole \| null/);
+  assert.doesNotMatch(hook, /useApp/);
+  assert.doesNotMatch(hook, /currentUser\.role/);
 
   const capability = readFileSync(join(here, 'locationCapability.ts'), 'utf8');
   assert.match(capability, /organizationLocationScope/);

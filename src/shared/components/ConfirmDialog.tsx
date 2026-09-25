@@ -1,10 +1,17 @@
 import React, { useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useOptionalApp, type ConfirmDialogOptions } from '@/context/AppContext';
 import { AlertTriangle } from 'lucide-react';
 import { Modal } from './ui/Modal';
 
-export const ConfirmDialog: React.FC = () => {
-  const { confirmDialog, closeConfirmDialog } = useApp();
+interface ConfirmDialogProps {
+  options?: ConfirmDialogOptions | null;
+  onDismiss?: () => void;
+}
+
+export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ options, onDismiss }) => {
+  const app = useOptionalApp();
+  const confirmDialog = options !== undefined ? options : app?.confirmDialog ?? null;
+  const closeConfirmDialog = onDismiss ?? app?.closeConfirmDialog ?? (() => {});
 
   useEffect(() => {
     if (!confirmDialog) return;
@@ -44,7 +51,7 @@ export const ConfirmDialog: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex justify-end gap-2 pt-4 border-t border-slate-100">
+        <div className="flex flex-wrap justify-end gap-2 pt-4 border-t border-slate-100">
           <button
             type="button"
             onClick={handleCancel}
@@ -52,6 +59,17 @@ export const ConfirmDialog: React.FC = () => {
           >
             {confirmDialog.cancelText || '취소'}
           </button>
+          {confirmDialog.altText ? (
+            <button
+              type="button"
+              onClick={() => {
+                confirmDialog.onAlt?.();
+              }}
+              className="px-4 py-2.5 min-h-[44px] text-sm font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl transition-colors"
+            >
+              {confirmDialog.altText}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => {

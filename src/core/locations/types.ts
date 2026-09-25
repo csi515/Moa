@@ -1,4 +1,5 @@
 import type { AuthorizationGrant } from '@/core/authorization';
+import type { MemberRole } from '@/lib/supabase';
 
 /** 사업자(Organization) 아래 실제 영업 지점. 기존 organization_id를 대체하지 않는다. */
 export const DEFAULT_LOCATION_CODE = 'main';
@@ -46,10 +47,11 @@ export type OrganizationLocationScope = {
   locationId?: string | null;
 };
 
-/** location 선택/목록 필터. authorization grant + role 과 동일 기준. */
+/** location 선택/목록 필터. selectedMembership.currentRole + grant 기준. */
 export type LocationAccessContext = {
   organizationId: string;
-  role: string | null | undefined;
+  /** Organization membership role. AppContext.currentUser.role을 쓰지 않는다. */
+  role: MemberRole | string | null;
   extraGrants?: readonly AuthorizationGrant[] | null;
 };
 

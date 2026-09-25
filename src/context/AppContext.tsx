@@ -93,9 +93,12 @@ export interface ConfirmDialogOptions {
   message: string;
   confirmText?: string;
   cancelText?: string;
+  /** 세 번째 동작. 강제 로그아웃 등 */
+  altText?: string;
   isDestructive?: boolean;
   onConfirm: () => void;
   onCancel?: () => void;
+  onAlt?: () => void;
 }
 
 interface AppContextType {
@@ -258,3 +261,7 @@ export const useApp = () => {
   }
   return context;
 };
+
+export function useOptionalApp(): AppContextType | null {
+  return useContext(AppContext) ?? null;
+}

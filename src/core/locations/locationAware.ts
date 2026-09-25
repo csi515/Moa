@@ -81,15 +81,19 @@ export function isLocationAware(value: unknown): value is LocationAware {
   return typeof row.organizationId === 'string' && row.organizationId.length > 0;
 }
 
+/** 지점 자체 접근. 고객 데이터 조회(customers.read)와 분리한다. */
+export const LOCATION_ACCESS_PERMISSION = 'locations.read' as const;
+
 /** 선택 가능 여부 = has_permission(..., 'location', id). 클라이언트에서 id만 바꿔 승격되지 않는다. */
 export function canAccessLocation(
   access: LocationAccessContext,
   locationId: string | null | undefined
 ): boolean {
   if (!access.organizationId || !locationId) return false;
+  // role 미결정 시 기본 권한 없음. extra grant만 허용된다.
   return evaluatePermission({
     role: access.role,
-    permission: 'customers.read',
+    permission: LOCATION_ACCESS_PERMISSION,
     scope: locationScope(access.organizationId, locationId),
     extraGrants: access.extraGrants,
   });
