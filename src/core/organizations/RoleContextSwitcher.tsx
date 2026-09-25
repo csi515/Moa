@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Building2,
@@ -21,6 +21,7 @@ import type { MemberRole } from '@/lib/supabase';
 import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks/useStorageRefresh';
 import { LOCATION_SCOPE_LABELS } from '@/core/locations/locationLabels';
+import { focusInitialElement, handleMenuKeydown } from '@/shared/components/ui/modalFocus';
 import {
   isManagerLikeRole,
   isStaffLikeRole,
@@ -47,6 +48,19 @@ export const RoleContextSwitcher: React.FC = () => {
   const { currentUser, setActiveTab, showToast } = useApp();
   const [open, setOpen] = useState(false);
   const [switchingId, setSwitchingId] = useState<string | null>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  const closeMenu = useCallback(() => {
+    setOpen(false);
+    queueMicrotask(() => triggerRef.current?.focus());
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const menu = menuRef.current;
+    if (menu) focusInitialElement(menu);
+  }, [open]);
 
   const memberships = org?.memberships ?? [];
   const selectedMembership = org?.selectedMembership;
@@ -109,13 +123,13 @@ export const RoleContextSwitcher: React.FC = () => {
   const handleSwitchMembership = async (membershipId: string) => {
     if (switchingId) return;
     if (selectedMembership?.id === membershipId) {
-      setOpen(false);
+      closeMenu();
       return;
     }
     setSwitchingId(membershipId);
     try {
       await switchMembership(membershipId);
-      setOpen(false);
+      closeMenu();
     } catch (error) {
       showToast(switchErrorMessage(error), 'error', '전환 실패');
     } finally {
@@ -126,7 +140,7 @@ export const RoleContextSwitcher: React.FC = () => {
   const handleLogout = async () => {
     if (switchingId) return;
     clearOrganization();
-    setOpen(false);
+    closeMenu();
     await auth.signOut();
   };
 
@@ -139,10 +153,12 @@ export const RoleContextSwitcher: React.FC = () => {
   return (
     <div className="relative">
       <button
+        ref={triggerRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={() => (open ? closeMenu() : setOpen(true))}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-controls="role-context-menu"
         aria-label={`역할: ${currentRoleLabel || '선택'}`}
         className="flex items-center gap-2 pl-2 pr-3 py-1.5 min-h-[44px] rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 transition-colors cursor-pointer text-left max-w-[180px] sm:max-w-none"
       >
@@ -160,9 +176,16 @@ export const RoleContextSwitcher: React.FC = () => {
 
       {open && (
         <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+          <div className="fixed inset-0 z-40" onClick={closeMenu} aria-hidden />
           <div
+            ref={menuRef}
+            id="role-context-menu"
             role="menu"
+            tabIndex={-1}
+            onKeyDown={(event) => {
+              if (!menuRef.current) return;
+              handleMenuKeydown(event.nativeEvent, menuRef.current, closeMenu);
+            }}
             className="fixed left-4 right-4 bottom-20 sm:absolute sm:left-auto sm:right-0 sm:bottom-auto sm:mt-2 sm:w-80 max-h-[70vh] overflow-y-auto bg-white rounded-2xl shadow-xl border border-slate-200 p-2 z-50"
           >
             <p className="text-[11px] font-bold text-slate-400 px-3 py-1 uppercase tracking-wider">
@@ -287,7 +310,7 @@ export const RoleContextSwitcher: React.FC = () => {
               disabled={Boolean(switchingId)}
               onClick={() => {
                 clearOrganization();
-                setOpen(false);
+                closeMenu();
               }}
               className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
             >
@@ -307,7 +330,7 @@ export const RoleContextSwitcher: React.FC = () => {
                     disabled={Boolean(switchingId)}
                     onClick={() => {
                       enterParentPortal();
-                      setOpen(false);
+                      closeMenu();
                     }}
                     className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
                   >
@@ -322,7 +345,7 @@ export const RoleContextSwitcher: React.FC = () => {
                     disabled={Boolean(switchingId)}
                     onClick={() => {
                       enterCustomerPortal();
-                      setOpen(false);
+                      closeMenu();
                     }}
                     className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
                   >
@@ -348,7 +371,7 @@ export const RoleContextSwitcher: React.FC = () => {
                 role="menuitem"
                 disabled={Boolean(switchingId)}
                 onClick={() => {
-                  setOpen(false);
+                  closeMenu();
                   navigate('/signup/customer');
                 }}
                 className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-indigo-600 hover:bg-indigo-50 min-h-[44px]"
@@ -362,7 +385,7 @@ export const RoleContextSwitcher: React.FC = () => {
                 disabled={Boolean(switchingId)}
                 onClick={() => {
                   setActiveTab('account');
-                  setOpen(false);
+                  closeMenu();
                 }}
                 className="w-full flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 min-h-[44px]"
               >

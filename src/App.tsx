@@ -62,8 +62,9 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <OrganizationProvider>
-          <AppProvider>
+        {/* OrganizationProvider가 useApp()을 쓰므로 AppProvider가 바깥이어야 한다 */}
+        <AppProvider>
+          <OrganizationProvider>
             <MobileBootstrap />
             <Routes>
               {/* Public organization landing page */}
@@ -85,8 +86,8 @@ export default function App() {
                 }
               />
             </Routes>
-          </AppProvider>
-        </OrganizationProvider>
+          </OrganizationProvider>
+        </AppProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -60,6 +60,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signOut = async () => {
     const userId = session?.user?.id;
     StorageService.clearOrganization();
+    StorageService.clearBusinessCachesOnSignOut();
     if (userId) clearLocalPushTokensForUser(userId);
     resetAppPushRegistrationContext();
     await authService.signOut();

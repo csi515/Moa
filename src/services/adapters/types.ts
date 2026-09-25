@@ -26,8 +26,11 @@ export interface IStorageAdapter {
   /** org 선택 시 원격 → 메모리 cache (+ local mirror 갱신 경로는 구현체) */
   hydrate(organizationId: string, industryType?: string | null): Promise<void>;
 
-  /** org 전환/로그아웃 시 캐시 초기화 */
+  /** org 전환/로그아웃 시 메모리 캐시 초기화. localStorage 업무 스냅샷은 유지 */
   clearOrganization(): void;
+
+  /** 명시적 로그아웃 — 모든 조직 업무 cache + pending + outbox 삭제 */
+  clearBusinessCachesOnSignOut?(): void;
 
   isHydrated(): boolean;
   isHydrating(): boolean;

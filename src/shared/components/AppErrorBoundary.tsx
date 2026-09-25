@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
+import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
 
 interface Props {
   children: ReactNode;
@@ -27,7 +28,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   static getDerivedStateFromError(error: Error): Partial<State> {
     return {
       hasError: true,
-      message: error?.message || '화면을 표시하는 중 오류가 발생했습니다',
+      message: userFacingErrorMessage(error),
     };
   }
 

@@ -4,7 +4,8 @@ import { StorageService } from './services/storage';
 import { normalizeIndustryType } from './core/industry/types';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { isNativeApp } from './core/platform/capacitorPlatform';
-import { MOBILE_FOREGROUND_EVENT } from './core/platform/mobileLifecycle';
+import { registerForegroundStep } from './core/platform/foregroundCoordinator';
+import { userFacingErrorMessage } from './shared/errors/userFacingError';
 
 interface StorageHydratorProps {
   organizationId: string;
@@ -37,10 +38,9 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
         setReady(true);
       }
     } catch (err) {
+      console.error('[storage] hydrate failed', err);
       if (!cancelled()) {
-        const message =
-          err instanceof Error ? err.message : '데이터를 불러오지 못했습니다. 네트워크를 확인해 주세요.';
-        setError(message);
+        setError(userFacingErrorMessage(err));
       }
     }
   }, [organizationId, industryType]);
@@ -77,18 +77,12 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     };
     window.addEventListener('online', onOnline);
 
-    if (!isNativeApp()) {
-      return () => {
-        window.removeEventListener('online', onOnline);
-      };
-    }
+    const unregister = isNativeApp()
+      ? registerForegroundStep('hydrate', () => runQuietRehydrate())
+      : undefined;
 
-    const onForeground = () => {
-      void runQuietRehydrate();
-    };
-    window.addEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
     return () => {
-      window.removeEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+      unregister?.();
       window.removeEventListener('online', onOnline);
     };
   }, [runQuietRehydrate]);

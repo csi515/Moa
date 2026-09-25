@@ -1,12 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { applyDeepLinkFromString, bootstrapWebDeepLinks } from './bootstrapDeepLinks';
 import { isNativeApp } from './capacitorPlatform';
+import { registerForegroundStep, runForegroundResume } from './foregroundCoordinator';
 import {
   attachNativeAppLifecycle,
-  MOBILE_FOREGROUND_EVENT,
-  notifyMobileForeground,
   pauseSupabaseAuthOnBackground,
   resolveNativeColdStartUrl,
   resumeSupabaseAuthOnForeground,
@@ -19,7 +18,7 @@ import { isSupabaseConfigured } from '@/lib/supabase';
 /**
  * 네이티브 초기화 orchestration만 담당.
  * - Deep link: bootstrapDeepLinks / cold start launchUrl / appUrlOpen
- * - Lifecycle: mobileLifecycle (session auto-refresh + foreground 이벤트)
+ * - Lifecycle: mobileLifecycle + foregroundCoordinator
  * - Push: user·org 준비 후 registerAppPush (셸에서도 재등록 가능)
  * 웹: bootstrapWebDeepLinks만 — 기존과 동일.
  */
@@ -27,7 +26,6 @@ export function MobileBootstrap() {
   const { user } = useAuth();
   const org = useOptionalOrganization();
   const organizationId = org?.currentOrganization?.id;
-  const foregroundBusy = useRef(false);
 
   // 웹 deep link / 네이티브 UI·lifecycle (1회)
   useEffect(() => {
@@ -38,6 +36,9 @@ export function MobileBootstrap() {
 
     let removed = false;
     let detach: (() => void) | undefined;
+    const unregisterAuth = registerForegroundStep('auth', () =>
+      resumeSupabaseAuthOnForeground()
+    );
 
     const initNative = async () => {
       try {
@@ -64,16 +65,7 @@ export function MobileBootstrap() {
           void pauseSupabaseAuthOnBackground();
         },
         onForeground: () => {
-          if (foregroundBusy.current) return;
-          foregroundBusy.current = true;
-          void (async () => {
-            try {
-              await resumeSupabaseAuthOnForeground();
-              notifyMobileForeground();
-            } finally {
-              foregroundBusy.current = false;
-            }
-          })();
+          void runForegroundResume();
         },
       });
       if (removed) {
@@ -87,11 +79,12 @@ export function MobileBootstrap() {
 
     return () => {
       removed = true;
+      unregisterAuth();
       detach?.();
     };
   }, []);
 
-  // Push: 로그인·org 전환·foreground 시 컨텍스트 갱신 (토큰 변경은 registration listener)
+  // Push: 로그인·org 전환 시 즉시 등록. foreground는 coordinator가 1회만 호출.
   useEffect(() => {
     if (!isNativeApp() || !isSupabaseConfigured() || !user?.id) return;
     const register = () => {
@@ -101,8 +94,7 @@ export function MobileBootstrap() {
       });
     };
     register();
-    window.addEventListener(MOBILE_FOREGROUND_EVENT, register);
-    return () => window.removeEventListener(MOBILE_FOREGROUND_EVENT, register);
+    return registerForegroundStep('push', register);
   }, [user?.id, organizationId]);
 
   return null;

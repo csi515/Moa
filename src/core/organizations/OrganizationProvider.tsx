@@ -42,7 +42,7 @@ import {
 import { useOrganizationLocationState } from '@/core/locations/useOrganizationLocationState';
 import type { Location } from '@/core/locations/types';
 import { isNativeApp } from '@/core/platform/capacitorPlatform';
-import { MOBILE_FOREGROUND_EVENT } from '@/core/platform/mobileLifecycle';
+import { registerForegroundStep } from '@/core/platform/foregroundCoordinator';
 
 /**
  * OrganizationProvider 책임 (단일 Context 유지):
@@ -307,12 +307,10 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
   /** 네이티브 foreground: membership/org 조용히 재검증 (로딩 플래시 없음) */
   useEffect(() => {
     if (!isNativeApp()) return;
-    const onForeground = () => {
+    return registerForegroundStep('org', () => {
       if (!user) return;
-      void refreshOrganizations({ quiet: true });
-    };
-    window.addEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
-    return () => window.removeEventListener(MOBILE_FOREGROUND_EVENT, onForeground);
+      return refreshOrganizations({ quiet: true });
+    });
   }, [user, refreshOrganizations]);
 
   const selectOrganization = useCallback(

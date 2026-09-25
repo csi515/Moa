@@ -1,3 +1,4 @@
+import { clearBusinessCachesOnSignOut as wipeSignedOutBusinessCaches } from './clearBusinessCaches';
 import { readLocal, removeLocal, writeLocal } from './localStorageEngine';
 import { getOrganizationId, setIndustryType, setOrganizationId } from './storageContext';
 import {
@@ -210,6 +211,10 @@ export class SupabaseAdapter implements IStorageAdapter {
     this.persistTimers.clear();
     setOrganizationId(null);
     setIndustryType(null);
+  }
+
+  clearBusinessCachesOnSignOut(): void {
+    wipeSignedOutBusinessCaches();
   }
 
   isHydrated(): boolean {

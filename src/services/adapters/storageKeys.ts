@@ -88,6 +88,38 @@ export const STORAGE_KEYS = {
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];
 
+/** 로그아웃 후에도 유지하는 device-only STORAGE_KEYS (PWA/온보딩/기기 UI) */
+export const DEVICE_ONLY_PERSISTED_KEYS: ReadonlySet<StorageKey> = new Set([
+  STORAGE_KEYS.ACTIVE_USER,
+  STORAGE_KEYS.INITIALIZED,
+  STORAGE_KEYS.ONBOARDING_PROGRESS,
+]);
+
+/** STORAGE_KEYS 밖 device 상태. 로그아웃 시 유지 */
+export const DEVICE_ONLY_RAW_KEYS = ['moa.pwa.dismissUntil', 'moa.pwa.installed'] as const;
+
+const PENDING_MUTATIONS_PREFIX = 'moa:pending-mutations:';
+const SYNC_OUTBOX_PREFIX = 'moa:sync-outbox:';
+
+export function isPreservedOnSignOut(storageKey: string): boolean {
+  if ((DEVICE_ONLY_RAW_KEYS as readonly string[]).includes(storageKey)) return true;
+  for (const base of DEVICE_ONLY_PERSISTED_KEYS) {
+    if (storageKey === base || storageKey.startsWith(`${base}_`)) return true;
+  }
+  return false;
+}
+
+/** 조직 업무 스냅샷·pending·outbox. 다른 계정이 재사용하면 안 되는 키 */
+export function isBusinessCacheKey(storageKey: string): boolean {
+  if (isPreservedOnSignOut(storageKey)) return false;
+  if (storageKey.startsWith(PENDING_MUTATIONS_PREFIX)) return true;
+  if (storageKey.startsWith(SYNC_OUTBOX_PREFIX)) return true;
+  for (const base of Object.values(STORAGE_KEYS)) {
+    if (storageKey === base || storageKey.startsWith(`${base}_`)) return true;
+  }
+  return false;
+}
+
 /**
  * Core 스키마 ↔ local mirror (Phase 3).
  * localStorage = remote cache / offline snapshot. 원본은 Core/Supabase.

@@ -37,6 +37,7 @@ const SCHEMA_RE = new RegExp(
 const ALLOWLIST = {
   'src/core/industry/registry.ts': ['modules_import'],
   'src/core/industry/IndustryAppRouter.tsx': ['modules_import'],
+  'src/core/industry/industryModuleLoaders.tsx': ['modules_import'],
   'src/core/academy/components/students/StudentDetailModal.tsx': ['modules_import'],
   'src/core/academy/components/students/StudentFormModal.tsx': ['modules_import'],
   'src/core/academy/components/parents/ParentManagementView.tsx': ['modules_import'],

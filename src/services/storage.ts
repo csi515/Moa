@@ -30,6 +30,10 @@ const storageCore = {
     getStorageAdapter().clearOrganization();
   },
 
+  clearBusinessCachesOnSignOut(): void {
+    getStorageAdapter().clearBusinessCachesOnSignOut?.();
+  },
+
   isHydrated(): boolean {
     return getStorageAdapter().isHydrated();
   },
