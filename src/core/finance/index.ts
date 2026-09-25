@@ -17,7 +17,6 @@ export {
   isMonthlyTuitionAutoGenerateEligible,
 } from './monthlyTuitionEligibility';
 export { listMonthlyTuitionMissingInvoices } from './monthlyTuitionEnsure';
-export { shareInvoiceNotice } from './invoiceShare';
 export * from './types';
 export * from './categories';
 export * from './teacherPayroll';

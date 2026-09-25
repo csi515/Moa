@@ -149,15 +149,6 @@ export const TuitionService = {
     return run;
   },
 
-  /** 청구서 수동 발송 (알림 포함). 자동 발송 금지. */
-  sendInvoice(invoiceId: string): TuitionInvoice | null {
-    return StorageService.sendInvoice(invoiceId);
-  },
-
-  sendInvoices(invoiceIds: string[]): number {
-    return StorageService.sendInvoices(invoiceIds);
-  },
-
   /**
    * 현금영수증 발행 요청.
    * 로컬 캐시를 갱신하고, 클라우드 설정 시 request_payment_cash_receipt RPC를 호출한다.

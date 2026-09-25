@@ -8,7 +8,6 @@ import type {
 } from '@/types';
 import { STORAGE_KEYS } from '@/services/adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
-import { notifyParentTuitionInvoiceSent } from '@/core/academy/services/academyAlertService';
 import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
 import { todayIsoLocal, yearMonthLocal } from '@/shared/utils/localDate';
 import {
@@ -142,50 +141,6 @@ export function createInvoicePaymentService(api: StorageApi) {
       }
 
       return updated;
-    },
-
-    /** 청구서 수동 발송 — sentAt 기록 + 학부모 알림 (자동 발송 금지) */
-    sendInvoice(invoiceId: string): TuitionInvoice | null {
-      const list = (api.getInvoices as () => TuitionInvoice[])();
-      const idx = list.findIndex((i) => i.id === invoiceId);
-      if (idx === -1) return null;
-
-      const inv = list[idx];
-      if (inv.status === 'cancelled' || inv.status === 'paid') return inv;
-      if (inv.invoiceSent === true && inv.sentAt) return inv;
-
-      const sentAt = new Date().toISOString();
-      const updated: TuitionInvoice = {
-        ...inv,
-        invoiceSent: true,
-        sentAt,
-      };
-      list[idx] = updated;
-      setItem(STORAGE_KEYS.INVOICES, list);
-
-      const students = (api.getStudents as () => Student[])();
-      const student = students.find((s) => s.id === inv.studentId);
-      if (updated.unpaidAmount > 0) {
-        notifyParentTuitionInvoiceSent({
-          studentId: inv.studentId,
-          studentName: inv.studentName,
-          parentPhone: student?.parentPhone,
-          yearMonth: inv.yearMonth,
-          amount: updated.unpaidAmount,
-          dueDate: inv.dueDate,
-          title: inv.title,
-        });
-      }
-      return updated;
-    },
-
-    sendInvoices(invoiceIds: string[]): number {
-      let count = 0;
-      for (const id of invoiceIds) {
-        const sent = (api.sendInvoice as (invoiceId: string) => TuitionInvoice | null)(id);
-        if (sent?.sentAt) count += 1;
-      }
-      return count;
     },
 
     /** 연동 납부 삭제 — charge 잔액·income·합산 교재 정산 동시 복원 */

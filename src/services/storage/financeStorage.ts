@@ -15,7 +15,7 @@ import {
 
 /**
  * 수강료·지출·수입 local persistence + 읽기 집계.
- * 납부/발송/청구 생성 orchestration은 invoicePaymentService.
+ * 납부/청구 생성 orchestration은 invoicePaymentService.
  */
 export function createFinanceStorage(api: StorageApi) {
   return {

@@ -18,7 +18,6 @@ import { TuitionFilterBar } from './TuitionFilterBar';
 import { TuitionCombinedBillingView } from './TuitionCombinedBillingView';
 import { TuitionInvoiceListView } from './TuitionInvoiceListView';
 import { TuitionPaymentModal } from './TuitionPaymentModal';
-import { TuitionReceiptModal } from './TuitionReceiptModal';
 import { ViewMode } from './tuitionViewTypes';
 import { getCurrentYearMonth, formatYearMonthLabel } from './tuitionUtils';
 
@@ -41,11 +40,9 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
   const [payMemo, setPayMemo] = useState('');
   const [payDate, setPayDate] = useState(todayIsoLocal);
   const [cashReceiptIssued, setCashReceiptIssued] = useState(false);
-  const [receiptInvoice, setReceiptInvoice] = useState<TuitionInvoice | null>(null);
 
   const invoices = useMemo(() => TuitionService.getInvoices(), [refreshKey]);
   const students = useMemo(() => StudentService.getStudents(), [refreshKey]);
-  const settings = useMemo(() => TuitionService.getSettings(), [refreshKey]);
 
   const monthOptions = useMemo(
     () =>
@@ -127,7 +124,6 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
 
       showToast(`${payModalInvoice.studentName} ${customerLabel} ${formatCurrency(payAmount)} 수납 완료`, 'success');
       setPayModalInvoice(null);
-      setReceiptInvoice(updated);
     } catch (err) {
       showToast(err instanceof Error ? err.message : '수납 처리에 실패했습니다.', 'error');
     }
@@ -184,7 +180,6 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           students={students}
           onSelectStudent={handleSelectStudentFromInvoice}
           onOpenPayModal={handleOpenPayModal}
-          onOpenReceipt={setReceiptInvoice}
         />
       )}
 
@@ -215,14 +210,6 @@ export const TuitionManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
           onCashReceiptIssuedChange={setCashReceiptIssued}
           onSubmit={handleProcessPayment}
           onClose={() => setPayModalInvoice(null)}
-        />
-      )}
-
-      {receiptInvoice && (
-        <TuitionReceiptModal
-          invoice={receiptInvoice}
-          settings={settings}
-          onClose={() => setReceiptInvoice(null)}
         />
       )}
     </div>

@@ -74,7 +74,7 @@ function run() {
     }),
   ];
 
-  const missing = listMonthlyTuitionMissingInvoices(roster, existing, september);
+  const missing = listMonthlyTuitionMissingInvoices(roster, existing, september, september);
   assert.deepEqual(
     missing.map((row) => row.id),
     ['missing-1', 'missing-2', 'missing-3']
@@ -86,7 +86,7 @@ function run() {
     invoice({ id: 'new-2', studentId: 'missing-2', yearMonth: september, paidAmount: 0, unpaidAmount: 180000 }),
     invoice({ id: 'new-3', studentId: 'missing-3', yearMonth: september, paidAmount: 0, unpaidAmount: 180000 }),
   ];
-  assert.deepEqual(listMonthlyTuitionMissingInvoices(roster, afterEnsure, september), []);
+  assert.deepEqual(listMonthlyTuitionMissingInvoices(roster, afterEnsure, september, september), []);
 
   const paidBefore = existing.find((row) => row.id === 'paid');
   const paidAfter = afterEnsure.find((row) => row.id === 'paid');
@@ -105,7 +105,7 @@ function run() {
     }),
   ];
   assert.deepEqual(
-    listMonthlyTuitionMissingInvoices([student({ id: 'missing-1' })], cancelledOnly, september).map(
+    listMonthlyTuitionMissingInvoices([student({ id: 'missing-1' })], cancelledOnly, september, september).map(
       (row) => row.id
     ),
     ['missing-1']

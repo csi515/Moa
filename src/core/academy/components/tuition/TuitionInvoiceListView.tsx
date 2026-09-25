@@ -1,7 +1,6 @@
 import React from 'react';
 import { Student, TuitionInvoice } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
-import { FileText } from 'lucide-react';
 
 interface TuitionInvoiceListViewProps {
   customerLabel: string;
@@ -9,7 +8,6 @@ interface TuitionInvoiceListViewProps {
   students: Student[];
   onSelectStudent: (studentId: string) => void;
   onOpenPayModal: (invoice: TuitionInvoice) => void;
-  onOpenReceipt: (invoice: TuitionInvoice) => void;
 }
 
 export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
@@ -18,7 +16,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
   students,
   onSelectStudent,
   onOpenPayModal,
-  onOpenReceipt,
 }) => {
   return (
     <div className="space-y-3">
@@ -111,15 +108,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                             >
                               결제 완료 처리
                             </button>
-                          ) : inv.status === 'paid' ? (
-                            <button
-                              type="button"
-                              onClick={() => onOpenReceipt(inv)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 font-bold rounded-xl transition-colors border border-slate-200 flex items-center gap-1 cursor-pointer"
-                            >
-                              <FileText className="w-3.5 h-3.5" />
-                              영수증
-                            </button>
                           ) : null}
                         </div>
                       </td>
@@ -198,14 +186,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         className="px-3 py-2.5 min-h-[44px] bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
                       >
                         결제 완료 처리
-                      </button>
-                    ) : inv.status === 'paid' ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenReceipt(inv)}
-                        className="px-3 py-2.5 min-h-[44px] bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold rounded-xl text-xs border border-slate-200 cursor-pointer"
-                      >
-                        영수증
                       </button>
                     ) : null}
                   </div>

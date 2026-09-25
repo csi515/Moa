@@ -8,9 +8,10 @@ type EnsureStudent = Pick<Student, 'id' | 'billingMode' | 'status' | 'joinDate'>
 export function listMonthlyTuitionMissingInvoices<T extends EnsureStudent>(
   students: T[],
   invoices: TuitionInvoice[],
-  yearMonth: string
+  yearMonth: string,
+  asOfYearMonth?: string
 ): T[] {
-  return filterMonthlyTuitionAutoGenerateStudents(students, yearMonth).filter(
+  return filterMonthlyTuitionAutoGenerateStudents(students, yearMonth, asOfYearMonth).filter(
     (student) => !findMonthlyTuitionInvoice(invoices, student.id, yearMonth)
   );
 }

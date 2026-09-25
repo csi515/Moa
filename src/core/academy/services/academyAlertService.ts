@@ -152,33 +152,6 @@ export function notifyParentTuitionUnpaid(params: {
   });
 }
 
-/** 청구서 수동 발송 시 학부모·성인 수강생 포털 알림 + 앱 푸시 */
-export function notifyParentTuitionInvoiceSent(params: {
-  studentId: string;
-  studentName: string;
-  parentPhone?: string;
-  yearMonth: string;
-  amount: number;
-  dueDate: string;
-  title?: string;
-}): void {
-  const monthLabel = params.yearMonth.includes('-')
-    ? `${params.yearMonth.split('-')[1]}월`
-    : params.yearMonth;
-  publishParentAlert({
-    type: 'tuition_unpaid',
-    title: '수강료 청구서 도착',
-    message: `${params.studentName} ${monthLabel} 수강료 청구서가 도착했습니다. 금액 ₩${params.amount.toLocaleString()} · 납기 ${params.dueDate}`,
-    student: {
-      id: params.studentId,
-      name: params.studentName,
-      parentPhone: params.parentPhone,
-    },
-    scheduledDate: params.dueDate,
-    portalTab: 'tuition',
-  });
-}
-
 /** 가정 연습 일지 스태프 확인 시 학부모 알림 + 앱 푸시 */
 export function notifyParentPracticeReviewed(params: {
   studentId: string;
