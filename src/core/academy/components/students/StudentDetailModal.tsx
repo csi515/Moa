@@ -398,7 +398,6 @@ const StudentDetailModalContent: React.FC<
                   setPayMethod={modal.tuition.setPayMethod}
                   payMemo={modal.tuition.payMemo}
                   setPayMemo={modal.tuition.setPayMemo}
-                  onCreateInvoice={modal.tuition.onCreateInvoice}
                   onOpenPayModal={modal.tuition.onOpenPayModal}
                   onProcessPayment={modal.tuition.onProcessPayment}
                   onOpenTextbookSale={() => modal.textbooks.setIsStudentSaleModalOpen(true)}

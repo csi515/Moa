@@ -1,40 +1,25 @@
 import React from 'react';
 import { Student, TuitionInvoice } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
-import { FileText, Send } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 interface TuitionInvoiceListViewProps {
   customerLabel: string;
   filteredInvoices: TuitionInvoice[];
   students: Student[];
-  selectedIds: string[];
-  onToggleSelect: (invoiceId: string) => void;
-  onToggleSelectAll: () => void;
   onSelectStudent: (studentId: string) => void;
   onOpenPayModal: (invoice: TuitionInvoice) => void;
   onOpenReceipt: (invoice: TuitionInvoice) => void;
-  onSendInvoice: (invoice: TuitionInvoice) => void;
-}
-
-function isUnsent(inv: TuitionInvoice): boolean {
-  return inv.invoiceSent === false;
 }
 
 export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
   customerLabel,
   filteredInvoices,
   students,
-  selectedIds,
-  onToggleSelect,
-  onToggleSelectAll,
   onSelectStudent,
   onOpenPayModal,
   onOpenReceipt,
-  onSendInvoice,
 }) => {
-  const allSelected =
-    filteredInvoices.length > 0 && filteredInvoices.every((inv) => selectedIds.includes(inv.id));
-
   return (
     <div className="space-y-3">
       <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -42,15 +27,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-50/80 text-slate-500 font-bold uppercase tracking-wider border-b border-slate-200">
               <tr>
-                <th className="py-3.5 px-3 w-10">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                    checked={allSelected}
-                    onChange={onToggleSelectAll}
-                    aria-label="전체 선택"
-                  />
-                </th>
                 <th className="py-3.5 px-4">청구월</th>
                 <th className="py-3.5 px-4">{customerLabel} 이름</th>
                 <th className="py-3.5 px-4">기본 수강료</th>
@@ -59,13 +35,13 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                 <th className="py-3.5 px-4">납부액 / 미납액</th>
                 <th className="py-3.5 px-4">납부기한</th>
                 <th className="py-3.5 px-4">상태</th>
-                <th className="py-3.5 px-4 text-right">발송 / 수납</th>
+                <th className="py-3.5 px-4 text-right">수납</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredInvoices.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="py-12 text-center text-slate-400 font-medium">
+                  <td colSpan={9} className="py-12 text-center text-slate-400 font-medium">
                     해당 조건의 수납 내역이 없습니다.
                   </td>
                 </tr>
@@ -74,15 +50,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                   const badge = getInvoiceStatusBadge(inv.status);
                   return (
                     <tr key={inv.id} className="hover:bg-indigo-50/30 transition-colors">
-                      <td className="py-3.5 px-3">
-                        <input
-                          type="checkbox"
-                          className="w-4 h-4 rounded border-slate-300 text-indigo-600"
-                          checked={selectedIds.includes(inv.id)}
-                          onChange={() => onToggleSelect(inv.id)}
-                          aria-label={`${inv.studentName} 선택`}
-                        />
-                      </td>
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-600">
                         {inv.yearMonth}
                       </td>
@@ -94,11 +61,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         >
                           {inv.studentName}
                         </button>
-                        {isUnsent(inv) && (
-                          <span className="ml-1.5 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                            미발송
-                          </span>
-                        )}
                         {inv.cashReceiptRequested && inv.status !== 'paid' && (
                           <span className="ml-1.5 text-[10px] font-bold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full">
                             현금영수증 요청
@@ -141,16 +103,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                       </td>
                       <td className="py-3.5 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">
-                          {isUnsent(inv) && inv.status !== 'paid' && inv.status !== 'cancelled' && (
-                            <button
-                              type="button"
-                              onClick={() => onSendInvoice(inv)}
-                              className="px-3 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-colors shadow-2xs cursor-pointer inline-flex items-center gap-1"
-                            >
-                              <Send className="w-3.5 h-3.5" />
-                              발송
-                            </button>
-                          )}
                           {inv.status !== 'paid' && inv.status !== 'cancelled' ? (
                             <button
                               type="button"
@@ -195,15 +147,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                 key={inv.id}
                 className="bg-white rounded-2xl p-4 border border-slate-200/90 shadow-2xs space-y-3"
               >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="checkbox"
-                    className="mt-1 w-4 h-4 rounded border-slate-300 text-indigo-600"
-                    checked={selectedIds.includes(inv.id)}
-                    onChange={() => onToggleSelect(inv.id)}
-                    aria-label={`${inv.studentName} 선택`}
-                  />
-                  <div className="flex-1 flex items-start justify-between gap-2">
+                <div className="flex items-start justify-between gap-2">
                     <div>
                       <div className="flex flex-wrap items-center gap-2">
                         <button
@@ -216,11 +160,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badge.bg}`}>
                           {badge.label}
                         </span>
-                        {isUnsent(inv) && (
-                          <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">
-                            미발송
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5 font-mono">
                         {inv.yearMonth}월분 (기한: {inv.dueDate})
@@ -238,7 +177,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         <span className="text-xs font-bold text-emerald-600">전액 완납</span>
                       )}
                     </div>
-                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between gap-2">
@@ -253,15 +191,6 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                    {isUnsent(inv) && inv.status !== 'paid' && (
-                      <button
-                        type="button"
-                        onClick={() => onSendInvoice(inv)}
-                        className="px-3 py-2.5 min-h-[44px] bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-2xs cursor-pointer"
-                      >
-                        발송
-                      </button>
-                    )}
                     {inv.status !== 'paid' && inv.status !== 'cancelled' ? (
                       <button
                         type="button"

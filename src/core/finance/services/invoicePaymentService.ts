@@ -25,7 +25,9 @@ import {
   saveTuitionPaymentDirect,
   upsertLinkedIncome,
 } from '@/core/finance/billingIncomeLink';
-import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
+import { defaultDueDateForMonth } from '@/core/academy/components/tuition/tuitionUtils';
+import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
+import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
 import type { IncomeEntry } from '@/core/finance/types';
 import {
   reverseLinkedTextbookPaymentsForTuition,
@@ -186,58 +188,6 @@ export function createInvoicePaymentService(api: StorageApi) {
       return count;
     },
 
-    /**
-     * 다중 수강생 일괄 청구 생성 후 즉시 발송.
-     * PG 자동결제 없음 — 발송만 수행.
-     */
-    bulkCreateAndSendInvoices(params: {
-      studentIds: string[];
-      yearMonth: string;
-      title: string;
-      amount: number;
-      dueDate: string;
-      notes?: string;
-    }): { created: number; sent: number } {
-      const amount = Math.max(0, Number(params.amount) || 0);
-      if (amount <= 0 || params.studentIds.length === 0) {
-        return { created: 0, sent: 0 };
-      }
-
-      const students = (api.getStudents as () => Student[])();
-      let created = 0;
-      const createdIds: string[] = [];
-
-      for (const studentId of params.studentIds) {
-        const st = students.find((s) => s.id === studentId);
-        if (!st || !isMonthlyBillingStudent(st)) continue;
-
-        const saved = (
-          api.saveInvoice as (i: Omit<TuitionInvoice, 'id'> & { id?: string }) => TuitionInvoice
-        )({
-          studentId: st.id,
-          studentName: st.name,
-          yearMonth: params.yearMonth,
-          title: params.title.trim() || `${params.yearMonth} 수강료`,
-          baseFee: amount,
-          baseTuition: amount,
-          discount: 0,
-          totalAmount: amount,
-          paidAmount: 0,
-          unpaidAmount: amount,
-          dueDate: params.dueDate,
-          status: 'unpaid',
-          notes: params.notes,
-          invoiceSent: false,
-          sentAt: null,
-        });
-        created += 1;
-        createdIds.push(saved.id);
-      }
-
-      const sent = (api.sendInvoices as (ids: string[]) => number)(createdIds);
-      return { created, sent };
-    },
-
     /** 연동 납부 삭제 — charge 잔액·income·합산 교재 정산 동시 복원 */
     reverseTuitionPayment(paymentId: string): boolean {
       const payments = readTuitionPayments();
@@ -281,15 +231,14 @@ export function createInvoicePaymentService(api: StorageApi) {
       }
       const ym = yearMonth || yearMonthLocal();
 
-      const existing = findExistingStudentMonthInvoice(
+      const existing = findMonthlyTuitionInvoice(
         (api.getInvoices as () => TuitionInvoice[])(),
         student.id,
         ym
       );
       if (existing) return existing;
 
-      const dueDay = String(student.paymentDay || 10).padStart(2, '0');
-      const dueDate = `${ym}-${dueDay}`;
+      const dueDate = defaultDueDateForMonth(ym, student.paymentDay || 10);
       const settings = getItem<AcademySettings>(STORAGE_KEYS.SETTINGS, {
         name: '',
         address: '',
@@ -392,23 +341,16 @@ export function createInvoicePaymentService(api: StorageApi) {
     },
 
     generateMonthlyInvoicesForAllActive(yearMonth: string): number {
-      const students = (api.getStudents as () => Student[])().filter(
-        (s) => s.status === 'active' && isMonthlyBillingStudent(s)
-      );
+      const students = (api.getStudents as () => Student[])();
       const currentInvoices = (api.getInvoices as () => TuitionInvoice[])();
+      const missing = listMonthlyTuitionMissingInvoices(students, currentInvoices, yearMonth);
       let generatedCount = 0;
 
-      students.forEach((student) => {
-        const alreadyHas = currentInvoices.some(
-          (i) => i.studentId === student.id && i.yearMonth === yearMonth
-        );
-        if (!alreadyHas) {
-          (api.createInvoiceForStudent as (s: Student, ym?: string) => TuitionInvoice | null)(
-            student,
-            yearMonth
-          );
-          generatedCount++;
-        }
+      missing.forEach((student) => {
+        const created = (
+          api.createInvoiceForStudent as (s: Student, ym?: string) => TuitionInvoice | null
+        )(student, yearMonth);
+        if (created) generatedCount += 1;
       });
 
       return generatedCount;

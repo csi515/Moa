@@ -16,7 +16,7 @@ export function resolveDefaultBillingMode(
   return normalizeBillingMode(settingsMode);
 }
 
-/** 월청구 대상 학생 필터 (개별·일괄 청구 UI 공통) */
+/** 월회비 대상 학생 필터 */
 export function filterMonthlyBillingStudents<T extends Pick<Student, 'billingMode' | 'status'>>(
   students: T[],
   options?: { activeOnly?: boolean }

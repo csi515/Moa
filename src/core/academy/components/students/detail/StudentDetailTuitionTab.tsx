@@ -16,7 +16,6 @@ interface StudentDetailTuitionTabProps {
   setPayMethod: (method: PaymentMethod) => void;
   payMemo: string;
   setPayMemo: (memo: string) => void;
-  onCreateInvoice: () => void;
   onOpenPayModal: (inv: TuitionInvoice) => void;
   onProcessPayment: (e: React.FormEvent) => void;
   /** 일회성 교재 수납 등록 */
@@ -37,7 +36,6 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
   setPayMethod,
   payMemo,
   setPayMemo,
-  onCreateInvoice,
   onOpenPayModal,
   onProcessPayment,
   onOpenTextbookSale,
@@ -161,13 +159,6 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
               <Plus className="w-3.5 h-3.5" /> 교재 수납
             </button>
           )}
-          <button
-            type="button"
-            onClick={onCreateInvoice}
-            className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer min-h-[44px]"
-          >
-            <Plus className="w-3.5 h-3.5" /> 월회비 청구
-          </button>
         </div>
       </div>
 

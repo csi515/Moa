@@ -41,7 +41,7 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
     <FilterBar className="gap-2">
       <button
         onClick={() => onViewModeChange('invoices')}
-        title="수강료 개별 청구서 목록"
+        title="수강료 청구 목록"
         className={`px-3 sm:px-4 py-2 min-h-[44px] text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
           viewMode === 'invoices'
             ? 'bg-indigo-600 text-white shadow-xs'
@@ -49,8 +49,8 @@ export const TuitionFilterBar: React.FC<TuitionFilterBarProps> = ({
         }`}
       >
         <CreditCard className="w-4 h-4 shrink-0" />
-        <span className="hidden lg:inline">개별 청구 ({filteredInvoicesCount})</span>
-        <span className="lg:hidden">개별 ({filteredInvoicesCount})</span>
+        <span className="hidden lg:inline">청구 목록 ({filteredInvoicesCount})</span>
+        <span className="lg:hidden">목록 ({filteredInvoicesCount})</span>
       </button>
       <button
         onClick={() => onViewModeChange('combined')}

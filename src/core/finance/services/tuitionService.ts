@@ -12,12 +12,16 @@ import type {
   TuitionPayment,
 } from '@/types';
 import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
+import { filterMonthlyTuitionAutoGenerateStudents } from '@/core/finance/monthlyTuitionEligibility';
+import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
+import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
 import {
   ensureMonthlyTuitionInvoiceAtomic,
   recordTuitionPaymentAtomic,
 } from '@/core/finance/tuitionPaymentAtomic';
-import { isMonthlyBillingStudent } from '@/core/academy/utils/billingMode';
 import { yearMonthLocal } from '@/shared/utils/localDate';
+
+const ensureMonthInflight = new Map<string, Promise<{ created: number; existing: number }>>();
 
 export { findExistingStudentMonthInvoice };
 
@@ -76,7 +80,7 @@ export const TuitionService = {
     options?: { includeExtras?: boolean; extraFee?: number; extraFeeLabel?: string }
   ): Promise<TuitionInvoice | null> {
     const ym = yearMonth || yearMonthLocal();
-    const existing = this.findInvoiceForStudentMonth(student.id, ym);
+    const existing = findMonthlyTuitionInvoice(this.getInvoices(), student.id, ym);
     if (existing) return existing;
 
     const local = StorageService.createInvoiceForStudent(student, ym, options);
@@ -111,16 +115,38 @@ export const TuitionService = {
   },
 
   async generateMonthlyInvoicesForAllActive(yearMonth: string): Promise<number> {
-    const students = StorageService.getStudents().filter(
-      (s) => s.status === 'active' && isMonthlyBillingStudent(s)
-    );
-    let generated = 0;
-    for (const student of students) {
-      const before = this.findInvoiceForStudentMonth(student.id, yearMonth);
-      const created = await this.createInvoiceForStudent(student, yearMonth);
-      if (created && !before) generated += 1;
-    }
-    return generated;
+    const result = await this.ensureMonthlyInvoicesForMonth(yearMonth);
+    return result.created;
+  },
+
+  /** 선택 월만. 없는 월회비 청구서만 생성하고 기존 건은 그대로 둔다. */
+  async ensureMonthlyInvoicesForMonth(
+    yearMonth: string
+  ): Promise<{ created: number; existing: number }> {
+    const pending = ensureMonthInflight.get(yearMonth);
+    if (pending) return pending;
+
+    const run = (async () => {
+      const students = StorageService.getStudents();
+      const invoices = this.getInvoices();
+      const missing = listMonthlyTuitionMissingInvoices(students, invoices, yearMonth);
+      const eligible = filterMonthlyTuitionAutoGenerateStudents(students, yearMonth);
+      let created = 0;
+
+      for (const student of missing) {
+        const before = findMonthlyTuitionInvoice(this.getInvoices(), student.id, yearMonth);
+        if (before) continue;
+        const invoice = await this.createInvoiceForStudent(student, yearMonth);
+        if (invoice) created += 1;
+      }
+
+      return { created, existing: eligible.length - missing.length };
+    })().finally(() => {
+      ensureMonthInflight.delete(yearMonth);
+    });
+
+    ensureMonthInflight.set(yearMonth, run);
+    return run;
   },
 
   /** 청구서 수동 발송 (알림 포함). 자동 발송 금지. */
@@ -130,17 +156,6 @@ export const TuitionService = {
 
   sendInvoices(invoiceIds: string[]): number {
     return StorageService.sendInvoices(invoiceIds);
-  },
-
-  bulkCreateAndSendInvoices(params: {
-    studentIds: string[];
-    yearMonth: string;
-    title: string;
-    amount: number;
-    dueDate: string;
-    notes?: string;
-  }): { created: number; sent: number } {
-    return StorageService.bulkCreateAndSendInvoices(params);
   },
 
   /**

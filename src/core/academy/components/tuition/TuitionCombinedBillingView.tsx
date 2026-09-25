@@ -1,8 +1,15 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Student } from '@/types';
-import { TuitionService } from '@/core/finance';
+import {
+  countMonthlyTuitionWorkStatuses,
+  filterMonthlyTuitionWorkStudents,
+  TuitionService,
+  type MonthlyTuitionWorkFilter,
+} from '@/core/finance';
 import { formatCurrency } from '@/utils/formatters';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FilterBar, FilterTabs } from '@/shared/components';
+import { COMBINED_BILLING_STATUS_FILTER_LABELS } from './tuitionViewTypes';
 
 interface TuitionCombinedBillingViewProps {
   customerLabel: string;
@@ -13,15 +20,12 @@ interface TuitionCombinedBillingViewProps {
   onCombinedPay: (student: Student) => void;
 }
 
-function useFilteredStudents(students: Student[], searchQuery: string) {
-  return useMemo(
-    () =>
-      students.filter(
-        (s) => !searchQuery.trim() || s.name.toLowerCase().includes(searchQuery.toLowerCase())
-      ),
-    [students, searchQuery]
-  );
-}
+const WORK_STATUS_FILTER_ORDER: MonthlyTuitionWorkFilter[] = [
+  'all',
+  'paid',
+  'unpaid',
+  'no_invoice',
+];
 
 function StatusBadge({ totalUnpaid, totalPaid }: { totalUnpaid: number; totalPaid: number }) {
   if (totalUnpaid === 0) {
@@ -53,7 +57,28 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
   onSelectStudent,
   onCombinedPay
 }) => {
-  const filteredStudents = useFilteredStudents(students, searchQuery);
+  const [workStatusFilter, setWorkStatusFilter] = useState<MonthlyTuitionWorkFilter>('all');
+  const invoices = TuitionService.getInvoices();
+
+  const statusCounts = useMemo(
+    () => countMonthlyTuitionWorkStatuses(students, invoices, selectedMonth),
+    [students, invoices, selectedMonth]
+  );
+
+  const filteredStudents = useMemo(
+    () =>
+      filterMonthlyTuitionWorkStudents(students, invoices, selectedMonth, {
+        statusFilter: workStatusFilter,
+        searchQuery,
+      }),
+    [students, invoices, selectedMonth, workStatusFilter, searchQuery]
+  );
+
+  const statusFilterTabs = WORK_STATUS_FILTER_ORDER.map((id) => ({
+    id,
+    label: COMBINED_BILLING_STATUS_FILTER_LABELS[id],
+    count: statusCounts[id],
+  }));
 
   const emptyMessage = (
     <p className="py-12 text-center text-slate-400 text-sm">검색 조건에 맞는 {customerLabel}이(가) 없습니다.</p>
@@ -61,6 +86,14 @@ export const TuitionCombinedBillingView: React.FC<TuitionCombinedBillingViewProp
 
   return (
     <div className="space-y-3">
+      <FilterBar>
+        <FilterTabs
+          tabs={statusFilterTabs}
+          active={workStatusFilter}
+          onChange={setWorkStatusFilter}
+        />
+      </FilterBar>
+
       {/* 데스크톱 테이블 */}
       <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
         <div className="p-4 bg-slate-50 border-b border-slate-200 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-1 text-xs">

@@ -451,39 +451,6 @@ export function useStudentDetailModal({
     }
   };
 
-  const handleCreateInvoice = async () => {
-    if (student.billingMode === 'session_pass') {
-      showToast(
-        `회차권 ${labels.customer.singular}은 월 청구서를 발행하지 않습니다. 회차권을 등록해 주세요.`,
-        'warning'
-      );
-      return;
-    }
-    const yearMonth = yearMonthLocal();
-    const existing = TuitionService.findInvoiceForStudentMonth(student.id, yearMonth);
-    let created;
-    try {
-      created = await TuitionService.createInvoiceForStudent(student, yearMonth);
-    } catch (err) {
-      showToast(err instanceof Error ? err.message : '청구서를 발행할 수 없습니다.', 'error');
-      return;
-    }
-    if (!created) {
-      showToast('청구서를 발행할 수 없습니다.', 'warning');
-      return;
-    }
-    if (existing && existing.id === created.id) {
-      showToast(
-        existing.invoiceSent
-          ? `${yearMonth} 청구서가 이미 발송되어 있습니다.`
-          : `${yearMonth} 청구서 초안이 이미 있습니다. 수강료 화면에서 확인하세요.`,
-        'info'
-      );
-      return;
-    }
-    showToast('청구서 초안이 생성되었습니다. 수강료 화면에서 [발송]하세요.', 'success');
-  };
-
   const statusBadge = getStudentStatusBadge(student.status);
 
   const baseTabConfig = getDetailTabConfig({
@@ -604,7 +571,6 @@ export function useStudentDetailModal({
       setPayMethod,
       payMemo,
       setPayMemo,
-      onCreateInvoice: handleCreateInvoice,
       onOpenPayModal: handleOpenPayModal,
       onProcessPayment: handleProcessPayment,
     },
