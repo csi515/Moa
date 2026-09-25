@@ -138,7 +138,9 @@ export function diffEntityListSnapshots(previous: unknown, next: unknown): Entit
   return { upsertIds, deleteIds };
 }
 
-export function latestMutationForTarget<T extends { key: string; entityId?: string }>(
+export function latestMutationForTarget<
+  T extends { key: string; entityId?: string; revision?: number; updatedAt?: string },
+>(
   rows: readonly T[],
   target: { key: string; entityId?: string }
 ): T | undefined {

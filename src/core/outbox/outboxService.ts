@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/lib/supabase/database.types';
 import { listOutboxEvents } from './outboxRepository';
 import { rowToOutboxEvent, type OutboxEventRow } from './outboxMappers';
@@ -12,13 +12,13 @@ function envValue(name: string): string | undefined {
 }
 
 /** claim/complete/fail 전용. 사용자 JWT/anon 키를 쓰지 않는다. */
-function getOutboxWorkerClient() {
+function getOutboxWorkerClient(): SupabaseClient<Database, 'core'> {
   const url = envValue('SUPABASE_URL') || envValue('VITE_SUPABASE_URL');
   const key = envValue('SUPABASE_SERVICE_ROLE_KEY');
   if (!url || !key) {
     throw new Error('Outbox worker는 service_role 권한이 필요합니다.');
   }
-  return createClient<Database>(url, key, {
+  return createClient<Database, 'core'>(url, key, {
     auth: { persistSession: false, autoRefreshToken: false },
     db: { schema: 'core' },
   });

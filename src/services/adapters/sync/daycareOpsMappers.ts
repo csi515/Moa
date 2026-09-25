@@ -21,26 +21,40 @@ function metaOf(value: Json): Meta {
   return (value || {}) as Meta;
 }
 
+function jsonRecord(value: Json): { [key: string]: Json | undefined } | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  if (Array.isArray(value)) return {};
+  return value;
+}
+
 function pickupsOf(value: Json): AuthorizedPickup[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is AuthorizedPickup => !!item && typeof item === 'object')
-    .map((item) => ({
-      name: String(item.name || ''),
-      relation: String(item.relation || ''),
-      phone: String(item.phone || ''),
-    }));
+  const rows: AuthorizedPickup[] = [];
+  for (const item of value) {
+    const record = jsonRecord(item);
+    if (!record) continue;
+    rows.push({
+      name: String(record.name || ''),
+      relation: String(record.relation || ''),
+      phone: String(record.phone || ''),
+    });
+  }
+  return rows;
 }
 
 function itemsOf(value: Json): SafetyChecklistItem[] {
   if (!Array.isArray(value)) return [];
-  return value
-    .filter((item): item is SafetyChecklistItem => !!item && typeof item === 'object')
-    .map((item) => ({
-      key: String(item.key || ''),
-      label: String(item.label || ''),
-      checked: item.checked === true,
-    }));
+  const rows: SafetyChecklistItem[] = [];
+  for (const item of value) {
+    const record = jsonRecord(item);
+    if (!record) continue;
+    rows.push({
+      key: String(record.key || ''),
+      label: String(record.label || ''),
+      checked: record.checked === true,
+    });
+  }
+  return rows;
 }
 
 export function rowToChildLegalRecord(row: {

@@ -56,6 +56,7 @@
     "test:create-sale-return-atomic": "tsx src/core/sales/createSaleReturnAtomic.test.ts",
     "test:textbook-core-sale-link": "tsx src/modules/piano/services/textbookCoreSaleLink.test.ts",
     "test:org-context-resolve": "tsx src/core/organizations/resolveOrganizationContext.test.ts",
+    "test:create-organization-phone": "tsx src/core/organizations/services/createOrganizationPhone.test.ts",
     "test:storage-refresh": "tsx src/hooks/useStorageRefresh.test.ts",
     "test:pilates-booking-validate": "tsx src/modules/pilates/components/bookings/validateBookingCreate.test.ts",
     "test:session-pass-booking-rules": "tsx src/core/schedules/sessionPassBookingRules.test.ts",
@@ -141,14 +142,14 @@
     "@vitejs/plugin-react": "^5.0.4",
     "canvas-confetti": "^1.9.4",
     "dotenv": "^17.2.3",
-    "express": "^4.21.2",
+    "express": "^4.22.3",
     "html5-qrcode": "^2.3.8",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "react-router-dom": "^6.28.0",
+    "react-router-dom": "^6.30.6",
     "recharts": "^3.10.1",
     "vite": "^6.2.3",
     "xlsx": "^0.18.5"
@@ -166,5 +167,8 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3"
+  },
+  "overrides": {
+    "body-parser": "1.20.8"
   }
 }
