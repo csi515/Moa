@@ -2,6 +2,11 @@ import React from 'react';
 import { Student, TuitionInvoice } from '@/types';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
 import { resolveInvoiceBaseFee } from '@/core/finance/invoiceModel';
+import {
+  getLatestTuitionPaymentForInvoice,
+  lastTuitionPaymentSummaryText,
+} from '@/core/finance/latestTuitionPayment';
+import { TuitionService } from '@/core/finance';
 
 interface TuitionInvoiceListViewProps {
   customerLabel: string;
@@ -18,6 +23,7 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
   onSelectStudent,
   onOpenPayModal,
 }) => {
+  const tuitionPayments = TuitionService.getTuitionPayments();
   return (
     <div className="space-y-3">
       <div className="hidden md:block bg-white rounded-3xl border border-slate-200/80 shadow-xs overflow-hidden">
@@ -46,6 +52,9 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
               ) : (
                 filteredInvoices.map((inv) => {
                   const badge = getInvoiceStatusBadge(inv.status);
+                  const lastPaymentText = lastTuitionPaymentSummaryText(
+                    getLatestTuitionPaymentForInvoice(tuitionPayments, inv.id)
+                  );
                   return (
                     <tr key={inv.id} className="hover:bg-indigo-50/30 transition-colors">
                       <td className="py-3.5 px-4 font-mono font-bold text-slate-600">
@@ -92,6 +101,11 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                             (미납: {formatCurrency(inv.unpaidAmount)})
                           </span>
                         )}
+                        {lastPaymentText && (
+                          <span className="block text-[10px] font-medium text-slate-400 mt-0.5">
+                            최근 수납 {lastPaymentText}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-slate-500 font-mono">{inv.dueDate}</td>
                       <td className="py-3.5 px-4">
@@ -130,6 +144,9 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
           filteredInvoices.map((inv) => {
             const badge = getInvoiceStatusBadge(inv.status);
             const st = students.find((s) => s.id === inv.studentId);
+            const lastPaymentText = lastTuitionPaymentSummaryText(
+              getLatestTuitionPaymentForInvoice(tuitionPayments, inv.id)
+            );
 
             return (
               <div
@@ -164,6 +181,11 @@ export const TuitionInvoiceListView: React.FC<TuitionInvoiceListViewProps> = ({
                         </span>
                       ) : (
                         <span className="text-xs font-bold text-emerald-600">전액 완납</span>
+                      )}
+                      {lastPaymentText && (
+                        <span className="block text-[10px] font-medium text-slate-400 mt-0.5">
+                          최근 수납 {lastPaymentText}
+                        </span>
                       )}
                     </div>
                 </div>

@@ -239,8 +239,11 @@ export interface TuitionInvoice {
   unpaidAmount: number;
   dueDate: string; // YYYY-MM-DD
   status: InvoiceStatus;
+  /** legacy compatibility snapshot. 수납 시 갱신하지 않음. 표시는 TuitionPayment */
   paymentMethod?: PaymentMethod | null;
+  /** legacy compatibility snapshot. 수납 시 갱신하지 않음. 표시는 TuitionPayment */
   paidAt?: string;
+  /** legacy compatibility snapshot. 수납 시 갱신하지 않음. 표시는 TuitionPayment */
   paidDate?: string;
   notes?: string;
   receiptNumber?: string;

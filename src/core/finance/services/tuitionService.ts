@@ -21,6 +21,7 @@ import {
   recordTuitionPaymentAtomic,
 } from '@/core/finance/tuitionPaymentAtomic';
 import { planInvoiceTextbookRelink } from '@/core/finance/invoiceTextbookLink';
+import { getLatestTuitionPaymentForInvoice as pickLatestTuitionPaymentForInvoice } from '@/core/finance/latestTuitionPayment';
 import { yearMonthLocal } from '@/shared/utils/localDate';
 
 const ensureMonthInflight = new Map<string, Promise<{ created: number; existing: number }>>();
@@ -216,6 +217,11 @@ export const TuitionService = {
 
   getTuitionPayments(): TuitionPayment[] {
     return StorageService.getTuitionPayments();
+  },
+
+  /** 마지막 수납 표시용. Invoice snapshot이 아니라 TuitionPayment 원장. */
+  getLatestTuitionPaymentForInvoice(invoiceId: string): TuitionPayment | null {
+    return pickLatestTuitionPaymentForInvoice(this.getTuitionPayments(), invoiceId);
   },
 
   getStudentBillingSummary(

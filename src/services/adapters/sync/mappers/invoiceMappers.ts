@@ -10,15 +10,7 @@ const INVOICE_STATUS_MAP: Record<TuitionInvoice['status'], PaymentStatus> = {
   cancelled: 'cancelled',
 };
 
-const APP_PAYMENT_METHOD_MAP: Record<string, DbPaymentMethod> = {
-  card: 'card',
-  transfer: 'transfer',
-  cash: 'cash',
-  other: 'other',
-  local_currency: 'local_currency',
-  onsite_card: 'onsite_card',
-};
-
+/** persist는 청구/잔액만 보낸다. payment_method·paid_at는 RPC leftover — 낡은 snapshot으로 덮지 않는다. */
 export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string) {
   return {
     id: inv.id,
@@ -29,10 +21,6 @@ export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string)
     paid_amount: inv.paidAmount,
     due_date: inv.dueDate || null,
     status: INVOICE_STATUS_MAP[inv.status] || 'unpaid',
-    payment_method: inv.paymentMethod
-      ? APP_PAYMENT_METHOD_MAP[inv.paymentMethod] || 'other'
-      : null,
-    paid_at: inv.paidAt || inv.paidDate || null,
     receipt_number: inv.receiptNumber || null,
     memo: inv.notes || null,
     sent_at: inv.sentAt || null,
@@ -96,6 +84,7 @@ export function paymentRowToInvoice(row: {
     unpaidAmount,
     dueDate: row.due_date || '',
     status,
+    // legacy compatibility snapshot. UI last-payment reads TuitionPayment, not these fields.
     paymentMethod: row.payment_method ? methodReverse[row.payment_method] : null,
     paidAt: row.paid_at || undefined,
     paidDate: row.paid_at?.slice(0, 10),

@@ -116,9 +116,6 @@ export function createInvoicePaymentService(api: StorageApi) {
         paidAmount: newPaidAmount,
         unpaidAmount: newUnpaidAmount,
         status: newStatus,
-        paymentMethod: method,
-        paidAt: pDate,
-        paidDate: pDate,
         notes: notes ? `${inv.notes || ''} [${pDate}] ${notes}`.trim() : inv.notes,
         receiptNumber: inv.receiptNumber || receiptNum,
       };

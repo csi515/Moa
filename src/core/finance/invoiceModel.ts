@@ -30,7 +30,10 @@ export type InvoiceBalanceSnapshot = Pick<
   'totalAmount' | 'paidAmount' | 'unpaidAmount' | 'status'
 >;
 
-/** 청구서에 복제된 마지막 수납 스냅샷. 원장은 TuitionPayment / payment_transactions. */
+/**
+ * legacy compatibility snapshot.
+ * 수납 쓰기는 갱신하지 않는다. 표시는 getLatestTuitionPaymentForInvoice.
+ */
 export type InvoiceLastPaymentSnapshot = Pick<
   TuitionInvoice,
   'paymentMethod' | 'paidAt' | 'paidDate' | 'receiptNumber'

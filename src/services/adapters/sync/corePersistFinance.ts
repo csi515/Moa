@@ -24,6 +24,7 @@ export async function persistPayments(
   if (isAborted()) return false;
   const invoices = requireCacheList<TuitionInvoice>(cache, STORAGE_KEYS.INVOICES, 'payments');
   if (!invoices) return false;
+  // persist payload는 payment_method/paid_at를 포함하지 않는다.
 
   const ok = await syncTable(
     client,

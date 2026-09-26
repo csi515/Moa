@@ -73,6 +73,19 @@ function run() {
   assert.match(sql, /unique_violation/);
   assert.match(sql, /REVOKE ALL[\s\S]*record_tuition_payment[\s\S]*anon/);
 
+  const snapshotSql = readFileSync(
+    join(here, '../../../supabase/migrations/20260926100000_tuition_invoice_no_last_payment_snapshot.sql'),
+    'utf8'
+  );
+  assert.match(snapshotSql, /CREATE OR REPLACE FUNCTION core\.record_tuition_payment\(/);
+  assert.match(snapshotSql, /CREATE OR REPLACE FUNCTION core\.sync_payment_from_transaction\(/);
+  assert.match(snapshotSql, /INSERT INTO core\.payment_transactions/);
+  assert.match(snapshotSql, /paid_amount = v_new_paid/);
+  assert.match(snapshotSql, /receipt_number = COALESCE/);
+  assert.equal(snapshotSql.includes('payment_method = p_payment_method'), false);
+  assert.equal(snapshotSql.includes('paid_at = COALESCE(p_paid_at'), false);
+  assert.equal(snapshotSql.includes("paid_at = CASE WHEN v_new_status = 'paid'"), false);
+
   // Case 1: 서버 완납 오류는 성공이 아님. 로컬 미납 invoice를 성공으로 쓰지 않음
   const alreadyPaid = classifyTuitionPaymentRpcResult({
     errorMessage: 'Invoice already paid',

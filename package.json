@@ -50,6 +50,7 @@
     "test:invoice-dedupe": "tsx src/core/finance/invoiceDedupe.test.ts",
     "test:invoice-textbook-link": "tsx src/core/finance/invoiceTextbookLink.test.ts",
     "test:invoice-model": "tsx src/core/finance/invoiceModel.test.ts",
+    "test:latest-tuition-payment": "tsx src/core/finance/latestTuitionPayment.test.ts",
     "test:invoice-payment-service": "tsx src/core/finance/services/invoicePaymentService.test.ts",
     "test:migration-syntax": "node scripts/check-migration-syntax.mjs",
     "test:monthly-tuition-status": "tsx src/core/finance/monthlyTuitionStatus.test.ts",

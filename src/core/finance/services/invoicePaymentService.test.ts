@@ -16,6 +16,7 @@ import type {
 import type { IncomeEntry } from '@/core/finance/types';
 import { createInvoicePaymentService } from './invoicePaymentService';
 import type { StorageApi } from '@/services/storage/helpers';
+import { resolveLastTuitionPaymentDisplay } from '@/core/finance/latestTuitionPayment';
 
 function student(partial: Partial<Student> & Pick<Student, 'id' | 'name'>): Student {
   return {
@@ -190,6 +191,8 @@ function run() {
   assert.match(serviceSrc, /saveInvoice/);
   assert.match(serviceSrc, /setTextbookBillingInvoice/);
   assert.match(serviceSrc, /clearTextbookBillingInvoiceForInvoice/);
+  assert.equal(serviceSrc.includes('paidAt: pDate'), false);
+  assert.equal(serviceSrc.includes('paidDate: pDate'), false);
 
   // invoice 생성 + textbook 연결
   {
@@ -224,12 +227,45 @@ function run() {
     const paid = service.recordPayment(created.id, 40000, 'cash');
     assert.equal(paid?.paidAmount, 40000);
     assert.equal(paid?.status, 'partial');
+    assert.equal(paid?.paymentMethod, undefined);
+    assert.equal(paid?.paidAt, undefined);
+    assert.equal(paid?.paidDate, undefined);
+    assert.equal(store.payments[0].paymentMethod, 'cash');
     assert.equal(store.payments.length, 1);
     assert.equal(store.income.length, 1);
     assert.equal(service.reverseTuitionPayment(store.payments[0].id), true);
     assert.equal(store.payments.length, 0);
     assert.equal(store.income.length, 0);
     assert.equal(store.invoices[0].paidAmount, 0);
+  }
+
+  // 오래된 Invoice snapshot은 유지하고, 마지막 수납 표시는 TuitionPayment
+  {
+    const { store, service } = createMemoryStore();
+    const created = service.createInvoiceForStudent(student({ id: 'stu-1', name: '원생' }), '2026-09', {
+      includeExtras: false,
+    });
+    assert.ok(created);
+    store.saveInvoice({
+      ...created,
+      paymentMethod: 'cash',
+      paidAt: '2026-09-01',
+      paidDate: '2026-09-01',
+    });
+    const first = service.recordPayment(created.id, 30000, 'card', undefined, '2026-09-03');
+    assert.equal(first?.status, 'partial');
+    assert.equal(first?.paymentMethod, 'cash');
+    assert.equal(first?.paidAt, '2026-09-01');
+    assert.equal(store.payments[0].paymentMethod, 'card');
+    assert.equal(store.payments[0].amount, 30000);
+    const second = service.recordPayment(created.id, 70000, 'transfer', undefined, '2026-09-08');
+    assert.equal(second?.status, 'paid');
+    assert.equal(second?.paymentMethod, 'cash');
+    assert.equal(second?.paidDate, '2026-09-01');
+    const display = resolveLastTuitionPaymentDisplay(store.payments, created.id);
+    assert.equal(display?.paymentMethod, 'transfer');
+    assert.equal(display?.amount, 70000);
+    assert.equal(display?.paymentDate, '2026-09-08');
   }
 
   // 삭제 시 invoice·연결 제거, 저장은 store API만

@@ -28,6 +28,7 @@ export const FINANCE_TESTS = [
   { script: 'test:invoice-dedupe', group: 'invoice', kind: 'unit', ci: 'always' },
   { script: 'test:invoice-textbook-link', group: 'invoice', kind: 'unit', ci: 'suite' },
   { script: 'test:invoice-model', group: 'invoice', kind: 'unit', ci: 'suite' },
+  { script: 'test:latest-tuition-payment', group: 'invoice', kind: 'unit', ci: 'always' },
   {
     script: 'test:invoice-payment-service',
     group: 'invoice',

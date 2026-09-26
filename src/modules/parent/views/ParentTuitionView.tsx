@@ -1,6 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { StorageService } from '@/services/storage';
-import { TuitionService } from '@/core/finance';
+import {
+  lastTuitionPaymentSummaryText,
+  TuitionService,
+} from '@/core/finance';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { getPassRemaining } from '@/core/schedules/sessionPassUtils';
 import {
@@ -42,6 +45,9 @@ function ParentInvoiceDetailModal({
   const monthLabel = invoice.yearMonth.includes('-')
     ? `${invoice.yearMonth.split('-')[1]}월`
     : invoice.yearMonth;
+  const lastPaymentText = lastTuitionPaymentSummaryText(
+    TuitionService.getLatestTuitionPaymentForInvoice(invoice.id)
+  );
 
   const handleCopy = async () => {
     if (!bankAccountText) return;
@@ -86,6 +92,12 @@ function ParentInvoiceDetailModal({
               <span className="text-slate-500">납부 기한</span>
               <span className="font-mono font-bold text-slate-800">{invoice.dueDate}</span>
             </div>
+            {lastPaymentText && (
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-500">최근 수납</span>
+                <span className="font-bold text-slate-800">{lastPaymentText}</span>
+              </div>
+            )}
           </div>
 
           {bankAccountText ? (

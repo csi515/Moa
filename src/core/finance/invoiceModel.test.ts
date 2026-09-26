@@ -74,14 +74,33 @@ function run() {
   const row = invoiceToPaymentRow(sampleInvoice(), 'org-1');
   assert.equal(row.billed_amount, 205000);
   assert.equal(row.sent_at, null);
+  assert.equal(Object.prototype.hasOwnProperty.call(row, 'payment_method'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(row, 'paid_at'), false);
+
+  const staleRow = invoiceToPaymentRow(
+    {
+      ...sampleInvoice(),
+      paymentMethod: 'cash',
+      paidAt: '2026-09-01',
+      paidDate: '2026-09-01',
+    },
+    'org-1'
+  );
+  assert.equal(Object.prototype.hasOwnProperty.call(staleRow, 'payment_method'), false);
+  assert.equal(Object.prototype.hasOwnProperty.call(staleRow, 'paid_at'), false);
+
   const restored = paymentRowToInvoice({
     ...row,
+    payment_method: 'transfer',
+    paid_at: '2026-09-08T00:00:00.000Z',
     metadata: packed,
   });
   assert.equal(restored.studentId, 'stu-1');
   assert.equal(restored.unpaidAmount, 205000);
   assert.equal(restored.invoiceSent, false);
   assert.deepEqual(restored.linkedTextbookSaleIds, ['sale-1']);
+  assert.equal(restored.paymentMethod, 'transfer');
+  assert.equal(restored.paidDate, '2026-09-08');
 
   const here = dirname(fileURLToPath(import.meta.url));
   const mapper = readFileSync(
@@ -90,7 +109,10 @@ function run() {
   );
   assert.match(mapper, /packInvoicePaymentMetadata/);
   assert.match(mapper, /unpackInvoicePaymentMetadata/);
+  assert.match(mapper, /legacy compatibility snapshot/);
   assert.equal(mapper.includes('interface PaymentMetadata'), false);
+  assert.equal(mapper.includes('payment_method: inv.paymentMethod'), false);
+  assert.equal(mapper.includes('paid_at: inv.paidAt'), false);
 
   console.log('invoiceModel.test.ts: ok');
 }

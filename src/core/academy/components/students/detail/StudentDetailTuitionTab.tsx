@@ -3,6 +3,11 @@ import { TuitionInvoice, StudentMonthlyBillingSummary, TextbookSale, PaymentMeth
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
 import { ONSITE_PAYMENT_METHOD_OPTIONS } from '@/core/finance/paymentMethodLabels';
 import { resolveInvoiceBaseFee } from '@/core/finance/invoiceModel';
+import {
+  getLatestTuitionPaymentForInvoice,
+  lastTuitionPaymentSummaryText,
+} from '@/core/finance/latestTuitionPayment';
+import { TuitionService } from '@/core/finance';
 import { BookOpen, Plus } from 'lucide-react';
 
 interface StudentDetailTuitionTabProps {
@@ -43,6 +48,7 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
   onOpenTextbookTab,
   onOpenTextbookPayment,
 }) => {
+  const tuitionPayments = TuitionService.getTuitionPayments();
   const unpaidInvoices = allInvoices.filter((inv) => inv.status !== 'paid' && inv.unpaidAmount > 0);
   /** 월 청구에 합산된 교재는 별도 미납으로 표시하지 않음 */
   const unpaidTextbookSales = studentSales.filter(
@@ -247,6 +253,9 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
         <div className="space-y-3">
           {allInvoices.map((inv) => {
             const badge = getInvoiceStatusBadge(inv.status);
+            const lastPaymentText = lastTuitionPaymentSummaryText(
+              getLatestTuitionPaymentForInvoice(tuitionPayments, inv.id)
+            );
             return (
               <div
                 key={inv.id}
@@ -265,6 +274,7 @@ export const StudentDetailTuitionTab: React.FC<StudentDetailTuitionTabProps> = (
                   <p className="text-slate-500 mt-1">
                     납부기한: {inv.dueDate} | 총 청구: <strong>{formatCurrency(inv.totalAmount)}</strong>
                     {inv.paidAmount > 0 && ` (납부: ${formatCurrency(inv.paidAmount)})`}
+                    {lastPaymentText && ` · 최근 수납 ${lastPaymentText}`}
                     {inv.unpaidAmount > 0 && (
                       <span className="text-rose-600 font-bold">
                         {' '}

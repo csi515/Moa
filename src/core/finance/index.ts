@@ -17,6 +17,12 @@ export type {
   InvoiceHeader,
   InvoiceLastPaymentSnapshot,
 } from './invoiceModel';
+export {
+  getLatestTuitionPaymentForInvoice,
+  lastTuitionPaymentSummaryText,
+  resolveLastTuitionPaymentDisplay,
+} from './latestTuitionPayment';
+export type { LastTuitionPaymentDisplay } from './latestTuitionPayment';
 export { recordCombinedPayment } from './application/recordCombinedPayment';
 export type { CombinedPaymentResult } from './application/recordCombinedPayment';
 export {

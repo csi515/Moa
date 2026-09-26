@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Copy } from 'lucide-react';
 import { formatCurrency, getInvoiceStatusBadge } from '@/utils/formatters';
-import { TuitionService } from '@/core/finance';
+import { lastTuitionPaymentSummaryText, TuitionService } from '@/core/finance';
 import {
   formatBankAccountText,
   isInvoiceVisibleToParent,
@@ -60,6 +60,11 @@ export function CustomerHomeView({
     (inv) => inv.unpaidAmount > 0 && inv.invoiceSent === true
   );
 
+  const lastPaymentText = detailInvoice
+    ? lastTuitionPaymentSummaryText(
+        TuitionService.getLatestTuitionPaymentForInvoice(detailInvoice.id)
+      )
+    : null;
   const settings = TuitionService.getSettings();
   const bankAccountText = formatBankAccountText(settings.bankAccount);
   const lowPass = passSummary.remaining > 0 && passSummary.remaining <= 2;
@@ -246,6 +251,12 @@ export function CustomerHomeView({
                 <span className="text-slate-500">납부 기한</span>
                 <span className="font-mono font-bold text-slate-800">{detailInvoice.dueDate}</span>
               </div>
+              {lastPaymentText ? (
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-500">최근 수납</span>
+                  <span className="font-bold text-slate-800">{lastPaymentText}</span>
+                </div>
+              ) : null}
             </div>
 
             {bankAccountText ? (
