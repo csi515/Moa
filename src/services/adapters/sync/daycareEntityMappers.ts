@@ -1,5 +1,5 @@
 import type { Json } from '@/lib/supabase/database.types';
-import type { CareJournal, MedicationRequest } from '@/modules/daycare/care/types';
+import type { CareJournal, MedicationRequest } from '@/industries/daycare/care/types';
 
 type CareJournalRow = {
   id: string;

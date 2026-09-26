@@ -1,3 +1,7 @@
+import {
+  PIN_ATTENDANCE_DIRECTOR_COPY,
+  PIN_ATTENDANCE_PARENT_COPY,
+} from '@/core/attendance/attendanceNotifyCopy';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 import {
   buildBillingSection,
@@ -55,7 +59,7 @@ const COMMON_SETTINGS: FeatureGuideSection = {
       id: 'attendance',
       title: '출입 관리 (핀번호)',
       summary: '회원마다 PIN을 주고, 키패드로 출석(입실)을 남깁니다.',
-      howTo: '설정에서 기능을 켠 뒤, 회원 상세에서 PIN을 발급하세요.',
+      howTo: PIN_ATTENDANCE_DIRECTOR_COPY.helpHowTo,
     },
   ],
 };
@@ -139,6 +143,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
         id: 'attendance',
         title: '출입 관리',
         summary: 'PIN으로 출석(입실)을 기록하고 당일 현황을 봅니다.',
+        howTo:
+          '설정에서 PIN 출석을 켠 뒤 키오스크에서 처리합니다. 연결된 학부모는 앱 안내에서 출석 알림을 확인할 수 있습니다. 오늘 수업의 직접 출석은 이 PIN 출석 알림과 다릅니다.',
       },
       {
         id: 'lessons',
@@ -251,7 +257,8 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
   buildGuideSection({
     id: 'parent-portal-piano',
     title: '학부모 포털',
-    description: '학부모가 앱에서 과제·진도·연습·안내를 확인합니다. 알림은 앱 푸시만 사용합니다.',
+    description:
+      '학부모가 앱에서 과제·진도·연습·안내·출석 알림을 확인합니다. 카카오·문자는 보내지 않습니다.',
     items: [
       {
         id: 'parent-home',
@@ -261,9 +268,9 @@ const PIANO_GUIDE: FeatureGuideSection[] = [
       },
       {
         id: 'parent-push',
-        title: '앱 푸시 알림',
-        summary: '보강·결석·미납 등 중요 안내는 앱 푸시로만 전달됩니다.',
-        howTo: '카카오 알림톡·문자는 보내지 않습니다. 네이티브 앱에서 알림 권한을 허용하면 푸시를 받습니다.',
+        title: '출석·앱 알림',
+        summary: PIN_ATTENDANCE_PARENT_COPY.helpSummary,
+        howTo: PIN_ATTENDANCE_PARENT_COPY.helpHowTo,
       },
     ],
   }),
@@ -309,7 +316,7 @@ const PILATES_GUIDE: FeatureGuideSection[] = [
       {
         id: 'attendance',
         title: '출입 관리',
-        summary: 'PIN으로 입·퇴실을 기록합니다. (설정에서 켠 경우에만)',
+        summary: 'PIN으로 출석(입실)을 기록합니다. (설정에서 켠 경우에만, 퇴실 PIN 없음)',
       },
     ],
   },
@@ -351,7 +358,7 @@ const GYM_GUIDE: FeatureGuideSection[] = [
       {
         id: 'attendance',
         title: '출입 관리',
-        summary: 'PIN으로 입·퇴실을 기록하고 당일 현황을 봅니다.',
+        summary: 'PIN으로 출석(입실)을 기록하고 당일 현황을 봅니다. (퇴실 PIN 없음)',
       },
       {
         id: 'shuttle',
@@ -414,8 +421,9 @@ const DAYCARE_GUIDE: FeatureGuideSection[] = [
       {
         id: 'attendance',
         title: '등·하원 관리',
-        summary: 'PIN으로 등원·하원을 기록하고, 알레르기 표시·하원 메모를 남깁니다.',
-        howTo: '현황에서 원아별 특이사항을 확인하고, 당일 세션에 하원·전달 메모를 작성할 수 있습니다.',
+        summary: 'PIN으로 등원을 기록하고, 알레르기 표시·하원 메모를 남깁니다. (PIN 하원 없음)',
+        howTo:
+          '현황에서 원아별 특이사항을 확인하고, 당일 세션에 하원·전달 메모를 작성할 수 있습니다. PIN 등원이 저장되면 연결된 보호자는 앱 안내에서 출석 알림을 확인할 수 있습니다.',
       },
     ],
   }),
@@ -523,8 +531,8 @@ export function getIndustryFeatureGuide(industry: IndustryType | string | null |
 } {
   const type = normalizeIndustryType(industry);
   return {
-    intro: INTRO_BY_INDUSTRY[type] ?? GENERIC_INTRO,
-    sections: GUIDE_BY_INDUSTRY[type] ?? GENERIC_GUIDE,
+    intro: (type && INTRO_BY_INDUSTRY[type]) || GENERIC_INTRO,
+    sections: (type && GUIDE_BY_INDUSTRY[type]) || GENERIC_GUIDE,
   };
 }
 
@@ -582,13 +590,14 @@ const ADULT_STUDENT_PORTAL_SECTIONS: FeatureGuideSection[] = [
   {
     id: 'adult-notices-billing',
     title: '알림·수납',
-    description: '사업장 안내와 청구·납부 안내입니다. 알림은 앱 푸시만 사용합니다.',
+    description: '사업장 안내와 청구·납부 안내입니다. 앱 안에서 확인하고, 알림 허용 시 휴대폰 알림을 받을 수 있습니다.',
     items: [
       {
         id: 'adult-notices',
         title: '알림함',
         summary: '홈의 최근 알림과 계정 탭에서 안내·청구·출결 알림을 확인합니다.',
-        howTo: '카카오·문자는 보내지 않습니다. 앱에서 알림 권한을 허용하면 푸시를 받습니다.',
+        howTo:
+          '카카오·문자는 보내지 않습니다. 앱 안내함에서 확인할 수 있고, 알림 권한을 허용하면 휴대폰 알림도 받을 수 있습니다.',
       },
       {
         id: 'adult-billing',

@@ -1,0 +1,1 @@
+export { schedulingCapability } from './manifest';

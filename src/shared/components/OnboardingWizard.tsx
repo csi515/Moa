@@ -10,9 +10,11 @@ import {
   type OrganizationAddressValue,
 } from '@/core/address';
 import {
-  AttendanceFeatureToggle,
+  isAttendanceModuleEnabled,
+  OnboardingAttendanceChoice,
   withAttendanceModuleEnabled,
-} from '@/core/attendance';
+} from '@/capabilities/attendance';
+import { getIndustryType } from '@/services/adapters/storageContext';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { formatNumberWithCommas } from '@/utils/formatters';
 import {
@@ -110,8 +112,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const [textbooks, setTextbooks] = useState<DraftTextbook[]>([]);
   const [draftTextbook, setDraftTextbook] = useState({ title: '', price: '15000' });
 
-  const [pinAttendanceEnabled, setPinAttendanceEnabled] = useState(
-    saved.features?.attendance?.enabled === true
+  const [pinAttendanceEnabled, setPinAttendanceEnabled] = useState(() =>
+    isAttendanceModuleEnabled(
+      saved,
+      org?.currentOrganization?.industry_type ?? getIndustryType()
+    )
   );
 
   useEffect(() => {
@@ -739,18 +744,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
           {step === 5 && (
             <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-500">
-                출결 방식을 고릅니다. 설정 화면의 PIN 출결 토글과 동일한 값이며, 언제든 변경할 수 있습니다.
-              </p>
-              <div className="rounded-xl border border-slate-200 p-4">
-                <AttendanceFeatureToggle
-                  enabled={pinAttendanceEnabled}
-                  onChange={setPinAttendanceEnabled}
-                />
-              </div>
-              <p className="text-[11px] text-slate-500 leading-relaxed">
-                끄면 선생님·관리자가 직접 출석 처리합니다. 켜면 학생 PIN·키오스크를 사용할 수 있습니다.
-              </p>
+              <OnboardingAttendanceChoice
+                enabled={pinAttendanceEnabled}
+                onChange={setPinAttendanceEnabled}
+              />
               {footerNav({
                 onNext: () => void handleAttendanceNext(),
               })}

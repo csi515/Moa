@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { RefreshCw, WifiOff } from 'lucide-react';
 import { StorageService } from './services/storage';
-import { normalizeIndustryType } from './core/industry/types';
 import { LoadingScreen } from './shared/components/LoadingScreen';
 import { isNativeApp } from './core/platform/capacitorPlatform';
 import { registerForegroundStep } from './core/platform/foregroundCoordinator';
@@ -32,7 +31,7 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     setOfflineMode(false);
 
     try {
-      await StorageService.hydrate(organizationId, normalizeIndustryType(industryType));
+      await StorageService.hydrate(organizationId, industryType);
       if (!cancelled()) {
         setOfflineMode(StorageService.isOfflineHydrated());
         setReady(true);
@@ -51,7 +50,7 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
     if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
     try {
       await StorageService.flushSyncOutbox();
-      await StorageService.hydrate(organizationId, normalizeIndustryType(industryType));
+      await StorageService.hydrate(organizationId, industryType);
       setOfflineMode(StorageService.isOfflineHydrated());
       setError(null);
       setReady(true);

@@ -32,13 +32,13 @@ function run() {
   assert.match(registry, /id: 'education'/);
   assert.match(registry, /id: 'daycare'/);
 
-  const pianoPlugin = readFileSync(join(srcRoot, 'modules/piano/plugin.ts'), 'utf8');
+  const pianoPlugin = readFileSync(join(srcRoot, 'industries/piano/plugin.ts'), 'utf8');
   assert.match(pianoPlugin, /syncCapabilities:\s*\[\s*'piano',\s*'education'\s*\]/);
 
-  const daycarePlugin = readFileSync(join(srcRoot, 'modules/daycare/plugin.ts'), 'utf8');
+  const daycarePlugin = readFileSync(join(srcRoot, 'industries/daycare/plugin.ts'), 'utf8');
   assert.match(daycarePlugin, /syncCapabilities:\s*\[\s*'daycare'\s*\]/);
 
-  const pilatesPlugin = readFileSync(join(srcRoot, 'modules/pilates/plugin.ts'), 'utf8');
+  const pilatesPlugin = readFileSync(join(srcRoot, 'industries/pilates/plugin.ts'), 'utf8');
   assert.doesNotMatch(pilatesPlugin, /syncCapabilities/);
 
   const pluginTypes = readFileSync(join(srcRoot, 'core/industry/pluginTypes.ts'), 'utf8');
@@ -49,7 +49,7 @@ function run() {
    * 필요한 것: plugin.syncCapabilities + registerIndustrySyncCapability.
    */
   const bathWouldNeed = [
-    'modules/bath/plugin.ts (syncCapabilities: [\'bath\'])',
+    'industries/bath/plugin.ts (syncCapabilities: [\'bath\'])',
     'industrySyncRegistry.registerIndustrySyncCapability({ id: \'bath\', ... })',
   ];
   assert.equal(

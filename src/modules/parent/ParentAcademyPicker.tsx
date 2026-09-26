@@ -7,7 +7,7 @@ import {
   INACTIVE_ENROLLMENT_STATUSES,
   type StudentEnrollment,
 } from '@/core/parent/types/globalParent';
-import { getIndustryLabel, normalizeIndustryType } from '@/core/industry/types';
+import { getIndustryLabel } from '@/core/industry/types';
 
 export const ParentAcademyPicker: React.FC = () => {
   const { selectedStudent, selectEnrollment } = useParentPortal();
@@ -88,7 +88,7 @@ function EnrollmentSection({
             <div className="min-w-0">
               <p className="font-bold text-slate-900 truncate">{enrollment.organizationName}</p>
               <p className="text-xs text-slate-500">
-                {getIndustryLabel(normalizeIndustryType(enrollment.industryType))} ·{' '}
+                {getIndustryLabel(enrollment.industryType)} ·{' '}
                 {ENROLLMENT_STATUS_LABELS[enrollment.status]}
               </p>
             </div>

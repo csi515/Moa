@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import type { Student } from '@/types';
-import { GuardianLinkInviteModal } from '@/modules/parent/GuardianLinkInviteModal';
+import { renderAcademyGuardianInvite } from '@/core/academy/academyStaffUi';
 import { X, Phone, Edit, UserMinus, UserCheck, ClipboardCheck, CreditCard, MessageSquare, ChevronDown } from 'lucide-react';
 import { StudentDetailInfoTab } from './detail/StudentDetailInfoTab';
 import { StudentDetailClassesTab } from './detail/StudentDetailClassesTab';
@@ -504,12 +504,12 @@ const StudentDetailModalContent: React.FC<
         onCloseDetail: onClose,
       })}
 
-      <GuardianLinkInviteModal
-        studentId={student.id}
-        studentName={student.name}
-        isOpen={modal.guardianLinkOpen}
-        onClose={() => modal.setGuardianLinkOpen(false)}
-      />
+      {renderAcademyGuardianInvite({
+        studentId: student.id,
+        studentName: student.name,
+        isOpen: modal.guardianLinkOpen,
+        onClose: () => modal.setGuardianLinkOpen(false),
+      })}
     </div>
   );
 };

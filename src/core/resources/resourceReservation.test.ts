@@ -109,13 +109,13 @@ function run() {
   assert.match(catalog, /list_org_bookable_resources/);
   assert.match(catalog, /upsert_practice_room/);
 
-  const pianoView = readSrc('src/modules/piano/components/practiceRooms/PracticeRoomBookingView.tsx');
+  const pianoView = readSrc('src/industries/piano/components/practiceRooms/PracticeRoomBookingView.tsx');
   assert.match(pianoView, /practiceRoomReservationService/);
 
-  const bathDir = join(root, 'src/modules/bath');
+  const bathDir = join(root, 'src/industries/bath');
   const bathFiles = readdirSync(bathDir, { recursive: true })
     .filter((name) => typeof name === 'string' && /\.(ts|tsx)$/.test(name) && !/\.test\./.test(name))
-    .map((name) => readSrc(`src/modules/bath/${String(name).replace(/\\/g, '/')}`))
+    .map((name) => readSrc(`src/industries/bath/${String(name).replace(/\\/g, '/')}`))
     .join('\n');
   assert.doesNotMatch(bathFiles, /EXCLUDE USING gist/);
   assert.doesNotMatch(bathFiles, /book_room_reservation_guarded/);

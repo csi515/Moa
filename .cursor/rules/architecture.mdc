@@ -12,32 +12,185 @@ alwaysApply: true
 
 코드를 대규모로 리팩터하지 않는다. 손대는 범위만 이 규칙을 따른다. 관련 없는 파일을 수정하지 않는다.
 
-## 책임
+현재 구현과 권장 미래 구조를 혼동하지 않는다. 아래 **현재**는 저장소 사실, **권장**은 신규 코드가 따를 방향이다.
+
+## 권장 의존 (신규 코드)
+
+```text
+Composition / App
+        ↓
+Industry
+        ↓
+Capability
+        ↓
+Core
+
+Composition → Industry | Capability | Core   허용
+Industry    → Capability | Core              허용
+Capability  → Core                           허용
+
+Core       → Industry / Industry UI          금지
+Capability → Industry / Industry UI          금지
+```
+
+## 현재 구현 (2026-09)
+
+라이브 조립은 이미 `src/industries` + `src/app/industry`다. 동시에 아래가 공존한다.
+
+| 경로 | 현재 역할 |
+| --- | --- |
+| `src/core` | 테넌트·조직·권한·카탈로그 + **legacy aggregation**(`academy`) + **capability compat shim** |
+| `src/capabilities/<id>` | 선택 업무. attendance/billing/commerce/scheduling/booking 등은 구현이 여기. 나머지는 manifest만 |
+| `src/industries/<id>` | 업종 화면·plugin. **런타임 모듈 SoT** |
+| `src/app/industry` | 모듈 등록·라우터·로더. **Composition SoT** |
+| `src/modules/parent` | 학부모 포털 (유지) |
+| `src/modules/{piano,…}` | git-rename 잔여 복제. **신규 import 금지** |
+| `src/services` | `StorageService` mega-facade + hydrate/sync. **legacy aggregation** |
+
+Core 아래 아직 남아 있는 경로(삭제·일괄 이동 금지):
+
+- `src/core/attendance`, `finance`, `commerce`, `sales`, `product`, `inventory`, `loyalty` — 대부분 `@/capabilities/*` re-export
+- `src/core/resources`, `availability`, `capacity`, `waitlist` — 일부 shim, 일부 Core 일정 인프라
+- `src/core/schedules` — 예약/이용권 Core 인프라 (capability와 공존)
+- `src/core/academy` — **legacy aggregation**. 학생·반·시간표·수납 UI가 여러 업종에 재사용됨
+- `src/core/industry` — 카탈로그·pluginHost·Generic shell. **Industry 구현이 아님**
+
+Industry 등록은 한 파일이 아니다. 현재 분산:
+
+| 위치 | 역할 |
+| --- | --- |
+| `src/core/industry/definitions.ts` | 카탈로그 id, `capabilities`/`defaults`/`selectable`/`moduleId` |
+| `src/core/industry/catalog.ts` | 조회·alias·generic-shell |
+| `src/core/industry/pluginHost.ts` + `registry.ts` | 설치된 plugin 조회 |
+| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities |
+| `src/app/industry/industryModules.tsx` | 모듈 등록. `APP_BY_INDUSTRY`는 이 목록에서 **파생** |
+| `src/app/industry/IndustryAppRouter.tsx` | 셸 선택 |
+| `src/app/industry/loadIndustryModules.ts` | plugin 설치 |
+| `test:industry-contract` | 등록 누락 검사 |
+
+`INDUSTRY_PLUGINS` / 수동 `APP_BY_INDUSTRY` / 수동 selectable 배열을 다시 만들지 않는다.
+
+## 계층 정의
+
+### 1. Core
+
+업종과 무관한 **공통 기반**. “여러 업종이 같은 업무로 선택한다”는 Capability이지 Core가 아니다.
+
+예: auth, organizations, authorization, customer(성인 포털), staff, locations, platform, audit, idempotency, outbox, domain primitives.
+
+카탈로그 조회(`definitions` / alias / `catalog.ts`)는 Core foundation이다. **Industry 구현이 아니다.**  
+`src/core/industry` 한 폴더에 카탈로그(Core)와 pluginHost·Generic shell(**Composition 잔여**)이 같이 있다. 라이브 라우터·모듈 등록은 `src/app/industry` (**Composition SoT**).
+
+Core는 특정 Industry 구현·UI를 모른다. `@/industries/*` · `@/modules/<industry>` · `@/app/*` 신규 import 금지.
+
+**넣지 않는 것:** 업종 전용 화면, “여러 업종이 쓸 수도 있다”는 이유만의 승격, Industry 이름이 들어간 신규 도메인 코드.
+
+`src/core/academy`는 legacy aggregation이다. **신규 업무 기능의 기본 위치가 아니다.**
+
+### 2. Capability
+
+여러 Industry가 **선택**하는 업무 기능. Core가 아니다.
+
+예: attendance, scheduling, booking, billing, commerce, parent, resources, transport, roster, enrollment, consultation.
+
+내부 경계(권장): `manifest.ts` / `domain/` / `application/` / `ui/` / `infrastructure/`.
+
+Capability는 특정 Industry를 import하지 않는다. 업종별 if/else를 Capability 구현에 늘리지 않는다. 기존 capability와 책임을 중복하는 새 capability를 만들지 않는다.
+
+신규 코드는 `@/core/attendance` 등 shim이 아니라 `@/capabilities/<id>`를 쓴다.
+
+### 3. Industry
+
+한 업종의 의미·화면·규칙·Capability 조합.
+
+예: piano, pilates, gym, daycare, skin(`skin_clinic`), retail, bath(`sauna_jjimjilbang`).
+
+Industry → Capability / Core 허용. 다른 업종 테이블·storage key 금지.
+
+기존 교차(piano→pilates Pass, skin→pilates hubs, parent→daycare/piano)는 이유 없이 삭제하거나 복제하지 않는다.
+
+### 4. Composition / App (`src/app`)
+
+Industry registry, routing, loading, manifest 조립. concrete Industry를 알아도 된다.
+
+Core가 composition을 import하게 만들지 않는다.
+
+### 5. Persistence / Infrastructure
+
+| 현재 | 신규 |
+| --- | --- |
+| `StorageService` Object.assign mega-facade | `src/capabilities/<id>/infrastructure/*Storage` |
+| `src/services/adapters` hydrate/sync | 의미 변경 금지 |
+| Daycare care 등 업종 slice | Industry에서 bind. `storage.ts`가 `@/industries`를 import하지 않음 |
+
+StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 cache/hydration/sync semantics를 바꾸지 않는다.
+
+## 책임 표 (현재 경로)
 
 | 영역 | 둘 것 | 두지 말 것 |
 | --- | --- | --- |
-| `src/core` | 여러 업종이 같은 의미인 비즈니스 | 업종 전용 UI/라벨, `@/modules/*` 신규 import |
-| `src/modules/<industry>` | 그 업종만의 화면·서비스 | 다른 업종 테이블/storage key |
-| `src/shared` | layout, Modal, FormField, 순수 유틸 | 수강료·출결 차감 등 업종 로직 |
-| `src/context` | 탭, toast, confirm, workStatus | students/bookings 목록 |
-| `src/services` | StorageService, sync adapter | 정책 없는 새 localStorage key |
+| `src/core` | 업종 독립 기반, 카탈로그 | Industry UI, 신규 Industry/Module/App/Capability import |
+| `src/capabilities` | 선택 업무 계약·구현 | `@/industries/*`·`@/modules/*` |
+| `src/capabilities/*/infrastructure` | persistence facade | 신규 `StorageService` 직접 import |
+| `src/industries/<id>` | 그 업종만 | 다른 업종 테이블/key, Core 구현 개조 |
+| `src/app` | 조립 | Core가 여기를 import하게 만들기 |
+| `src/modules/parent` | 학부모 포털 | 업종 폴더를 다시 `modules`에 두기 |
+| `src/shared` | layout, Modal, FormField | 수강료·출결 차감 |
+| `src/context` | 탭, toast, confirm | students/bookings 목록 |
+| `src/services` | StorageService, sync | `@/industries/*` 신규 import, 정책 없는 storage key |
 
-새 파일 위치: 공통 의미 → `src/core/<domain>/`. 한 업종 → `src/modules/<industry>/`. UI primitive → `src/shared/components/`.
+## 새 파일을 어디에 두나
 
-## 의존 방향
+1. 동일한 의미·책임의 기반인가? → `src/core/<domain>/`
+2. 여러 업종이 **선택**하는 업무인가? → 기존 `src/capabilities/<id>`를 확장. 없으면 manifest부터
+3. 한 업종만인가? → `src/industries/<id>/`
+4. 등록·라우팅인가? → `src/app/industry/`
+5. UI primitive인가? → `src/shared/components/`
+
+재사용 가능하다는 이유만으로 Core로 올리지 않는다. Industry 이름을 포함하는 Core 코드가 새로 생기면 architecture review 대상이다.
+
+## 새 Industry 추가
+
+목표: **기존 Core/Capability 구현 파일 수정 수를 0에 가깝게 유지한다.**
+
+절차:
+
+1. Industry definition — `src/core/industry/definitions.ts`에 `defineIndustry({ id, capabilities, defaults, selectable, moduleId })`
+2. Capability 조합 — 기존 Capability만 선택. Capability 구현에 industry if/else를 넣지 않음
+3. Industry-specific implementation — `src/industries/<id>/plugin.ts`, `*AppContent`, labels, 전용 service
+4. Contract test — `test:industry-contract` (필요 시 industry 폴더 테스트)
+5. Composition registration — `src/app/industry/industryModules.tsx`에 `defineIndustryModule` 한 줄
+6. Regression test — `test:business-invariants`, persist/hydrate
+
+신규 기능 일반 순서: Requirement → Domain classification → Core / Capability / Industry / Composition 결정 → Authorization → Persistence → Service → UI → Test.
+
+금지:
+
+- 기존 Core에 industry별 if/else
+- 기존 Capability에 industry별 분기 추가
+- StorageService에 업종 slice 무조건 추가
+- `APP_BY_INDUSTRY` / `INDUSTRY_PLUGINS` 같은 중복 목록을 새로 키우기
+- 다른 Industry 화면을 복사해 새 업종을 만들기
+- 새 업종 때문에 기존 Core domain 이름을 업종에 맞게 바꾸기
+
+(선택) hydrate가 필요하면 `industrySyncRegistry`에 capability id만 추가. Core 도메인 구현은 수정하지 않는다.
+
+추후 목표 트리:
 
 ```text
-Module → Core / Shared / services / lib     허용
-Core   → Shared / services / lib            허용
-Core   → Module                             금지 (allowlist만)
-Module → Module                             현재 존재. 신규는 억제
+src/core/  src/capabilities/  src/industries/  src/app/  src/shared/
 ```
 
-검사: `scripts/check-architecture-dependencies.mjs`. allowlist 외 Core→Module import, Core의 industry schema 문자열 참조는 CI 실패.
+이 폴더는 **이미 존재하고 라이브**다. 다만 `src/modules/*` 잔여, `core/academy`, Core shim, `StorageService`가 남아 **완전히 이동한 상태는 아니다.**
 
-업종 연결은 `src/core/industry/registry.ts`와 `IndustryAppRouter.tsx`에만 추가한다.
+## 의존 검사
 
-기존 교차 import (piano→pilates Pass, skin→pilates hubs, parent→daycare/piano)를 이유 없이 삭제하거나 복제하지 않는다.
+`scripts/check-architecture-dependencies.mjs` (`npm run check:architecture`, `lint`에 포함).
+
+- **LEGACY allowlist = 기존 부채.** 고치면 목록에서 뺀다. 새로 넣지 않는다.
+- **신규 위반 = 즉시 실패.** Core→industry/modules/composition/capability(compat shim 제외), capability→industry/modules, services→industry, capability의 신규 `@/services/storage` import.
+- Compat shim만 Core→capability 허용: `@deprecated 신규 코드는` + `@/capabilities/`.
+- industry/app/capability는 `@/core/attendance` 대신 `@/capabilities/attendance`.
 
 ## Scope
 
@@ -50,8 +203,8 @@ Module → Module                             현재 존재. 신규는 억제
 
 - 신규 UI는 `getCoreClient()` / `supabase.from`을 직접 호출하지 않는다. Service를 거친다.
 - 돈·재고·이용권·예약 확정은 기존 RPC 패턴. Command Executor로 옮기지 않는다.
-- 기존 Storage 엔티티는 파사드 + `useStorageRefresh(domain)`을 우선한다.
+- 기존 Storage 엔티티는 capability facade 또는 기존 파사드 + `useStorageRefresh(domain)`을 우선한다.
 
 ## 기존 패턴 우선
 
-같은 목적의 Shared 컴포넌트, Core Service, RPC가 있으면 새로 만들지 않는다. 추측하지 말고 경로를 확인한다.
+같은 목적의 Shared 컴포넌트, Core/Capability Service, RPC가 있으면 새로 만들지 않는다. 추측하지 말고 경로를 확인한다.

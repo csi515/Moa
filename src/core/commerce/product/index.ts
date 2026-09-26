@@ -1,13 +1,2 @@
-/**
- * Commerce Product — 구현은 src/core/product.
- * 새 코드는 @/core/commerce/product 를 쓴다.
- */
-export type {
-  Product,
-  ProductCategory,
-  ProductListItem,
-  ProductSaveInput,
-  ProductVariant,
-  ProductVariantSaveInput,
-} from '@/core/product';
-export { productService } from '@/core/product';
+/** @deprecated 신규 코드는 `@/capabilities/commerce/facade`를 사용한다. */
+export * from '@/capabilities/commerce/facade/product/index';

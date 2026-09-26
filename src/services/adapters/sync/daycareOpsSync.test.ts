@@ -96,7 +96,7 @@ function run() {
   assert.match(ops, /applyDirtyListMerge/);
   assert.match(ops, /upsertThenDiffDelete/);
 
-  const storage = readFileSync(join(root, 'src/modules/daycare/care/careStorage.ts'), 'utf8');
+  const storage = readFileSync(join(root, 'src/industries/daycare/care/careStorage.ts'), 'utf8');
   assert.match(storage, /SoT는 core\.care_/);
 
   console.log('daycareOpsSync.test.ts: ok');

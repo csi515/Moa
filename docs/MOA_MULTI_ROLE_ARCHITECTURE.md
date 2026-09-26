@@ -1107,7 +1107,7 @@ function App() {
 ### 4.3 모듈 플러그인 확장 (plugin.ts)
 
 ```typescript
-// src/modules/pilates/plugin.ts
+// src/industries/pilates/plugin.ts
 
 export const pilatesPluginManifest: IndustryPluginManifest = {
   id: 'pilates',
@@ -1269,7 +1269,7 @@ export const pilatesPluginManifest: IndustryPluginManifest = {
    - `20260904150000_attachments_module.sql` (공통 선택 모듈)
      - core.attachments (target_type, target_id, file_url, file_type, uploaded_by)
 2. **프론트엔드:**
-   - `src/modules/pilates/components/memberships/` (멤버십 관리 UI)
+   - `src/industries/pilates/components/memberships/` (멤버십 관리 UI)
    - `src/core/attachments/` (파일 업로드 공통 컴포넌트)
 3. **플러그인 설정:**
    - plugin.ts에 `modules: { membership, fileUpload }` 설정 추가

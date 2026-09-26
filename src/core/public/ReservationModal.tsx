@@ -3,7 +3,7 @@ import { CheckCircle2 } from 'lucide-react';
 import type { BookableSchedule, ReservationRequest } from '@/types';
 import { reservationService } from '@/core/schedules';
 import { Modal } from '@/shared/components/ui/Modal';
-import { MyReservationsView } from '@/modules/parent/views/ParentBookingsView';
+import { getPublicMyBookingsView } from './publicMyBookingsSlot';
 
 interface ReservationModalProps {
   schedule: BookableSchedule;
@@ -29,6 +29,7 @@ export function ReservationModal({
   const [showMyReservations, setShowMyReservations] = useState(false);
   const [bookingForm, setBookingForm] =
     useState<Omit<ReservationRequest, 'schedule_id'>>(EMPTY_BOOKING_FORM);
+  const MyBookings = getPublicMyBookingsView();
 
   // 슬롯 변경 시 기존 handleOpenBookingForm과 동일하게 폼·성공 상태 초기화
   useEffect(() => {
@@ -74,7 +75,7 @@ export function ReservationModal({
                   >
                     완료 화면
                   </button>
-                <MyReservationsView />
+                {MyBookings ? <MyBookings /> : null}
               </div>
             ) : (
               <div className="text-center p-6 sm:p-8">

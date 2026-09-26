@@ -1,4 +1,2 @@
-export type { PublicHolidayItem } from './types';
-export { fetchPublicHolidays, holidaysForMonth, holidaysOnDate } from './services/publicHolidayService';
-export { usePublicHolidays } from './usePublicHolidays';
-export { getFallbackPublicHolidays } from './fallbackHolidays';
+/** @deprecated 신규 코드는 `@/capabilities/scheduling/calendar`를 사용한다. */
+export * from '@/capabilities/scheduling/calendar/index';

@@ -12,11 +12,11 @@ import {
   isTextbookSaleDbAvailable,
   requireTextbookOrgId,
   textbookSaleDb,
-} from '@/modules/piano/services/textbookSaleDb';
+} from '@/industries/piano/services/textbookSaleDb';
 import {
   mergeTextbookPaymentsWithLegacy,
   mergeTextbookSalesWithLegacy,
-} from '@/modules/piano/services/textbookSaleLegacy';
+} from '@/industries/piano/services/textbookSaleLegacy';
 
 function buildReceiptNumber(): string {
   const now = new Date();

@@ -67,4 +67,7 @@ shared에 Button primitive는 없다. Tailwind + 기존 Form/Modal 패턴을 쓴
 
 ## 승격
 
-한 화면 → 그 폴더. 같은 업종 2화면 → module components. 여러 업종 같은 의미 → core. generic 3번째 → shared 검토.
+한 화면 → 그 폴더.  
+같은 업종 2화면 → `src/industries/<id>/components` (신규를 `src/modules/{piano,…}`에 두지 않음).  
+여러 업종 **같은 업무 의미** → `src/capabilities/<id>/ui`. 업종 무관 기반 UI만 `src/core`.  
+`core/academy`에 새 화면을 두지 않는다. generic 3번째 → shared 검토.

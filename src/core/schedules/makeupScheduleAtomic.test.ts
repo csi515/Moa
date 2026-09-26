@@ -120,7 +120,7 @@ function run() {
   assert.match(sql, /Organization mismatch/);
 
   const view = readFileSync(
-    join(here, '../../modules/piano/components/makeup/MakeupManagementView.tsx'),
+    join(here, '../../industries/piano/components/makeup/MakeupManagementView.tsx'),
     'utf8'
   );
   assert.match(view, /scheduleMakeupAtomic/);

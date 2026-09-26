@@ -73,13 +73,13 @@ function run() {
   assert.match(alert, /eventKey/);
 
   const view = readFileSync(
-    join(here, '../../../modules/piano/components/attendance/usePianoAttendanceView.ts'),
+    join(here, '../../../industries/piano/components/attendance/usePianoAttendanceView.ts'),
     'utf8'
   );
   assert.match(view, /previousStatus: existing\?\.status/);
 
   const todayLesson = readFileSync(
-    join(here, '../../../modules/piano/components/lessons/TodayLessonView.tsx'),
+    join(here, '../../../industries/piano/components/lessons/TodayLessonView.tsx'),
     'utf8'
   );
   assert.match(todayLesson, /previousStatus: existingAtt\?\.status/);

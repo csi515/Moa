@@ -1,4 +1,4 @@
-import type { CareJournal, MedicationRequest } from '@/modules/daycare/care/types';
+import type { CareJournal, MedicationRequest } from '@/industries/daycare/care/types';
 import { getCoreClient } from '@/lib/supabase';
 import { writeLocal } from '../localStorageEngine';
 import { DAYCARE_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';

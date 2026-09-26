@@ -63,7 +63,7 @@ export function groupMoreNavItems(items: NavMenuItem[]): NavMenuSection[] {
  * 허브 하위·레거시 딥링크 → 사이드바·하단 네비 하이라이트용 대표 탭
  * (화면은 VIEW_MAP 별칭으로 동일 허브에 연결)
  *
- * 피아노는 modules/piano/config/navHighlight.ts 가 이 함수를 확장한다.
+ * 피아노는 industries/piano/config/navHighlight.ts 가 이 함수를 확장한다.
  * - lessons → attendance (레거시「레슨」딥링크)
  * - calendar/makeups/practice-rooms → timetable
  * - tuition/unpaid/… → finance

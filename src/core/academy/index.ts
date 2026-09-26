@@ -1,4 +1,10 @@
-// 업종 공통 학원 운영 UI (원생·반·수납·설정 등)
+/**
+ * Legacy aggregation. 새 업무 기능은 여기 두지 않는다.
+ * students/classes → roster, parents → parent staff UI, timetable/schedule/calendar → scheduling,
+ * consultations → consultation, enrollments → enrollment, tuition/unpaid → billing,
+ * customers → core/customer, teachers → core/staff(예정), settings → organization + capability settings.
+ */
+
 export { StudentListView } from './components/students/StudentListView';
 export { StudentDetailModal } from './components/students/StudentDetailModal';
 export { StudentFormModal } from './components/students/StudentFormModal';

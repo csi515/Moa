@@ -6,7 +6,9 @@ import type { IndustryAccent } from './pluginTypes';
 
 export type { IndustryAccent } from './pluginTypes';
 
-export function resolveIndustry(industry: IndustryType | string | null | undefined): IndustryType {
+export function resolveIndustry(
+  industry: IndustryType | string | null | undefined
+): IndustryType | null {
   return normalizeIndustryType(industry);
 }
 
@@ -56,7 +58,8 @@ export function getPlaceNamePlaceholder(industry: IndustryType | string | null |
   if (type === 'pilates') return '예: 밸런스 필라테스';
   if (type === 'gym') return '예: 강남 체육관';
   if (type === 'daycare') return '예: 햇살 어린이집';
-  return '예: 행복 피아노 학원';
+  if (type === 'piano') return '예: 행복 피아노 학원';
+  return '예: 행복 학원';
 }
 
 /** 보호자 화면용 고객 명칭. 앱 안에서는 useModuleLabels를 우선한다. */

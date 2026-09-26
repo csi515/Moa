@@ -5,7 +5,7 @@ import { AuthPage } from './core/auth/AuthPage';
 import { useOrganization } from './core/organizations/OrganizationProvider';
 import { OrganizationSelector } from './core/organizations/OrganizationSelector';
 import { OwnerOperationStoppedView } from './core/organizations/OwnerOperationStoppedView';
-import { IndustryAppRouter } from './core/industry/IndustryAppRouter';
+import { IndustryAppRouter } from './app/industry/IndustryAppRouter';
 import { ParentShell } from './modules/parent/ParentShell';
 import { CustomerShell } from './core/customer/CustomerShell';
 import { LoadingScreen } from './shared/components/LoadingScreen';

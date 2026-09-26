@@ -15,11 +15,11 @@ import {
   computePortalAccessFlags,
 } from './resolveOrganizationContext';
 
-function org(id: string, name = id): Organization {
+function org(id: string, name = id, industryType = 'piano'): Organization {
   return {
     id,
     name,
-    industry_type: 'piano',
+    industry_type: industryType,
     slug: null,
     settings: {},
     is_active: true,
@@ -36,7 +36,7 @@ function mem(
   return {
     staffId: null,
     parentCustomerId: null,
-    organization: org(partial.organizationId),
+    organization: partial.organization ?? org(partial.organizationId),
     ...partial,
   };
 }
@@ -264,6 +264,57 @@ function mem(
     resolveActiveUserRole({ loading: false, currentRole: 'owner', portalMode: 'none' }),
     'owner'
   );
+}
+
+// ── bootstrap: 업종이 달라도 저장된 org id로 복원 (industry로 필터하지 않음) ──
+{
+  const piano = mem({
+    id: 's1',
+    organizationId: 'piano-org',
+    role: 'owner',
+    organization: org('piano-org', '피아노', 'piano'),
+  });
+  const academy = mem({
+    id: 's2',
+    organizationId: 'academy-org',
+    role: 'admin',
+    organization: org('academy-org', '영어학원', 'academy'),
+  });
+  const { decision } = resolveOrganizationBootstrap({
+    memberships: [piano, academy],
+    blockedOwnerOrgIds: [],
+    portalChildren: 0,
+    parentId: null,
+    parentPortalModeActive: false,
+    storedOrganizationId: 'academy-org',
+  });
+  assert.equal(decision.kind, 'select_organization_or_clear');
+  if (decision.kind === 'select_organization_or_clear') {
+    assert.equal(decision.organizationId, 'academy-org');
+  }
+
+  const byId = resolveMembershipByOrganizationId([piano, academy], 'academy-org');
+  assert.equal(byId.membership?.organization.industry_type, 'academy');
+  assert.equal(deriveSelectionFields(byId.membership).currentOrganization?.id, 'academy-org');
+}
+
+{
+  const piano = mem({
+    id: 's1',
+    organizationId: 'piano-org',
+    role: 'owner',
+    organization: org('piano-org', '피아노', 'piano'),
+  });
+  const unknown = mem({
+    id: 's2',
+    organizationId: 'unknown-org',
+    role: 'admin',
+    organization: org('unknown-org', '신규학원', 'english_academy'),
+  });
+  const pickUnknown = resolveMembershipByOrganizationId([piano, unknown], 'unknown-org');
+  assert.equal(pickUnknown.membership?.organization.industry_type, 'english_academy');
+  const backToPiano = resolveMembershipByOrganizationId([piano, unknown], 'piano-org');
+  assert.equal(backToPiano.membership?.organization.industry_type, 'piano');
 }
 
 console.log('resolveOrganizationContext.test.ts: ok');

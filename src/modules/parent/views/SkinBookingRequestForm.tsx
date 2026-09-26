@@ -5,7 +5,7 @@ import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
 import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
 import { formatBankAccountText } from '@/core/finance/paymentMethodLabels';
-import { findStaffTimeConflict } from '@/modules/skin/bookingRooms';
+import { findStaffTimeConflict } from '@/industries/skin/bookingRooms';
 import { isOutsideStaffHours } from '@/core/availability/windows';
 import type { Student } from '@/types';
 

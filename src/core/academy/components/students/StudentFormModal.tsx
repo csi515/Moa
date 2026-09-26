@@ -3,7 +3,7 @@ import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
-import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
+import { renderAcademyParentInviteResult } from '@/core/academy/academyStaffUi';
 import type { StudentRegistrationInviteResult } from '@/core/students/services/studentRegistrationService';
 import {
   registerStudentWithParent,
@@ -580,26 +580,24 @@ export const StudentFormModal: React.FC<StudentFormModalProps> = ({
         </form>
       </Modal>
 
-      {inviteModal && (
-        <ParentInviteResultModal
-          parentName={inviteModal.parentName}
-          email={inviteModal.email}
-          organizationName={
-            inviteModal.result.organizationName || org?.currentOrganization?.name || placeLabel
-          }
-          linkCodes={inviteModal.result.linkCodes}
-          contactLabel={contactLabel}
-          emailSent={inviteModal.emailSent}
-          emailMessage={inviteModal.emailMessage}
-          onClose={() => {
+      {inviteModal &&
+        renderAcademyParentInviteResult({
+          parentName: inviteModal.parentName,
+          email: inviteModal.email,
+          organizationName:
+            inviteModal.result.organizationName || org?.currentOrganization?.name || placeLabel,
+          linkCodes: inviteModal.result.linkCodes,
+          contactLabel,
+          emailSent: inviteModal.emailSent,
+          emailMessage: inviteModal.emailMessage,
+          onClose: () => {
             setInviteModal(null);
             if (postSaveStudent) {
               return;
             }
             if (!revealedPin) onClose();
-          }}
-        />
-      )}
+          },
+        })}
     </>
   );
 };

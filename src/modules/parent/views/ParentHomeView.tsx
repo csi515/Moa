@@ -7,6 +7,10 @@ import { PianoParentHome } from './PianoParentHome';
 import { PilatesParentHome } from './PilatesParentHome';
 import { DaycareParentHome } from './DaycareParentHome';
 
+const GENERIC_HOME_HINT = '출결·수납·안내는 아래 메뉴에서 확인할 수 있습니다.';
+const GENERIC_HOME_ATTENDANCE = '출결';
+const GENERIC_HOME_TUITION = '수납';
+
 export function ParentHomeView({
   student,
   organizationId,
@@ -50,11 +54,40 @@ export function ParentHomeView({
       />
     );
   }
+  if (industry === 'piano') {
+    return (
+      <PianoParentHome
+        student={student}
+        organizationId={organizationId}
+        onNavigate={onNavigate}
+      />
+    );
+  }
+
   return (
-    <PianoParentHome
-      student={student}
-      organizationId={organizationId}
-      onNavigate={onNavigate}
-    />
+    <div className="space-y-3">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200/80">
+        <p className="font-bold text-slate-900">{student.name}</p>
+        <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+          {GENERIC_HOME_HINT}
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => onNavigate('attendance')}
+          className="min-h-[44px] rounded-xl bg-slate-50 text-sm font-bold text-slate-800"
+        >
+          {GENERIC_HOME_ATTENDANCE}
+        </button>
+        <button
+          type="button"
+          onClick={() => onNavigate('tuition')}
+          className="min-h-[44px] rounded-xl bg-slate-50 text-sm font-bold text-slate-800"
+        >
+          {GENERIC_HOME_TUITION}
+        </button>
+      </div>
+    </div>
   );
 }

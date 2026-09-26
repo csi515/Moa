@@ -10,6 +10,7 @@ import { useParentAttendanceSessions } from '@/core/parent/hooks/useParentAttend
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import type { MakeupStatus, Student } from '@/types';
+import { PIN_ATTENDANCE_PARENT_COPY } from '@/core/attendance/attendanceNotifyCopy';
 import { Section } from './shared';
 
 const MAKEUP_STATUS_LABEL: Record<MakeupStatus, string> = {
@@ -158,7 +159,9 @@ export function ParentAttendanceView({
             );
           })
         ) : legacyRecords.length === 0 ? (
-          <p className="text-sm text-slate-400 text-center py-6">출결 기록이 없습니다.</p>
+          <p className="text-sm text-slate-400 text-center py-6 leading-relaxed px-2">
+            {PIN_ATTENDANCE_PARENT_COPY.attendanceEmpty}
+          </p>
         ) : (
           legacyRecords.map((a) => (
             <div

@@ -8,7 +8,7 @@ import type { Student } from '@/types';
 import type { IndustryType } from '@/core/industry/types';
 import { CheckCircle2, AlertCircle, Award, Plus } from 'lucide-react';
 import { Section } from './shared';
-import { StudentStampBoard } from '@/modules/piano/components/songProgress';
+import { StudentStampBoard } from '@/industries/piano/components/songProgress';
 
 export function ParentProgressView({
   student,

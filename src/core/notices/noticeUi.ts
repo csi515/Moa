@@ -1,3 +1,4 @@
+import { PIN_ATTENDANCE_PARENT_COPY } from '@/core/attendance/attendanceNotifyCopy';
 import type { ModuleLabels } from '@/core/labels';
 import type { NoticeTargetMode } from './types';
 
@@ -58,6 +59,7 @@ export const NOTICE_COPY = {
   emptyDescription: '휴강·행사·준비물 등 안내장이나 가정통신문을 작성해 보세요.',
   parentSectionTitle: '알림 · 가정통신문',
   parentEmpty: '게시된 알림이 없습니다.',
+  parentEmptyHint: PIN_ATTENDANCE_PARENT_COPY.noticesEmptyHint,
   navLabel: '안내장',
   daycareNavLabel: '가정통신문',
 } as const;

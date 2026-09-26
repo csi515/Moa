@@ -13,7 +13,6 @@ export {
   APPOINTMENT_BOOKING_LEDGER,
   ATTENDANCE_CHECK_IN_LEDGER,
   bookingActLedger,
-  CLASS_ATTENDANCE_LEDGER,
   CORE_DOMAIN_LEDGERS,
   isAppointmentBookingRow,
   isAttendanceCheckedIn,
@@ -24,6 +23,7 @@ export {
   SESSION_LEDGER,
   SLOT_RESERVATION_HOLDING_STATUSES,
 } from './domainRoles';
+export { CLASS_ATTENDANCE_LEDGER } from './classAttendanceLedger';
 export { coreScheduleService } from './services/coreScheduleService';
 export {
   applyReservationCommand,

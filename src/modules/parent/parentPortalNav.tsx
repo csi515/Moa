@@ -32,7 +32,14 @@ const PIANO_PARENT_NAV: ParentPortalNavItem[] = [
 ];
 
 /** 업종별 학부모/보호자 하단 네비 */
-export function getParentPortalNav(industry: IndustryType | string): ParentPortalNavItem[] {
+const GENERIC_PARENT_NAV: ParentPortalNavItem[] = [
+  { id: 'home', label: '홈', icon: icon(<Home className="w-5 h-5" />) },
+  { id: 'attendance', label: '출결', icon: icon(<CheckSquare className="w-5 h-5" />) },
+  { id: 'tuition', label: '수납', icon: icon(<CreditCard className="w-5 h-5" />) },
+  { id: 'more', label: '더보기', icon: icon(<Menu className="w-5 h-5" />) },
+];
+
+export function getParentPortalNav(industry: IndustryType | string | null | undefined): ParentPortalNavItem[] {
   switch (normalizeIndustryType(industry)) {
     case 'daycare':
       return [
@@ -69,12 +76,13 @@ export function getParentPortalNav(industry: IndustryType | string): ParentPorta
         { id: 'more', label: '더보기', icon: icon(<Menu className="w-5 h-5" />) },
       ];
     case 'piano':
-    default:
       return PIANO_PARENT_NAV;
+    default:
+      return GENERIC_PARENT_NAV;
   }
 }
 
-export function getParentPortalRoleLabel(industry: IndustryType | string): string {
+export function getParentPortalRoleLabel(industry: IndustryType | string | null | undefined): string {
   const type = normalizeIndustryType(industry);
   if (type === 'daycare') return '보호자 포털';
   if (type === 'skin_clinic') return '고객 포털';
@@ -82,7 +90,9 @@ export function getParentPortalRoleLabel(industry: IndustryType | string): strin
 }
 
 /** 하단 네비에는 없지만 홈·더보기에서 이동 가능한 탭 */
-export function getParentPortalSecondaryTabs(industry: IndustryType | string): ParentPortalTab[] {
+export function getParentPortalSecondaryTabs(
+  industry: IndustryType | string | null | undefined
+): ParentPortalTab[] {
   const type = normalizeIndustryType(industry);
   if (type === 'piano') {
     return ['notices', 'assignments', 'progress', 'stamps', 'reports', 'events', 'more'];

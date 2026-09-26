@@ -119,6 +119,9 @@ jobs:
       - name: Unit — attendance-class-key
         run: npm run test:attendance-class-key
 
+      - name: Unit — attendance-features
+        run: npm run test:attendance-features
+
       - name: Unit — absence-notify
         run: npm run test:absence-notify
 

@@ -6,8 +6,8 @@ import { useStorageRefresh } from '@/hooks';
 import { Modal } from '@/shared/components';
 import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui';
 import type { Student } from '@/types';
-import { MEDICATION_STATUS_LABEL, type MedicationRequest } from '@/modules/daycare/care';
-import { MEDICATION_DEFAULTS } from '@/modules/daycare/care/careDefaults';
+import { MEDICATION_STATUS_LABEL, type MedicationRequest } from '@/industries/daycare/care';
+import { MEDICATION_DEFAULTS } from '@/industries/daycare/care/careDefaults';
 import { Section } from './shared';
 
 export function ParentMedicationView({

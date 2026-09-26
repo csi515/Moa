@@ -49,7 +49,8 @@ export function getStudentLevelOptions(
   industry: IndustryType | string | null | undefined
 ): StudentLevel[] {
   const type = normalizeIndustryType(industry);
-  return LEVELS_BY_INDUSTRY[type] ?? PIANO_LEVEL_OPTIONS;
+  if (!type) return [];
+  return LEVELS_BY_INDUSTRY[type] ?? [];
 }
 
 /** 업종별 레벨 필드 라벨 */

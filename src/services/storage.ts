@@ -1,23 +1,16 @@
 import { getStorageAdapter } from './adapters';
 import { setIndustryType } from './adapters/storageContext';
-import { createDaycareCareStorage } from '@/modules/daycare/care/careStorage';
-import { createAttendanceStorage } from './storage/attendanceStorage';
-import { createCustomerStorage } from './storage/customerStorage';
+import { createAttendanceCapabilityStorage } from '@/capabilities/attendance/infrastructure/attendanceStorage';
+import { createBillingCapabilityStorage } from '@/capabilities/billing/infrastructure/billingStorage';
+import { createBookingCapabilityStorage } from '@/capabilities/booking/infrastructure/bookingStorage';
+import { createCommerceCapabilityStorage } from '@/capabilities/commerce/infrastructure/commerceStorage';
+import { createParentCapabilityStorage } from '@/capabilities/parent/infrastructure/parentStorage';
+import { createResourcesCapabilityStorage } from '@/capabilities/resources/infrastructure/resourcesStorage';
+import { createRosterCapabilityStorage } from '@/capabilities/roster/infrastructure/rosterStorage';
+import { createSchedulingCapabilityStorage } from '@/capabilities/scheduling/infrastructure/schedulingStorage';
+import { createTransportCapabilityStorage } from '@/capabilities/transport/infrastructure/transportStorage';
 import { createDashboardStatsStorage } from './storage/dashboardStatsStorage';
-import { createEventsStorage } from './storage/eventsStorage';
-import { createFinanceStorage } from './storage/financeStorage';
-import { createFinanceInvoicePersist } from './storage/financeInvoicePersist';
-import { createInvoicePaymentService } from '@/core/finance/services/invoicePaymentService';
-import { createNotificationsStorage } from './storage/notificationsStorage';
-import { createParentEducationStorage } from './storage/parentEducationStorage';
-import { createPracticeRoomBookingStorage } from './storage/practiceRoomBookingStorage';
-import { createRecordsStorage } from './storage/recordsStorage';
-import { createScheduleStorage } from './storage/scheduleStorage';
-import { createSessionPassStorage } from './storage/sessionPassStorage';
 import { createSettingsStorage } from './storage/settingsStorage';
-import { createShuttleRideStorage } from './storage/shuttleRideStorage';
-import { createStaffClassStorage } from './storage/staffClassStorage';
-import { createTextbookStorage } from './storage/textbookStorage';
 import type { StorageApi } from './storage/helpers';
 import type { StorageListener } from './adapters/types';
 
@@ -71,24 +64,21 @@ const storageCore = {
 
 const storageApi = storageCore as StorageApi;
 
+/**
+ * Legacy mega-facade. 신규 feature는 capability infrastructure facade를 쓴다.
+ * Daycare care slice는 industries/daycare/care/bindCareStorage 가 연결한다.
+ */
 export const StorageService = Object.assign(
   storageCore,
-  createCustomerStorage(storageApi),
-  createStaffClassStorage(),
-  createRecordsStorage(storageApi),
-  createEventsStorage(storageApi),
-  createNotificationsStorage(),
-  createDashboardStatsStorage(storageApi),
-  createScheduleStorage(),
-  createSessionPassStorage(),
-  createShuttleRideStorage(),
+  createRosterCapabilityStorage(storageApi),
+  createSchedulingCapabilityStorage(storageApi),
+  createBookingCapabilityStorage(),
+  createResourcesCapabilityStorage(storageApi),
+  createTransportCapabilityStorage(),
   createSettingsStorage(storageApi),
-  createParentEducationStorage(storageApi),
-  createAttendanceStorage(storageApi),
-  createFinanceStorage(storageApi),
-  createFinanceInvoicePersist(storageApi),
-  createInvoicePaymentService(storageApi),
-  createTextbookStorage(storageApi),
-  createPracticeRoomBookingStorage(storageApi),
-  createDaycareCareStorage(storageApi)
+  createParentCapabilityStorage(storageApi),
+  createAttendanceCapabilityStorage(storageApi),
+  createBillingCapabilityStorage(storageApi),
+  createCommerceCapabilityStorage(storageApi),
+  createDashboardStatsStorage(storageApi)
 );

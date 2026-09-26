@@ -14,7 +14,7 @@ import {
   type StudentEnrollment,
 } from '@/core/parent/types/globalParent';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
-import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
+import type { IndustryType } from '@/core/industry/types';
 import type { Student } from '@/types';
 import type { ParentPortalTab } from '@/types/education';
 import { ParentPortalTabs } from './ParentPortalTabs';
@@ -54,7 +54,7 @@ export const ParentAcademyPortal: React.FC<ParentAcademyPortalProps> = ({
     goToChildren,
     goToAcademies,
   } = useParentPortal();
-  const industryType = normalizeIndustryType(industryTypeProp);
+  const industryType = industryTypeProp;
   const readOnly = isReadOnlyEnrollment(enrollmentStatus);
   const portalNav = useMemo(() => getParentPortalNav(industryType), [industryType]);
   const allowedTabs = useMemo(

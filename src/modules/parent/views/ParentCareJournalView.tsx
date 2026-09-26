@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks';
 import type { Student } from '@/types';
-import { CARE_JOURNAL_MOOD_LABEL } from '@/modules/daycare/care';
+import { CARE_JOURNAL_MOOD_LABEL } from '@/industries/daycare/care';
 import { Section } from './shared';
 
 export function ParentCareJournalView({ student }: { student: Student }) {

@@ -1,4 +1,6 @@
 import {
+  DEFAULT_CREATE_INDUSTRY_TYPE,
+  isBlankIndustryInput,
   resolveIndustryCategoryForCreate,
   type IndustryType,
 } from '@/core/industry/types';
@@ -68,7 +70,7 @@ export type CreateOrganizationFormExtras = Partial<AcademySettings> & {
 
 export function toCreateOrganizationOptions(
   name: string,
-  industryType: IndustryType | string = 'piano',
+  industryType: IndustryType | string = DEFAULT_CREATE_INDUSTRY_TYPE,
   extras?: CreateOrganizationFormExtras
 ): CreateOrganizationOptions {
   const addressParts = extras?.addressParts;
@@ -234,7 +236,7 @@ export async function clearActiveMembership(): Promise<void> {
 
 export async function createOrganization(
   nameOrOptions: string | CreateOrganizationOptions,
-  industryType = 'piano',
+  industryType = DEFAULT_CREATE_INDUSTRY_TYPE,
   settings?: Partial<AcademySettings>
 ): Promise<string> {
   // Phase 3: Enhanced with required fields validation
@@ -245,7 +247,9 @@ export async function createOrganization(
   const options: CreateOrganizationOptions = nameOrOptions;
   const prepared = prepareCreateOrganizationInput(options);
 
-  const resolvedIndustryType = options.industryType ?? 'piano';
+  const resolvedIndustryType = isBlankIndustryInput(options.industryType)
+    ? DEFAULT_CREATE_INDUSTRY_TYPE
+    : String(options.industryType).trim();
   const slug = prepared.name
     .toLowerCase()
     .replace(/[^a-z0-9가-힣]+/g, '-')

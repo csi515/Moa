@@ -13,6 +13,7 @@ import { AcademySettings } from '@/types';
 import {
   AttendanceFeatureToggle,
   isAttendanceModuleEnabled,
+  PIN_ATTENDANCE_DIRECTOR_COPY,
   withAttendanceModuleEnabled,
 } from '@/core/attendance';
 import { IndustryFeatureGuidePanel } from '@/core/help';
@@ -33,7 +34,7 @@ import {
 } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import { getIndustryAccent, getCustomerLabel, getOwnerLabel, getPlaceLabel, isSkinClinicIndustry } from '@/core/industry/industryUi';
-import { StaffHoursFields } from '@/modules/skin/components/settings/StaffHoursFields';
+import { renderAcademyStaffHoursFields } from '@/core/academy/academyStaffUi';
 import { useModuleLabels } from '@/core/labels';
 import * as orgService from '@/core/organizations/services/organizationService';
 import {
@@ -180,8 +181,8 @@ export const AcademySettingsView: FC = () => {
       triggerRefresh();
       showToast(
         enabled
-          ? '학생 PIN 출결이 활성화되었습니다. 출석 키오스크를 사용할 수 있습니다.'
-          : '학생 PIN 출결이 비활성화되었습니다.',
+          ? PIN_ATTENDANCE_DIRECTOR_COPY.settingsEnabledToast
+          : PIN_ATTENDANCE_DIRECTOR_COPY.settingsDisabledToast,
         'success'
       );
     } catch (err) {
@@ -583,11 +584,11 @@ export const AcademySettingsView: FC = () => {
                     />
                   </FormField>
                 )}
-                <StaffHoursFields
-                  teachers={StorageService.getTeachers().filter((t) => t.status === 'active')}
-                  windows={settings.staffHours || []}
-                  onChange={(staffHours) => setSettings({ ...settings, staffHours })}
-                />
+                {renderAcademyStaffHoursFields({
+                  teachers: StorageService.getTeachers().filter((t) => t.status === 'active'),
+                  windows: settings.staffHours || [],
+                  onChange: (staffHours) => setSettings({ ...settings, staffHours }),
+                })}
               </div>
             )}
 

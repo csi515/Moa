@@ -1,14 +1,77 @@
 # Moa Data Flow
 
-데이터가 앱을 통과하는 실제 경로. 폴더는 [PROJECT_MAP.md](./PROJECT_MAP.md), 개념은 [DOMAIN_MAP.md](./DOMAIN_MAP.md).
+데이터가 앱을 통과하는 실제 경로. 폴더는 [PROJECT_MAP.md](./PROJECT_MAP.md), 개념은 [DOMAIN_MAP.md](./DOMAIN_MAP.md), 계층은 [ARCHITECTURE.md](./ARCHITECTURE.md).
+
+용어는 세 문서와 같다.
+
+| 용어 | 의미 |
+| --- | --- |
+| **Core** | 업종 독립 공통 기반 |
+| **Capability** | 여러 업종이 선택하는 업무 기능 |
+| **Industry** | 특정 업종의 화면·규칙·조합 |
+| **Composition** | definition / manifest / registry / router / loader 조립 |
+| **Legacy aggregation layer** | `core/academy`, `StorageService`, `src/modules` 업종 복제 |
+| **Infrastructure** | persist, hydrate, sync, audit, idempotency, outbox |
 
 표기:
 
 | 표기 | 의미 |
 | --- | --- |
-| 현재 구현 | 지금 실행되는 경로 |
-| 권장 표준 | 신규 코드 |
-| 파일럿 | 인프라는 있으나 프로덕션 write에 거의 안 붙음 |
+| **현재 구현** | 지금 실행되는 경로 |
+| **권장 표준** | 신규 코드 |
+| **장기 목표** | 아직 전 경로가 아님. 이미 끝난 것처럼 쓰지 않는다 |
+| **파일럿** | 인프라는 있으나 프로덕션 write에 거의 안 붙음 |
+
+---
+
+## 0. 두 층 요약
+
+### [현재]
+
+주류 CRUD:
+
+```text
+Component
+  → StorageService
+  → adapter (hydrate/sync)
+  → Supabase (RLS / RPC)
+```
+
+이행 중:
+
+```text
+Component
+  → Service (StudentService / TuitionService / …)
+  → StorageService
+  → adapter
+  → Supabase
+```
+
+권장 신규(이미 일부 경로):
+
+```text
+Component
+  → Service
+  → getCoreClient() / RPC
+  → Supabase
+```
+
+`StorageService`는 **살아 있다.** capability `infrastructure/*Storage` facade가 일부를 감싸지만 mega-facade를 제거한 상태가 아니다.
+
+조립: Gate → `src/app/industry/IndustryAppRouter` → `src/industries/<id>` 또는 Generic shell.  
+학부모: `src/modules/parent`.  
+다수 화면은 아직 `src/core/academy` (**legacy aggregation layer**).
+
+### [장기 목표]
+
+```text
+Industry UI
+  → Capability Application/Service
+  → Core / Repository / RPC
+  → Supabase
+```
+
+StorageService는 capability별 persistence facade로 나뉠 수 있다. 그때도 현재 경로를 일괄 삭제하지 않는다.
 
 ---
 
@@ -43,7 +106,7 @@ User
   → selectedMembership (localStorage: moa_current_organization_id)
   → currentOrganization / currentRole / currentStaffId
   → StorageHydrator(organizationId, industryType)
-  → IndustryAppRouter → Module *AppContent
+  → IndustryAppRouter (src/app/industry) → Industry *AppContent
 ```
 
 현재 구현 (`OrganizationProvider.tsx`):
@@ -55,6 +118,8 @@ User
 - Gate: parent-only → `ParentShell`, customer-only → `CustomerShell`, 미선택 → `OrganizationSelector`.
 
 권한 전환 UI: `RoleContextSwitcher.tsx` (`switchMembership`, portal enter/exit, logout).
+
+조직 선택은 membership/org-id 기준이다. `industry_type`으로 조직을 고르지 않는다. unknown industry는 piano로 바꾸지 않는다 (`parseIndustryType`).
 
 ---
 
@@ -95,7 +160,7 @@ Component
   → StorageHydrator가 서버에서 hydrate
 ```
 
-예: 많은 academy/module 화면, `Header.tsx`.
+예: 많은 academy / Industry 화면, `Header.tsx`.
 
 **이행 중:**
 
@@ -112,6 +177,14 @@ Component → Hook → domain Service
 ```
 
 예: `src/core/schedules/services/`, `src/core/locations/locationService.ts`, retail `productService.ts`.
+
+**장기 목표 (아직 전 경로 아님):**
+
+```text
+Industry UI
+  → Capability Application/Service
+  → Core / Repository / RPC
+```
 
 React Query 등 서버 캐시 라이브러리는 **없다**. 서버 state는 Storage 캐시 또는 화면 `useState` + Service 호출이다.
 
@@ -160,7 +233,9 @@ UI → Service
   → 성공 시 local mirror / useStorageRefresh
 ```
 
-Audit/Outbox가 필요하면 RPC 안 또는 기존 capability. UI 토글에는 붙이지 않는다.
+장기 목표: Industry UI → Capability Service → 같은 RPC. StorageService를 이미 뺀 것처럼 쓰지 않는다.
+
+Audit/Outbox가 필요하면 RPC 안 또는 기존 Capability. UI 토글에는 붙이지 않는다.
 
 ---
 
@@ -200,7 +275,9 @@ Hydrate 성공 시 adapter가 `notify('*')` → 구독 화면 전부 갱신.
 
 권장: 새 storage key는 정책을 같이 선언한다.
 
-개선 필요: 미선언 키 다수, 셔틀 요청이 local-only.
+장기: capability `infrastructure/*Storage` facade가 StorageService 일부를 감쌀 수 있다. **지금 StorageService를 제거한 상태가 아니다.**
+
+향후 개선: 미선언 키 다수, 셔틀 요청이 local-only.
 
 ---
 
@@ -227,11 +304,20 @@ DB / RPC / Adapter error
 
 ## 9. 대표 시퀀스 (요약)
 
-로그인 후 업무 화면:
+로그인 후 업무 화면 (현재):
 
 ```text
-session → memberships → select org → hydrate storage → IndustryAppRouter
+session → memberships → select org → hydrate storage
+  → IndustryAppRouter (src/app/industry)
   → ModuleAppShell → screen reads StorageService
+```
+
+장기 목표:
+
+```text
+session → memberships → select org
+  → IndustryAppRouter
+  → Industry UI → Capability Service → Core / RPC
 ```
 
 판매(유통):
@@ -244,11 +330,13 @@ SalePosView → retail saleService → RPC create_sale → 재고/포인트 RPC
 출결+이용권:
 
 ```text
-attendance UI → attendancePassAtomic / piano RPC update_attendance_status_with_pass
+attendance UI → capabilities/attendance Service
+  → attendancePassAtomic / piano RPC update_attendance_status_with_pass
 ```
 
 학부모 포털:
 
 ```text
-portalMode=parent → ParentShell → core/parent + 업종별 views (일부 daycare/piano import)
+portalMode=parent → ParentShell (src/modules/parent)
+  → core/parent + 업종별 views (일부 daycare/piano import)
 ```

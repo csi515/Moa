@@ -3,7 +3,7 @@ import { StorageService } from '@/services/storage';
 import { useStorageRefresh } from '@/hooks';
 import { FormField, FORM_CONTROL_CLASS } from '@/shared/components/ui';
 import type { Student } from '@/types';
-import type { AuthorizedPickup } from '@/modules/daycare/care';
+import type { AuthorizedPickup } from '@/industries/daycare/care';
 import { Section } from './shared';
 
 const EMPTY_PICKUP: AuthorizedPickup = { name: '', relation: '', phone: '' };

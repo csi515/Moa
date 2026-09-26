@@ -1,15 +1,2 @@
-/**
- * 통합 수납 Application Command.
- * 저장은 기존 atomic RPC/offline 경로를 재사용한다.
- */
-import type { CombinedPaymentRequest } from '@/types';
-import { recordCombinedPaymentAtomic } from '@/core/finance/combinedPaymentAtomic';
-import type { CombinedPaymentAtomicResult } from '@/core/finance/combinedPaymentCommand';
-
-export type { CombinedPaymentAtomicResult as CombinedPaymentResult };
-
-export async function recordCombinedPayment(
-  req: CombinedPaymentRequest
-): Promise<CombinedPaymentAtomicResult> {
-  return recordCombinedPaymentAtomic(req);
-}
+/** @deprecated 신규 코드는 `@/capabilities/billing/finance`를 사용한다. */
+export * from '@/capabilities/billing/finance/application/recordCombinedPayment';

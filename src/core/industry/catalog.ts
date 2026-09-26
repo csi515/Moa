@@ -9,6 +9,12 @@ import {
   type IndustryType,
   type ModuleIndustryId,
 } from './definitions';
+import {
+  filterTabsByIndustryCapabilities,
+  isIndustryCapabilityDefaultOn,
+  isIndustryCapabilityEnabled,
+  type IndustryCapabilityFlagMap,
+} from './industryCapabilities';
 
 export type { IndustryType, ModuleIndustryId, IndustryDefinition };
 export {
@@ -17,7 +23,8 @@ export {
   INDUSTRY_ALIASES,
   MODULE_INDUSTRY_IDS,
   PUBLIC_SELECTABLE_INDUSTRY_IDS,
-};
+  defineIndustry,
+} from './definitions';
 
 const ID_SET = new Set<string>(INDUSTRY_IDS);
 const MODULE_ID_SET = new Set<string>(MODULE_INDUSTRY_IDS);
@@ -45,7 +52,7 @@ export function listIndustryDefinitions(options?: {
 }): IndustryDefinition[] {
   let list = INDUSTRY_IDS.map((id) => INDUSTRY_DEFINITIONS[id]);
   if (options?.selectableOnly) {
-    list = list.filter((d) => d.selectable !== false);
+    list = list.filter((d) => d.selectable === true);
   }
   if (options?.category) {
     list = list.filter((d) => d.category === options.category);
@@ -62,10 +69,37 @@ export function hasIndustryModule(id: IndustryType | string | null | undefined):
   return Boolean(getIndustryDefinition(id)?.moduleId);
 }
 
-/** 모듈 없는 업종 → Generic 셸 */
+/** 모듈 없는 카탈로그 업종 + 카탈로그에 없는 값 → Generic 셸. 미설정(빈 값)은 piano 모듈. */
 export function shouldUseGenericShell(industryType?: string | null): boolean {
-  if (!industryType) return false;
+  if (industryType == null || String(industryType).trim() === '') return false;
   const def = getIndustryDefinition(industryType);
-  if (!def) return false;
+  if (!def) return true;
   return !def.moduleId;
+}
+
+export function getIndustryCapabilities(
+  industry: IndustryType | string | null | undefined
+): IndustryCapabilityFlagMap {
+  return { ...(getIndustryDefinition(industry)?.capabilities ?? {}) };
+}
+
+export function hasIndustryCapability(
+  industry: IndustryType | string | null | undefined,
+  capabilityId: string
+): boolean {
+  return isIndustryCapabilityEnabled(getIndustryDefinition(industry)?.capabilities, capabilityId);
+}
+
+export function hasIndustryCapabilityDefault(
+  industry: IndustryType | string | null | undefined,
+  capabilityId: string
+): boolean {
+  return isIndustryCapabilityDefaultOn(getIndustryDefinition(industry)?.defaults, capabilityId);
+}
+
+export function filterIndustryNavTabs<T extends string>(
+  tabs: readonly T[],
+  industry: IndustryType | string | null | undefined
+): T[] {
+  return filterTabsByIndustryCapabilities(tabs, getIndustryDefinition(industry)?.capabilities);
 }

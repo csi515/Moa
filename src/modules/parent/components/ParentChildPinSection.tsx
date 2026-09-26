@@ -6,6 +6,7 @@ import {
   type GlobalStudent,
   type StudentEnrollment,
 } from '@/core/parent/types/globalParent';
+import { PIN_ATTENDANCE_PARENT_COPY } from '@/core/attendance/attendanceNotifyCopy';
 import { ParentEnrollmentPinEditor } from './ParentEnrollmentPinEditor';
 
 interface ParentChildPinSectionProps {
@@ -42,8 +43,8 @@ export const ParentChildPinSection: React.FC<ParentChildPinSectionProps> = ({
           <KeyRound className="w-4 h-4 text-indigo-600" />
           <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">출입 PIN</p>
         </div>
-        <p className="text-xs text-slate-500 -mt-1">
-          자녀마다 출결 키패드용 PIN을 설정할 수 있습니다.
+        <p className="text-xs text-slate-500 -mt-1 leading-relaxed">
+          {PIN_ATTENDANCE_PARENT_COPY.childPinHint}
         </p>
 
         {children.map((child) => {

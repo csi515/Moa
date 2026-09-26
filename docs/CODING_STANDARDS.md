@@ -1,7 +1,9 @@
 # MOA Coding Standards 1.0
 
 > 신규 코드에 적용. 기존 코드는 수정·개선 시점에 점진 정렬.  
-> 관련: [ARCHITECTURE.md](./ARCHITECTURE.md) · [UI_COMPONENT_GUIDE.md](./UI_COMPONENT_GUIDE.md) · [PAGE_PATTERNS.md](./PAGE_PATTERNS.md)
+> 관련: [ARCHITECTURE.md](./ARCHITECTURE.md) · [MOA_DEVELOPMENT_STANDARD.md](./MOA_DEVELOPMENT_STANDARD.md) · [UI_COMPONENT_GUIDE.md](./UI_COMPONENT_GUIDE.md) · [PAGE_PATTERNS.md](./PAGE_PATTERNS.md)
+
+용어: **Core** = 업종 독립 기반. **Capability** = 여러 업종이 선택하는 업무. **Industry** = 한 업종의 화면·규칙. **Composition** = registry/router/loader 조립. `core/academy` = **legacy aggregation layer**.
 
 ---
 
@@ -14,7 +16,7 @@
 5. 신규 코드는 본 표준을 준수한다.
 6. 기존 코드는 수정/개선하는 시점에 점진적으로 표준에 맞춘다.
 7. 기존 코드와 표준이 다르다는 이유만으로 일괄 수정하지 않는다.
-8. Core / Shared / Module의 책임을 명확하게 유지한다.
+8. Core / Capability / Industry / Composition / Shared의 책임을 명확하게 유지한다. `core/academy`는 **legacy aggregation layer**이며 신규 기본 위치가 아니다.
 9. 멀티테넌트 데이터 격리를 최우선으로 한다.
 10. 추측하지 말고 실제 코드와 사용처를 확인한다.
 
@@ -25,11 +27,12 @@
 - 신규 공통 컴포넌트가 필요하면 기존 컴포넌트와의 차이를 먼저 검토한다.
 - 신규 코드는 **Component → Hook → Service → getCoreClient() → Supabase** 흐름을 우선한다.
 - 컴포넌트에서 Supabase를 직접 호출하지 않는다.
-- 업종 전용 비즈니스 로직은 Module에 둔다.
-- 여러 업종에서 **동일한 의미·동일한 책임**을 가지는 기능만 Core에 둔다.
+- 업종 전용 비즈니스 로직은 **Industry**(`src/industries/<id>`)에 둔다. `src/modules/{piano,…}` 잔여 폴더에 신규 코드를 두지 않는다. 학부모 포털만 `src/modules/parent`.
+- 여러 업종이 **같은 의미·같은 책임으로 선택**하는 업무는 **Capability**(`src/capabilities/<id>`). 업종과 무관한 기반만 **Core**.
+- “여러 화면에서 쓰인다” 또는 “나중에 쓸지도”만으로 Core에 올리지 않는다.
 - UI 재사용성과 비즈니스 로직 재사용성을 구분한다. Shared에는 업종 비즈니스 로직을 넣지 않는다.
 
-상세 계층 규칙: [ARCHITECTURE.md](./ARCHITECTURE.md).
+상세 계층 규칙: [ARCHITECTURE.md](./ARCHITECTURE.md), [MOA_DEVELOPMENT_STANDARD.md](./MOA_DEVELOPMENT_STANDARD.md).
 
 ---
 
@@ -123,9 +126,15 @@ Component → StorageService → sync adapters → Supabase
 Component → StudentService | TuitionService | LessonService → StorageService → sync
 ```
 
+장기 목표 (전 경로가 아님):
+
+```
+Industry UI → Capability Application/Service → Core / Repository / RPC
+```
+
 - 신규/수정 UI는 파사드 Service를 호출한다.
 - 레거시는 기능 수정 시 점진 정렬한다.
-- 전체 StorageService를 한 번에 제거하지 않는다.
+- 전체 StorageService를 한 번에 제거하지 않는다. 업종 기능을 StorageService에 무조건 추가하지 않는다.
 - 조직 스코프가 필요한 조회/저장은 Service에서 `organization_id`를 명시한다.
 
 ### 도메인별 Service (신규·수정 시)

@@ -1,0 +1,1 @@
+export { consultationCapability } from './manifest';

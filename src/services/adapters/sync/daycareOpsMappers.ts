@@ -13,7 +13,7 @@ import type {
   SafetyChecklistItem,
   SafetyInspectionLog,
   StaffHealthCert,
-} from '@/modules/daycare/care/types';
+} from '@/industries/daycare/care/types';
 
 type Meta = { studentName?: string; teacherName?: string };
 

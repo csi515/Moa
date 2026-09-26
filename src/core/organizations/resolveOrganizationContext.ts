@@ -328,3 +328,74 @@ export function portalModeToFlags(mode: AppPortalMode): {
     customerPortalActive: mode === 'customer',
   };
 }
+
+export type OrganizationSessionState = {
+  flags: PortalAccessFlags;
+  decision: OrganizationBootstrapDecision;
+  selectedMembership: OrganizationMembership | null;
+  portalMode: AppPortalMode;
+  storage: MembershipStorageAction;
+  storedOrganizationId: string | null;
+};
+
+/**
+ * login/refresh 후 Provider가 커밋하는 선택 상태.
+ * 업종 필드를 읽지 않는다.
+ */
+export function applyBootstrapToSession(
+  input: Parameters<typeof resolveOrganizationBootstrap>[0]
+): OrganizationSessionState {
+  const { flags, decision } = resolveOrganizationBootstrap(input);
+  const plan = planBootstrapApply(decision);
+  const result =
+    plan.selection.by === 'membership'
+      ? resolveMembershipById(input.memberships, plan.selection.membershipId)
+      : resolveMembershipByOrganizationId(input.memberships, plan.selection.organizationId);
+
+  const storage: MembershipStorageAction =
+    plan.clearStoredOrganizationId && result.storage.action !== 'store'
+      ? { action: 'clear' }
+      : result.storage;
+
+  let storedOrganizationId = input.storedOrganizationId;
+  if (storage.action === 'store') storedOrganizationId = storage.organizationId;
+  else if (storage.action === 'clear') storedOrganizationId = null;
+
+  return {
+    flags,
+    decision,
+    selectedMembership: result.membership,
+    portalMode: plan.portalMode,
+    storage,
+    storedOrganizationId,
+  };
+}
+
+/** 사업장 전환 시 이전 org local state를 새 org에 쓰지 않는다. */
+export function nextOrganizationLocalStateAction(
+  previousOrganizationId: string | null | undefined,
+  nextOrganizationId: string
+): 'clear' | 'keep' {
+  return previousOrganizationId !== nextOrganizationId ? 'clear' : 'keep';
+}
+
+/** selectedMembership이 선택 SoT인지. 테스트·회귀에서 사용. */
+export function assertSelectionInvariant(membership: OrganizationMembership | null): void {
+  const fields = deriveSelectionFields(membership);
+  if (!membership) {
+    if (fields.currentOrganization != null) {
+      throw new Error('selectedMembership이 없으면 currentOrganization도 null이어야 한다');
+    }
+    return;
+  }
+  if (fields.currentOrganization?.id !== membership.organizationId) {
+    throw new Error(
+      `currentOrganization.id (${fields.currentOrganization?.id}) !== selectedMembership.organizationId (${membership.organizationId})`
+    );
+  }
+  if (fields.currentOrganization.id !== membership.organization.id) {
+    throw new Error(
+      `currentOrganization.id (${fields.currentOrganization.id}) !== membership.organization.id (${membership.organization.id})`
+    );
+  }
+}

@@ -45,7 +45,7 @@ import {
 import {
   mergeTextbookPaymentsWithLegacy,
   mergeTextbookSalesWithLegacy,
-} from '../../../modules/piano/services/textbookSaleLegacy';
+} from '../../../industries/piano/services/textbookSaleLegacy';
 
 /** Piano 모듈 hydrate — Core hydrate 이후 호출 */
 export async function hydratePianoEntities(

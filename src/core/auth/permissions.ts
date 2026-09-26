@@ -1,9 +1,9 @@
 import type { NavTab } from '@/context/AppContext';
 import type { IndustryType } from '@/core/industry/types';
-import { normalizeIndustryType } from '@/core/industry/types';
 import { getOwnerLabel } from '@/core/industry/industryUi';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { withOwnerFinanceTabs } from '@/core/industry/pluginTypes';
+import { filterIndustryNavTabs } from '@/core/industry/catalog';
 import type { UserRole } from '@/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import type { AcademySettings } from '@/types';
@@ -27,10 +27,6 @@ export {
   evaluatePermission,
 } from '@/core/authorization';
 export type { AuthScope, AuthScopeType, Permission } from '@/core/authorization';
-
-function resolveIndustryType(industry: IndustryType | string | null | undefined): IndustryType {
-  return normalizeIndustryType(industry);
-}
 
 /**
  * PIN 출결 꺼진 사업장에서 PIN 전용 탭만 숨김.
@@ -62,20 +58,23 @@ export function getAllowedTabs(
   industry: IndustryType | string | null | undefined,
   settings?: AcademySettings | null
 ): NavTab[] {
-  const industryType = resolveIndustryType(industry);
-  const plugin = getIndustryPlugin(industryType);
-  const attendanceEnabled = isAttendanceModuleEnabled(settings, industryType);
+  const plugin = getIndustryPlugin(industry);
+  const attendanceEnabled = isAttendanceModuleEnabled(settings, industry);
   const kind = resolveRoleAccessKind(role);
 
   if (kind === 'admin') {
     const base = isOrgOwner(role)
       ? withOwnerFinanceTabs(plugin.adminTabs)
       : plugin.adminTabs;
-    return appendAccountTab(filterAttendancePinTab(base, attendanceEnabled));
+    return appendAccountTab(
+      filterAttendancePinTab(filterIndustryNavTabs(base, industry), attendanceEnabled)
+    );
   }
 
   if (kind === 'staff') {
-    return appendAccountTab(filterAttendancePinTab(plugin.staffTabs, attendanceEnabled));
+    return appendAccountTab(
+      filterAttendancePinTab(filterIndustryNavTabs(plugin.staffTabs, industry), attendanceEnabled)
+    );
   }
 
   // parent / customer/member/null/unknown — admin 폴백 금지 (최소 권한)

@@ -169,17 +169,17 @@ function run() {
   assert.match(atomic, /Session pass refund failed/);
   assert.equal(atomic.includes('upsertThenDiffDelete'), false);
 
-  const pin = readFileSync(join(here, '../../modules/piano/services/pinDayAttendanceSync.ts'), 'utf8');
+  const pin = readFileSync(join(here, '../../industries/piano/services/pinDayAttendanceSync.ts'), 'utf8');
   assert.match(pin, /saveAttendanceWithPass/);
 
   const helpers = readFileSync(
-    join(here, '../../modules/piano/components/attendance/pianoAttendanceHelpers.ts'),
+    join(here, '../../industries/piano/components/attendance/pianoAttendanceHelpers.ts'),
     'utf8'
   );
   assert.match(helpers, /saveAttendanceWithPass/);
 
   const today = readFileSync(
-    join(here, '../../modules/piano/components/lessons/TodayLessonView.tsx'),
+    join(here, '../../industries/piano/components/lessons/TodayLessonView.tsx'),
     'utf8'
   );
   assert.match(today, /saveAttendanceWithPass/);

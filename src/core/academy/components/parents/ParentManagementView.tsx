@@ -15,7 +15,7 @@ import {
   type InviteParentResult,
 } from '@/core/parent/services/parentAccountService';
 import { sendParentInvitationEmail } from '@/core/parent/services/parentInviteService';
-import { ParentInviteResultModal } from '@/modules/parent/ParentInviteResultModal';
+import { renderAcademyParentInviteResult } from '@/core/academy/academyStaffUi';
 import { formatGuardianRelationship, searchParents } from '@/core/parent';
 import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
 import { StorageService } from '@/services/storage';
@@ -342,19 +342,18 @@ export const ParentManagementView: React.FC = () => {
         )}
       </Modal>
 
-      {inviteResult && inviteResult.status === 'invited' && (
-        <ParentInviteResultModal
-          parentName={
-            parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || contactLabel
-          }
-          email={inviteResult.email || ''}
-          organizationName={inviteResult.organizationName || currentOrganization?.name || '사업장'}
-          linkCodes={inviteResult.linkCodes}
-          emailSent={inviteEmailSent}
-          emailMessage={inviteEmailMessage}
-          onClose={() => setInviteResult(null)}
-        />
-      )}
+      {inviteResult &&
+        inviteResult.status === 'invited' &&
+        renderAcademyParentInviteResult({
+          parentName:
+            parents.find((p) => p.id === inviteResult.parentCustomerId)?.name || contactLabel,
+          email: inviteResult.email || '',
+          organizationName: inviteResult.organizationName || currentOrganization?.name || '사업장',
+          linkCodes: inviteResult.linkCodes,
+          emailSent: inviteEmailSent,
+          emailMessage: inviteEmailMessage,
+          onClose: () => setInviteResult(null),
+        })}
     </div>
   );
 };

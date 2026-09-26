@@ -1,9 +1,2 @@
-export type {
-  Product,
-  ProductCategory,
-  ProductListItem,
-  ProductSaveInput,
-  ProductVariant,
-  ProductVariantSaveInput,
-} from './types';
-export { productService } from './productService';
+/** @deprecated 신규 코드는 `@/capabilities/commerce/catalog`를 사용한다. */
+export * from '@/capabilities/commerce/catalog/index';

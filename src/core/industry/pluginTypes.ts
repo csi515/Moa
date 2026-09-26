@@ -12,7 +12,7 @@ export interface IndustryAccent {
 
 /**
  * 업종 플러그인 메타데이터.
- * AppContent/Labels는 IndustryAppRouter에서 등록하고,
+ * AppContent/Labels는 src/app/industry/industryModules.tsx에서 등록하고,
  * 탭·테마·출결 기본값 등은 이 매니페스트로 통일한다.
  */
 export interface IndustryPluginManifest {
@@ -37,6 +37,8 @@ export interface IndustryPluginManifest {
    */
   syncCapabilities?: string[];
 }
+
+export type IndustryPlugin = IndustryPluginManifest;
 
 const OWNER_FINANCE_TABS: NavTab[] = ['finance', 'income', 'expenses', 'payroll'];
 

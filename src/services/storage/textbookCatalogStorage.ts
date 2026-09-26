@@ -1,11 +1,11 @@
 import type { Textbook, TextbookInventoryTransaction } from '../../types';
 import { STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
-import { textbookCoreStock } from '@/modules/piano/services/textbookCoreStock';
+import { textbookCoreStock } from '@/industries/piano/services/textbookCoreStock';
 import {
   commitLocalThenRemote,
   resolveTextbookCatalogMode,
-} from '@/modules/piano/services/textbookCatalogPersist';
+} from '@/industries/piano/services/textbookCatalogPersist';
 
 function cloneTextbooks(list: Textbook[]): Textbook[] {
   return list.map((t) => ({ ...t }));

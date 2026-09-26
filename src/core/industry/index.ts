@@ -17,6 +17,9 @@ export {
   MODULE_INDUSTRY_IDS,
   PUBLIC_SELECTABLE_INDUSTRY_IDS,
   normalizeIndustryType,
+  parseIndustryType,
+  isBlankIndustryInput,
+  DEFAULT_CREATE_INDUSTRY_TYPE,
   getIndustryLabel,
   getIndustryCategoryLabel,
   getIndustryCategoryForType,
@@ -29,6 +32,10 @@ export {
   listIndustriesByCategory,
   hasIndustryModule,
   shouldUseGenericShell,
+  getIndustryCapabilities,
+  hasIndustryCapability,
+  hasIndustryCapabilityDefault,
+  filterIndustryNavTabs,
   assertCatalogIntegrity,
 } from './types';
 
@@ -36,10 +43,11 @@ export {
   getIndustryPlugin,
   listIndustryOptions,
   listIndustryIds,
+  listIndustryPlugins,
   hasModulePlugin,
-  INDUSTRY_PLUGINS,
 } from './registry';
 
 export { IndustryPicker } from './IndustryPicker';
-export { IndustryAppRouter } from './IndustryAppRouter';
 export { GenericIndustryShell } from './GenericIndustryShell';
+export { resolveIndustryAppKind } from './industryAppResolve';
+export { defineIndustry } from './definitions';

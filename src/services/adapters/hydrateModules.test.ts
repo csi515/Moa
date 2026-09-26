@@ -19,8 +19,8 @@ const cases: Array<{
   { industry: 'pilates', expect: { piano: false, education: false, daycare: false } },
   { industry: 'gym', expect: { piano: false, education: false, daycare: false } },
   { industry: 'skin_clinic', expect: { piano: false, education: false, daycare: false } },
-  // unknown → normalize → piano (기존 기본값)
   { industry: null, expect: { piano: true, education: true, daycare: false } },
+  { industry: 'english_academy', expect: { piano: false, education: false, daycare: false } },
 ];
 
 for (const { industry, expect } of cases) {
@@ -29,8 +29,8 @@ for (const { industry, expect } of cases) {
 }
 
 const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
-const pianoPlugin = readFileSync(join(srcRoot, 'modules/piano/plugin.ts'), 'utf8');
-const daycarePlugin = readFileSync(join(srcRoot, 'modules/daycare/plugin.ts'), 'utf8');
+const pianoPlugin = readFileSync(join(srcRoot, 'industries/piano/plugin.ts'), 'utf8');
+const daycarePlugin = readFileSync(join(srcRoot, 'industries/daycare/plugin.ts'), 'utf8');
 assert.match(pianoPlugin, /syncCapabilities:\s*\[\s*'piano',\s*'education'\s*\]/);
 assert.match(daycarePlugin, /syncCapabilities:\s*\[\s*'daycare'\s*\]/);
 

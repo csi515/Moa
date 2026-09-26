@@ -22,7 +22,7 @@ const mig = readFileSync(
   join(root, 'supabase/migrations/20260922180000_retail_staff_sale_permissions.sql'),
   'utf8'
 );
-const plugin = readFileSync(join(root, 'src/modules/retail/plugin.ts'), 'utf8');
+const plugin = readFileSync(join(root, 'src/industries/retail/plugin.ts'), 'utf8');
 
 // ── 정적: plugin 계약 ─────────────────────────────────────────────
 assert.match(plugin, /Staff: 판매·고객·판매내역·재고\(조회만\)/);

@@ -15,9 +15,14 @@ alwaysApply: false
 
 ## UI → DB
 
-**권장 신규:** 화면에서 `getCoreClient()` / `supabase.from` / RPC를 직접 호출하지 않는다. `src/core/<domain>` 또는 `src/modules/<x>/services`를 거친다.
+**권장 신규:** 화면에서 `getCoreClient()` / `supabase.from` / RPC를 직접 호출하지 않는다. Service는 계층에 맞게 둔다.
 
-**현재:** 많은 화면이 `StorageService.getX()`를 직접 호출한다. 손대지 않는 화면을 일괄 바꾸지 않는다.
+- Core foundation → `src/core/<domain>`
+- Capability → `src/capabilities/<id>` (shim `@/core/attendance` 등 신규 SoT 금지)
+- Industry → `src/industries/<id>/services`
+- 학부모 포털 → `src/modules/parent` 또는 `src/core/parent`
+
+**현재:** 많은 화면이 `StorageService.getX()`를 직접 호출한다. `src/modules/{piano,…}` 잔여 services도 있다. 손대지 않는 화면을 일괄 바꾸지 않는다. StorageService에 업종 slice를 무조건 추가하지 않는다.
 
 클라이언트: `src/lib/supabase/client.ts` (`getCoreClient`). 업종 스키마는 `pianoClient.ts`, `bathClient.ts`, `platformClient.ts`.
 

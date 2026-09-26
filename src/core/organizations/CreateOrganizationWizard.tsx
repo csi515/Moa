@@ -18,6 +18,7 @@ import {
 } from '../industry/industryUi';
 import { StorageService } from '@/services/storage';
 import { withAttendanceModuleEnabled } from '@/core/attendance/features';
+import { PIN_ATTENDANCE_DIRECTOR_COPY } from '@/core/attendance/attendanceNotifyCopy';
 import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
 import {
   OrganizationLocationSetupError,
@@ -266,8 +267,8 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               </p>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                 {appointmentStyle
-                  ? '입구 태블릿에서 회원이 PIN을 입력해 방문·출입을 기록합니다.'
-                  : '입구 태블릿에서 학생이 PIN을 입력해 출석합니다. 선생님이 일일이 체크하지 않아도 됩니다.'}
+                  ? PIN_ATTENDANCE_DIRECTOR_COPY.createOrgPinHintAppointment
+                  : PIN_ATTENDANCE_DIRECTOR_COPY.createOrgPinHint}
               </p>
             </button>
 
@@ -286,8 +287,8 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
               </p>
               <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
                 {appointmentStyle
-                  ? '직원·관리자가 MOA에서 방문·출입을 직접 처리합니다. PIN·키오스크는 숨겨집니다.'
-                  : '선생님·관리자가 MOA에서 출석을 직접 처리합니다. PIN·키오스크는 숨겨집니다.'}
+                  ? PIN_ATTENDANCE_DIRECTOR_COPY.createOrgManualHintAppointment
+                  : PIN_ATTENDANCE_DIRECTOR_COPY.createOrgManualHint}
               </p>
             </button>
 

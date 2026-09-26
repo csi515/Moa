@@ -43,7 +43,7 @@ function getPianoMoreItems(): MoreItem[] {
   ];
 }
 
-function getDefaultMoreItems(industry: IndustryType): MoreItem[] {
+function getDefaultMoreItems(industry: IndustryType | string | null | undefined): MoreItem[] {
   const secondary = getParentPortalSecondaryTabs(industry);
   const items: MoreItem[] = [
     {

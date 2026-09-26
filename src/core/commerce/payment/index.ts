@@ -1,9 +1,2 @@
-/**
- * Commerce Payment — 판매 행의 결제수단 계약.
- * PG/정산/core.payments(학원 청구)는 소유하지 않는다.
- */
-export type { SalePaymentMethod } from '@/core/sales';
-export {
-  SALE_PAYMENT_METHODS,
-  SALE_PAYMENT_METHOD_LABELS,
-} from '@/core/sales';
+/** @deprecated 신규 코드는 `@/capabilities/commerce/facade`를 사용한다. */
+export * from '@/capabilities/commerce/facade/payment/index';

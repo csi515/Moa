@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StorageService } from '@/services/storage';
-import { ACADEMY_EVENT_TYPE_LABEL, PERFORMANCE_VIDEO_TYPE_LABEL } from '@/modules/piano/config/eventLabels';
+import { ACADEMY_EVENT_TYPE_LABEL, PERFORMANCE_VIDEO_TYPE_LABEL } from '@/industries/piano/config/eventLabels';
 import { normalizeIndustryType, type IndustryType } from '@/core/industry/types';
 import type { Student } from '@/types';
 import { Section } from './shared';

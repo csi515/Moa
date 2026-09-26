@@ -30,11 +30,11 @@ import { useGuardianDeepLinkPortalSync } from './hooks/useGuardianDeepLinkPortal
 import {
   computePortalAccessFlags,
   deriveSelectionFields,
-  planBootstrapApply,
   portalModeToFlags,
   resolveMembershipById,
   resolveMembershipByOrganizationId,
-  resolveOrganizationBootstrap,
+  applyBootstrapToSession,
+  nextOrganizationLocalStateAction,
   STAFF_ROLES,
   type AppPortalMode,
   type MembershipSelectionResult,
@@ -181,13 +181,6 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     [commitMembershipSelection]
   );
 
-  const applyOrgSelection = useCallback(
-    (list: orgService.OrganizationMembership[], organizationId: string | null) => {
-      commitMembershipSelection(resolveMembershipByOrganizationId(list, organizationId));
-    },
-    [commitMembershipSelection]
-  );
-
   const resetLoggedOutOrgState = useCallback(() => {
     StorageService.clearOrganization();
     setMemberships([]);
@@ -253,7 +246,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
       setBlockedOwnerOrgIds(blockedIds);
       setMemberships(nextMemberships);
 
-      const { decision } = resolveOrganizationBootstrap({
+      const session = applyBootstrapToSession({
         memberships: nextMemberships,
         blockedOwnerOrgIds: blockedIds,
         portalChildren,
@@ -261,17 +254,11 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
         parentPortalModeActive: isParentPortalModeActive(),
         storedOrganizationId: orgService.getStoredOrganizationId(),
       });
-
-      const plan = planBootstrapApply(decision);
-      if (plan.clearStoredOrganizationId) {
-        orgService.clearStoredOrganizationId();
-      }
-      commitPortalMode(plan.portalMode);
-      if (plan.selection.by === 'membership') {
-        applyMembershipSelection(nextMemberships, plan.selection.membershipId);
-      } else {
-        applyOrgSelection(nextMemberships, plan.selection.organizationId);
-      }
+      commitPortalMode(session.portalMode);
+      commitMembershipSelection({
+        membership: session.selectedMembership,
+        storage: session.storage,
+      });
       setOrganizationsError(null);
       setOrganizationsStatus('ready');
     } catch (err) {
@@ -294,8 +281,7 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
     }
   }, [
     user,
-    applyOrgSelection,
-    applyMembershipSelection,
+    commitMembershipSelection,
     resetLoggedOutOrgState,
     commitPortalMode,
   ]);
@@ -322,7 +308,10 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
       await orgService.setActiveMembership(membershipId);
 
-      if (currentOrganization?.id !== membership.organizationId) {
+      if (
+        nextOrganizationLocalStateAction(currentOrganization?.id, membership.organizationId) ===
+        'clear'
+      ) {
         StorageService.clearOrganization();
       }
       if (STAFF_ROLES.has(membership.role)) {

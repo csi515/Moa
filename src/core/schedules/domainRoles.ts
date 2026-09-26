@@ -78,15 +78,6 @@ export const ATTENDANCE_CHECK_IN_LEDGER: DomainLedger = {
   doesNotOwn: ['class_attendance', 'booking_status', 'visit_session_status'],
 };
 
-/** Piano 수업 출석. Core가 원장을 소유하지 않는다. */
-export const CLASS_ATTENDANCE_LEDGER = {
-  model: 'attendance',
-  table: 'piano.attendance',
-  statusField: 'status',
-  owns: 'class_attendance_state',
-  doesNotOwn: ['pin_check_in_state', 'booking_status', 'visit_session_status'],
-} as const satisfies DomainLedger;
-
 export const CORE_DOMAIN_LEDGERS = [
   SCHEDULE_LEDGER,
   RESERVATION_LEDGER,

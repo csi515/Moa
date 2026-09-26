@@ -283,7 +283,7 @@ function run() {
   assert.match(bookingClient, /update_booking_status_with_pass_idempotent/);
 
   const tuitionClient = readFileSync(
-    join(root, 'src/core/finance/tuitionPaymentAtomic.ts'),
+    join(root, 'src/capabilities/billing/finance/tuitionPaymentAtomic.ts'),
     'utf8'
   );
   assert.match(tuitionClient, /record_tuition_payment_idempotent/);

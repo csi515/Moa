@@ -29,7 +29,7 @@ alwaysApply: false
 | 순수 규칙, validation, 날짜, state machine, permission 계산 | Unit 필수 |
 | 돈·재고·이용권·출결 등 원자 mutation | 기존 `*Atomic.test.ts` / contract / db integration 패턴 |
 | 새 테이블·멤버십 RLS | `scripts/rls-*` 또는 invariant |
-| Core→Module import, DB 타입 | `npm run check:architecture` / `check:db-types` (`lint`에 포함) |
+| Core→Industry/modules, Capability→Industry, DB 타입 | `npm run check:architecture` / `check:db-types` (`lint`에 포함). 새 업종은 `test:industry-contract` |
 | 원장/카운터 한 줄이 깨지면 사업 정지 | 기존 E2E 시나리오 확장. 새 spec은 남발하지 않음 |
 | 스타일·카피·레이아웃만 | 테스트 추가하지 않음 |
 

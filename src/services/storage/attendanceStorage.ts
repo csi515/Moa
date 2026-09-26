@@ -1,5 +1,5 @@
 import type { AttendanceRecord, MakeupItem, MakeupScheduleInput, Student } from '../../types';
-import { STORAGE_KEYS } from '../adapters';
+import { getStorageAdapter, STORAGE_KEYS } from '../adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from './helpers';
 import type { AttendanceSession, CheckInMethod, PinCheckResult } from '../../core/attendance/types';
 import { isAttendanceModuleEnabled } from '../../core/attendance/features';
@@ -10,6 +10,7 @@ import {
   toggleCheckInByPinLocal,
 } from '../../core/attendance/services/attendanceService';
 import { getIndustryType } from '../adapters/storageContext';
+import { dispatchAppPush } from '@/core/push';
 
 /** 출결·PIN·보강 도메인 */
 export function createAttendanceStorage(api: StorageApi) {
@@ -205,6 +206,22 @@ export function createAttendanceStorage(api: StorageApi) {
 
       if (result.success) {
         (api.saveAttendanceSessions as (s: AttendanceSession[]) => void)(sessions);
+        try {
+          const adapter = getStorageAdapter();
+          if (adapter.flushPersist) {
+            await adapter.flushPersist([STORAGE_KEYS.ATTENDANCE_SESSIONS]);
+          }
+        } catch {
+          /* 원격 반영 실패는 출석 성공을 뒤집지 않는다. outbox가 재시도한다. */
+        }
+        void dispatchAppPush({
+          organizationId,
+          studentId: result.customerId,
+          title: `${result.customerName} 출석 완료`,
+          body: `${result.customerName} 학생 출석이 완료되었습니다.`,
+          portalTab: 'attendance',
+          type: 'attendance',
+        });
       }
 
       return result;

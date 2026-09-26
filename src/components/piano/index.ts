@@ -1,4 +1,4 @@
-/** 사양 경로 호환 — 실제 구현은 modules/piano/components/songProgress */
+/** 사양 경로 호환 — 실제 구현은 industries/piano/components/songProgress */
 export {
   StudentStampBoard,
   DirectorApprovalModal,
@@ -7,4 +7,4 @@ export {
   CompletionReport,
   SongProgressStaffView,
   songProgressService,
-} from '@/modules/piano/components/songProgress';
+} from '@/industries/piano/components/songProgress';

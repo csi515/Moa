@@ -81,11 +81,11 @@ function run() {
   assert.equal(formatKoreanDateLocal('2026-09-24'), '2026년 9월 24일 (목)');
 
   const pianoFiles = [
-    '../../../src/modules/piano/components/lessons/LessonRecordsView.tsx',
-    '../../../src/modules/piano/components/practice/PracticeRecordsView.tsx',
-    '../../../src/modules/piano/components/makeup/MakeupManagementView.tsx',
-    '../../../src/modules/piano/components/textbooks/TextbookPaymentModal.tsx',
-    '../../../src/modules/piano/services/textbookSaleService.ts',
+    '../../../src/industries/piano/components/lessons/LessonRecordsView.tsx',
+    '../../../src/industries/piano/components/practice/PracticeRecordsView.tsx',
+    '../../../src/industries/piano/components/makeup/MakeupManagementView.tsx',
+    '../../../src/industries/piano/components/textbooks/TextbookPaymentModal.tsx',
+    '../../../src/industries/piano/services/textbookSaleService.ts',
     '../../../src/core/finance/services/tuitionService.ts',
     '../../../src/core/finance/services/invoicePaymentService.ts',
     '../../../src/core/academy/components/students/useStudentDetailModal.ts',

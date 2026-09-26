@@ -1,0 +1,1 @@
+export { bookingCapability } from './manifest';

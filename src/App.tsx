@@ -1,3 +1,5 @@
+import '@/app/industry/loadIndustryModules';
+import '@/modules/parent/registerAcademyStaffUi';
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, useParams, Navigate } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
@@ -12,7 +14,7 @@ import { PublicOrgLanding } from './core/public/PublicOrgLanding';
 import { PublicRouteErrorBoundary } from './core/public/PublicRouteErrorBoundary';
 import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import { CustomerSignUpFlow } from './core/customer/CustomerSignUpFlow';
-import { AttendanceKioskPage } from './core/attendance';
+import { AttendanceKioskPage } from '@/capabilities/attendance';
 
 function PublicOrgRoute() {
   const { code } = useParams<{ code: string }>();

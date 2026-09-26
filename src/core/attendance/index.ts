@@ -1,15 +1,19 @@
-export { AttendanceManagementView } from './components/AttendanceManagementView';
-export { PinCheckInKioskView } from './components/PinCheckInKioskView';
-export { AttendanceKioskPage } from './components/AttendanceKioskPage';
-export { CustomerPinPanel } from './components/CustomerPinPanel';
-export { AttendanceFeatureToggle } from './components/AttendanceFeatureToggle';
-export * from './types';
-export * from './features';
-export * from './dayAttendance';
-export * from './pinCheckInSideEffects';
-export * from './services/attendanceService';
-export * from './services/pinService';
+/** @deprecated 신규 코드는 `@/capabilities/attendance`를 사용한다. */
 export {
+  AttendanceManagementView,
+  PinCheckInKioskView,
+  AttendanceKioskPage,
+  CustomerPinPanel,
+  AttendanceFeatureToggle,
+  OnboardingAttendanceChoice,
+  PIN_ATTENDANCE_DIRECTOR_COPY,
+  PIN_ATTENDANCE_PARENT_COPY,
   runPinAttendanceValidation,
   PIN_ATTENDANCE_SCENARIO_CHECKLIST,
-} from './pinAttendanceValidation';
+} from '@/capabilities/attendance';
+export * from '@/capabilities/attendance/domain/types';
+export * from '@/capabilities/attendance/domain/features';
+export * from '@/capabilities/attendance/domain/dayAttendance';
+export * from '@/capabilities/attendance/application/pinCheckInSideEffects';
+export * from '@/capabilities/attendance/application/attendanceService';
+export * from '@/capabilities/attendance/application/pinService';

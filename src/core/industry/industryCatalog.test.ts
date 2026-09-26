@@ -3,6 +3,8 @@
  * 실행: npx tsx src/core/industry/industryCatalog.test.ts
  */
 import assert from 'node:assert/strict';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   INDUSTRY_IDS,
   INDUSTRY_DEFINITIONS,
@@ -24,6 +26,11 @@ import {
   resolveIndustryCategoryForCreate,
   assertCatalogIntegrity,
 } from './types';
+import {
+  assertIndustryRegistrationIntegrity,
+  collectIndustryRegistrationGaps,
+  type IndustryRegistrationSnapshot,
+} from './industryRegistrationIntegrity';
 
 const SUBJECT_ACADEMY_FORBIDDEN = [
   'english_academy',
@@ -68,9 +75,9 @@ function run(): void {
   assert.equal(INDUSTRY_ALIASES.taekwondo, 'gym');
   assert.equal(INDUSTRY_ALIASES.sauna_jjimjbang, 'sauna_jjimjilbang');
 
-  assert.equal(normalizeIndustryType('not_a_real_type'), 'piano');
+  assert.equal(normalizeIndustryType('not_a_real_type'), null);
   assert.equal(normalizeIndustryType(null), 'piano');
-  assert.equal(shouldUseGenericShell('not_a_real_type'), false);
+  assert.equal(shouldUseGenericShell('not_a_real_type'), true);
 
   assert.equal(normalizeIndustryType('hair_salon'), 'hair_salon');
   assert.equal(normalizeIndustryType('academy'), 'academy');
@@ -130,6 +137,86 @@ function run(): void {
   assert.equal(resolveIndustryCategoryForCreate('piano', 'fitness'), 'fitness');
   assert.equal(resolveIndustryCategoryForCreate('piano', '학원'), '학원');
   assert.equal(normalizeIndustryType('piano'), 'piano');
+
+  assertIndustryRegistrationIntegrity(join(dirname(fileURLToPath(import.meta.url)), '../..'));
+
+  const baseline: IndustryRegistrationSnapshot = {
+    catalogIds: ['piano', 'academy'],
+    moduleIds: ['piano'],
+    pluginIds: ['piano'],
+    registryPluginIds: ['piano'],
+    routerKeys: ['piano'],
+    routerComponents: ['piano'],
+    loaderExports: ['piano'],
+    pluginRecords: [
+      {
+        file: 'industries/piano/plugin.ts',
+        id: 'piano',
+        optionValue: 'piano',
+        attendanceDefault: false,
+        syncCapabilities: ['piano'],
+        aliases: [],
+      },
+    ],
+    registeredCapabilities: ['piano'],
+    aliases: {},
+    missingLoaderImports: [],
+    extraGaps: [],
+  };
+  assert.deepEqual(collectIndustryRegistrationGaps(baseline), []);
+
+  assert.match(
+    collectIndustryRegistrationGaps({ ...baseline, pluginIds: [] }).join('\n'),
+    /catalog에는 있는데 plugin이 없음: piano/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({ ...baseline, registryPluginIds: [] }).join('\n'),
+    /plugin은 있는데 registry에 없음: piano/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({ ...baseline, routerKeys: [] }).join('\n'),
+    /plugin은 있는데 router에 없음: piano/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({ ...baseline, loaderExports: [] }).join('\n'),
+    /router에는 있는데 module loader가 없음: piano/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      pluginRecords: [{ ...baseline.pluginRecords[0], id: 'piano', optionValue: 'gym' }],
+    }).join('\n'),
+    /plugin id ↔ industry type 불일치/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      pluginRecords: [{ ...baseline.pluginRecords[0], syncCapabilities: ['bath'] }],
+    }).join('\n'),
+    /capability 선언 누락: plugin piano syncCapabilities "bath"/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      pluginRecords: [{ ...baseline.pluginRecords[0], attendanceDefault: null }],
+    }).join('\n'),
+    /업종 기본값 누락/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      moduleIds: ['piano'],
+      pluginIds: ['piano', 'academy'],
+    }).join('\n'),
+    /plugin은 있는데 catalog.moduleId가 없음: academy/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      aliases: { taekwondo: 'not_a_real_type' },
+    }).join('\n'),
+    /alias 대상이 catalog에 없음: "taekwondo" → "not_a_real_type"/
+  );
 
   console.log(`industryCatalog.test.ts OK (${INDUSTRY_IDS.length} industries)`);
 }

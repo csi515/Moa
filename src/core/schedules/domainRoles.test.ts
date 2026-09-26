@@ -11,7 +11,6 @@ import {
   APPOINTMENT_BOOKING_LEDGER,
   ATTENDANCE_CHECK_IN_LEDGER,
   bookingActLedger,
-  CLASS_ATTENDANCE_LEDGER,
   CORE_DOMAIN_LEDGERS,
   DOMAIN_MODELS,
   isAppointmentBookingRow,
@@ -25,6 +24,7 @@ import {
   shouldMirrorStatusAcrossLedgers,
   SLOT_RESERVATION_HOLDING_STATUSES,
 } from './domainRoles';
+import { CLASS_ATTENDANCE_LEDGER } from '@/capabilities/attendance/domain/classAttendanceLedger';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 
@@ -103,7 +103,7 @@ function run() {
   assert.match(scheduleService, /appointment Booking/);
   assert.match(scheduleService, /core\.reservations/);
 
-  const attendanceTypes = readRel('src/core/attendance/types.ts');
+  const attendanceTypes = readRel('src/capabilities/attendance/domain/types.ts');
   assert.match(attendanceTypes, /AttendanceCheckIn/);
   assert.match(attendanceTypes, /core\.attendance_sessions/);
   assert.doesNotMatch(attendanceTypes.slice(0, 200), /customer_sessions/);

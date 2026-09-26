@@ -263,7 +263,7 @@ C. Device-local only
 | 단계 | 실제 |
 |------|------|
 | UI | `SaleCheckoutModal`, `SalePosView` |
-| Service | `modules/retail/services/saleService` → `core/sales/saleService.createSale` |
+| Service | `industries/retail/services/saleService` → `core/sales/saleService.createSale` |
 | StorageService | 포인트 설정만 (`RetailPointsSettingsView`) |
 | localStorage | 설정 mirror |
 | Adapter | 간접(settings) |
@@ -394,7 +394,7 @@ C. Device-local only
 | Student CRUD facade vs Storage | `StudentService` ≡ `customerStorage` 래퍼 |
 | Schedule facade vs Storage | `ScheduleService` vs `scheduleStorage`; status 로직은 Service에만 pass 연동 |
 | Booking status 이중 | `scheduleStorage.updateBookingStatus` (pass 없음) vs `ScheduleService.updateBookingStatus` (pass 있음) |
-| Sale services | `core/sales/saleService` vs `modules/retail/services/saleService` (earn 래핑) vs Piano `textbookSaleService` |
+| Sale services | `core/sales/saleService` vs `industries/retail/services/saleService` (earn 래핑) vs Piano `textbookSaleService` |
 | Inventory | Core `inventoryService` vs Piano `textbookCoreStock` (위임+미러) vs Skin stock in catalog |
 | Product catalog | Core products vs Skin `settings.retailCatalog` vs Piano `textbooks` |
 | 예약 | `SCHEDULES` Booking vs `reservationService` RPC |
@@ -513,7 +513,7 @@ C. Device-local only
 2. `src/core/services/scheduleService.ts` — 예약 완료↔이용권 차감을 단일·실패 가시 경로로  
 3. `src/core/finance/services/invoicePaymentService.ts` — linked textbook settle soft-fail 제거  
 4. `src/services/adapters/supabaseAdapter.ts` — (선택적) 운영 모드 persist 결과 피드백 훅/플래그 — **대규모 재설계 없이** 관측 가능하게  
-5. `src/modules/daycare/care/careStorage.ts` — LOCAL_ONLY 규제 데이터 목록을 코드로 고정하고 sync 대상 승격 계획의 1차 적용점  
+5. `src/industries/daycare/care/careStorage.ts` — LOCAL_ONLY 규제 데이터 목록을 코드로 고정하고 sync 대상 승격 계획의 1차 적용점  
 
 ---
 

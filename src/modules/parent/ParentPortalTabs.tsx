@@ -22,7 +22,7 @@ import { ParentMoreView } from './views/ParentMoreView';
 import { normalizeIndustryType } from '@/core/industry/types';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { useParentPortal } from '@/core/parent/context/ParentPortalContext';
-import { ParentStudentStampView } from '@/modules/piano/components/songProgress';
+import { ParentStudentStampView } from '@/industries/piano/components/songProgress';
 
 export function ParentPortalTabs({
   tab,
@@ -88,7 +88,7 @@ export function ParentPortalTabs({
         <ParentProgressView
           student={student}
           organizationId={organizationId}
-          industryType={industry}
+          industryType={industryType}
           readOnly={readOnly}
           showToast={showToast}
           onRefresh={onRefresh}
