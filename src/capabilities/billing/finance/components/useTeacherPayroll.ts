@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { showToast, openConfirmDialog, triggerRefresh } from '@/shared/feedback/uiFeedback';
+import { setActiveTab } from '@/shared/navigation/navSession';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -20,7 +21,6 @@ import {
 } from '@/capabilities/billing/finance/teacherPayroll';
 
 export function useTeacherPayroll() {
-  const { showToast, openConfirmDialog, triggerRefresh, setActiveTab } = useApp();
   const { industry } = usePermissions();
   const refreshKey = useStorageRefresh('finance');
 

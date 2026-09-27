@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { showToast } from '@/shared/feedback/uiFeedback';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
@@ -15,7 +15,6 @@ interface CustomerPinPanelProps {
 
 /** 원생별 출결 PIN 설정 패널 */
 export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) => {
-  const { showToast } = useApp();
   const { attendanceEnabled, industry } = usePermissions();
   const labels = useModuleLabels();
   const skin = isSkinClinicIndustry(industry);

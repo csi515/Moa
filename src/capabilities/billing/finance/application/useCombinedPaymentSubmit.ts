@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { CombinedPaymentRequest } from '@/types';
-import { useApp } from '@/shared/app/appUi';
+import { showToast, triggerRefresh } from '@/shared/feedback/uiFeedback';
 import { recordCombinedPayment } from './recordCombinedPayment';
 import { runCombinedPaymentSubmit } from './combinedPaymentSubmit';
 
@@ -10,7 +10,6 @@ export function useCombinedPaymentSubmit(params: {
   customerLabel: string;
   onSuccess: () => void;
 }) {
-  const { showToast, triggerRefresh } = useApp();
   const busy = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { showToast, openConfirmDialog } from '@/shared/feedback/uiFeedback';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -15,7 +15,6 @@ import { CurrencyInput } from '@/shared/components/CurrencyInput';
 import type { IncomeEntry } from '@/capabilities/billing/finance/types';
 
 export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
-  const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const refreshKey = useStorageRefresh('finance');
   const categoryOptions = getIncomeCategories(industry);

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { showToast, openConfirmDialog } from '@/shared/feedback/uiFeedback';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
@@ -26,7 +26,6 @@ import type { FinanceExpense } from '@/capabilities/billing/finance/types';
 const PAYROLL_RELATED_CATEGORIES = new Set(['teacher_salary', 'instructor_fee', 'salary']);
 
 export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
-  const { showToast, openConfirmDialog } = useApp();
   const { industry } = usePermissions();
   const refreshKey = useStorageRefresh('finance');
   const categoryOptions = getExpenseCategories(industry);

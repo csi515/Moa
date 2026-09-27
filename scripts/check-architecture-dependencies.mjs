@@ -415,7 +415,10 @@ function scanFile(filePath) {
       kinds.add('context_import');
       details.push(`context ${spec}`);
     }
-    if (fromLayer === 'core' && (isAppUiSpecifier(spec) || isAppUiRelative(rel, spec))) {
+    if (
+      (fromLayer === 'core' || fromLayer === 'capability') &&
+      (isAppUiSpecifier(spec) || isAppUiRelative(rel, spec))
+    ) {
       kinds.add('app_ui_import');
       details.push(`appUi ${spec}`);
     }
@@ -605,6 +608,20 @@ function selfTest() {
         "import { useApp } from '@/shared/app/appUi';\n"
       )
     );
+    probes.push(
+      writeProbe(
+        capDir,
+        '_architecture_probe_appui.tmp.ts',
+        "import { useApp } from '@/shared/app/appUi';\n"
+      )
+    );
+    probes.push(
+      writeProbe(
+        capDir,
+        '_architecture_probe_ctx_rel.tmp.ts',
+        "import { useApp } from '../../context/AppContext';\n"
+      )
+    );
     probes.push(writeProbe(join(srcRoot, 'core', 'academy'), '_architecture_probe.tmp.ts', 'export const academyProbe = true;\n'));
     writeFileSync(
       academyExistingFile,
@@ -671,7 +688,21 @@ function selfTest() {
       (row) =>
         row.kind === 'context_import' &&
         row.file.includes('capabilities') &&
+        row.file.includes('_architecture_probe_ctx.tmp.ts') &&
         row.details.some((line) => line.includes('@/context/AppContext'))
+    );
+    const capAppUiHit = next.some(
+      (row) =>
+        row.kind === 'app_ui_import' &&
+        row.file.includes('capabilities') &&
+        row.details.some((line) => line.includes('shared/app/appUi'))
+    );
+    const capRelativeContextHit = next.some(
+      (row) =>
+        row.kind === 'context_import' &&
+        row.file.includes('capabilities') &&
+        row.file.includes('_architecture_probe_ctx_rel.tmp.ts') &&
+        row.details.some((line) => line.includes('context/AppContext'))
     );
     if (!coreContextHit) {
       throw new Error('architecture self-test: Core → AppContext 를 잡지 못했습니다.');
@@ -681,6 +712,15 @@ function selfTest() {
     }
     if (!coreRelativeContextHit) {
       throw new Error('architecture self-test: Core → relative context 를 잡지 못했습니다.');
+    }
+    if (!capContextHit) {
+      throw new Error('architecture self-test: Capability → AppContext 를 잡지 못했습니다.');
+    }
+    if (!capAppUiHit) {
+      throw new Error('architecture self-test: Capability → shared/app/appUi 를 잡지 못했습니다.');
+    }
+    if (!capRelativeContextHit) {
+      throw new Error('architecture self-test: Capability → relative context 를 잡지 못했습니다.');
     }
     if (
       !coreHit ||
@@ -695,12 +735,14 @@ function selfTest() {
       !coreContextHit ||
       !coreRelativeContextHit ||
       !coreAppUiHit ||
-      !capContextHit
+      !capContextHit ||
+      !capAppUiHit ||
+      !capRelativeContextHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core→AppContext / Core→appUi / Core→relative context 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');

@@ -83,10 +83,11 @@ Industry 등록은 한 파일이 아니다. 현재 분산:
 
 Core는 특정 Industry 구현·UI를 모른다. `@/industries/*` · `@/modules/<industry>` · `@/app/*` 신규 import 금지.
 
-Core는 React Context와 AppContext adapter를 직접 또는 간접 import하지 않는다. `@/context/*`와 `@/shared/app/appUi` 모두 금지다.
+Core와 Capability는 React Context와 AppContext adapter를 직접 또는 간접 import하지 않는다. `@/context/*`와 `@/shared/app/appUi` 모두 금지다.
 Navigation UI state(`activeTab`/`setActiveTab`)는 Navigation/Composition 계층의 책임이다.
 Core auth는 권한 계산만 담당하고 UI navigation state를 소유하지 않는다.
-Capability는 AppContext를 직접 import하지 않는다. Navigation 타입은 `@/shared/navigation/navigationTypes` 계약을 사용한다.
+Capability UI는 nav session과 bound feedback 계약을 쓰고 AppContext를 알지 않는다.
+Navigation 타입은 `@/shared/navigation/navigationTypes` 계약을 사용한다.
 
 **넣지 않는 것:** 업종 전용 화면, “여러 업종이 쓸 수도 있다”는 이유만의 승격, Industry 이름이 들어간 신규 도메인 코드.
 

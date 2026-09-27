@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/shared/app/appUi';
+import { showToast } from '@/shared/feedback/uiFeedback';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../domain/features';
@@ -26,7 +26,6 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
   method = 'pin',
   standalone = false,
 }) => {
-  const { showToast } = useApp();
   const navigate = useNavigate();
   const org = useOptionalOrganization();
   const organizationId = resolveKioskOrganizationIdFromApp(

@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { CalendarOff, Clock, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useApp } from '@/shared/app/appUi';
+import { showToast } from '@/shared/feedback/uiFeedback';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { PageHeader, EmptyState } from '@/shared/components';
 import { availabilityCapability } from './availabilityCapability';
@@ -68,7 +68,6 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
   defaultSlotMinutes = 30,
   embedded = false,
 }) => {
-  const { showToast } = useApp();
   const { currentOrganization } = useOrganization();
   const [rules, setRules] = useState<AvailabilityRule[]>([]);
   const [overrides, setOverrides] = useState<AvailabilityOverride[]>([]);
@@ -111,7 +110,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [currentOrganization, showToast]);
+  }, [currentOrganization]);
 
   useEffect(() => {
     void load();
@@ -132,7 +131,7 @@ export const AvailabilitySettingsView: FC<AvailabilitySettingsViewProps> = ({
     } finally {
       setSyncing(false);
     }
-  }, [currentOrganization, showToast]);
+  }, [currentOrganization]);
 
   const applyWeekdaySame = () => {
     const mon = dayDraft[1];

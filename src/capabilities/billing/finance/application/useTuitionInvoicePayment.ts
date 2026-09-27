@@ -1,12 +1,11 @@
 import { useRef, useState } from 'react';
 import type { PaymentMethod, TuitionInvoice } from '@/types';
-import { useApp } from '@/shared/app/appUi';
+import { showToast } from '@/shared/feedback/uiFeedback';
 import { TuitionService } from '@/capabilities/billing/finance/services/tuitionService';
 import { runTuitionInvoicePayment } from './submitTuitionInvoicePayment';
 
 /** 단일 청구서 수납의 요청 상태와 toast만 담당한다. */
 export function useTuitionInvoicePayment(customerLabel: string) {
-  const { showToast } = useApp();
   const busy = useRef(false);
   const [submitting, setSubmitting] = useState(false);
 

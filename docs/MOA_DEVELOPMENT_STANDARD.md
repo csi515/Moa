@@ -206,7 +206,7 @@ Composition → Industry → Capability → Core
 의사결정:
 
 1. 이 화면만 → `useState`
-2. 탭/토스트/확인 → Industry/Capability는 기존 AppContext API(`appUi` adapter 가능). Core는 AppContext와 `appUi`를 import하지 않는다. 탭 타입은 `@/shared/navigation/navigationTypes`, Core UI는 nav session + `useActiveUser` + bound feedback
+2. 탭/토스트/확인 → Industry는 AppContext. Core/Capability는 AppContext와 `appUi`를 import하지 않는다. 탭은 `@/shared/navigation/navigationTypes` + nav session, toast/confirm은 bound feedback (`@/shared/feedback/uiFeedback`)
 3. 사업장·역할·지점·포털 → `useOrganization`
 4. 기존 Storage 엔티티 → 파사드 + `useStorageRefresh('students'|…)`
 5. 서버 SoT 신규 → Service + client/RPC. 캐시면 persistence 선언

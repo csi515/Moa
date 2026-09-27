@@ -1,7 +1,7 @@
 import { useMemo, type FC, type ReactNode } from 'react';
 import { BarChart3, ChevronRight, CreditCard, Landmark } from 'lucide-react';
-import { useApp } from '@/shared/app/appUi';
 import type { NavTab } from '@/shared/navigation/navigationTypes';
+import { useNavSession } from '@/shared/navigation/navSession';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { PageHeader, SegmentedControl } from '@/shared/components';
@@ -85,7 +85,7 @@ function pianoSegmentDescription(segment: FinanceHubSegment): string {
 
 /** 재무 업무 영역 허브 — 피아노는 수납 / 재무 관리로 구분 */
 export const FinanceHubView: FC<{ showBilling?: boolean }> = ({ showBilling = true }) => {
-  const { activeTab, setActiveTab } = useApp();
+  const { activeTab, setActiveTab } = useNavSession();
   const { industry } = usePermissions();
   const billingEnabled = showBilling && !isAppointmentIndustry(industry);
   const isPiano = industry === 'piano';

@@ -340,7 +340,7 @@ Import: `@/shared/components` barrel 우선.
 | --- | --- |
 | `src/core/auth/AuthProvider.tsx` | Supabase session |
 | `src/core/organizations/OrganizationProvider.tsx` | membership, 선택 사업장, role, portalMode, location |
-| `src/shared/navigation/navigationTypes.ts` | `NavTab` 계약. Core는 AppContext와 `appUi` adapter를 import하지 않는다 |
+| `src/shared/navigation/navigationTypes.ts` | `NavTab` 계약. Core/Capability는 AppContext와 `appUi` adapter를 import하지 않는다 |
 | `src/shared/navigation/navSession.ts` | 탭/선택 학생 SoT. AppContext와 Core UI가 같은 스냅샷을 읽는다 |
 | `src/shared/session/useActiveUser.ts` | `StorageService.getActiveUser()` 미러. 권한 계산의 currentUser 공급원 |
 | `src/context/AppContext.tsx` | toast, confirm, workStatus, refreshKey + nav session 바인딩. `NavTab`은 navigation contract를 re-export |
