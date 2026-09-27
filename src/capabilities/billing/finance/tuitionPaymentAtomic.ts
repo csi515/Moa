@@ -12,7 +12,9 @@ import type { PaymentMethod, TuitionInvoice } from '@/types';
 import type { Json } from '@/lib/supabase/database.types';
 import { upsertLinkedIncome } from '@/capabilities/billing/finance/billingIncomeLink';
 import { settleLinkedTextbookSalesOnTuitionPaid } from '@/capabilities/billing/finance/linkedTextbookSettle';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
+import { commerceStorage } from '@/capabilities/commerce/infrastructure/commerceStorage';
+import type { StorageApi } from '@/services/storage/helpers';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import {
   classifyTuitionPaymentRpcResult,
@@ -69,7 +71,7 @@ export async function recordTuitionPaymentAtomic(params: {
 }): Promise<TuitionInvoice | null> {
   const orgId = getOrganizationId();
   if (!isSupabaseConfigured() || !orgId) {
-    return StorageService.recordPayment(
+    return billingStorage.recordPayment(
       params.invoiceId,
       params.amount,
       params.method,
@@ -132,7 +134,7 @@ export async function recordTuitionPaymentAtomic(params: {
 
   if (tx && invoice.status === 'paid' && (invoice.linkedTextbookSaleIds || []).length > 0) {
     void settleLinkedTextbookSalesOnTuitionPaid({
-      api: StorageService,
+          api: commerceStorage as StorageApi,
       invoice,
       paymentId: tx.id,
       method: params.method,

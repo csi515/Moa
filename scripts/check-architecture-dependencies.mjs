@@ -15,6 +15,16 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  domainFacadesUnknownSlices,
+  FROZEN_DOMAIN_FACADES_REL,
+  FROZEN_STORAGE_TS_REL,
+  storageTsDefinesDomainApi,
+} from './storage-facade-freeze.mjs';
+import {
+  STORAGE_SERVICE_INDUSTRY_LEGACY_FILES,
+  STORAGE_SERVICE_INDUSTRY_LEGACY_REASON,
+} from './storage-service-industry-legacy.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -44,58 +54,6 @@ const SCHEMA_RE = new RegExp(
  * kind: modules_import | industry_schema | layer_import
  */
 export const LEGACY_ALLOWLIST = {
-  'src/capabilities/attendance/domain/pinAttendanceValidation.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 attendanceStorage facade',
-  },
-  'src/capabilities/attendance/ui/AttendanceManagementView.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 attendanceStorage facade',
-  },
-  'src/capabilities/attendance/ui/CustomerPinPanel.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 attendanceStorage facade',
-  },
-  'src/capabilities/attendance/ui/PinCheckInKioskView.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 attendanceStorage facade',
-  },
-  'src/capabilities/billing/finance/billingLinkageValidation.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/combinedPaymentAtomic.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/combinedPaymentLocal.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/tuitionPaymentAtomic.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/components/ExpenseManagementView.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/components/FinanceOverviewView.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/components/IncomeManagementView.tsx': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/components/useTeacherPayroll.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
-  'src/capabilities/billing/finance/services/tuitionService.ts': {
-    kinds: ['storage_service_import'],
-    reason: 'LEGACY StorageService — 신규는 billingStorage facade',
-  },
   'src/services/storage/textbookStorage.ts': {
     kinds: ['layer_import'],
     reason: 'LEGACY textbook factory → piano sale service',
@@ -367,6 +325,14 @@ function isLegacyAttendanceSpec(spec) {
   return spec === '@/core/attendance' || (typeof spec === 'string' && spec.startsWith('@/core/attendance/'));
 }
 
+/** mega-facade `src/services/storage.ts` only. `@/services/storage/helpers` 등은 허용. */
+function isStorageServiceFacadeSpec(fromRel, spec) {
+  if (spec === '@/services/storage' || spec === '@/services/storage.ts') return true;
+  if (!spec || !spec.startsWith('.')) return false;
+  const resolved = toPosix(join(dirname(join(root, fromRel)), spec)).replace(/\.tsx?$/, '');
+  return resolved === 'src/services/storage';
+}
+
 function stripComments(source) {
   return source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
 }
@@ -451,7 +417,10 @@ function scanFile(filePath) {
       kinds.add('legacy_core_attendance');
       details.push(`legacy ${spec}`);
     }
-    if (fromLayer === 'capability' && spec === '@/services/storage') {
+    if (
+      (fromLayer === 'capability' || fromLayer === 'industry') &&
+      isStorageServiceFacadeSpec(rel, spec)
+    ) {
       kinds.add('storage_service_import');
       details.push(`legacy StorageService (${spec})`);
     }
@@ -499,6 +468,21 @@ function scanFile(filePath) {
       details.push(`schema ${match[0]}`);
     }
   }
+  if (rel === FROZEN_STORAGE_TS_REL) {
+    const freezeError = storageTsDefinesDomainApi(source, stripComments);
+    if (freezeError) {
+      kinds.add('storage_facade_method');
+      details.push(freezeError);
+    }
+  }
+  if (rel === FROZEN_DOMAIN_FACADES_REL) {
+    const unknown = domainFacadesUnknownSlices(source);
+    if (unknown.length > 0) {
+      kinds.add('storage_facade_slice');
+      details.push(`unfrozen storage slice: ${unknown.join(', ')}`);
+    }
+  }
+
   if (isIndustryDefinitionsRel(rel) && hasCatalogRuntimeComposition(source)) {
     kinds.add('catalog_runtime_composition');
     details.push('definitions.ts must not own Industry capability composition');
@@ -518,6 +502,9 @@ function scanFile(filePath) {
 }
 
 function isAllowed(rel, kind) {
+  if (kind === 'storage_service_import' && STORAGE_SERVICE_INDUSTRY_LEGACY_FILES.has(rel)) {
+    return true;
+  }
   return (LEGACY_ALLOWLIST[rel]?.kinds ?? []).includes(kind);
 }
 
@@ -555,6 +542,9 @@ function expectedLegacyKeys() {
   for (const [file, meta] of Object.entries(LEGACY_ALLOWLIST)) {
     for (const kind of meta.kinds) keys.push(legacyKey(file, kind));
   }
+  for (const file of STORAGE_SERVICE_INDUSTRY_LEGACY_FILES) {
+    keys.push(legacyKey(file, 'storage_service_import'));
+  }
   return keys.sort();
 }
 
@@ -565,6 +555,17 @@ function assertAcademySnapshot() {
   const missing = [...ACADEMY_LEGACY_FILES].filter((rel) => !actual.has(rel)).sort();
   if (missing.length > 0) {
     console.error('ACADEMY legacy 스냅샷에 있으나 파일이 없습니다. 삭제한 항목만 목록에서 제거하세요:');
+    for (const rel of missing) console.error(`  - ${rel}`);
+    process.exit(1);
+  }
+}
+
+function assertStorageServiceIndustrySnapshot() {
+  const missing = [...STORAGE_SERVICE_INDUSTRY_LEGACY_FILES]
+    .filter((rel) => !existsSync(join(root, rel)))
+    .sort();
+  if (missing.length > 0) {
+    console.error('StorageService Industry allowlist에 있으나 파일이 없습니다. 이전한 항목만 목록에서 제거하세요:');
     for (const rel of missing) console.error(`  - ${rel}`);
     process.exit(1);
   }
@@ -591,7 +592,9 @@ function printInventory(known) {
   if (known.length === 0) return;
   console.log('LEGACY Core/계층 위반 (신규 추가 금지, 수정 시 allowlist에서 제거):');
   for (const row of known) {
-    const reason = LEGACY_ALLOWLIST[row.file]?.reason ?? '';
+    const reason =
+      LEGACY_ALLOWLIST[row.file]?.reason ??
+      (row.kind === 'storage_service_import' ? STORAGE_SERVICE_INDUSTRY_LEGACY_REASON : '');
     console.log(`  - ${row.file} [${row.kind}] ${reason}`);
   }
 }
@@ -618,6 +621,10 @@ function selfTest() {
   const definitionsRel = 'src/core/industry/definitions.ts';
   const definitionsFile = join(root, definitionsRel);
   const definitionsOriginal = readFileSync(definitionsFile, 'utf8');
+  const storageFile = join(root, FROZEN_STORAGE_TS_REL);
+  const storageOriginal = readFileSync(storageFile, 'utf8');
+  const domainFacadesFile = join(root, FROZEN_DOMAIN_FACADES_REL);
+  const domainFacadesOriginal = readFileSync(domainFacadesFile, 'utf8');
   const academyNewRel = 'src/core/academy/_architecture_probe.tmp.ts';
 
   try {
@@ -651,6 +658,40 @@ function selfTest() {
     );
     probes.push(
       writeProbe(capDir, '_architecture_probe_storage.tmp.ts', "import { StorageService } from '@/services/storage';\n")
+    );
+    probes.push(
+      writeProbe(
+        capDir,
+        '_architecture_probe_storage_ts.tmp.ts',
+        "import { StorageService } from '@/services/storage.ts';\n"
+      )
+    );
+    probes.push(
+      writeProbe(
+        capDir,
+        '_architecture_probe_storage_rel.tmp.ts',
+        "import { StorageService } from '../../services/storage';\n"
+      )
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'industries', 'piano'),
+        '_architecture_probe_storage.tmp.ts',
+        "import { StorageService } from '@/services/storage';\n"
+      )
+    );
+    writeFileSync(
+      storageFile,
+      `${storageOriginal}\nexport function getProbeLegacyDomain() { return []; }\n`,
+      'utf8'
+    );
+    writeFileSync(
+      domainFacadesFile,
+      domainFacadesOriginal.replace(
+        /dashboardStatsStorage\r?\n\);/,
+        'dashboardStatsStorage,\n  probeStorage\n);'
+      ),
+      'utf8'
     );
     probes.push(
       writeProbe(
@@ -746,7 +787,32 @@ function selfTest() {
         row.kind === 'layer_import' &&
         row.details.some((line) => line.includes('@/industries/daycare'))
     );
-    const storageHit = next.some((row) => row.kind === 'storage_service_import');
+    const storageHit = next.some(
+      (row) =>
+        row.kind === 'storage_service_import' &&
+        row.file.includes('_architecture_probe_storage.tmp.ts')
+    );
+    const storageTsHit = next.some(
+      (row) =>
+        row.kind === 'storage_service_import' &&
+        row.file.includes('_architecture_probe_storage_ts.tmp.ts')
+    );
+    const storageRelHit = next.some(
+      (row) =>
+        row.kind === 'storage_service_import' &&
+        row.file.includes('_architecture_probe_storage_rel.tmp.ts')
+    );
+    const industryStorageHit = next.some(
+      (row) =>
+        row.kind === 'storage_service_import' &&
+        row.file.includes('industries/piano/_architecture_probe_storage.tmp.ts')
+    );
+    const storageMethodHit = next.some(
+      (row) => row.kind === 'storage_facade_method' && row.file === FROZEN_STORAGE_TS_REL
+    );
+    const storageSliceHit = next.some(
+      (row) => row.kind === 'storage_facade_slice' && row.file === FROZEN_DOMAIN_FACADES_REL
+    );
     const shimCycleHit = next.some((row) => row.kind === 'capability_shim_cycle');
     const academyNewFileHit = next.some(
       (row) => row.kind === 'academy_new_file' && row.file === academyNewRel
@@ -856,12 +922,26 @@ function selfTest() {
     if (!capabilityCompositionHit) {
       throw new Error('architecture self-test: Capability → Composition 을 잡지 못했습니다.');
     }
+    if (!industryStorageHit) {
+      throw new Error('architecture self-test: Industry → StorageService 를 잡지 못했습니다.');
+    }
+    if (!storageMethodHit) {
+      throw new Error('architecture self-test: storage.ts 신규 method 를 잡지 못했습니다.');
+    }
+    if (!storageSliceHit) {
+      throw new Error('architecture self-test: domainFacades 신규 slice 를 잡지 못했습니다.');
+    }
     if (
       !coreHit ||
       !capHit ||
       !legacyAttHit ||
       !servicesHit ||
       !storageHit ||
+      !storageTsHit ||
+      !storageRelHit ||
+      !industryStorageHit ||
+      !storageMethodHit ||
+      !storageSliceHit ||
       !shimCycleHit ||
       !academyNewFileHit ||
       !academyImportHit ||
@@ -881,12 +961,14 @@ function selfTest() {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService (@/ + .ts + relative + industry + freeze) / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
     writeFileSync(registryFile, registryOriginal, 'utf8');
     writeFileSync(definitionsFile, definitionsOriginal, 'utf8');
+    writeFileSync(storageFile, storageOriginal, 'utf8');
+    writeFileSync(domainFacadesFile, domainFacadesOriginal, 'utf8');
     for (const probe of probes) removeIfExists(probe);
   }
 
@@ -909,6 +991,12 @@ function selfTest() {
   if (leftoverDefinitionsImport) {
     throw new Error('architecture self-test: probe 정리 후에도 definitions runtime import 위반이 남았습니다.');
   }
+  const leftoverStorageFreeze = cleaned.some(
+    (row) => row.kind === 'storage_facade_method' || row.kind === 'storage_facade_slice'
+  );
+  if (leftoverStorageFreeze) {
+    throw new Error('architecture self-test: probe 정리 후에도 storage freeze 위반이 남았습니다.');
+  }
 }
 
 function main() {
@@ -927,6 +1015,7 @@ function main() {
   printInventory(known);
   assertLegacyFrozen(known);
   assertAcademySnapshot();
+  assertStorageServiceIndustrySnapshot();
 
   if (next.length > 0) {
     console.error('\n새로운 계층 의존 위반이 있습니다:');

@@ -76,7 +76,7 @@ docs/
 | `src/app/industry` | `IndustryAppRouter`, `industryModules`, loader — 런타임 Composition | `src/app` |
 | `src/modules` | `parent`는 라이브 포털. 업종 폴더는 Industry 복제(레거시) | parent만 유지. 업종 복제 제거 |
 | `src/shared` | UI / layout / utility | 유지 |
-| `src/services` | StorageService + adapters. **제거되지 않음** | `services/infrastructure` + capability `*Storage` facade |
+| `src/services` | StorageService = **legacy compatibility facade** + adapters. 신규 SoT 아님 | capability `*Storage` 싱글톤 + adapter hydrate/sync |
 
 `src/modules/` 실제 디렉터리: `piano`, `pilates`, `gym`, `daycare`, `skin`, `retail`, `bath`, `parent`.  
 런타임 조립은 `src/industries/` + `src/app/industry`다. modules 업종 폴더를 라이브 SoT로 쓰지 않는다.
@@ -119,7 +119,7 @@ Industry UI
   → PostgreSQL
 ```
 
-StorageService는 장기적으로 capability별 persistence facade로 나뉠 수 있다. **지금 제거한 상태가 아니다.**
+StorageService는 동결된 legacy compatibility facade다. 신규 Capability/Industry는 domain `*Storage`를 쓰고 `storage.ts`에 메서드를 추가하지 않는다. 이전 계약: [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md).
 
 ### 파일럿 (프로덕션 write path 아님)
 

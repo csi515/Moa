@@ -4,7 +4,7 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { StorageService } from '@/services/storage';
+import { attendanceStorage } from '@/capabilities/attendance/infrastructure/attendanceStorage';
 import type { Student } from '@/types';
 import { KeyRound, RefreshCw } from 'lucide-react';
 import { PIN_ATTENDANCE_DIRECTOR_COPY } from '../domain/attendanceNotifyCopy';
@@ -25,14 +25,14 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
   const [revealedPin, setRevealedPin] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const pinSet = StorageService.hasCustomerPin(student.id);
+  const pinSet = attendanceStorage.hasCustomerPin(student.id);
 
   if (!attendanceEnabled) return null;
 
   const handleGenerate = async () => {
     setLoading(true);
     try {
-      const { pin } = await StorageService.generateCustomerPin(student.id, organizationId);
+      const { pin } = await attendanceStorage.generateCustomerPin(student.id, organizationId);
       setRevealedPin(pin);
       showToast(`${student.name}님 PIN이 발급되었습니다.`, 'success');
     } catch {
@@ -45,7 +45,7 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
   const handleSaveCustom = async () => {
     setLoading(true);
     try {
-      const result = await StorageService.setCustomerPin(student.id, customPin, organizationId);
+      const result = await attendanceStorage.setCustomerPin(student.id, customPin, organizationId);
       if (result.ok === false) {
         const messages: Record<'invalid_pin_format' | 'pin_already_used', string> = {
           invalid_pin_format: 'PIN은 4~8자리 숫자여야 합니다.',
@@ -63,7 +63,7 @@ export const CustomerPinPanel: React.FC<CustomerPinPanelProps> = ({ student }) =
   };
 
   const handleClear = () => {
-    StorageService.clearCustomerPin(student.id);
+    attendanceStorage.clearCustomerPin(student.id);
     setRevealedPin(null);
     setCustomPin('');
     showToast('PIN이 삭제되었습니다.', 'info');

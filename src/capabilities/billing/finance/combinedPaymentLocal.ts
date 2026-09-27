@@ -5,10 +5,11 @@ import {
   type CombinedPaymentCommand,
 } from '@/capabilities/billing/finance/combinedPaymentCommand';
 import { recordTuitionPaymentAtomic } from '@/capabilities/billing/finance/tuitionPaymentAtomic';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
+import { commerceStorage } from '@/capabilities/commerce/infrastructure/commerceStorage';
 
 function latestTuitionPaymentId(invoiceId: string): string | undefined {
-  return StorageService.getTuitionPayments()
+  return billingStorage.getTuitionPayments()
     .filter((payment) => payment.invoiceId === invoiceId)
     .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))[0]?.id;
 }
@@ -49,7 +50,7 @@ export async function recordCombinedPaymentLocal(
     }
 
     for (const item of command.textbookItems) {
-      const res = await StorageService.recordTextbookPayment(
+      const res = await commerceStorage.recordTextbookPayment(
         item.saleId,
         item.amount,
         req.paymentMethod,
@@ -66,14 +67,14 @@ export async function recordCombinedPaymentLocal(
     const leftoverTuition: string[] = [];
     const leftoverTextbook: string[] = [];
     for (const paymentId of appliedTextbookPaymentIds) {
-      const ok = await StorageService.reverseTextbookPayment(paymentId);
+      const ok = await commerceStorage.reverseTextbookPayment(paymentId);
       if (!ok) {
         compensated = false;
         leftoverTextbook.push(paymentId);
       }
     }
     for (const paymentId of appliedTuitionPaymentIds) {
-      const ok = StorageService.reverseTuitionPayment(paymentId);
+      const ok = billingStorage.reverseTuitionPayment(paymentId);
       if (!ok) {
         compensated = false;
         leftoverTuition.push(paymentId);

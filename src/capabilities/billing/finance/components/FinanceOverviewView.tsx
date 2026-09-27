@@ -3,7 +3,7 @@ import { showToast, triggerRefresh } from '@/shared/feedback/uiFeedback';
 import { setActiveTab } from '@/shared/navigation/navSession';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
 import { formatCurrency } from '@/utils/formatters';
 import { buildYearMonthOptions } from '@/capabilities/billing/finance/categories';
 import {
@@ -29,7 +29,7 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
 
   const summary = useMemo(
-    () => StorageService.getFinanceSummary(industry),
+    () => billingStorage.getFinanceSummary(industry),
     [industry, refreshKey]
   );
 
@@ -38,8 +38,8 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
       buildYearMonthOptions({
         dataYearMonths: [
           ...summary.monthlyTrend.map((t) => t.yearMonth),
-          ...StorageService.getIncomeEntries().map((e) => e.date?.slice(0, 7)),
-          ...StorageService.getExpenses().map((e) => e.date?.slice(0, 7)),
+          ...billingStorage.getIncomeEntries().map((e) => e.date?.slice(0, 7)),
+          ...billingStorage.getExpenses().map((e) => e.date?.slice(0, 7)),
         ],
       }),
     [summary.monthlyTrend, refreshKey]
@@ -47,10 +47,10 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
 
   const monthDetail = useMemo(() => {
     const trend = summary.monthlyTrend.find((t) => t.yearMonth === selectedMonth);
-    const incomeEntries = StorageService.getIncomeEntries().filter((e) =>
+    const incomeEntries = billingStorage.getIncomeEntries().filter((e) =>
       e.date.startsWith(selectedMonth)
     );
-    const expenses = StorageService.getExpenses().filter((e) =>
+    const expenses = billingStorage.getExpenses().filter((e) =>
       e.date.startsWith(selectedMonth)
     );
     return {
@@ -175,7 +175,7 @@ export const FinanceOverviewView: React.FC<{ embedded?: boolean }> = ({ embedded
           <button
             type="button"
             onClick={() => {
-              const result = StorageService.backfillBillingLinkedIncome();
+              const result = billingStorage.backfillBillingLinkedIncome();
               triggerRefresh();
               showToast(
                 `수납 수입 동기화 완료 (월회비 ${result.tuitionCreated}건 · 교재 ${result.textbookCreated}건)`,

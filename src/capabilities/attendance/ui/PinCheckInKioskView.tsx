@@ -2,7 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom';
 import { showToast } from '@/shared/feedback/uiFeedback';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
-import { StorageService } from '@/services/storage';
+import { attendanceStorage } from '@/capabilities/attendance/infrastructure/attendanceStorage';
+import { settingsStorage } from '@/services/storage/settingsStorage';
 import { isAttendanceModuleEnabled } from '../domain/features';
 import type { CheckInMethod } from '../domain/types';
 import {
@@ -33,7 +34,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
     standalone ? 'standalone' : 'embedded'
   );
   const industry = org?.currentOrganization?.industry_type || 'piano';
-  const settings = StorageService.getSettings();
+  const settings = settingsStorage.getSettings();
 
   const [pin, setPin] = useState('');
   const [feedback, setFeedback] = useState<{ text: string; tone: 'success' | 'error' | 'info' } | null>(
@@ -46,7 +47,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
   const moduleEnabled = isAttendanceModuleEnabled(settings, industry);
   const accent = getIndustryAccent(industry);
 
-  const customerPins = StorageService.getCustomerPins();
+  const customerPins = attendanceStorage.getCustomerPins();
   const hasPinsConfigured = customerPins.length > 0;
   const orgReady = isKioskOrganizationReady(organizationId);
 
@@ -99,7 +100,7 @@ export const PinCheckInKioskView: React.FC<PinCheckInKioskViewProps> = ({
         }
         setProcessing(true);
         try {
-          const result = await StorageService.toggleCheckInByPin(
+          const result = await attendanceStorage.toggleCheckInByPin(
             pin,
             method as CheckInMethod,
             organizationId

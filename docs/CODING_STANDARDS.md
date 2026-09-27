@@ -134,7 +134,7 @@ Industry UI → Capability Application/Service → Core / Repository / RPC
 
 - 신규/수정 UI는 파사드 Service를 호출한다.
 - 레거시는 기능 수정 시 점진 정렬한다.
-- 전체 StorageService를 한 번에 제거하지 않는다. 업종 기능을 StorageService에 무조건 추가하지 않는다.
+- `StorageService`는 legacy compatibility facade다. 신규 Capability/Industry는 domain `*Storage`를 쓰고 `storage.ts`에 method를 추가하지 않는다. [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md).
 - 조직 스코프가 필요한 조회/저장은 Service에서 `organization_id`를 명시한다.
 
 ### 도메인별 Service (신규·수정 시)

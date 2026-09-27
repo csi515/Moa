@@ -4,6 +4,7 @@ import { getIndustryType } from '../adapters/storageContext';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { resolveAttendanceEnabledForBackfill } from '../../core/attendance/features';
 import { DEFAULT_SETTINGS, getItem, setItem, type StorageApi } from './helpers';
+import { storageApi } from './storageApi';
 
 export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
 
@@ -233,3 +234,6 @@ export function createSettingsStorage(api: StorageApi) {
     },
   };
 }
+
+/** Settings / device session persist SoT. */
+export const settingsStorage = createSettingsStorage(storageApi);

@@ -1,5 +1,6 @@
 import type { Student, TuitionInvoice } from '../../types';
 import type { StorageApi } from './helpers';
+import { storageApi } from './storageApi';
 import { pickUniqueDayAttendanceStatuses } from '../../core/attendance/dayAttendance';
 import { todayIsoLocal, yearMonthLocal } from '../../shared/utils/localDate';
 import { filterMonthlyBillingStudents } from '../../core/academy/utils/billingMode';
@@ -200,3 +201,6 @@ export function createDashboardStatsStorage(api: StorageApi) {
     },
   };
 }
+
+/** 대시보드 집계 persist helper. 교차 도메인 읽기. */
+export const dashboardStatsStorage = createDashboardStatsStorage(storageApi);

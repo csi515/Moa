@@ -33,7 +33,8 @@ import {
   tuitionPaymentMirrorJobs,
   type FinanceMirrorJob,
 } from '@/capabilities/billing/finance/financePaymentMirror';
-import { StorageService } from '@/services/storage';
+import { commerceStorage } from '@/capabilities/commerce/infrastructure/commerceStorage';
+import type { StorageApi } from '@/services/storage/helpers';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 
 export type { CombinedPaymentAtomicResult };
@@ -192,7 +193,7 @@ export async function recordCombinedPaymentAtomic(
       totalPaid += tx.amount;
       if (invoice.status === 'paid' && (invoice.linkedTextbookSaleIds || []).length > 0) {
         void settleLinkedTextbookSalesOnTuitionPaid({
-          api: StorageService,
+          api: commerceStorage as StorageApi,
           invoice,
           paymentId: tx.id,
           method: req.paymentMethod,

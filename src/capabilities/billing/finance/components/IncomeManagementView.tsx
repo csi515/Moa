@@ -2,7 +2,7 @@
 import { showToast, openConfirmDialog } from '@/shared/feedback/uiFeedback';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
 import { PaymentMethod } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import {
@@ -34,7 +34,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
     memo: '',
   });
 
-  const entries = useMemo(() => StorageService.getIncomeEntries(), [refreshKey]);
+  const entries = useMemo(() => billingStorage.getIncomeEntries(), [refreshKey]);
 
   const monthOptions = useMemo(
     () =>
@@ -96,7 +96,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
-        StorageService.deleteIncomeEntry(entry.id);
+        billingStorage.deleteIncomeEntry(entry.id);
         showToast(
           linked ? '연동 납부와 수입이 함께 취소되었습니다.' : '수입 내역이 삭제되었습니다.',
           'info'
@@ -112,7 +112,7 @@ export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedde
       return;
     }
 
-    StorageService.saveIncomeEntry({
+    billingStorage.saveIncomeEntry({
       ...(editingEntry ? { id: editingEntry.id } : {}),
       date: formData.date,
       category: formData.category,

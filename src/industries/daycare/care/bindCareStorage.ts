@@ -1,6 +1,5 @@
 import { StorageService } from '@/services/storage';
-import type { StorageApi } from '@/services/storage/helpers';
-import { createDaycareCareStorage } from './careStorage';
+import { careStorage } from './careStorage';
 
 let bound = false;
 
@@ -12,7 +11,7 @@ let bound = false;
 export function bindDaycareCareStorage(): void {
   if (bound) return;
   bound = true;
-  Object.assign(StorageService, createDaycareCareStorage(StorageService as StorageApi));
+  Object.assign(StorageService, careStorage);
 }
 
 bindDaycareCareStorage();

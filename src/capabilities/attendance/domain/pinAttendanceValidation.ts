@@ -1,4 +1,5 @@
-import { StorageService } from '@/services/storage';
+import { attendanceStorage } from '@/capabilities/attendance/infrastructure/attendanceStorage';
+import { settingsStorage } from '@/services/storage/settingsStorage';
 import { isAttendanceModuleEnabled } from './features';
 
 export type PinAttendanceValidationResult = {
@@ -10,9 +11,9 @@ export type PinAttendanceValidationResult = {
 /** PIN 사용/미사용·입실 only 스모크 검증 (로컬 스토리지) */
 export function runPinAttendanceValidation(industry = 'piano'): PinAttendanceValidationResult[] {
   const results: PinAttendanceValidationResult[] = [];
-  const settings = StorageService.getSettings();
+  const settings = settingsStorage.getSettings();
   const enabled = isAttendanceModuleEnabled(settings, industry);
-  const sessions = StorageService.getAttendanceSessions();
+  const sessions = attendanceStorage.getAttendanceSessions();
   const today = new Date().toISOString().slice(0, 10);
   const todaySessions = sessions.filter((s) => s.sessionDate === today);
 

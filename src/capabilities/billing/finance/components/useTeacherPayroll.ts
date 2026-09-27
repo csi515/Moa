@@ -3,7 +3,8 @@ import { showToast, openConfirmDialog, triggerRefresh } from '@/shared/feedback/
 import { setActiveTab } from '@/shared/navigation/navSession';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
+import { rosterStorage } from '@/capabilities/roster/infrastructure/rosterStorage';
 import { LessonService } from '@/core/lessons';
 import { formatCurrency } from '@/utils/formatters';
 import { buildYearMonthOptions, toLocalYearMonth } from '@/capabilities/billing/finance/categories';
@@ -31,9 +32,9 @@ export function useTeacherPayroll() {
   >({});
   const [selectedTeacherId, setSelectedTeacherId] = useState<string | null>(null);
 
-  const teachers = useMemo(() => StorageService.getTeachers(), [refreshKey]);
+  const teachers = useMemo(() => rosterStorage.getTeachers(), [refreshKey]);
   const lessons = useMemo(() => LessonService.getLessonRecords(), [refreshKey]);
-  const expenses = useMemo(() => StorageService.getExpenses(), [refreshKey]);
+  const expenses = useMemo(() => billingStorage.getExpenses(), [refreshKey]);
   const settlements = useMemo(() => getTeacherPayrollSettlements(), [refreshKey]);
 
   const monthOptions = useMemo(
@@ -199,7 +200,7 @@ export function useTeacherPayroll() {
           adjustmentReason: row.adjustmentReason,
           industry,
         });
-        const saved = StorageService.saveExpense(draft);
+        const saved = billingStorage.saveExpense(draft);
         linkPayrollSettlementExpense(teacher.id, selectedMonth, saved.id);
         triggerRefresh();
         showToast(`${teacher.name} 정산이 지출로 등록되었습니다.`, 'success');

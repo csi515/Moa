@@ -56,7 +56,7 @@ Component
   → Supabase
 ```
 
-`StorageService`는 **살아 있다.** capability `infrastructure/*Storage` facade가 일부를 감싸지만 mega-facade를 제거한 상태가 아니다.
+`StorageService`는 **동결된 legacy compatibility facade**다. 구현 SoT는 capability/settings/care 싱글톤이다. 신규 코드는 mega-facade를 확장하거나 새로 import하지 않는다. 계약: [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md).
 
 조립:
 

@@ -1,5 +1,6 @@
 import { STORAGE_KEYS } from '@/services/adapters';
 import { generateEntityId, getItem, setItem, type StorageApi } from '@/services/storage/helpers';
+import { storageApi } from '@/services/storage/storageApi';
 import type {
   CareIncident,
   CareJournal,
@@ -232,3 +233,6 @@ export function createDaycareCareStorage(_api: StorageApi) {
     },
   };
 }
+
+/** Daycare care persist SoT. StorageService bind는 호환층. */
+export const careStorage = createDaycareCareStorage(storageApi);

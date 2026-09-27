@@ -6,3 +6,6 @@ export function createBookingCapabilityStorage() {
 }
 
 export type BookingCapabilityStorage = ReturnType<typeof createBookingCapabilityStorage>;
+
+/** Booking persist SoT (이용권·슬롯). 예약 CRUD는 schedulingStorage. */
+export const bookingStorage = createBookingCapabilityStorage();

@@ -2,7 +2,7 @@
 import { showToast, openConfirmDialog } from '@/shared/feedback/uiFeedback';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
 import { PaymentMethod } from '@/types';
 import { formatCurrency } from '@/utils/formatters';
 import {
@@ -45,7 +45,7 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     memo: '',
   });
 
-  const expenses = useMemo(() => StorageService.getExpenses(), [refreshKey]);
+  const expenses = useMemo(() => billingStorage.getExpenses(), [refreshKey]);
 
   const monthOptions = useMemo(
     () =>
@@ -114,7 +114,7 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
       isDestructive: true,
       confirmText: '삭제하기',
       onConfirm: () => {
-        StorageService.deleteExpense(exp.id);
+        billingStorage.deleteExpense(exp.id);
         showToast('지출 내역이 삭제되었습니다.', 'info');
       },
     });
@@ -128,7 +128,7 @@ export const ExpenseManagementView: React.FC<{ embedded?: boolean }> = ({ embedd
     }
 
     const persist = () => {
-      StorageService.saveExpense({
+      billingStorage.saveExpense({
         ...(editingExpense ? { id: editingExpense.id } : {}),
         date: formData.date,
         category: formData.category,

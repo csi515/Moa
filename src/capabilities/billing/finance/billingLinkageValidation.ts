@@ -1,4 +1,5 @@
-import { StorageService } from '@/services/storage';
+import { billingStorage } from '@/capabilities/billing/infrastructure/billingStorage';
+import { commerceStorage } from '@/capabilities/commerce/infrastructure/commerceStorage';
 import { findIncomeByPaymentSource } from '@/capabilities/billing/finance/billingIncomeLink';
 
 export type BillingValidationResult = {
@@ -9,14 +10,14 @@ export type BillingValidationResult = {
 
 /**
  * 수납↔수입 연결 스모크 검증 (로컬 스토리지 기준).
- * UI/개발자 콘솔에서 StorageService + 이 함수로 확인 가능.
+ * UI/개발자 콘솔에서 billingStorage / commerceStorage + 이 함수로 확인 가능.
  */
 export function runBillingLinkageValidation(): BillingValidationResult[] {
   const results: BillingValidationResult[] = [];
 
-  const tuitionPayments = StorageService.getTuitionPayments();
-  const textbookPayments = StorageService.getTextbookPayments();
-  const incomes = StorageService.getIncomeEntries();
+  const tuitionPayments = billingStorage.getTuitionPayments();
+  const textbookPayments = commerceStorage.getTextbookPayments();
+  const incomes = billingStorage.getIncomeEntries();
 
   for (const p of tuitionPayments) {
     const income = findIncomeByPaymentSource('tuition', p.id);
@@ -56,7 +57,7 @@ export function runBillingLinkageValidation(): BillingValidationResult[] {
         : `고아 연동 수입 ${linkedOrphans.length}건`,
   });
 
-  const summary = StorageService.getFinanceSummary('piano');
+  const summary = billingStorage.getFinanceSummary('piano');
   const entrySum = incomes
     .filter((e) => e.date.startsWith(summary.currentYearMonth))
     .reduce((s, e) => s + e.amount, 0);

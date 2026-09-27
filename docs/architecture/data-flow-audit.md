@@ -517,6 +517,8 @@ C. Device-local only
 
 ---
 
+도메인별 API 전수·이전 계약은 [../STORAGE_SERVICE_MIGRATION.md](../STORAGE_SERVICE_MIGRATION.md).
+
 ## 부록 A. StorageService 합성 맵 (요약)
 
 ```

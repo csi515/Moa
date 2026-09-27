@@ -237,7 +237,7 @@ Component → Hook → Service → getCoreClient() / RPC → Supabase
 Industry UI → Capability Application/Service → Core / Repository / RPC
 ```
 
-capability `infrastructure/*Storage` facade로 StorageService를 나눌 수 있다. **지금 StorageService를 제거한 상태가 아니다.**
+`StorageService`는 동결된 legacy compatibility facade다. 신규 Capability/Industry는 domain `*Storage`를 쓰고 `storage.ts`에 method를 추가하지 않는다. [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md).
 
 - 신규 UI는 파사드 Service를 호출한다. 컴포넌트에서 `StorageService`를 필수 진입점으로 쓰지 않는다.
 - 파사드 내부 Storage 동기화는 일괄 제거 금지.

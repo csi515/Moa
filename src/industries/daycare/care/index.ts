@@ -14,7 +14,7 @@ export {
   MEDICATION_STATUS_LABEL,
   PICKUP_OUTSIDE_LABEL,
 } from './types';
-export { createDaycareCareStorage } from './careStorage';
+export { createDaycareCareStorage, careStorage } from './careStorage';
 export { CareJournalView } from './CareJournalView';
 export { MedicationRequestView } from './MedicationRequestView';
 export { CareRecordsView } from './CareRecordsView';

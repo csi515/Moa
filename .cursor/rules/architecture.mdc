@@ -8,7 +8,7 @@ alwaysApply: true
 
 # Moa Architecture
 
-상세: `docs/PROJECT_MAP.md`, `docs/MOA_DEVELOPMENT_STANDARD.md`, `docs/DOMAIN_MAP.md`, `docs/DATA_FLOW.md`.
+상세: `docs/PROJECT_MAP.md`, `docs/MOA_DEVELOPMENT_STANDARD.md`, `docs/DOMAIN_MAP.md`, `docs/DATA_FLOW.md`, `docs/STORAGE_SERVICE_MIGRATION.md`.
 
 코드를 대규모로 리팩터하지 않는다. 손대는 범위만 이 규칙을 따른다. 관련 없는 파일을 수정하지 않는다.
 
@@ -126,11 +126,14 @@ Core가 composition을 import하게 만들지 않는다.
 
 | 현재 | 신규 |
 | --- | --- |
-| `StorageService` Object.assign mega-facade | `src/capabilities/<id>/infrastructure/*Storage` |
+| `StorageService` = **legacy compatibility facade** (`assembledStorage` 재export) | `src/capabilities/<id>/infrastructure/*Storage` 싱글톤 |
 | `src/services/adapters` hydrate/sync | 의미 변경 금지 |
-| Daycare care 등 업종 slice | Industry에서 bind. `storage.ts`가 `@/industries`를 import하지 않음 |
+| Daycare care 등 업종 slice | Industry `careStorage`. `storage.ts`가 `@/industries`를 import하지 않음 |
 
-StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 cache/hydration/sync semantics를 바꾸지 않는다.
+`StorageService`는 신규 domain SoT가 아니다. 새 Capability/Industry는 여기 import·메서드 추가 금지 (architecture checker).
+교차 업무는 application/service가 각 facade를 조합한다.
+조직 cache/hydration/sync semantics를 바꾸지 않는다.
+`Object.assign`으로 facade를 더 합치지 않는다. 이전 계약: `docs/STORAGE_SERVICE_MIGRATION.md`. 기존 `*Storage` 이름을 따른다.
 
 ## 책임 표 (현재 경로)
 
@@ -138,7 +141,7 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 | --- | --- | --- |
 | `src/core` | 업종 독립 기반, 카탈로그 | Industry UI, 신규 Industry/Module/App/Capability import |
 | `src/capabilities` | 선택 업무 계약·구현 | `@/industries/*`·`@/modules/*` |
-| `src/capabilities/*/infrastructure` | persistence facade | 신규 `StorageService` 직접 import |
+| `src/capabilities/*/infrastructure` | persistence facade 싱글톤 | `@/services/storage` mega-facade import |
 | `src/industries/<id>` | 그 업종만 | 다른 업종 테이블/key, Core 구현 개조 |
 | `src/app` | 조립 | Core가 여기를 import하게 만들기 |
 | `src/modules/parent` | 학부모 포털 | 업종 폴더를 다시 `modules`에 두기 |

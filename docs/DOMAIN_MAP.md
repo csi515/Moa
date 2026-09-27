@@ -56,7 +56,7 @@ User (auth.users + core.profiles)
 | Transport | Capability 후보 | `src/core/transport` + `capabilities/transport` | Capability |
 | Platform Subscription | Core foundation | `src/core/platformSubscription` | Core |
 | Audit / Idempotency / Outbox | Infrastructure | `src/core/audit` 등 | Infrastructure |
-| Storage / Hydrate / Sync | Infrastructure | `src/services` StorageService | capability facade + `services/infrastructure` |
+| Storage / Hydrate / Sync | Infrastructure | `src/services` StorageService (**legacy compatibility**) | capability/settings/care `*Storage` 싱글톤. `storage.ts`에 신규 method 금지. [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md) |
 | Industry catalog | Core foundation | `src/core/industry/definitions.ts`, `catalog.ts` | Core |
 | Industry router / loader | Composition | `src/app/industry` + `core/industry` pluginHost·Generic(**잔여**) | Composition (`src/app`) |
 | academy UI 묶음 | Legacy aggregation layer | `src/core/academy` | 도메인 아님. 신규 위치 아님 |

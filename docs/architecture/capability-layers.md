@@ -47,4 +47,4 @@ src/capabilities/<id>/
 
 Industry는 `defineIndustry({ capabilities, defaults })`로 capability를 선언한다. 중복 목록(APP_BY_INDUSTRY / INDUSTRY_PLUGINS / PUBLIC_SELECTABLE)을 다시 만들지 않는다.
 
-persistence는 `src/capabilities/<id>/infrastructure/*Storage` facade를 쓰고, 레거시 `StorageService` 신규 import는 architecture checker가 막는다. StorageService mega-facade는 아직 유지한다.
+persistence는 `src/capabilities/<id>/infrastructure/*Storage` 싱글톤이 SoT다. `StorageService`는 동결된 compatibility facade다. Capability/Industry 신규 import와 `storage.ts` method 추가는 architecture checker가 막는다. [../STORAGE_SERVICE_MIGRATION.md](../STORAGE_SERVICE_MIGRATION.md).

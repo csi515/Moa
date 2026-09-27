@@ -4,7 +4,8 @@ import { setActiveTab, setSelectedStudentId } from '@/shared/navigation/navSessi
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
-import { StorageService } from '@/services/storage';
+import { attendanceStorage } from '@/capabilities/attendance/infrastructure/attendanceStorage';
+import { rosterStorage } from '@/capabilities/roster/infrastructure/rosterStorage';
 import {
   formatSessionTime,
   getSessionStatusLabel,
@@ -69,10 +70,10 @@ export const AttendanceManagementView: React.FC = () => {
   const [memoDraft, setMemoDraft] = useState('');
 
   const students = useMemo(
-    () => scopeStudents(StorageService.getStudents()),
+    () => scopeStudents(rosterStorage.getStudents()),
     [scopeStudents, refreshKey]
   );
-  const sessions = useMemo(() => StorageService.getAttendanceSessions(), [refreshKey]);
+  const sessions = useMemo(() => attendanceStorage.getAttendanceSessions(), [refreshKey]);
 
   const changeDate = (days: number) => {
     const d = new Date(selectedDate);
@@ -120,13 +121,13 @@ export const AttendanceManagementView: React.FC = () => {
     const now = new Date().toISOString();
     const existing = memoTarget.session;
     if (existing) {
-      StorageService.saveAttendanceSession({
+      attendanceStorage.saveAttendanceSession({
         ...existing,
         memo: memoDraft.trim() || undefined,
         updatedAt: now,
       });
     } else {
-      StorageService.saveAttendanceSession({
+      attendanceStorage.saveAttendanceSession({
         id: crypto.randomUUID(),
         customerId: memoTarget.student.id,
         customerName: memoTarget.student.name,
@@ -298,7 +299,7 @@ export const AttendanceManagementView: React.FC = () => {
                       {activeStudents.map((student) => {
                         const session = sessionMap.get(student.id);
                         const status = getSessionStatusLabel(session);
-                        const pinSet = StorageService.hasCustomerPin(student.id);
+                        const pinSet = attendanceStorage.hasCustomerPin(student.id);
                         const toneBg =
                           status.tone === 'success'
                             ? 'bg-emerald-50 text-emerald-700'
@@ -369,7 +370,7 @@ export const AttendanceManagementView: React.FC = () => {
                   {activeStudents.map((student) => {
                     const session = sessionMap.get(student.id);
                     const status = getSessionStatusLabel(session);
-                    const pinSet = StorageService.hasCustomerPin(student.id);
+                    const pinSet = attendanceStorage.hasCustomerPin(student.id);
                     const toneBg =
                       status.tone === 'success'
                         ? 'bg-emerald-50 text-emerald-700'

@@ -6,3 +6,6 @@ export function createTransportCapabilityStorage() {
 }
 
 export type TransportCapabilityStorage = ReturnType<typeof createTransportCapabilityStorage>;
+
+/** Transport persist SoT. */
+export const transportStorage = createTransportCapabilityStorage();
