@@ -27,13 +27,15 @@ export function useTuitionInvoicePayment(customerLabel: string) {
           TuitionService.recordPayment(invoiceId, amount, method, notes, paymentDate, options),
         ...params,
       });
-      if ('skipped' in result && result.skipped) return false;
-      if (!result.ok) {
+      if (result.ok) {
+        showToast(result.message, 'success');
+        return true;
+      }
+      if ('toast' in result) {
         showToast(result.message, result.toast);
         return false;
       }
-      showToast(result.message, 'success');
-      return true;
+      return false;
     } finally {
       setSubmitting(false);
     }

@@ -222,7 +222,7 @@ function walk(dir, out = []) {
       walk(full, out);
       continue;
     }
-    if (/\.(ts|tsx)$/.test(entry.name) && !/\.tmp\.(ts|tsx)$/.test(entry.name)) {
+    if (/\.(ts|tsx)$/.test(entry.name)) {
       out.push(full);
     }
   }
@@ -304,21 +304,7 @@ function isTestFile(filePath) {
   return /\.test\.(ts|tsx)$/.test(filePath);
 }
 
-function scanFile(filePath) {
-  const kinds = new Set();
-  const details = [];
-  const rel = toPosix(filePath);
-  if (isAcademyRel(rel) && !ACADEMY_LEGACY_FILES.has(rel)) {
-    kinds.add('academy_new_file');
-    details.push('core/academy is legacy aggregation — put new work in Core / Capability / Industry');
-  }
-  if (isTestFile(filePath)) {
-    return { kinds, details };
-  }
-
-  const fromLayer = layerOfRel(rel);
-  const source = readFileSync(filePath, 'utf8');
-
+function collectImportSpecs(source) {
   const specs = new Set();
   for (const match of source.matchAll(IMPORT_RE)) {
     const spec = match[1] ?? match[2];
@@ -327,6 +313,59 @@ function scanFile(filePath) {
   for (const match of source.matchAll(/\bfrom\s+['"]([^'"]+)['"]/g)) {
     specs.add(match[1]);
   }
+  return specs;
+}
+
+/** academy에 새로 들이면 안 되는 업무 import. @/modules 는 이 규칙 밖(기존 layer 검사). */
+function academyForbiddenImport(spec, fromRel) {
+  if (!spec) return null;
+  if (spec === '@/capabilities' || spec.startsWith('@/capabilities/')) {
+    return { layer: 'capability', spec };
+  }
+  if (spec === '@/industries' || spec.startsWith('@/industries/')) {
+    return { layer: 'industry', spec };
+  }
+  if (spec === '@/app' || spec.startsWith('@/app/')) {
+    return { layer: 'composition', spec };
+  }
+  if (spec.startsWith('.')) {
+    const layer = relativeSpecifierLayer(fromRel, spec);
+    if (layer === 'capability' || layer === 'industry' || layer === 'composition') {
+      return { layer, spec };
+    }
+  }
+  return null;
+}
+
+function addAcademyFeatureImports(rel, source, kinds, details) {
+  for (const spec of collectImportSpecs(source)) {
+    const hit = academyForbiddenImport(spec, rel);
+    if (!hit) continue;
+    kinds.add('academy_feature_import');
+    details.push(`academy must not import ${hit.layer} (${hit.spec})`);
+  }
+}
+
+function scanFile(filePath) {
+  const kinds = new Set();
+  const details = [];
+  const rel = toPosix(filePath);
+  if (isAcademyRel(rel) && !ACADEMY_LEGACY_FILES.has(rel)) {
+    kinds.add('academy_new_file');
+    details.push('core/academy is legacy aggregation — put new work in Core / Capability / Industry');
+  }
+
+  if (isAcademyRel(rel)) {
+    addAcademyFeatureImports(rel, readFileSync(filePath, 'utf8'), kinds, details);
+  }
+
+  if (isTestFile(filePath)) {
+    return { kinds, details };
+  }
+
+  const fromLayer = layerOfRel(rel);
+  const source = readFileSync(filePath, 'utf8');
+  const specs = collectImportSpecs(source);
 
   for (const spec of specs) {
     if (isModulesSpecifier(spec) && (fromLayer === 'core' || fromLayer === 'capability')) {
@@ -355,13 +394,6 @@ function scanFile(filePath) {
       }
     }
     const toLayer = specifierLayer(spec) ?? relativeSpecifierLayer(rel, spec);
-    if (
-      isAcademyRel(rel) &&
-      (toLayer === 'capability' || toLayer === 'industry' || toLayer === 'composition')
-    ) {
-      kinds.add('academy_feature_import');
-      details.push(`academy must not import ${toLayer} (${spec})`);
-    }
     if (fromLayer && toLayer && FORBIDDEN_FROM[fromLayer]?.has(toLayer)) {
       if (fromLayer === 'core' && toLayer === 'capability' && isCapabilityCompatShim(source)) {
         continue;
@@ -468,69 +500,70 @@ function writeProbe(dir, name, source) {
   return probe;
 }
 
+function removeIfExists(filePath) {
+  if (existsSync(filePath)) unlinkSync(filePath);
+}
+
 function selfTest() {
-  const coreProbe = writeProbe(
-    join(srcRoot, 'core'),
-    '_architecture_probe.tmp.ts',
-    "import { x } from '@/industries/piano/plugin';\n"
-  );
-  const capDir = join(srcRoot, 'capabilities', '_shared');
-  const capProbe = writeProbe(
-    capDir,
-    '_architecture_probe.tmp.ts',
-    "import { x } from '@/industries/piano/plugin';\n"
-  );
-  const capToIndustry = writeProbe(
-    capDir,
-    '_architecture_probe_ind.tmp.ts',
-    "import { x } from '@/industries/piano/plugin';\n"
-  );
-  const industryDir = join(srcRoot, 'industries', 'piano');
-  const legacyAttProbe = writeProbe(
-    industryDir,
-    '_architecture_probe.tmp.ts',
-    "import { x } from '@/core/attendance';\n"
-  );
-  const servicesDir = join(srcRoot, 'services');
-  const servicesProbe = writeProbe(
-    servicesDir,
-    '_architecture_probe.tmp.ts',
-    "import { x } from '@/industries/daycare/care/careStorage';\n"
-  );
-  const capStorageProbe = writeProbe(
-    capDir,
-    '_architecture_probe_storage.tmp.ts',
-    "import { StorageService } from '@/services/storage';\n"
-  );
-  const billingDir = join(srcRoot, 'capabilities', 'billing');
-  const shimCycleProbe = writeProbe(
-    billingDir,
-    '_architecture_probe_shim.tmp.ts',
-    "import { x } from '@/core/finance';\n"
-  );
-  const academyDir = join(srcRoot, 'core', 'academy');
-  const academyNewFileProbe = writeProbe(
-    academyDir,
-    '_architecture_probe.tmp.ts',
-    'export const academyProbe = true;\n'
-  );
-  const academyImportProbe = writeProbe(
-    academyDir,
-    '_architecture_probe_import.tmp.ts',
-    "import { x } from '@/capabilities/billing';\n"
-  );
+  const probes = [];
+  const academyExistingRel = 'src/core/academy/utils/weekdayKo.ts';
+  const academyExistingFile = join(root, academyExistingRel);
+  const academyExistingOriginal = readFileSync(academyExistingFile, 'utf8');
+  const academyNewRel = 'src/core/academy/_architecture_probe.tmp.ts';
+
   try {
-    const { next } = collectViolations([
-      coreProbe,
-      capProbe,
-      capToIndustry,
-      legacyAttProbe,
-      servicesProbe,
-      capStorageProbe,
-      shimCycleProbe,
-      academyNewFileProbe,
-      academyImportProbe,
-    ]);
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'core'),
+        '_architecture_probe.tmp.ts',
+        "import { x } from '@/industries/piano/plugin';\n"
+      )
+    );
+    const capDir = join(srcRoot, 'capabilities', '_shared');
+    probes.push(
+      writeProbe(capDir, '_architecture_probe.tmp.ts', "import { x } from '@/industries/piano/plugin';\n")
+    );
+    probes.push(
+      writeProbe(capDir, '_architecture_probe_ind.tmp.ts', "import { x } from '@/industries/piano/plugin';\n")
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'industries', 'piano'),
+        '_architecture_probe.tmp.ts',
+        "import { x } from '@/core/attendance';\n"
+      )
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'services'),
+        '_architecture_probe.tmp.ts',
+        "import { x } from '@/industries/daycare/care/careStorage';\n"
+      )
+    );
+    probes.push(
+      writeProbe(capDir, '_architecture_probe_storage.tmp.ts', "import { StorageService } from '@/services/storage';\n")
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'capabilities', 'billing'),
+        '_architecture_probe_shim.tmp.ts',
+        "import { x } from '@/core/finance';\n"
+      )
+    );
+    probes.push(writeProbe(join(srcRoot, 'core', 'academy'), '_architecture_probe.tmp.ts', 'export const academyProbe = true;\n'));
+    writeFileSync(
+      academyExistingFile,
+      `${academyExistingOriginal}\nimport { x } from '@/capabilities/billing';\n`,
+      'utf8'
+    );
+
+    const scannedRels = new Set(collectRoots().map((file) => toPosix(file)));
+    if (!scannedRels.has(academyNewRel) || !scannedRels.has(academyExistingRel)) {
+      console.error('architecture self-test: 일반 검사 경로 집합에 academy 파일이 없습니다.');
+      process.exit(1);
+    }
+
+    const { next } = collectViolations();
     const coreHit = next.some(
       (row) =>
         row.kind === 'layer_import' &&
@@ -550,16 +583,17 @@ function selfTest() {
     const storageHit = next.some((row) => row.kind === 'storage_service_import');
     const shimCycleHit = next.some((row) => row.kind === 'capability_shim_cycle');
     const academyNewFileHit = next.some(
-      (row) => row.kind === 'academy_new_file' && row.file.includes('_architecture_probe.tmp.ts')
+      (row) => row.kind === 'academy_new_file' && row.file === academyNewRel
     );
     const academyImportHit = next.some(
       (row) =>
         row.kind === 'academy_feature_import' &&
+        row.file === academyExistingRel &&
         row.details.some((line) => line.includes('@/capabilities/billing'))
     );
-    const academyIndex = join(srcRoot, 'core', 'academy', 'index.ts');
-    const { next: snapshotScan } = collectViolations([academyIndex]);
-    const snapshotFalsePositive = snapshotScan.some((row) => row.kind === 'academy_new_file');
+    const snapshotFalsePositive = next.some(
+      (row) => row.kind === 'academy_new_file' && row.file === 'src/core/academy/index.ts'
+    );
     if (
       !coreHit ||
       !capHit ||
@@ -575,18 +609,20 @@ function selfTest() {
       process.exit(1);
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) 탐지 ok'
     );
   } finally {
-    unlinkSync(coreProbe);
-    unlinkSync(capProbe);
-    unlinkSync(capToIndustry);
-    unlinkSync(legacyAttProbe);
-    unlinkSync(servicesProbe);
-    unlinkSync(capStorageProbe);
-    unlinkSync(shimCycleProbe);
-    unlinkSync(academyNewFileProbe);
-    unlinkSync(academyImportProbe);
+    for (const probe of probes) removeIfExists(probe);
+    writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
+  }
+
+  const { next: cleaned } = collectViolations();
+  const leftoverAcademy = cleaned.some(
+    (row) => row.kind === 'academy_new_file' || row.kind === 'academy_feature_import'
+  );
+  if (leftoverAcademy) {
+    console.error('architecture self-test: probe 정리 후에도 academy 위반이 남았습니다.');
+    process.exit(1);
   }
 }
 

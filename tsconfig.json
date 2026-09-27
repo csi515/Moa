@@ -49,6 +49,8 @@
     "android",
     "ios",
     "test-results",
-    "playwright-report"
+    "playwright-report",
+    "**/*.tmp.ts",
+    "**/*.tmp.tsx"
   ]
 }
