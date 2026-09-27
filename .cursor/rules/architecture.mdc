@@ -53,7 +53,7 @@ Core 아래 아직 남아 있는 경로(삭제·일괄 이동 금지):
 - `src/core/resources`, `availability`, `capacity`, `waitlist` — 일부 shim, 일부 Core 일정 인프라
 - `src/core/schedules` — 예약/이용권 Core 인프라 (capability와 공존)
 - `src/core/academy` — **legacy aggregation**. 학생·반·시간표·수납 UI가 여러 업종에 재사용됨
-- `src/core/industry` — 카탈로그·pluginHost·Generic shell. **Industry 구현이 아님**
+- `src/core/industry` — 카탈로그·pluginHost. **Industry 구현이 아님**. Generic shell은 `src/app/industry`
 
 Industry 등록은 한 파일이 아니다. 현재 분산:
 
@@ -79,11 +79,14 @@ Industry 등록은 한 파일이 아니다. 현재 분산:
 예: auth, organizations, authorization, customer(성인 포털), staff, locations, platform, audit, idempotency, outbox, domain primitives.
 
 카탈로그 조회(`definitions` / alias / `catalog.ts`)는 Core foundation이다. **Industry 구현이 아니다.**  
-`src/core/industry` 한 폴더에 카탈로그(Core)와 pluginHost·Generic shell(**Composition 잔여**)이 같이 있다. 라이브 라우터·모듈 등록은 `src/app/industry` (**Composition SoT**).
+`src/core/industry`는 카탈로그·pluginHost다. Generic UI Shell과 라이브 라우터·모듈 등록은 `src/app/industry` (**Composition SoT**).
 
 Core는 특정 Industry 구현·UI를 모른다. `@/industries/*` · `@/modules/<industry>` · `@/app/*` 신규 import 금지.
 
-Core/Capability는 React Context(`AppContext`)를 직접 import하지 않는다. Navigation 타입은 UI Context와 분리된 `@/shared/navigation/navigationTypes` 계약을 사용한다.
+Core는 React Context와 AppContext adapter를 직접 또는 간접 import하지 않는다. `@/context/*`와 `@/shared/app/appUi` 모두 금지다.
+Navigation UI state(`activeTab`/`setActiveTab`)는 Navigation/Composition 계층의 책임이다.
+Core auth는 권한 계산만 담당하고 UI navigation state를 소유하지 않는다.
+Capability는 AppContext를 직접 import하지 않는다. Navigation 타입은 `@/shared/navigation/navigationTypes` 계약을 사용한다.
 
 **넣지 않는 것:** 업종 전용 화면, “여러 업종이 쓸 수도 있다”는 이유만의 승격, Industry 이름이 들어간 신규 도메인 코드.
 

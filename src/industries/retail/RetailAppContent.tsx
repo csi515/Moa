@@ -2,7 +2,7 @@ import type { FC, ReactNode } from 'react';
 import { UserCog } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { usePermissions } from '@/core/auth/usePermissions';
-import { useTabGuard } from '@/core/auth/useTabGuard';
+import { useTabGuard } from '@/shared/navigation/useTabGuard';
 import {
   DirectorFloatingFab,
   ToastContainer,

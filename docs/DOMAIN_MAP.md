@@ -108,7 +108,7 @@ Main UI: `AuthPage.tsx`, 계정 탭
 
 Related Industry: 전 업종
 
-Important Rules: Authentication과 Organization Role은 다르다. `AppContext.currentUser`는 Storage 미러이며 권한 SoT가 아니다. Core/Capability는 `AppContext`를 직접 import하지 않는다. `NavTab`은 `@/shared/navigation/navigationTypes` 계약이다.
+Important Rules: Authentication과 Organization Role은 다르다. `currentUser`는 `StorageService.getActiveUser()` 미러이며 권한 SoT가 아니다. Core는 AppContext와 `appUi` adapter를 직접 또는 간접 import하지 않는다. Core auth는 권한 계산만 담당하고 UI navigation state를 소유하지 않는다. `NavTab`은 `@/shared/navigation/navigationTypes` 계약이다.
 
 Dependencies: Supabase Auth
 

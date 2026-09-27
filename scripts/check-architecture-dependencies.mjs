@@ -252,6 +252,20 @@ function isContextRelative(fromRel, spec) {
   return resolved === 'src/context' || resolved.startsWith('src/context/');
 }
 
+function isAppUiSpecifier(spec) {
+  return spec === '@/shared/app/appUi' || (typeof spec === 'string' && spec.startsWith('@/shared/app/appUi/'));
+}
+
+function isAppUiRelative(fromRel, spec) {
+  if (!spec || !spec.startsWith('.')) return false;
+  const resolved = toPosix(join(dirname(join(root, fromRel)), spec));
+  return (
+    resolved === 'src/shared/app/appUi' ||
+    resolved.startsWith('src/shared/app/appUi.') ||
+    resolved.startsWith('src/shared/app/appUi/')
+  );
+}
+
 function isModulesSpecifier(spec) {
   if (!spec) return false;
   if (spec === '@/modules' || spec.startsWith('@/modules/')) return true;
@@ -400,6 +414,10 @@ function scanFile(filePath) {
     ) {
       kinds.add('context_import');
       details.push(`context ${spec}`);
+    }
+    if (fromLayer === 'core' && (isAppUiSpecifier(spec) || isAppUiRelative(rel, spec))) {
+      kinds.add('app_ui_import');
+      details.push(`appUi ${spec}`);
     }
     if (fromLayer === 'capability' && spec.startsWith('@/core/')) {
       const fromCap = capabilityIdFromRel(rel);
@@ -580,6 +598,13 @@ function selfTest() {
         "import { useApp } from '../../context/AppContext';\n"
       )
     );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'core'),
+        '_architecture_probe_appui.tmp.ts',
+        "import { useApp } from '@/shared/app/appUi';\n"
+      )
+    );
     probes.push(writeProbe(join(srcRoot, 'core', 'academy'), '_architecture_probe.tmp.ts', 'export const academyProbe = true;\n'));
     writeFileSync(
       academyExistingFile,
@@ -627,7 +652,20 @@ function selfTest() {
       (row) =>
         row.kind === 'context_import' &&
         row.file.startsWith('src/core/') &&
+        row.file.includes('_architecture_probe_ctx.tmp.ts') &&
+        row.details.some((line) => line.includes('@/context/AppContext'))
+    );
+    const coreRelativeContextHit = next.some(
+      (row) =>
+        row.kind === 'context_import' &&
+        row.file.includes('_architecture_probe_ctx_rel.tmp.ts') &&
         row.details.some((line) => line.includes('context/AppContext'))
+    );
+    const coreAppUiHit = next.some(
+      (row) =>
+        row.kind === 'app_ui_import' &&
+        row.file.startsWith('src/core/') &&
+        row.details.some((line) => line.includes('shared/app/appUi'))
     );
     const capContextHit = next.some(
       (row) =>
@@ -635,6 +673,15 @@ function selfTest() {
         row.file.includes('capabilities') &&
         row.details.some((line) => line.includes('@/context/AppContext'))
     );
+    if (!coreContextHit) {
+      throw new Error('architecture self-test: Core → AppContext 를 잡지 못했습니다.');
+    }
+    if (!coreAppUiHit) {
+      throw new Error('architecture self-test: Core → shared/app/appUi 를 잡지 못했습니다.');
+    }
+    if (!coreRelativeContextHit) {
+      throw new Error('architecture self-test: Core → relative context 를 잡지 못했습니다.');
+    }
     if (
       !coreHit ||
       !capHit ||
@@ -646,12 +693,14 @@ function selfTest() {
       !academyImportHit ||
       snapshotFalsePositive ||
       !coreContextHit ||
+      !coreRelativeContextHit ||
+      !coreAppUiHit ||
       !capContextHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / core·capability→context 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core→AppContext / Core→appUi / Core→relative context 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');

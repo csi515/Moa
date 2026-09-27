@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { useActiveUser } from '@/shared/session/useActiveUser';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
 import type { NavTab } from '@/shared/navigation/navigationTypes';
@@ -25,7 +25,7 @@ import {
 } from './permissions';
 
 export function usePermissions() {
-  const { currentUser } = useApp();
+  const currentUser = useActiveUser();
   const org = useOptionalOrganization();
   // 설정·강사 grants 변경만 — students/bookings 변경으로 탭 재계산 금지
   const refreshKey = useStorageRefresh('settings');

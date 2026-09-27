@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { useModuleLabels } from '@/core/labels';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { isOrgAdmin } from '@/core/auth/permissions';

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Loader2, UserX } from 'lucide-react';
 import { useAuth } from '@/core/auth/AuthProvider';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { SettingsCard } from '@/shared/components/ui';
 import { deleteMyAccount } from './accountService';
 

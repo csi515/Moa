@@ -69,7 +69,7 @@ docs/
 | 경로 | 현재 역할 | 장기 이동 방향 |
 | --- | --- | --- |
 | `src/core` | Core foundation. `academy`는 **legacy aggregation layer**. attendance/finance/commerce 등은 Capability 구현 또는 compat shim | 업종 독립 기반만 남김 |
-| `src/core/industry` | 카탈로그·`definitions`(Core foundation) + pluginHost·Generic shell(**Composition 잔여**). Industry 구현 아님 | 카탈로그는 Core. 조립은 `src/app` |
+| `src/core/industry` | 카탈로그·`definitions`(Core foundation) + pluginHost. Industry 구현 아님. Generic shell은 `src/app/industry` | 카탈로그는 Core. 조립은 `src/app` |
 | `src/core/academy` | 학생/학부모/반/시간표/상담/수납 UI가 섞인 **legacy aggregation layer**. 신규 기본 위치 아님 | 화면은 Industry 또는 Capability UI로 분산 |
 | `src/capabilities` | attendance, scheduling, booking, billing, commerce 등 구현 또는 manifest | `src/capabilities/<id>`가 선택 업무 SoT |
 | `src/industries` | piano, pilates, gym, daycare, skin, retail, bath — 런타임 Industry | 유지 |
@@ -162,7 +162,7 @@ LEGACY allowlist는 `scripts/check-architecture-dependencies.mjs`의 `LEGACY_ALL
 | Locations | `locations/` | Core foundation | 지점 catalog, 선택 | Core |
 | Authorization | `authorization/` | Core foundation | Permission + Scope | Core |
 | Application | `application/` | Core foundation | RequestContext, Command Executor (pilot) | Core |
-| Industry catalog | `industry/` | Composition (일부) | definitions, catalog, pluginHost, Generic shell | 정의는 Core, 조립은 `src/app` |
+| Industry catalog | `industry/` | Composition (일부) | definitions, catalog, pluginHost. Generic shell은 `src/app/industry` | 정의는 Core, 조립은 `src/app` |
 | Academy UI | `academy/` | Legacy aggregation layer | 학생/학부모/수납/상담/시간표 화면이 한곳에 있음 | 신규 위치 아님. UI는 Industry 또는 Capability |
 | Students / Customer / Parent / Staff | `students/`, `customer/`, `parent/`, `staff/` | Core foundation (+ parent Capability 후보) | 사람 도메인 | 마스터는 Core. parent 포털 업무는 Capability |
 | Schedules | `schedules/` | Capability 후보 (scheduling) | 일정, 예약, 이용권 연동. 일부 shim | `capabilities/scheduling` |
@@ -340,8 +340,10 @@ Import: `@/shared/components` barrel 우선.
 | --- | --- |
 | `src/core/auth/AuthProvider.tsx` | Supabase session |
 | `src/core/organizations/OrganizationProvider.tsx` | membership, 선택 사업장, role, portalMode, location |
-| `src/shared/navigation/navigationTypes.ts` | `NavTab` 계약. Core/Capability는 AppContext를 직접 import하지 않는다 |
-| `src/context/AppContext.tsx` | 탭, 선택 학생, toast, confirm, workStatus, refreshKey. `NavTab`은 navigation contract를 re-export |
+| `src/shared/navigation/navigationTypes.ts` | `NavTab` 계약. Core는 AppContext와 `appUi` adapter를 import하지 않는다 |
+| `src/shared/navigation/navSession.ts` | 탭/선택 학생 SoT. AppContext와 Core UI가 같은 스냅샷을 읽는다 |
+| `src/shared/session/useActiveUser.ts` | `StorageService.getActiveUser()` 미러. 권한 계산의 currentUser 공급원 |
+| `src/context/AppContext.tsx` | toast, confirm, workStatus, refreshKey + nav session 바인딩. `NavTab`은 navigation contract를 re-export |
 | `src/hooks/useStorageRefresh.ts` | Storage 키 구독 화면 갱신 |
 | `src/hooks/usePermissions.ts` (`core/auth`) | 탭/permission UX |
 | `src/hooks/useStaffScope.ts`, `useStaffGrants.ts` | 스태프 범위 |

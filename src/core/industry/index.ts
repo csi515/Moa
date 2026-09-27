@@ -48,6 +48,5 @@ export {
 } from './registry';
 
 export { IndustryPicker } from './IndustryPicker';
-export { GenericIndustryShell } from './GenericIndustryShell';
 export { resolveIndustryAppKind } from './industryAppResolve';
 export { defineIndustry } from './definitions';

@@ -6,57 +6,36 @@ import React, {
   useState,
   type ReactNode,
 } from 'react';
-import { StorageService } from '../services/storage';
-import { STORAGE_KEYS } from '../services/adapters/storageKeys';
-import { User } from '../types';
+import { useActiveUser } from '@/shared/session/useActiveUser';
 import {
   MAX_VISIBLE_TOASTS,
   nextWorkStatusId,
   type FeedbackTone,
   type WorkStatusMessage,
 } from '@/shared/feedback/feedbackPolicy';
-import type { NavTab } from '@/shared/navigation/navigationTypes';
+import type { ConfirmDialogOptions } from '@/shared/feedback/confirmTypes';
+import { bindUiFeedback, unbindUiFeedback } from '@/shared/feedback/uiFeedback';
+import type { NavTab, StudentDetailTab } from '@/shared/navigation/navigationTypes';
+import { useNavSession } from '@/shared/navigation/navSession';
+import type { User } from '@/types';
 
-export type { NavTab } from '@/shared/navigation/navigationTypes';
+export type { NavTab, StudentDetailTab } from '@/shared/navigation/navigationTypes';
+export type { ConfirmDialogOptions } from '@/shared/feedback/confirmTypes';
 
 /**
  * AppContext 역할:
- * - UI state: activeTab, selectedStudent*, toast, dialog
+ * - UI state: activeTab, selectedStudent*, toast, dialog (탭/학생은 nav session SoT)
  * - session user mirror: currentUser (ACTIVE_USER 변경 시만 갱신)
  * - triggerRefresh / refreshKey: 명시적 전체 UI 무효화(설정 저장 등). storage 매 write마다 올리지 않음.
  *
  * Domain data(students/bookings/…)는 AppContext에 두지 않음 → useStorageRefresh(domain) 구독.
  */
 
-export type StudentDetailTab =
-  | 'info'
-  | 'classes'
-  | 'attendance'
-  | 'tuition'
-  | 'textbooks'
-  | 'consultations'
-  | 'practice'
-  | 'videos'
-  | 'memo';
-
 export interface ToastMessage {
   id: string;
   title?: string;
   message: string;
   type: 'success' | 'error' | 'info' | 'warning';
-}
-
-export interface ConfirmDialogOptions {
-  title: string;
-  message: string;
-  confirmText?: string;
-  cancelText?: string;
-  /** 세 번째 동작. 강제 로그아웃 등 */
-  altText?: string;
-  isDestructive?: boolean;
-  onConfirm: () => void;
-  onCancel?: () => void;
-  onAlt?: () => void;
 }
 
 interface AppContextType {
@@ -93,35 +72,18 @@ interface AppContextType {
   triggerRefresh: () => void;
 }
 
-const WORK_SCROLL_ROOT = '[data-work-scroll-root]';
-
-/** 업무 탭 전환 시 새 화면을 상단에서 시작. 상세 내부 탭은 activeTab을 바꾸지 않는다. */
-function resetWorkTabScroll() {
-  if (typeof window === 'undefined') return;
-  window.scrollTo(0, 0);
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
-  document.querySelectorAll<HTMLElement>(WORK_SCROLL_ROOT).forEach((el) => {
-    el.scrollTop = 0;
-  });
-}
-
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeTab, setActiveTabState] = useState<NavTab>('dashboard');
-  const setActiveTab = useCallback((tab: NavTab) => {
-    setActiveTabState((prev) => {
-      if (prev !== tab) {
-        requestAnimationFrame(resetWorkTabScroll);
-      }
-      return tab;
-    });
-  }, []);
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
-  const [selectedStudentDetailTab, setSelectedStudentDetailTab] =
-    useState<StudentDetailTab | null>(null);
-  const [currentUser, setCurrentUser] = useState<User>(StorageService.getActiveUser());
+  const {
+    activeTab,
+    setActiveTab,
+    selectedStudentId,
+    setSelectedStudentId,
+    selectedStudentDetailTab,
+    setSelectedStudentDetailTab,
+  } = useNavSession();
+  const currentUser = useActiveUser();
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogOptions | null>(null);
   const [workStatus, setWorkStatus] = useState<WorkStatusMessage | null>(null);
@@ -129,16 +91,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const triggerRefresh = useCallback(() => {
     setRefreshKey((prev) => prev + 1);
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = StorageService.subscribe((changedKey) => {
-      // currentUser만 — students/bookings 변경으로 AppProvider 전체 재렌더 금지
-      if (changedKey === '*' || changedKey === STORAGE_KEYS.ACTIVE_USER) {
-        setCurrentUser(StorageService.getActiveUser());
-      }
-    });
-    return unsubscribe;
   }, []);
 
   const showToast = useCallback(
@@ -167,6 +119,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const closeConfirmDialog = useCallback(() => {
     setConfirmDialog(null);
   }, []);
+
+  useEffect(() => {
+    bindUiFeedback({ showToast, openConfirmDialog, triggerRefresh });
+    return () => {
+      unbindUiFeedback();
+    };
+  }, [showToast, openConfirmDialog, triggerRefresh]);
 
   const showWorkStatus = useCallback(
     (input: { title: string; message: string; tone?: FeedbackTone }) => {

@@ -1,5 +1,5 @@
 ﻿import React, { useMemo, useState } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { useStorageRefresh } from '@/hooks';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';

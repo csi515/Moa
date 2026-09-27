@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type FC } from 'react';
 import { Users } from 'lucide-react';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import type { NavTab } from '@/shared/navigation/navigationTypes';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerListTab, getPlaceLabel } from '@/core/industry/industryUi';

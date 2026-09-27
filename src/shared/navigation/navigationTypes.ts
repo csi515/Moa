@@ -46,3 +46,14 @@ export type NavTab =
   | 'notices'
   | 'settings'
   | 'account';
+
+export type StudentDetailTab =
+  | 'info'
+  | 'classes'
+  | 'attendance'
+  | 'tuition'
+  | 'textbooks'
+  | 'consultations'
+  | 'practice'
+  | 'videos'
+  | 'memo';

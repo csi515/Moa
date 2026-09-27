@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import {
   getOrganizationJoinRequests,

@@ -8,7 +8,7 @@ import {
   type IndustryType,
 } from '@/core/industry/types';
 import { resolveIndustryAppKind } from '@/core/industry/industryAppResolve';
-import { GenericIndustryShell } from '@/core/industry/GenericIndustryShell';
+import { GenericIndustryShell } from './GenericIndustryShell';
 import { ParentShell } from '@/modules/parent/ParentShell';
 import { LoadingScreen } from '@/shared/components/LoadingScreen';
 import { APP_BY_INDUSTRY } from './industryModules';

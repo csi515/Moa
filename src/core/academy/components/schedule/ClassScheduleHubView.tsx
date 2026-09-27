@@ -1,6 +1,6 @@
 import { useMemo, type FC } from 'react';
 import { Calendar, Clock } from 'lucide-react';
-import { useApp } from '@/shared/app/appUi';
+import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getPlaceLabel } from '@/core/industry/industryUi';
 import { SegmentedControl } from '@/shared/components';
