@@ -128,6 +128,18 @@ export function parseRegisteredCapabilityIds(src: string): string[] {
   return [...src.matchAll(/registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'([^']+)'/g)].map((m) => m[1]);
 }
 
+function collectRegisteredCapabilityIds(srcRoot: string): string[] {
+  const ids: string[] = [];
+  const syncDir = join(srcRoot, 'services/adapters/sync');
+  if (existsSync(syncDir)) {
+    for (const name of readdirSync(syncDir)) {
+      if (!name.endsWith('.ts') || name.endsWith('.test.ts')) continue;
+      ids.push(...parseRegisteredCapabilityIds(readFileSync(join(syncDir, name), 'utf8')));
+    }
+  }
+  return uniqueSorted(ids);
+}
+
 /** 순수 비교 — 픽스처로 누락 검출을 검증한다. */
 export function collectIndustryRegistrationGaps(snap: IndustryRegistrationSnapshot): string[] {
   const gaps: string[] = [];
@@ -190,7 +202,7 @@ export function collectIndustryRegistrationGaps(snap: IndustryRegistrationSnapsh
     for (const cap of rec.syncCapabilities) {
       if (!snap.registeredCapabilities.includes(cap)) {
         gaps.push(
-          `capability 선언 누락: plugin ${label} syncCapabilities "${cap}" 가 industrySyncRegistry에 없음`
+          `capability 선언 누락: plugin ${label} syncCapabilities "${cap}" 가 registerIndustrySyncCapability 등록에 없음`
         );
       }
     }
@@ -233,7 +245,7 @@ export function readIndustryRegistrationSnapshot(srcRoot: string): IndustryRegis
   const modulesPathTsx = join(srcRoot, 'app/industry/industryModules.tsx');
   const modulesPathTs = join(srcRoot, 'app/industry/industryModules.ts');
   const modulesSrc = readFileSync(existsSync(modulesPathTsx) ? modulesPathTsx : modulesPathTs, 'utf8');
-  const syncSrc = readFileSync(join(srcRoot, 'services/adapters/industrySyncRegistry.ts'), 'utf8');
+  const registeredCapabilities = collectRegisteredCapabilityIds(srcRoot);
 
   const compositionIds = parseIndustryModuleIds(modulesSrc);
   const loaderImports = parseIndustryModuleLoadSpecs(modulesSrc);
@@ -302,7 +314,7 @@ export function readIndustryRegistrationSnapshot(srcRoot: string): IndustryRegis
     loaderExports: compositionIds,
     moduleApps,
     pluginRecords,
-    registeredCapabilities: parseRegisteredCapabilityIds(syncSrc),
+    registeredCapabilities,
     aliases: { ...INDUSTRY_ALIASES },
     missingLoaderImports,
     extraGaps,

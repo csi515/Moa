@@ -1,13 +1,12 @@
 /**
  * 업종 sync capability 레지스트리.
- * Adapter는 업종 이름을 직접 분기하지 않고, 플러그인이 선언한 capability만 실행한다.
+ * 계약·조회·실행만 담당한다. 업종별 구현을 import하거나 직접 등록하지 않는다.
+ *
+ * 등록은 구현 모듈이 `registerIndustrySyncCapability`로 한다.
+ * manifest `syncCapabilities`는 “이 업종이 어떤 id를 쓰는지”만 선언한다.
  */
 import { getIndustryPlugin } from '@/core/industry/registry';
 import type { StorageKey } from './storageKeys';
-import { DAYCARE_SYNC_KEYS, PIANO_SYNC_KEYS } from './storageKeys';
-import { hydrateDaycareEntities, persistDaycareEntity } from './sync/daycareEntitySync';
-import { hydrateEducationEntities, persistEducationEntity } from './sync/educationEntitySync';
-import { hydratePianoEntities, persistPianoEntity } from './sync/pianoEntitySync';
 import type { PersistAbortGuard, SyncCache } from './sync/syncTypes';
 
 export type IndustrySyncCapabilityId = string;
@@ -26,6 +25,7 @@ export type IndustrySyncCapability = {
 
 const CAPABILITIES = new Map<IndustrySyncCapabilityId, IndustrySyncCapability>();
 
+/** 같은 id는 교체한다. HMR·재초기화에서 중복 등록해도 안전하다. */
 export function registerIndustrySyncCapability(capability: IndustrySyncCapability): void {
   CAPABILITIES.set(capability.id, capability);
 }
@@ -69,24 +69,3 @@ export async function persistRegisteredCapabilities(
   }
   return ok;
 }
-
-registerIndustrySyncCapability({
-  id: 'piano',
-  hydrate: hydratePianoEntities,
-  persist: persistPianoEntity,
-  persistKeys: PIANO_SYNC_KEYS,
-});
-
-registerIndustrySyncCapability({
-  id: 'education',
-  hydrate: hydrateEducationEntities,
-  persist: persistEducationEntity,
-  persistKeys: PIANO_SYNC_KEYS,
-});
-
-registerIndustrySyncCapability({
-  id: 'daycare',
-  hydrate: hydrateDaycareEntities,
-  persist: persistDaycareEntity,
-  persistKeys: DAYCARE_SYNC_KEYS,
-});

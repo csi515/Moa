@@ -179,7 +179,7 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 - 다른 Industry 화면을 복사해 새 업종을 만들기
 - 새 업종 때문에 기존 Core domain 이름을 업종에 맞게 바꾸기
 
-(선택) hydrate가 필요하면 `industrySyncRegistry`에 capability id만 추가. Core 도메인 구현은 수정하지 않는다.
+(선택) hydrate가 필요하면 plugin `syncCapabilities`를 선언하고 구현 모듈에서 `registerIndustrySyncCapability`로 등록한다. Core 도메인 구현은 수정하지 않는다.
 
 추후 목표 트리:
 

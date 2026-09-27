@@ -8,6 +8,7 @@ import type {
 } from '@/types/education';
 import { getPianoClient } from '@/lib/supabase/pianoClient';
 import { writeLocal } from '../localStorageEngine';
+import { registerIndustrySyncCapability } from '../industrySyncRegistry';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
@@ -296,3 +297,10 @@ async function persistWeeklyAssignments(
   writeLocal(STORAGE_KEYS.WEEKLY_ASSIGNMENTS, assignments);
   return itemsOk;
 }
+
+registerIndustrySyncCapability({
+  id: 'education',
+  hydrate: hydrateEducationEntities,
+  persist: persistEducationEntity,
+  persistKeys: PIANO_SYNC_KEYS,
+});

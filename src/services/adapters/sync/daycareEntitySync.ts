@@ -1,6 +1,7 @@
 import type { CareJournal, MedicationRequest } from '@/industries/daycare/care/types';
 import { getCoreClient } from '@/lib/supabase';
 import { writeLocal } from '../localStorageEngine';
+import { registerIndustrySyncCapability } from '../industrySyncRegistry';
 import { DAYCARE_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
@@ -132,3 +133,10 @@ async function persistDaycareTable<T extends { id: string }>(
   writeLocal(storageKey, items);
   return ok;
 }
+
+registerIndustrySyncCapability({
+  id: 'daycare',
+  hydrate: hydrateDaycareEntities,
+  persist: persistDaycareEntity,
+  persistKeys: DAYCARE_SYNC_KEYS,
+});
