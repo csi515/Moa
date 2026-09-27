@@ -34,6 +34,7 @@ function run() {
     const src = readFileSync(join(here, id, 'manifest.ts'), 'utf8');
     assert.equal(src.includes('@/modules/'), false, `${id} manifest must not import modules`);
     assert.equal(src.includes('@/industries/'), false, `${id} manifest must not import industries`);
+    assert.equal(src.includes('@/app/'), false, `${id} manifest must not import Composition`);
     assert.match(src, /defineCapability/);
   }
 

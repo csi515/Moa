@@ -260,6 +260,31 @@ function isIndustrySyncRegistryRel(rel) {
   return rel === 'src/services/adapters/industrySyncRegistry.ts';
 }
 
+function isIndustryDefinitionsRel(rel) {
+  return rel === 'src/core/industry/definitions.ts';
+}
+
+function hasCatalogRuntimeComposition(source) {
+  return /(?:capabilities|defaults):\s*\{/.test(stripComments(source));
+}
+
+function collectTypeOnlyImportSpecs(source) {
+  const specs = new Set();
+  for (const match of source.matchAll(/import\s+type\s+(?:[^'"\n]+from\s+)?['"]([^'"]+)['"]/g)) {
+    specs.add(match[1]);
+  }
+  return specs;
+}
+
+function isDefinitionsForbiddenRuntimeSpec(spec) {
+  if (!spec) return false;
+  if (spec === '@/capabilities' || spec.startsWith('@/capabilities/')) return true;
+  if (spec === '@/app' || spec.startsWith('@/app/')) return true;
+  if (spec === '@/industries' || spec.startsWith('@/industries/')) return true;
+  if (isModulesSpecifier(spec)) return true;
+  return false;
+}
+
 function isRegistryConcreteSpec(fromRel, spec) {
   if (!spec) return false;
   if (spec === '@/industries' || spec.startsWith('@/industries/')) return true;
@@ -474,6 +499,20 @@ function scanFile(filePath) {
       details.push(`schema ${match[0]}`);
     }
   }
+  if (isIndustryDefinitionsRel(rel) && hasCatalogRuntimeComposition(source)) {
+    kinds.add('catalog_runtime_composition');
+    details.push('definitions.ts must not own Industry capability composition');
+  }
+  if (isIndustryDefinitionsRel(rel)) {
+    const typeOnly = collectTypeOnlyImportSpecs(source);
+    for (const spec of specs) {
+      if (typeOnly.has(spec)) continue;
+      if (isDefinitionsForbiddenRuntimeSpec(spec)) {
+        kinds.add('definitions_runtime_import');
+        details.push(`definitions runtime import ${spec}`);
+      }
+    }
+  }
 
   return { kinds, details };
 }
@@ -576,6 +615,9 @@ function selfTest() {
   const registryRel = 'src/services/adapters/industrySyncRegistry.ts';
   const registryFile = join(root, registryRel);
   const registryOriginal = readFileSync(registryFile, 'utf8');
+  const definitionsRel = 'src/core/industry/definitions.ts';
+  const definitionsFile = join(root, definitionsRel);
+  const definitionsOriginal = readFileSync(definitionsFile, 'utf8');
   const academyNewRel = 'src/core/academy/_architecture_probe.tmp.ts';
 
   try {
@@ -661,6 +703,25 @@ function selfTest() {
       registryFile,
       `${registryOriginal}\nimport { x } from './sync/pianoEntitySync';\nimport { y } from '@/industries/bath/plugin';\nimport { z } from '../../industries/daycare/plugin';\nimport { w } from '@/modules/piano/AppContent';\n`,
       'utf8'
+    );
+    writeFileSync(
+      definitionsFile,
+      `${definitionsOriginal}\nimport { x } from '@/capabilities/attendance';\nimport { y } from '@/app/industry/industryCapabilityMap';\nimport { z } from '@/industries/piano/plugin';\nexport const probe = { capabilities: { roster: true }, defaults: { attendance: false } };\n`,
+      'utf8'
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'core'),
+        '_architecture_probe_comp.tmp.ts',
+        "import { x } from '@/app/industry/industryCapabilityMap';\n"
+      )
+    );
+    probes.push(
+      writeProbe(
+        capDir,
+        '_architecture_probe_comp.tmp.ts',
+        "import { x } from '@/app/industry/industryCapabilityMap';\n"
+      )
     );
 
     const scannedRels = new Set(collectRoots().map((file) => toPosix(file)));
@@ -762,6 +823,39 @@ function selfTest() {
     if (!registryImplHit) {
       throw new Error('architecture self-test: industrySyncRegistry → concrete sync 를 잡지 못했습니다.');
     }
+    const catalogCompositionHit = next.some(
+      (row) => row.kind === 'catalog_runtime_composition' && row.file === definitionsRel
+    );
+    if (!catalogCompositionHit) {
+      throw new Error('architecture self-test: definitions.ts runtime composition 을 잡지 못했습니다.');
+    }
+    const definitionsCapabilityImportHit = next.some(
+      (row) =>
+        row.file === definitionsRel &&
+        (row.kind === 'layer_import' || row.kind === 'definitions_runtime_import') &&
+        row.details.some((line) => line.includes('@/capabilities/attendance'))
+    );
+    if (!definitionsCapabilityImportHit) {
+      throw new Error('architecture self-test: definitions.ts → @/capabilities 를 잡지 못했습니다.');
+    }
+    const coreCompositionHit = next.some(
+      (row) =>
+        row.kind === 'layer_import' &&
+        row.file.startsWith('src/core/') &&
+        row.details.some((line) => line.includes('@/app/industry/industryCapabilityMap'))
+    );
+    if (!coreCompositionHit) {
+      throw new Error('architecture self-test: Core → Composition 을 잡지 못했습니다.');
+    }
+    const capabilityCompositionHit = next.some(
+      (row) =>
+        row.kind === 'layer_import' &&
+        row.file.includes('capabilities') &&
+        row.details.some((line) => line.includes('@/app/industry/industryCapabilityMap'))
+    );
+    if (!capabilityCompositionHit) {
+      throw new Error('architecture self-test: Capability → Composition 을 잡지 못했습니다.');
+    }
     if (
       !coreHit ||
       !capHit ||
@@ -778,16 +872,21 @@ function selfTest() {
       !capContextHit ||
       !capAppUiHit ||
       !capRelativeContextHit ||
-      !registryImplHit
+      !registryImplHit ||
+      !catalogCompositionHit ||
+      !definitionsCapabilityImportHit ||
+      !coreCompositionHit ||
+      !capabilityCompositionHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
     writeFileSync(registryFile, registryOriginal, 'utf8');
+    writeFileSync(definitionsFile, definitionsOriginal, 'utf8');
     for (const probe of probes) removeIfExists(probe);
   }
 
@@ -801,6 +900,14 @@ function selfTest() {
   const leftoverRegistry = cleaned.some((row) => row.kind === 'registry_impl_import');
   if (leftoverRegistry) {
     throw new Error('architecture self-test: probe 정리 후에도 registry 구현 import 위반이 남았습니다.');
+  }
+  const leftoverCatalogComposition = cleaned.some((row) => row.kind === 'catalog_runtime_composition');
+  if (leftoverCatalogComposition) {
+    throw new Error('architecture self-test: probe 정리 후에도 catalog composition 위반이 남았습니다.');
+  }
+  const leftoverDefinitionsImport = cleaned.some((row) => row.kind === 'definitions_runtime_import');
+  if (leftoverDefinitionsImport) {
+    throw new Error('architecture self-test: probe 정리 후에도 definitions runtime import 위반이 남았습니다.');
   }
 }
 

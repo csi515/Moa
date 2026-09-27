@@ -5,18 +5,14 @@ import {
   INDUSTRY_IDS,
   MODULE_INDUSTRY_IDS,
   PUBLIC_SELECTABLE_INDUSTRY_IDS,
+  type IndustryCatalogMetadata,
   type IndustryDefinition,
   type IndustryType,
   type ModuleIndustryId,
 } from './definitions';
 import { applyInstalledCapabilityNavFilter } from './capabilityNavHost';
-import {
-  isIndustryCapabilityDefaultOn,
-  isIndustryCapabilityEnabled,
-  type IndustryCapabilityFlagMap,
-} from './industryCapabilities';
 
-export type { IndustryType, ModuleIndustryId, IndustryDefinition };
+export type { IndustryType, ModuleIndustryId, IndustryDefinition, IndustryCatalogMetadata };
 export {
   INDUSTRY_IDS,
   INDUSTRY_DEFINITIONS,
@@ -75,26 +71,6 @@ export function shouldUseGenericShell(industryType?: string | null): boolean {
   const def = getIndustryDefinition(industryType);
   if (!def) return true;
   return !def.moduleId;
-}
-
-export function getIndustryCapabilities(
-  industry: IndustryType | string | null | undefined
-): IndustryCapabilityFlagMap {
-  return { ...(getIndustryDefinition(industry)?.capabilities ?? {}) };
-}
-
-export function hasIndustryCapability(
-  industry: IndustryType | string | null | undefined,
-  capabilityId: string
-): boolean {
-  return isIndustryCapabilityEnabled(getIndustryDefinition(industry)?.capabilities, capabilityId);
-}
-
-export function hasIndustryCapabilityDefault(
-  industry: IndustryType | string | null | undefined,
-  capabilityId: string
-): boolean {
-  return isIndustryCapabilityDefaultOn(getIndustryDefinition(industry)?.defaults, capabilityId);
 }
 
 export function filterIndustryNavTabs<T extends string>(

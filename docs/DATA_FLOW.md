@@ -58,7 +58,21 @@ Component
 
 `StorageService`는 **살아 있다.** capability `infrastructure/*Storage` facade가 일부를 감싸지만 mega-facade를 제거한 상태가 아니다.
 
-조립: Gate → `src/app/industry/IndustryAppRouter` → `src/industries/<id>` 또는 Generic shell.  
+조립:
+
+```text
+Gate
+  → loadIndustryModules (plugin 설치 + industryCapabilityMap)
+  → IndustryAppRouter
+  → industries/<id> App 또는 Generic shell
+```
+
+- Industry catalog = Core (`definitions.ts`)
+- Industry runtime capability composition = Composition (`industryCapabilityMap.ts`)
+- Industry implementation/UI = Industry
+- reusable business feature = Capability
+- domain/infrastructure foundation = Core
+
 학부모: `src/modules/parent`.  
 다수 화면은 아직 `src/core/academy` (**legacy aggregation layer**).
 

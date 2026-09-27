@@ -516,11 +516,19 @@ Dependencies: Organization, (bath schema)
 
 계층: **Composition**
 
-Purpose: 업종 정의·선택 capability·라우팅.
+Purpose: 업종 catalog와 runtime 조립을 구분한다.
 
-현재: `src/core/industry`의 `definitions`/catalog는 **Core foundation**. 같은 폴더의 pluginHost·Generic shell은 **Composition 잔여**. 라이브 라우터·모듈 등록은 `src/app/industry` (**Composition SoT**).
+| 개념 | 계층 | 위치 |
+| --- | --- | --- |
+| Industry catalog | Core | `src/core/industry/definitions.ts` |
+| runtime capability composition | Composition | `src/app/industry/industryCapabilityMap.ts` |
+| Industry implementation/UI | Industry | `src/industries/<id>` |
+| reusable business feature | Capability | `src/capabilities/<id>` |
+| domain/infrastructure foundation | Core | `src/core` |
 
-Industry sync: Adapter는 업종 이름을 직접 분기하지 않는다. Registry는 concrete implementation을 소유하지 않는다. Industry가 `register*Sync`로 자기 capability를 등록하고, plugin manifest가 사용 id를 선언한다. 새 Industry 추가 시 중앙 sync registry를 수정하지 않는다.
+의존: `Composition → Industry → Capability → Core`. Capability는 Composition을 import하지 않는다. Core는 Composition을 import하지 않는다.
+
+Industry sync: Adapter는 업종 이름을 직접 분기하지 않는다. Registry는 concrete implementation을 소유하지 않는다. Industry가 `register*Sync`로 자기 capability를 등록하고, plugin manifest가 사용 id를 선언한다.
 
 장기: 조립은 `src/app`. Core는 업종을 모르는 카탈로그 조회만. **Industry 구현이 아니다.**
 

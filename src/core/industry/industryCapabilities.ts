@@ -1,6 +1,6 @@
 /**
  * Industry definition의 capability 플래그 조회.
- * 허용 ID는 Composition(`src/app/industry/industryCapabilityMap.ts`)이 닫는다.
+ * 허용 ID와 runtime 값은 Composition(`src/app/industry/industryCapabilityMap.ts`)이 소유한다.
  * Core는 @/capabilities 를 import하지 않는다.
  */
 export interface IndustryCapabilityIds {}

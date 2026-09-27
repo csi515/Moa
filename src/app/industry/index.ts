@@ -1,4 +1,16 @@
-export type { CapabilityId, IndustryCapabilityFlagMap, IndustryCapabilityId } from './industryCapabilityMap';
+export type {
+  CapabilityId,
+  IndustryCapabilityFlagMap,
+  IndustryCapabilityId,
+  IndustryCatalogMetadata,
+  IndustryRuntimeCapabilityComposition,
+} from './industryCapabilityMap';
+export {
+  INDUSTRY_CAPABILITY_COMPOSITION,
+  getIndustryCapabilities,
+  hasIndustryCapability,
+  hasIndustryCapabilityDefault,
+} from './industryCapabilityMap';
 export {
   CAPABILITY_IMPLEMENTATION_TABS,
   NAV_TAB_REQUIRED_CAPABILITY,

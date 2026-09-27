@@ -3,6 +3,7 @@ export type {
   IndustryType,
   ModuleIndustryId,
   IndustryDefinition,
+  IndustryCatalogMetadata,
   IndustryCategory,
   IndustryCategoryOption,
   IndustryOption,
@@ -32,9 +33,6 @@ export {
   listIndustriesByCategory,
   hasIndustryModule,
   shouldUseGenericShell,
-  getIndustryCapabilities,
-  hasIndustryCapability,
-  hasIndustryCapabilityDefault,
   filterIndustryNavTabs,
   assertCatalogIntegrity,
 } from './types';

@@ -8,13 +8,12 @@ import {
   listIndustryDefinitions,
   hasIndustryModule,
   shouldUseGenericShell,
-  hasIndustryCapability,
   filterIndustryNavTabs,
   type IndustryType,
 } from './catalog';
 import { INDUSTRY_CATEGORY_OPTIONS, type IndustryCategory } from './categories';
 
-export type { IndustryType, ModuleIndustryId, IndustryDefinition } from './catalog';
+export type { IndustryType, ModuleIndustryId, IndustryDefinition, IndustryCatalogMetadata } from './catalog';
 export {
   INDUSTRY_IDS,
   INDUSTRY_DEFINITIONS,
@@ -28,9 +27,6 @@ export {
   listIndustriesByCategory,
   hasIndustryModule,
   shouldUseGenericShell,
-  getIndustryCapabilities,
-  hasIndustryCapability,
-  hasIndustryCapabilityDefault,
   filterIndustryNavTabs,
   defineIndustry,
 } from './catalog';

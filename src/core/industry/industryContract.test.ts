@@ -15,7 +15,6 @@ import {
   PUBLIC_SELECTABLE_INDUSTRY_IDS,
   defineIndustry,
   getIndustryDefinition,
-  hasIndustryCapability,
   hasIndustryModule,
   isIndustryType,
   normalizeIndustryType,
@@ -33,6 +32,11 @@ import {
   CAPABILITY_IMPLEMENTATION_TABS,
   NAV_TAB_REQUIRED_CAPABILITY,
 } from '@/app/industry/capabilityNavigation';
+import {
+  INDUSTRY_CAPABILITY_COMPOSITION,
+  getIndustryCapabilities,
+  hasIndustryCapability,
+} from '@/app/industry/industryCapabilityMap';
 
 const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const FINANCE_TABS = ['finance', 'income', 'expenses', 'tuition', 'unpaid', 'payroll'] as const;
@@ -190,15 +194,17 @@ function run(): void {
   assertNoCapabilityCycle();
 
   for (const id of INDUSTRY_IDS) {
-    const def = INDUSTRY_DEFINITIONS[id];
-    for (const cap of Object.keys(def.capabilities)) {
+    const composition = INDUSTRY_CAPABILITY_COMPOSITION[id as keyof typeof INDUSTRY_CAPABILITY_COMPOSITION];
+    const capabilities = composition?.capabilities ?? {};
+    const defaults = composition?.defaults ?? {};
+    for (const cap of Object.keys(capabilities)) {
       assert.ok(capabilitySet.has(cap), `${id} declares unknown capability: ${cap}`);
     }
-    for (const cap of Object.keys(def.defaults)) {
+    for (const cap of Object.keys(defaults)) {
       assert.ok(capabilitySet.has(cap), `${id} default unknown capability: ${cap}`);
-      if (def.defaults[cap] === true) {
+      if (defaults[cap] === true) {
         assert.equal(
-          def.capabilities[cap],
+          capabilities[cap],
           true,
           `${id} defaults.${cap}=true but capability is not enabled`
         );
@@ -207,14 +213,15 @@ function run(): void {
   }
 
   for (const id of MODULE_INDUSTRY_IDS) {
-    const def = INDUSTRY_DEFINITIONS[id];
+    const composition = INDUSTRY_CAPABILITY_COMPOSITION[id];
+    assert.ok(composition, `module industry missing capability composition: ${id}`);
     const rec = snap.pluginRecords.find((r) => r.id === id);
     assert.ok(rec);
-    const expectedAttendanceDefault = def.defaults.attendance === true;
+    const expectedAttendanceDefault = composition.defaults.attendance === true;
     assert.equal(
       rec.attendanceDefault,
       expectedAttendanceDefault,
-      `${id} plugin.attendanceDefault must match definition.defaults.attendance`
+      `${id} plugin.attendanceDefault must match composition.defaults.attendance`
     );
 
     const appFile = snap.moduleApps.find((item) => item.id === id)?.file;
@@ -222,16 +229,16 @@ function run(): void {
     const appSrc = readFileSync(appFile, 'utf8');
     const pluginSrc = readFileSync(rec.file, 'utf8');
     const pluginNavSrc = expandClassBasedTabs(pluginSrc);
-    const enabled = enabledIndustryCapabilities(def.capabilities);
+    const enabled = enabledIndustryCapabilities(composition.capabilities);
     for (const cap of enabled) {
-      if (cap === 'booking' && def.capabilities.scheduling !== true) {
+      if (cap === 'booking' && composition.capabilities.scheduling !== true) {
         assert.fail(`${id}: booking requires scheduling`);
       }
       const deps =
         CAPABILITY_MANIFESTS.find((m) => m.definition.id === cap)?.definition.dependencies ?? [];
       for (const dep of deps) {
         assert.equal(
-          def.capabilities[dep],
+          composition.capabilities[dep],
           true,
           `${id}: enabled ${cap} requires dependency ${dep}`
         );
@@ -296,11 +303,12 @@ function run(): void {
     description: 'test',
     category: 'education',
     moduleId: 'piano',
-    capabilities: { roster: true },
-    defaults: { attendance: false },
+    selectable: true,
   });
   assert.equal(objectPiano.id, 'piano');
-  assert.equal(objectPiano.capabilities?.roster, true);
+  assert.equal(objectPiano.selectable, true);
+  assert.equal('capabilities' in objectPiano, false);
+  assert.equal(getIndustryCapabilities('piano').roster, true);
 
   // 18. industry cannot create Core → Industry dependency
   const coreFiles = walkTs(join(srcRoot, 'core'));
@@ -344,6 +352,16 @@ function run(): void {
     readSrc('app/industry/industryCapabilityMap.ts'),
     /Record<CapabilityId,\s*true>/,
     'Composition must close Industry capability IDs with CapabilityId'
+  );
+  assert.match(
+    readSrc('app/industry/industryCapabilityMap.ts'),
+    /export const INDUSTRY_CAPABILITY_COMPOSITION/,
+    'Composition must own Industry capability runtime map'
+  );
+  assert.doesNotMatch(
+    readSrc('core/industry/definitions.ts'),
+    /capabilities:\s*\{/,
+    'Core catalog must not own runtime capability composition'
   );
 
   console.log(

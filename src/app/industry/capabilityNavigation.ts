@@ -1,12 +1,12 @@
 /**
  * Industry capability → 탭/뷰 조합. Composition 책임.
  * Core는 이 규칙을 import하지 않는다.
+ * 플래그 값은 `industryCapabilityMap.getIndustryCapabilities`.
  */
 import type { CapabilityId } from '@/capabilities';
-import { getIndustryCapabilities } from '@/core/industry/catalog';
+import { getIndustryCapabilities } from './industryCapabilityMap';
 import { installCapabilityNavFilter } from '@/core/industry/capabilityNavHost';
 import { isIndustryCapabilityEnabled, type IndustryCapabilityFlagMap } from '@/core/industry/industryCapabilities';
-import './industryCapabilityMap';
 
 /** 탭이 이 capability에 묶이면, capability가 꺼진 업종에서는 숨긴다. */
 export const NAV_TAB_REQUIRED_CAPABILITY: Readonly<Partial<Record<string, CapabilityId>>> = {

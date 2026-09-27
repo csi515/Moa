@@ -65,6 +65,7 @@ async function run(): Promise<void> {
     );
     assert.doesNotMatch(src, /@\/industries(?:\/|['"])/, `${id} public API must not import industries`);
     assert.doesNotMatch(src, /@\/modules(?:\/|['"])/, `${id} public API must not import modules`);
+    assert.doesNotMatch(src, /@\/app(?:\/|['"])/, `${id} public API must not import Composition`);
 
     const mod = (await import(`./${id}/manifest.ts`)) as Record<string, { definition?: { id?: string } }>;
     const capability = mod[`${id}Capability`];

@@ -55,18 +55,19 @@ Core 아래 아직 남아 있는 경로(삭제·일괄 이동 금지):
 - `src/core/academy` — **legacy aggregation**. 학생·반·시간표·수납 UI가 여러 업종에 재사용됨
 - `src/core/industry` — 카탈로그·pluginHost. **Industry 구현이 아님**. Generic shell은 `src/app/industry`
 
-Industry 등록은 한 파일이 아니다. 현재 분산:
+Industry 등록은 역할별로 나뉜다.
 
-| 위치 | 역할 |
-| --- | --- |
-| `src/core/industry/definitions.ts` | 카탈로그 id, `capabilities`/`defaults`/`selectable`/`moduleId` |
-| `src/core/industry/catalog.ts` | 조회·alias·generic-shell |
-| `src/core/industry/pluginHost.ts` + `registry.ts` | 설치된 plugin 조회 |
-| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities. `./sync/register*Sync`를 **eager import** (AppContent lazy는 등록 경로가 아님) |
-| `src/app/industry/industryModules.tsx` | 모듈 등록. `APP_BY_INDUSTRY`는 이 목록에서 **파생** |
-| `src/app/industry/IndustryAppRouter.tsx` | 셸 선택 |
-| `src/app/industry/loadIndustryModules.ts` | plugin 설치 |
-| `test:industry-contract` | 등록 누락 검사 |
+| 위치 | 계층 | 역할 |
+| --- | --- | --- |
+| `src/core/industry/definitions.ts` | Core | catalog metadata (id, label, `selectable`, `moduleId`, alias). runtime capability 조합 없음 |
+| `src/core/industry/catalog.ts` | Core | 조회·정규화·generic-shell |
+| `src/core/industry/pluginHost.ts` | Core | 설치된 plugin 조회 |
+| `src/industries/<id>/plugin.ts` | Industry | 탭·테마·sync 선언. `./sync/register*Sync` **eager import** |
+| `src/app/industry/industryCapabilityMap.ts` | Composition | Industry → Capability **runtime SoT** |
+| `src/app/industry/industryModules.tsx` | Composition | App/UI 등록. `APP_BY_INDUSTRY`는 이 목록에서 파생 |
+| `src/app/industry/IndustryAppRouter.tsx` | Composition | 셸 선택 |
+| `src/app/industry/loadIndustryModules.ts` | Composition | plugin 설치 + composition 맵 로드 |
+| `test:industry-contract` | 검사 | catalog ↔ plugin ↔ composition ↔ App 누락 |
 
 `INDUSTRY_PLUGINS` / 수동 `APP_BY_INDUSTRY` / 수동 selectable 배열을 다시 만들지 않는다.
 
@@ -161,12 +162,13 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 
 절차:
 
-1. Industry definition — `src/core/industry/definitions.ts`에 `defineIndustry({ id, capabilities, defaults, selectable, moduleId })`
-2. Capability 조합 — 기존 Capability만 선택. Capability 구현에 industry if/else를 넣지 않음
-3. Industry-specific implementation — `src/industries/<id>/plugin.ts`, `*AppContent`, labels, 전용 service
-4. Contract test — `test:industry-contract` (필요 시 industry 폴더 테스트)
-5. Composition registration — `src/app/industry/industryModules.tsx`에 `defineIndustryModule` 한 줄
-6. Regression test — `test:business-invariants`, persist/hydrate
+1. Core catalog/metadata — `src/core/industry/definitions.ts`에 `defineIndustry({ id, selectable, moduleId })`
+2. Capability 선택 — 기존 `CAPABILITY_IDS`만. Capability 구현에 industry if/else 금지
+3. Industry plugin — `src/industries/<id>/plugin.ts` (탭·테마·sync 선언)
+4. Composition runtime map — `src/app/industry/industryCapabilityMap.ts`에 capability 조합
+5. Industry App/UI — `*AppContent` + `industryModules.tsx`에 `defineIndustryModule`
+6. Contract test — `test:industry-contract`, `test:industry-capability-map`
+7. Regression test — `test:business-invariants`, persist/hydrate
 
 (선택) Industry sync가 필요하면 plugin `syncCapabilities`를 선언하고 `src/industries/<id>/sync/register*Sync.ts`에서 `registerIndustrySyncCapability`로 등록한다. **새 Industry 추가 시 중앙 sync registry를 수정하지 않는다.**
 
@@ -205,6 +207,8 @@ src/core/  src/capabilities/  src/industries/  src/app/  src/shared/
 - Compat shim만 Core→capability 허용: `@deprecated 신규 코드는` + `@/capabilities/`.
 - industry/app/capability는 `@/core/attendance` 대신 `@/capabilities/attendance`.
 - `industrySyncRegistry.ts` → `@/industries` / `@/modules` / `*EntitySync` / Industry schema·capability 구현 import는 `registry_impl_import`로 즉시 실패. allowlist로 우회하지 않는다.
+- `definitions.ts`의 runtime capability composition과 `@/capabilities`·`@/app/industry`·`@/industries` 구현 import는 `catalog_runtime_composition` / `definitions_runtime_import` / `layer_import`로 즉시 실패. allowlist로 우회하지 않는다. `import type` metadata는 막지 않는다.
+- Capability → Composition(`@/app/*`)은 `layer_import`로 즉시 실패. Composition → Capability는 허용.
 
 ## Scope
 

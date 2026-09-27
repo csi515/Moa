@@ -1,5 +1,4 @@
 import type { IndustryCategory } from './categories';
-import type { IndustryCapabilityFlagMap } from './industryCapabilities';
 
 type DefinedIndustry<T extends string> = {
   id: T;
@@ -8,8 +7,6 @@ type DefinedIndustry<T extends string> = {
   category: IndustryCategory;
   moduleId?: T;
   selectable?: boolean;
-  capabilities?: IndustryCapabilityFlagMap;
-  defaults?: IndustryCapabilityFlagMap;
 };
 
 export type DefineIndustryInput<T extends string> = {
@@ -19,8 +16,6 @@ export type DefineIndustryInput<T extends string> = {
   category: IndustryCategory;
   moduleId?: T;
   selectable?: boolean;
-  capabilities?: IndustryCapabilityFlagMap;
-  defaults?: IndustryCapabilityFlagMap;
 };
 
 type DefinitionSeed = {
@@ -30,11 +25,9 @@ type DefinitionSeed = {
   category: IndustryCategory;
   moduleId?: string;
   selectable?: boolean;
-  capabilities?: IndustryCapabilityFlagMap;
-  defaults?: IndustryCapabilityFlagMap;
 };
 
-/** 객체 형태 — 전용 모듈 업종. capabilities/defaults는 여기만 선언한다. */
+/** 객체 형태 — 전용 모듈 업종. catalog metadata만 선언한다. */
 export function defineIndustry<T extends string>(input: DefineIndustryInput<T>): DefinedIndustry<T>;
 /** 위치 인자 — 카탈로그 전용(모듈 없는) 업종 */
 export function defineIndustry<T extends string>(
@@ -59,8 +52,6 @@ export function defineIndustry<T extends string>(
       category: idOrInput.category,
       moduleId: idOrInput.moduleId,
       selectable: idOrInput.selectable === true,
-      capabilities: { ...(idOrInput.capabilities ?? {}) },
-      defaults: { ...(idOrInput.defaults ?? {}) },
     };
   }
   return {
@@ -70,22 +61,23 @@ export function defineIndustry<T extends string>(
     category: category as IndustryCategory,
     moduleId,
     selectable: false,
-    capabilities: {},
-    defaults: {},
   };
 }
 
 /**
- * 단일 출처 업종 목록.
+ * 단일 출처 업종 카탈로그.
  * INDUSTRY_IDS / INDUSTRY_DEFINITIONS / MODULE_INDUSTRY_IDS / PUBLIC_SELECTABLE은 여기서만 파생한다.
  * 교과(영어·수학·국어·과학·코딩)는 academy 하나로만 — 과목별 Type·coding_bootcamp 금지.
  *
+ * runtime capability 조합은 `src/app/industry/industryCapabilityMap.ts`.
+ *
  * 전용 모듈 업종 추가:
- * 1. 여기 DEFINITION_LIST에 defineIndustry({ id, moduleId, selectable, capabilities, defaults })
- * 2. src/industries/<dir>/plugin.ts + AppContent
- * 3. src/app/industry/industryModules.tsx 에 defineIndustryModule 한 줄
- * 4. (선택) plugin.syncCapabilities 선언 + `src/industries/<id>/sync/register*Sync.ts`
- * Core/Capability 파일을 수정하지 않는다. 누락은 industryContract.test에서 실패한다.
+ * 1. 여기 DEFINITION_LIST에 defineIndustry({ id, moduleId, selectable }) + catalog metadata
+ * 2. src/app/industry/industryCapabilityMap.ts 에 runtime composition
+ * 3. src/industries/<dir>/plugin.ts + AppContent
+ * 4. src/app/industry/industryModules.tsx 에 defineIndustryModule 한 줄
+ * 5. (선택) plugin.syncCapabilities + `src/industries/<id>/sync/register*Sync.ts`
+ * Core/Capability 구현 파일을 수정하지 않는다. 누락은 industryContract.test에서 실패한다.
  */
 const DEFINITION_LIST = [
   defineIndustry({
@@ -95,18 +87,6 @@ const DEFINITION_LIST = [
     category: 'education',
     moduleId: 'piano',
     selectable: true,
-    capabilities: {
-      roster: true,
-      scheduling: true,
-      billing: true,
-      attendance: true,
-      parent: true,
-      enrollment: true,
-      consultation: true,
-      resources: true,
-      booking: true,
-    },
-    defaults: { attendance: false },
   }),
   defineIndustry('academy', '학원 (교과·종합)', '영어·수학·국어·과학·코딩 등 교과/종합 학원', 'education'),
   defineIndustry('art_academy', '미술학원', '미술·드로잉·디자인 교육', 'education'),
@@ -124,14 +104,6 @@ const DEFINITION_LIST = [
     category: 'fitness',
     moduleId: 'pilates',
     selectable: true,
-    capabilities: {
-      roster: true,
-      booking: true,
-      scheduling: true,
-      attendance: true,
-      billing: true,
-    },
-    defaults: { attendance: false },
   }),
   defineIndustry({
     id: 'gym',
@@ -140,16 +112,6 @@ const DEFINITION_LIST = [
     category: 'fitness',
     moduleId: 'gym',
     selectable: true,
-    capabilities: {
-      roster: true,
-      scheduling: true,
-      attendance: true,
-      billing: true,
-      transport: true,
-      parent: true,
-      enrollment: true,
-    },
-    defaults: { attendance: true },
   }),
   defineIndustry('yoga_studio', '요가 스튜디오', '요가·필라테스 외 바디워크', 'fitness'),
   defineIndustry('crossfit', '크로스핏', '크로스핏·기능성 트레이닝', 'fitness'),
@@ -167,15 +129,6 @@ const DEFINITION_LIST = [
     category: 'beauty',
     moduleId: 'skin_clinic',
     selectable: true,
-    capabilities: {
-      roster: true,
-      booking: true,
-      scheduling: true,
-      attendance: true,
-      billing: true,
-      commerce: true,
-    },
-    defaults: { attendance: false },
   }),
   defineIndustry('makeup_studio', '메이크업 스튜디오', '메이크업·브라이덜', 'beauty'),
   defineIndustry('barber_shop', '바버샵', '남성 전문 이발', 'beauty'),
@@ -191,12 +144,6 @@ const DEFINITION_LIST = [
     category: 'wellness',
     moduleId: 'sauna_jjimjilbang',
     selectable: true,
-    capabilities: {
-      roster: true,
-      booking: true,
-      scheduling: true,
-    },
-    defaults: { attendance: false },
   }),
 
   defineIndustry({
@@ -206,16 +153,6 @@ const DEFINITION_LIST = [
     category: 'childcare',
     moduleId: 'daycare',
     selectable: true,
-    capabilities: {
-      roster: true,
-      attendance: true,
-      parent: true,
-      scheduling: true,
-      billing: true,
-      enrollment: true,
-      consultation: true,
-    },
-    defaults: { attendance: true },
   }),
   defineIndustry('kids_cafe', '키즈카페', '놀이·돌봄 키즈카페', 'childcare'),
   defineIndustry('after_school_care', '방과후·돌봄', '초등 돌봄·방과후', 'childcare'),
@@ -276,11 +213,6 @@ const DEFINITION_LIST = [
     category: 'other',
     moduleId: 'retail',
     selectable: true,
-    capabilities: {
-      roster: true,
-      commerce: true,
-    },
-    defaults: { attendance: false },
   }),
 
   defineIndustry('general_service', '기타 서비스', '목록에 없는 업종', 'other'),
@@ -295,16 +227,17 @@ export const MODULE_INDUSTRY_IDS: readonly ModuleIndustryId[] = DEFINITION_LIST.
   d.moduleId ? [d.moduleId] : []
 );
 
-export interface IndustryDefinition {
+/** Core catalog metadata. runtime capability 조합은 포함하지 않는다. */
+export type IndustryCatalogMetadata = {
   id: IndustryType;
   label: string;
   description: string;
   category: IndustryCategory;
   moduleId?: ModuleIndustryId;
   selectable: boolean;
-  capabilities: IndustryCapabilityFlagMap;
-  defaults: IndustryCapabilityFlagMap;
-}
+};
+
+export type IndustryDefinition = IndustryCatalogMetadata;
 
 export const INDUSTRY_IDS: IndustryType[] = DEFINITION_LIST.map((d) => d.id);
 
@@ -326,8 +259,6 @@ export const INDUSTRY_DEFINITIONS = Object.fromEntries(
       category: d.category,
       moduleId: d.moduleId,
       selectable: d.selectable === true,
-      capabilities: { ...(d.capabilities ?? {}) },
-      defaults: { ...(d.defaults ?? {}) },
     } satisfies IndustryDefinition,
   ])
 ) as Record<IndustryType, IndustryDefinition>;

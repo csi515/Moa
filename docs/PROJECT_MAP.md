@@ -141,7 +141,7 @@ Composition → Industry → Capability → Core
 | Composition | Industry, Capability, Core | 예 |
 | Core | Shared, services, lib | 예 |
 | Core | Industry / modules / Composition / Capability | 아니오. 검사: `scripts/check-architecture-dependencies.mjs` (LEGACY allowlist) |
-| Capability | Industry / modules | 아니오 |
+| Capability | Industry / modules / Composition | 아니오 |
 | Industry | 다른 Industry | 현재 존재. 신규는 억제 |
 | Shared | Core/Context | 레이아웃(Header)은 이미 사용. 업종 비즈니스는 금지 |
 
@@ -208,16 +208,22 @@ LEGACY allowlist는 `scripts/check-architecture-dependencies.mjs`의 `LEGACY_ALL
 
 업종 앱 공통 파일: `plugin.ts`, `*AppContent.tsx`, `config/nav.tsx`, `layout/*Sidebar.tsx`, `layout/*BottomNav.tsx`.
 
-**현재 등록 (Composition):**
+**현재 등록 — 역할이 파일마다 다르다.**
 
-- 정의·capability 맵: `src/core/industry/definitions.ts`
-- 카탈로그: `src/core/industry/catalog.ts` / `types.ts`
-- plugin 설치: `src/core/industry/pluginHost.ts`, `registry.ts`
-- 화면 조립: `src/app/industry/industryModules.tsx` — `APP_BY_INDUSTRY`는 `INDUSTRY_MODULES`에서 파생
-- 라우터: `src/app/industry/IndustryAppRouter.tsx` (`SupabaseAppGate`가 여기 import)
-- 로더: `src/app/industry/loadIndustryModules.ts`
+| 파일 | 계층 | 역할 |
+| --- | --- | --- |
+| `src/core/industry/definitions.ts` | Core | Industry catalog/metadata |
+| `src/core/industry/catalog.ts` | Core | 조회·alias·generic-shell |
+| `src/industries/<id>/plugin.ts` | Industry | 선언(탭·테마·sync). 구현/UI |
+| `src/app/industry/industryCapabilityMap.ts` | Composition | runtime capability 조합 **SoT** |
+| `src/app/industry/capabilityNavigation.ts` | Composition | 탭 ↔ capability 규칙 |
+| `src/app/industry/industryModules.tsx` | Composition | App/UI 등록. `APP_BY_INDUSTRY` 파생 |
+| `src/app/industry/IndustryAppRouter.tsx` | Composition | 셸 선택 |
+| `src/app/industry/loadIndustryModules.ts` | Composition | plugin 설치 |
 
-`INDUSTRY_PLUGINS` 손글씨 맵을 다시 만들지 않는다.
+`INDUSTRY_PLUGINS` 손글씨 맵을 다시 만들지 않는다. capability 조합 맵도 `industryCapabilityMap.ts` 하나다.
+
+새 Industry: Core catalog → Capability 선택 → Industry plugin → Composition runtime map → App/UI 등록 → contract/regression.
 
 ### Industry sync (현재)
 
