@@ -1,5 +1,6 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import { CLASS_BASED_CORE_ADMIN_TABS, CLASS_BASED_CORE_STAFF_TABS } from '@/core/industry/pluginTypes';
+import { GYM_CLASS_LEVELS } from './types/classLevel';
 
 /** 체육관 플러그인 매니페스트 */
 export const gymPluginManifest: IndustryPluginManifest = {
@@ -24,6 +25,7 @@ export const gymPluginManifest: IndustryPluginManifest = {
   showSchoolFields: false,
   showPickupFields: true,
   levelLabel: '수업 레벨',
+  levelOptions: GYM_CLASS_LEVELS,
   adminTabs: [...CLASS_BASED_CORE_ADMIN_TABS, 'shuttle'],
   staffTabs: [...CLASS_BASED_CORE_STAFF_TABS, 'shuttle'],
 };

@@ -57,6 +57,7 @@ User (auth.users + core.profiles)
 | Platform Subscription | Core foundation | `src/core/platformSubscription` | Core |
 | Audit / Idempotency / Outbox | Infrastructure | `src/core/audit` 등 | Infrastructure |
 | Storage / Hydrate / Sync | Infrastructure | `src/services` StorageService (**legacy compatibility**) | capability/settings/care `*Storage` 싱글톤. `storage.ts`에 신규 method 금지. [STORAGE_SERVICE_MIGRATION.md](./STORAGE_SERVICE_MIGRATION.md) |
+| App types barrel | Legacy compatibility | `src/types/index.ts` | 소유 계층의 domain type. 전역 barrel에 신규 정의 금지. [TYPES_DOMAIN_MAP.md](./TYPES_DOMAIN_MAP.md) |
 | Industry catalog | Core foundation | `src/core/industry/definitions.ts`, `catalog.ts` | Core |
 | Industry router / loader | Composition | `src/app/industry` + `core/industry` pluginHost·Generic(**잔여**) | Composition (`src/app`) |
 | academy UI 묶음 | Legacy aggregation layer | `src/core/academy` | 도메인 아님. 신규 위치 아님 |

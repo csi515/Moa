@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '@/types';
+import type { PaymentMethod, TeacherPayType } from './billingLedgerTypes';
 
 /** 공통 지출 카테고리 */
 export type CoreExpenseCategory =
@@ -35,7 +35,7 @@ export interface FinanceExpense {
   teacherId?: string;
   settlementYearMonth?: string;
   settlementKind?: 'teacher_payroll';
-  settlementPayType?: import('@/types').TeacherPayType;
+  settlementPayType?: TeacherPayType;
   settlementQuantity?: number;
   settlementRate?: number;
   settlementCalculatedAmount?: number;

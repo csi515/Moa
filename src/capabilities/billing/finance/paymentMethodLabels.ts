@@ -1,4 +1,4 @@
-import type { PaymentMethod } from '@/types';
+import type { PaymentMethod } from './paymentMethod';
 
 /** 수기 수납·수입 공통 결제수단 라벨 */
 export const PAYMENT_METHOD_OPTIONS: { id: PaymentMethod; label: string }[] = [

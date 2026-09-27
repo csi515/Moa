@@ -1,4 +1,5 @@
-import { normalizeBillingMode, type Student, type StudentBillingMode } from '@/types';
+import type { Student } from '@/types';
+import { normalizeBillingMode, type StudentBillingMode } from '@/core/students/billingMode';
 
 /** 월회비 청구 대상인지 */
 export function isMonthlyBillingStudent(student: Pick<Student, 'billingMode'>): boolean {

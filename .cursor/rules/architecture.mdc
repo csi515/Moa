@@ -8,7 +8,7 @@ alwaysApply: true
 
 # Moa Architecture
 
-상세: `docs/PROJECT_MAP.md`, `docs/MOA_DEVELOPMENT_STANDARD.md`, `docs/DOMAIN_MAP.md`, `docs/DATA_FLOW.md`, `docs/STORAGE_SERVICE_MIGRATION.md`.
+상세: `docs/PROJECT_MAP.md`, `docs/MOA_DEVELOPMENT_STANDARD.md`, `docs/DOMAIN_MAP.md`, `docs/DATA_FLOW.md`, `docs/STORAGE_SERVICE_MIGRATION.md`, `docs/TYPES_DOMAIN_MAP.md`.
 
 코드를 대규모로 리팩터하지 않는다. 손대는 범위만 이 규칙을 따른다. 관련 없는 파일을 수정하지 않는다.
 
@@ -156,8 +156,19 @@ Core가 composition을 import하게 만들지 않는다.
 3. 한 업종만인가? → `src/industries/<id>/`
 4. 등록·라우팅인가? → `src/app/industry/`
 5. UI primitive인가? → `src/shared/components/`
+6. domain type인가? → 위와 같은 소유 영역. **`src/types/index.ts`에 추가하지 않는다.**
 
 재사용 가능하다는 이유만으로 Core로 올리지 않는다. Industry 이름을 포함하는 Core 코드가 새로 생기면 architecture review 대상이다.
+
+## Type ownership
+
+`src/types/index.ts`는 장기적으로 domain source of truth가 아니다. 전역 barrel은 compatibility re-export만 남길 수 있다.
+
+- 새 domain type은 Core / Capability / Industry / Shared 중 실제 소유 영역에 둔다.
+- 여러 곳에서 import된다는 이유만으로 Shared·Core로 올리지 않는다.
+- 새로운 `StudentLevel` 같은 cross-industry union을 추가하지 않는다. 저장은 문자열, 값 집합은 Industry.
+- `src/types`가 Capability/Industry 구현을 import하지 않는다.
+- 분류·이동 대상: `docs/TYPES_DOMAIN_MAP.md`.
 
 ## 새 Industry 추가
 

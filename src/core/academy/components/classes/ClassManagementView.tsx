@@ -6,7 +6,7 @@ import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
-import { ClassItem, DayOfWeek, StudentLevel } from '@/types';
+import { ClassItem, DayOfWeek } from '@/types';
 import {
   findClassConflicts,
   formatConflictSummary,
@@ -57,7 +57,7 @@ export const ClassManagementView: React.FC = () => {
 
   const [formData, setFormData] = useState({
     name: '',
-    targetLevel: '바이엘' as StudentLevel,
+    targetLevel: '바이엘',
     daysOfWeek: ['월', '수', '금'] as DayOfWeek[],
     startTime: '14:00',
     endTime: '14:50',

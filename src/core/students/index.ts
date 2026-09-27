@@ -11,3 +11,9 @@ export type {
 } from './services/studentRegistrationService';
 export { StudentService } from './services/studentService';
 export * from './bulkImport';
+export {
+  normalizeBillingMode,
+  STUDENT_BILLING_MODE_LABEL,
+  type StudentBillingMode,
+} from './billingMode';
+export { getStudentLevelLabel, getStudentLevelOptions, showSchoolFields } from './levelOptions';

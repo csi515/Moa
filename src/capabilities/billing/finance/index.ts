@@ -39,6 +39,7 @@ export {
 } from './monthlyTuitionEligibility';
 export { listMonthlyTuitionMissingInvoices } from './monthlyTuitionEnsure';
 export * from './types';
+export * from './billingLedgerTypes';
 export * from './categories';
 export * from './teacherPayroll';
 export * from './paymentMethodLabels';

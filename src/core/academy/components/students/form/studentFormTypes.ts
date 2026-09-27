@@ -1,6 +1,7 @@
 import type { GuardianRelationship } from '@/core/parent/types';
 import type { PickupAddress } from '@/core/transport/types';
-import type { StudentBillingMode, StudentLevel, StudentStatus } from '@/types';
+import type { StudentBillingMode } from '@/core/students/billingMode';
+import type { StudentStatus } from '@/types';
 
 export interface GuardianFormEntry {
   key: string;
@@ -27,7 +28,7 @@ export interface StudentFormData {
   status: StudentStatus;
   teacherId: string;
   classIds: string[];
-  level: StudentLevel;
+  level: string;
   billingMode: StudentBillingMode;
   tuitionFee: number;
   paymentDay: number;
@@ -40,10 +41,8 @@ export interface StudentFormData {
   autoGeneratePin: boolean;
 }
 
-export const LEVEL_OPTIONS: StudentLevel[] = [
-  '바이엘 상', '바이엘 하', '체르니 100', '체르니 30', '체르니 40',
-  '체르니 50', '소나티네/명곡', '작품집/쇼팽', '입시/콩쿠르', '성인 취미',
-];
+/** @deprecated 신규는 getStudentLevelOptions(industry) */
+export const LEVEL_OPTIONS: string[] = [];
 
 export const RELATIONSHIP_OPTIONS: GuardianRelationship[] = ['father', 'mother', 'other'];
 

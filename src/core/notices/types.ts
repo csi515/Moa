@@ -1,5 +1,7 @@
 /** 가정통신문·안내장·출결·보강·미납 알림으로 쓰는 알림 유형 */
-import type { NotificationType } from '@/types';
+import type { NotificationType } from './notificationTypes';
+
+export type { AppNotification, NotificationItem, NotificationType } from './notificationTypes';
 
 export type ParentNoticeKind = Extract<NotificationType, 'notice' | 'announcement'>;
 

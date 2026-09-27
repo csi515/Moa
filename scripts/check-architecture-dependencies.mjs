@@ -25,6 +25,13 @@ import {
   STORAGE_SERVICE_INDUSTRY_LEGACY_FILES,
   STORAGE_SERVICE_INDUSTRY_LEGACY_REASON,
 } from './storage-service-industry-legacy.mjs';
+import {
+  FROZEN_TYPES_INDEX_REL,
+  isTypesBarrelIndustrySpec,
+  typesBarrelCapabilityImplSpecs,
+  typesBarrelHasStudentLevelUnion,
+  typesBarrelUnknownLocalDefs,
+} from './types-barrel-freeze.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -482,6 +489,28 @@ function scanFile(filePath) {
       details.push(`unfrozen storage slice: ${unknown.join(', ')}`);
     }
   }
+  if (rel === FROZEN_TYPES_INDEX_REL) {
+    for (const spec of specs) {
+      if (isTypesBarrelIndustrySpec(spec)) {
+        kinds.add('types_industry_import');
+        details.push(`types barrel → industry (${spec})`);
+      }
+    }
+    const implSpecs = typesBarrelCapabilityImplSpecs(source, collectImportSpecs);
+    for (const spec of implSpecs) {
+      kinds.add('types_capability_impl_import');
+      details.push(`types barrel → capability impl (${spec})`);
+    }
+    const unknownDefs = typesBarrelUnknownLocalDefs(source);
+    if (unknownDefs.length > 0) {
+      kinds.add('types_barrel_new_def');
+      details.push(`new types/index.ts definition: ${unknownDefs.join(', ')}`);
+    }
+    if (typesBarrelHasStudentLevelUnion(source)) {
+      kinds.add('types_student_level_union');
+      details.push('StudentLevel cross-industry union');
+    }
+  }
 
   if (isIndustryDefinitionsRel(rel) && hasCatalogRuntimeComposition(source)) {
     kinds.add('catalog_runtime_composition');
@@ -515,6 +544,7 @@ function collectRoots() {
   walk(join(srcRoot, 'industries'), files);
   walk(join(srcRoot, 'app'), files);
   walk(join(srcRoot, 'services'), files);
+  walk(join(srcRoot, 'types'), files);
   return files;
 }
 
@@ -625,6 +655,8 @@ function selfTest() {
   const storageOriginal = readFileSync(storageFile, 'utf8');
   const domainFacadesFile = join(root, FROZEN_DOMAIN_FACADES_REL);
   const domainFacadesOriginal = readFileSync(domainFacadesFile, 'utf8');
+  const typesIndexFile = join(root, FROZEN_TYPES_INDEX_REL);
+  const typesIndexOriginal = readFileSync(typesIndexFile, 'utf8');
   const academyNewRel = 'src/core/academy/_architecture_probe.tmp.ts';
 
   try {
@@ -763,6 +795,11 @@ function selfTest() {
         '_architecture_probe_comp.tmp.ts',
         "import { x } from '@/app/industry/industryCapabilityMap';\n"
       )
+    );
+    writeFileSync(
+      typesIndexFile,
+      `${typesIndexOriginal}\nimport { x } from '@/industries/piano/plugin';\nimport { y } from '@/capabilities/billing/finance/services/tuitionService';\nexport interface ProbeDomainType { x: string }\nexport type StudentLevel = '바이엘 상' | '0세반';\n`,
+      'utf8'
     );
 
     const scannedRels = new Set(collectRoots().map((file) => toPosix(file)));
@@ -922,6 +959,30 @@ function selfTest() {
     if (!capabilityCompositionHit) {
       throw new Error('architecture self-test: Capability → Composition 을 잡지 못했습니다.');
     }
+    const typesIndustryHit = next.some(
+      (row) => row.kind === 'types_industry_import' && row.file === FROZEN_TYPES_INDEX_REL
+    );
+    const typesCapImplHit = next.some(
+      (row) => row.kind === 'types_capability_impl_import' && row.file === FROZEN_TYPES_INDEX_REL
+    );
+    const typesNewDefHit = next.some(
+      (row) => row.kind === 'types_barrel_new_def' && row.file === FROZEN_TYPES_INDEX_REL
+    );
+    const typesLevelUnionHit = next.some(
+      (row) => row.kind === 'types_student_level_union' && row.file === FROZEN_TYPES_INDEX_REL
+    );
+    if (!typesIndustryHit) {
+      throw new Error('architecture self-test: types/index.ts → Industry 를 잡지 못했습니다.');
+    }
+    if (!typesCapImplHit) {
+      throw new Error('architecture self-test: types/index.ts → Capability 구현 을 잡지 못했습니다.');
+    }
+    if (!typesNewDefHit) {
+      throw new Error('architecture self-test: types/index.ts 신규 정의 를 잡지 못했습니다.');
+    }
+    if (!typesLevelUnionHit) {
+      throw new Error('architecture self-test: StudentLevel global union 을 잡지 못했습니다.');
+    }
     if (!industryStorageHit) {
       throw new Error('architecture self-test: Industry → StorageService 를 잡지 못했습니다.');
     }
@@ -956,12 +1017,16 @@ function selfTest() {
       !catalogCompositionHit ||
       !definitionsCapabilityImportHit ||
       !coreCompositionHit ||
-      !capabilityCompositionHit
+      !capabilityCompositionHit ||
+      !typesIndustryHit ||
+      !typesCapImplHit ||
+      !typesNewDefHit ||
+      !typesLevelUnionHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService (@/ + .ts + relative + industry + freeze) / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService (@/ + .ts + relative + industry + freeze) / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition / types barrel freeze 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
@@ -969,6 +1034,7 @@ function selfTest() {
     writeFileSync(definitionsFile, definitionsOriginal, 'utf8');
     writeFileSync(storageFile, storageOriginal, 'utf8');
     writeFileSync(domainFacadesFile, domainFacadesOriginal, 'utf8');
+    writeFileSync(typesIndexFile, typesIndexOriginal, 'utf8');
     for (const probe of probes) removeIfExists(probe);
   }
 
@@ -996,6 +1062,16 @@ function selfTest() {
   );
   if (leftoverStorageFreeze) {
     throw new Error('architecture self-test: probe 정리 후에도 storage freeze 위반이 남았습니다.');
+  }
+  const leftoverTypesFreeze = cleaned.some(
+    (row) =>
+      row.kind === 'types_industry_import' ||
+      row.kind === 'types_capability_impl_import' ||
+      row.kind === 'types_barrel_new_def' ||
+      row.kind === 'types_student_level_union'
+  );
+  if (leftoverTypesFreeze) {
+    throw new Error('architecture self-test: probe 정리 후에도 types barrel freeze 위반이 남았습니다.');
   }
 }
 

@@ -6,7 +6,8 @@
 > 계층 계약 요약: [architecture/capability-layers.md](./architecture/capability-layers.md)  
 > Cursor 규칙: `.cursor/rules/architecture.mdc`
 
-용어는 [PROJECT_MAP.md](./PROJECT_MAP.md) · [DOMAIN_MAP.md](./DOMAIN_MAP.md) · [DATA_FLOW.md](./DATA_FLOW.md)와 같다.
+용어는 [PROJECT_MAP.md](./PROJECT_MAP.md) · [DOMAIN_MAP.md](./DOMAIN_MAP.md) · [DATA_FLOW.md](./DATA_FLOW.md)와 같다.  
+타입 소유: [TYPES_DOMAIN_MAP.md](./TYPES_DOMAIN_MAP.md). `src/types/index.ts`는 domain SoT가 아니다.
 
 | 용어 | 의미 |
 | --- | --- |

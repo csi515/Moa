@@ -29,6 +29,8 @@ export interface IndustryPluginManifest {
   /** 픽업·하원 셔틀 주소 관리 UI */
   showPickupFields: boolean;
   levelLabel: string;
+  /** 원생 level 선택지. 값 집합은 Industry 소유. 없으면 빈 목록 */
+  levelOptions?: readonly string[];
   adminTabs: NavTab[];
   staffTabs: NavTab[];
   /**

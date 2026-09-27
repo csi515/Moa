@@ -1,4 +1,4 @@
-import { AttendanceStatus, InvoiceStatus, StudentLevel, StudentStatus } from '../types';
+import { AttendanceStatus, InvoiceStatus, StudentStatus } from '../types';
 
 export function formatNumberWithCommas(value: number | string | undefined | null): string {
   if (value === undefined || value === null || value === '') return '';

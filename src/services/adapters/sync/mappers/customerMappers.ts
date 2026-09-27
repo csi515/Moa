@@ -125,7 +125,7 @@ export function customerRowToStudent(
     teacherId: meta.teacherId || '',
     teacherName: meta.teacherName || '',
     classIds: meta.classIds || [],
-    level: (meta.level as Student['level']) || '바이엘 상',
+    level: meta.level || '바이엘 상',
     tuitionFee: meta.tuitionFee ?? 180000,
     paymentDay: meta.paymentDay ?? 25,
     billingMode: meta.billingMode === 'session_pass' ? 'session_pass' : 'monthly',

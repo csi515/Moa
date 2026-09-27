@@ -72,6 +72,7 @@ Gate
 - Industry implementation/UI = Industry
 - reusable business feature = Capability
 - domain/infrastructure foundation = Core
+- 앱 타입 = 소유 계층. `src/types/index.ts`는 compatibility barrel이지 domain SoT가 아니다. [TYPES_DOMAIN_MAP.md](./TYPES_DOMAIN_MAP.md)
 
 학부모: `src/modules/parent`.  
 다수 화면은 아직 `src/core/academy` (**legacy aggregation layer**).
