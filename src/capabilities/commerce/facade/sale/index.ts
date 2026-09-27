@@ -1,5 +1,5 @@
 /**
- * Commerce Sale — 원자 생성은 src/core/sales (create_sale).
+ * Commerce Sale. 원자 생성 SoT는 `@/capabilities/commerce/saleLedger` (create_sale).
  * 조회·집계는 이 폴더. 포인트 earn은 호출부(Retail) 책임.
  */
 export type {
@@ -9,14 +9,14 @@ export type {
   SaleItem,
   SaleStatus,
   SaleWithItems,
-} from '@/core/sales';
+} from '@/capabilities/commerce/saleLedger';
 export {
   SALE_STATUSES,
   SALE_STATUS_LABELS,
   buildProductNameSnapshot,
   saleService,
   mapCreateSaleRpcError,
-} from '@/core/sales';
+} from '@/capabilities/commerce/saleLedger';
 
 export type { SalePaymentMethod } from '../payment';
 export { SALE_PAYMENT_METHODS, SALE_PAYMENT_METHOD_LABELS } from '../payment';

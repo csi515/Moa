@@ -3,7 +3,7 @@ import { CheckCircle2 } from 'lucide-react';
 import {
   settlementStatusLabel,
   type PayrollSettlementStatus,
-} from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/teacherPayroll';
 
 const STATUS_CLASS: Record<PayrollSettlementStatus, string> = {
   expensed: 'text-emerald-700 bg-emerald-50',

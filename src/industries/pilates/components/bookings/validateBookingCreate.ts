@@ -3,13 +3,13 @@
  * UI toast / ScheduleService 부작용은 호출측에서 처리.
  */
 import type { Booking, ServiceOffering, SlotRecruitment } from '@/core/types/schedule';
-import { findActiveMemberInSlot, getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { findActiveMemberInSlot, getSlotCapacityInfo } from '@/capabilities/scheduling/capacity';
+import { isOutsideStaffHours } from '@/capabilities/scheduling/availability/windows';
 import {
   findInstructorClassOverlap,
   findStaffTimeConflict,
   findTreatmentRoomConflict,
 } from '@/industries/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/core/availability/windows';
 import type { StaffWorkWindow } from '@/types';
 
 export type BookingFormLabels = {

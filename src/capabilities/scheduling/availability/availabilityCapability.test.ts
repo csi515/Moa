@@ -262,25 +262,37 @@ function run() {
   assert.doesNotMatch(coreAvail, /CREATE TABLE/);
 
   const skinFacade = readSrc('src/industries/skin/staffHours.ts');
-  assert.match(skinFacade, /@\/core\/availability\/windows/);
+  assert.match(skinFacade, /@\/capabilities\/scheduling/);
   assert.doesNotMatch(skinFacade, /function isOutsideStaffHours/);
 
   const pilatesValidate = readSrc('src/industries/pilates/components/bookings/validateBookingCreate.ts');
-  assert.match(pilatesValidate, /@\/core\/availability\/windows/);
+  assert.match(pilatesValidate, /@\/capabilities\/scheduling/);
   assert.doesNotMatch(pilatesValidate, /@\/modules\/skin\/staffHours/);
 
-  const settings = readSrc('src/core/schedules/components/AvailabilitySettingsView.tsx');
+  const settings = readSrc('src/capabilities/scheduling/availability/AvailabilitySettingsView.tsx');
   assert.match(settings, /availabilityCapability/);
   assert.match(settings, /listOrgRules/);
   assert.doesNotMatch(settings, /availabilityService/);
 
-  const materialize = readSrc('src/core/schedules/services/materializeAvailabilitySlots.ts');
+  const materialize = readSrc('src/capabilities/scheduling/availability/materializeAvailabilitySlots.ts');
   assert.match(materialize, /resolveWindowsForDate/);
   assert.match(materialize, /staffId: null/);
 
-  const service = readSrc('src/core/schedules/services/availabilityService.ts');
+  const service = readSrc('src/capabilities/scheduling/availability/availabilityService.ts');
   assert.match(service, /staff_id/);
   assert.match(service, /AvailabilityListQuery/);
+
+  const settingsShim = readSrc('src/core/schedules/components/AvailabilitySettingsView.tsx');
+  assert.match(settingsShim, /@deprecated 신규 코드는/);
+  assert.match(settingsShim, /@\/capabilities\/scheduling/);
+
+  const materializeShim = readSrc('src/core/schedules/services/materializeAvailabilitySlots.ts');
+  assert.match(materializeShim, /@deprecated 신규 코드는/);
+  assert.match(materializeShim, /@\/capabilities\/scheduling/);
+
+  const serviceShim = readSrc('src/core/schedules/services/availabilityService.ts');
+  assert.match(serviceShim, /@deprecated 신규 코드는/);
+  assert.match(serviceShim, /@\/capabilities\/scheduling/);
 
   console.log('availabilityCapability.test.ts: ok');
 }

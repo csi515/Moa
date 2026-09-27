@@ -20,6 +20,13 @@ export type PluginRecord = {
   aliases: string[];
 };
 
+export type IndustryModuleAppRecord = {
+  id: string;
+  appExport: string | null;
+  loadAppSpec: string | null;
+  file: string | null;
+};
+
 export type IndustryRegistrationSnapshot = {
   catalogIds: string[];
   moduleIds: string[];
@@ -28,6 +35,7 @@ export type IndustryRegistrationSnapshot = {
   routerKeys: string[];
   routerComponents: string[];
   loaderExports: string[];
+  moduleApps: IndustryModuleAppRecord[];
   pluginRecords: PluginRecord[];
   registeredCapabilities: string[];
   aliases: Record<string, string>;
@@ -52,6 +60,23 @@ export function parseIndustryModuleIds(src: string): string[] {
 
 export function parseIndustryModuleLoadSpecs(src: string): string[] {
   return [...src.matchAll(/import\(['"](@\/industries\/[^'"]+)['"]\)/g)].map((m) => m[1]);
+}
+
+/** industryModules defineIndustryModule 블록에서 AppContent 등록을 파생한다. */
+export function parseIndustryModuleApps(src: string): Omit<IndustryModuleAppRecord, 'file'>[] {
+  return [...src.matchAll(/defineIndustryModule\(\{([\s\S]*?)\}\s*\)/g)].flatMap((m) => {
+    const block = m[1];
+    const id = block.match(/\bid:\s*'([a-z][a-z0-9_]*)'/)?.[1];
+    if (!id) return [];
+    return [
+      {
+        id,
+        appExport: block.match(/appExport:\s*'([A-Za-z][A-Za-z0-9]*)'/)?.[1] ?? null,
+        loadAppSpec:
+          block.match(/loadApp:\s*\(\)\s*=>\s*import\(['"](@\/industries\/[^'"]+)['"]\)/)?.[1] ?? null,
+      },
+    ];
+  });
 }
 
 export function parseIndustryModulePluginSymbols(src: string): string[] {
@@ -130,6 +155,21 @@ export function collectIndustryRegistrationGaps(snap: IndustryRegistrationSnapsh
     missing(snap.routerKeys, snap.moduleIds),
     (id) => `router에는 있는데 catalog.moduleId가 없음: ${id}`
   );
+  pushMissing(
+    missing(snap.moduleIds, snap.moduleApps.map((app) => app.id)),
+    (id) => `catalog에는 있는데 AppContent 등록이 없음: ${id} (industryModules loadApp)`
+  );
+  for (const app of snap.moduleApps) {
+    if (!app.appExport) {
+      gaps.push(`AppContent appExport 없음: ${app.id}`);
+    }
+    if (!app.loadAppSpec) {
+      gaps.push(`AppContent loadApp 없음: ${app.id} (industryModules.ts)`);
+    }
+    if (!app.file) {
+      gaps.push(`AppContent 파일 없음: ${app.id} (${app.loadAppSpec ?? 'loadApp missing'})`);
+    }
+  }
   pushMissing(
     missing(snap.routerComponents, snap.loaderExports),
     (id) => `router에는 있는데 module loader가 없음: ${id} (industryModules.ts)`
@@ -237,6 +277,21 @@ export function readIndustryRegistrationSnapshot(srcRoot: string): IndustryRegis
     extraGaps.push('industryModules industry id가 중복된다');
   }
 
+  const moduleApps: IndustryModuleAppRecord[] = parseIndustryModuleApps(modulesSrc).map((app) => {
+    const file = app.loadAppSpec ? resolveModuleSpecifier(srcRoot, app.loadAppSpec) : null;
+    if (file && app.appExport) {
+      const appSrc = readFileSync(file, 'utf8');
+      const exported =
+        appSrc.includes(`export const ${app.appExport}`) ||
+        appSrc.includes(`export { ${app.appExport}`) ||
+        new RegExp(`export\\s*\\{[^}]*\\b${app.appExport}\\b`).test(appSrc);
+      if (!exported) {
+        extraGaps.push(`AppContent export 없음: ${app.id} ${app.appExport}`);
+      }
+    }
+    return { ...app, file };
+  });
+
   return {
     catalogIds: [...INDUSTRY_IDS],
     moduleIds: [...MODULE_INDUSTRY_IDS],
@@ -245,6 +300,7 @@ export function readIndustryRegistrationSnapshot(srcRoot: string): IndustryRegis
     routerKeys: compositionIds,
     routerComponents: compositionIds,
     loaderExports: compositionIds,
+    moduleApps,
     pluginRecords,
     registeredCapabilities: parseRegisteredCapabilityIds(syncSrc),
     aliases: { ...INDUSTRY_ALIASES },

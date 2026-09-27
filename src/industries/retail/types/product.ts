@@ -9,6 +9,6 @@ export type {
   ProductSaveInput,
   ProductVariant,
   ProductVariantSaveInput,
-} from '@/core/commerce/product';
+} from '@/capabilities/commerce';
 
 export type ProductStatusFilter = 'ALL' | 'ACTIVE' | 'INACTIVE';

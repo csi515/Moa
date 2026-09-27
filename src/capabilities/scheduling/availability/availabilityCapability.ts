@@ -3,8 +3,8 @@
  * 기존 availability_rules / availability_overrides 와 시간창 판정을 묶는다.
  * 업종명 분기를 두지 않는다. 새 테이블/RPC를 만들지 않는다.
  */
-import { availabilityService } from '@/core/schedules/services/availabilityService';
-import { materializeAvailabilitySlots } from '@/core/schedules/services/materializeAvailabilitySlots';
+import { availabilityService } from './availabilityService';
+import { materializeAvailabilitySlots } from './materializeAvailabilitySlots';
 import { AVAILABILITY_SOURCE } from './types';
 import type { AvailabilityListQuery } from './types';
 import {

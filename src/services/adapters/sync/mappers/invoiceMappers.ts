@@ -24,7 +24,7 @@ export function invoiceToPaymentRow(inv: TuitionInvoice, organizationId: string)
     receipt_number: inv.receiptNumber || null,
     memo: inv.notes || null,
     sent_at: inv.sentAt || null,
-    metadata: packInvoicePaymentMetadata(inv) as unknown as Json,
+    metadata: packInvoicePaymentMetadata(inv),
   };
 }
 

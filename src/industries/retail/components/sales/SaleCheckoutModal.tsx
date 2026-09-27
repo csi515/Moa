@@ -4,7 +4,7 @@ import type { CustomerSearchResult } from '@/core/customer/services/customerLink
 import {
   maxRedeemablePoints,
   pointRedeemService,
-} from '@/core/loyalty/pointRedeemService';
+} from '@/capabilities/commerce';
 import { Modal } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
 import { saleService } from '../../services/saleService';

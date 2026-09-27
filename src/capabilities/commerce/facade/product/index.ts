@@ -1,6 +1,5 @@
 /**
- * Commerce Product — 구현은 src/core/product.
- * 새 코드는 @/core/commerce/product 를 쓴다.
+ * Commerce Product facade. 구현 SoT는 `@/capabilities/commerce/catalog`.
  */
 export type {
   Product,
@@ -9,5 +8,5 @@ export type {
   ProductSaveInput,
   ProductVariant,
   ProductVariantSaveInput,
-} from '@/core/product';
-export { productService } from '@/core/product';
+} from '@/capabilities/commerce/catalog';
+export { productService } from '@/capabilities/commerce/catalog';

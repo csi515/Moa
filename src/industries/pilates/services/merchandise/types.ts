@@ -1,6 +1,6 @@
-import type { SaleCatalogItem, SaleCreateInput, SalePaymentMethod, SaleWithItems } from '@/core/sales';
-import type { Product, ProductListItem } from '@/core/product';
-import type { InventoryStockRow } from '@/core/inventory';
+import type { SaleCatalogItem, SaleCreateInput, SalePaymentMethod, SaleWithItems } from '@/capabilities/commerce';
+import type { Product, ProductListItem } from '@/capabilities/commerce';
+import type { InventoryStockRow } from '@/capabilities/commerce';
 import type { CustomerSearchResult } from '@/core/customer/services/customerLinkService';
 
 /**

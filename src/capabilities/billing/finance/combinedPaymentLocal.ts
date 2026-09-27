@@ -3,8 +3,8 @@ import {
   CombinedPaymentCommandError,
   type CombinedPaymentAtomicResult,
   type CombinedPaymentCommand,
-} from '@/core/finance/combinedPaymentCommand';
-import { recordTuitionPaymentAtomic } from '@/core/finance/tuitionPaymentAtomic';
+} from '@/capabilities/billing/finance/combinedPaymentCommand';
+import { recordTuitionPaymentAtomic } from '@/capabilities/billing/finance/tuitionPaymentAtomic';
 import { StorageService } from '@/services/storage';
 
 function latestTuitionPaymentId(invoiceId: string): string | undefined {

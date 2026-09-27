@@ -1,4 +1,4 @@
-import type { PointTransaction } from '@/core/loyalty';
+import type { PointTransaction } from '@/capabilities/commerce';
 import { formatKoreanDate } from '@/utils/formatters';
 import { formatSaleNumber } from '../../types/sale';
 import { RETAIL_CUSTOMER_COPY as COPY } from './customerCopy';

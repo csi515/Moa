@@ -28,22 +28,14 @@ import {
   assertIndustryRegistrationIntegrity,
   readIndustryRegistrationSnapshot,
 } from './industryRegistrationIntegrity';
+import { enabledIndustryCapabilities } from './industryCapabilities';
 import {
   CAPABILITY_IMPLEMENTATION_TABS,
-  enabledIndustryCapabilities,
-} from './industryCapabilities';
+  NAV_TAB_REQUIRED_CAPABILITY,
+} from '@/app/industry/capabilityNavigation';
 
 const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
 const FINANCE_TABS = ['finance', 'income', 'expenses', 'tuition', 'unpaid', 'payroll'] as const;
-const APP_CONTENT_BY_MODULE: Record<string, string> = {
-  piano: 'industries/piano/PianoAppContent.tsx',
-  pilates: 'industries/pilates/PilatesAppContent.tsx',
-  gym: 'industries/gym/GymAppContent.tsx',
-  daycare: 'industries/daycare/DaycareAppContent.tsx',
-  skin_clinic: 'industries/skin/SkinAppContent.tsx',
-  retail: 'industries/retail/RetailAppContent.tsx',
-  sauna_jjimjilbang: 'industries/bath/BathAppContent.tsx',
-};
 
 function readSrc(rel: string): string {
   return readFileSync(join(srcRoot, rel), 'utf8');
@@ -184,8 +176,10 @@ function run(): void {
     const rec = snap.pluginRecords.find((r) => r.id === id);
     assert.ok(rec, `plugin missing: ${id}`);
     assert.equal(rec.optionValue, id, `manifest id mismatch: ${id}`);
-    assert.ok(APP_CONTENT_BY_MODULE[id], `AppContent mapping missing: ${id}`);
-    assert.ok(existsSync(join(srcRoot, APP_CONTENT_BY_MODULE[id])), `AppContent missing: ${id}`);
+    const app = snap.moduleApps.find((item) => item.id === id);
+    assert.ok(app?.loadAppSpec, `AppContent registration missing: ${id}`);
+    assert.ok(app.file && existsSync(app.file), `AppContent missing: ${id}`);
+    assert.ok(app.appExport, `AppContent export missing: ${id}`);
   }
 
   // 8–9. declared capabilities exist + enabled have implementation
@@ -223,7 +217,9 @@ function run(): void {
       `${id} plugin.attendanceDefault must match definition.defaults.attendance`
     );
 
-    const appSrc = readSrc(APP_CONTENT_BY_MODULE[id]);
+    const appFile = snap.moduleApps.find((item) => item.id === id)?.file;
+    assert.ok(appFile, `AppContent file missing: ${id}`);
+    const appSrc = readFileSync(appFile, 'utf8');
     const pluginSrc = readFileSync(rec.file, 'utf8');
     const pluginNavSrc = expandClassBasedTabs(pluginSrc);
     const enabled = enabledIndustryCapabilities(def.capabilities);
@@ -319,30 +315,44 @@ function run(): void {
 
   assertNoDuplicateIndustryLists();
 
+  for (const file of walkTs(join(srcRoot, 'core/industry'))) {
+    const src = readFileSync(file, 'utf8');
+    assert.equal(
+      /NAV_TAB_REQUIRED_CAPABILITY|CAPABILITY_IMPLEMENTATION_TABS/.test(src),
+      false,
+      `Core must not own capability UI tab maps: ${file}`
+    );
+    assert.equal(
+      /from ['"]@\/app\/industry/.test(src),
+      false,
+      `Core must not import Composition nav: ${file}`
+    );
+    assert.equal(
+      /from ['"]@\/capabilities/.test(src),
+      false,
+      `Core must not import Capability implementations: ${file}`
+    );
+  }
+
+  const coreFlagSrc = readSrc('core/industry/industryCapabilities.ts');
+  assert.equal(
+    /Partial<Record<string,\s*boolean>>/.test(coreFlagSrc),
+    false,
+    'IndustryCapabilityFlagMap must not stay as Partial<Record<string, boolean>>'
+  );
+  assert.match(
+    readSrc('app/industry/industryCapabilityMap.ts'),
+    /Record<CapabilityId,\s*true>/,
+    'Composition must close Industry capability IDs with CapabilityId'
+  );
+
   console.log(
     `industryContract.test.ts OK (${INDUSTRY_IDS.length} industries, ${MODULE_INDUSTRY_IDS.length} modules)`
   );
 }
 
 function requiredCapForTab(tab: string): string | null {
-  const map: Record<string, string> = {
-    attendance: 'attendance',
-    'check-in': 'attendance',
-    tuition: 'billing',
-    unpaid: 'billing',
-    finance: 'billing',
-    expenses: 'billing',
-    payroll: 'billing',
-    shuttle: 'transport',
-    'enrollment-requests': 'enrollment',
-    consultations: 'consultation',
-    'practice-rooms': 'resources',
-    parents: 'parent',
-    sales: 'commerce',
-    retail: 'commerce',
-    inventory: 'commerce',
-  };
-  return map[tab] ?? null;
+  return NAV_TAB_REQUIRED_CAPABILITY[tab] ?? null;
 }
 
 function collectQuotedTabs(src: string): string[] {

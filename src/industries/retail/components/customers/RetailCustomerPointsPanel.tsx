@@ -3,7 +3,7 @@ import { ArrowLeft, Coins } from 'lucide-react';
 import {
   POINT_TRANSACTION_TYPE_LABELS,
   type PointTransaction,
-} from '@/core/loyalty';
+} from '@/capabilities/commerce';
 import { EmptyState, PageHeader } from '@/shared/components';
 import { FilterBar, FilterTabs } from '@/shared/components/ui';
 import {

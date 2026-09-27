@@ -3,8 +3,8 @@
  * 수정·반품·포인트는 호출하지 않는다.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { saleReturnService } from '@/core/commerce/return';
-import type { Sale, SaleItem, SalePaymentMethod, SaleStatus, SaleWithItems } from '@/core/sales';
+import { saleReturnService } from '@/capabilities/commerce/facade/return';
+import type { Sale, SaleItem, SalePaymentMethod, SaleStatus, SaleWithItems } from '@/capabilities/commerce/saleLedger';
 import {
   formatSaleNumber,
   type SaleCustomerFilter,

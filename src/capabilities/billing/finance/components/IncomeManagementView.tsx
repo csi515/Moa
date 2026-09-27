@@ -9,10 +9,10 @@ import {
   getIncomeCategories,
   getCategoryLabel,
   buildYearMonthOptions,
-} from '@/core/finance/categories';
+} from '@/capabilities/billing/finance/categories';
 import { TrendingUp, Plus, Trash2, Edit, X, Save } from 'lucide-react';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import type { IncomeEntry } from '@/core/finance/types';
+import type { IncomeEntry } from '@/capabilities/billing/finance/types';
 
 export const IncomeManagementView: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
   const { showToast, openConfirmDialog } = useApp();

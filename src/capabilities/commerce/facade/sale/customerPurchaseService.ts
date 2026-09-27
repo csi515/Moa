@@ -2,7 +2,7 @@
  * 고객별 구매 조회. organization_id + customer_id 필수.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import type { SalePaymentMethod, SaleStatus } from '@/core/sales';
+import type { SalePaymentMethod, SaleStatus } from '@/capabilities/commerce/saleLedger';
 import type { SaleListItem } from './saleQuery';
 
 type SaleRow = {

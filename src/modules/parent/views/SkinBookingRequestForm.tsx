@@ -3,10 +3,10 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useApp } from '@/context/AppContext';
 import { ScheduleService } from '@/core/services/scheduleService';
 import { StorageService } from '@/services/storage';
-import { getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { getSlotCapacityInfo } from '@/capabilities/scheduling/capacity';
+import { isOutsideStaffHours } from '@/capabilities/scheduling/availability/windows';
 import { formatBankAccountText } from '@/core/finance/paymentMethodLabels';
 import { findStaffTimeConflict } from '@/industries/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/core/availability/windows';
 import type { Student } from '@/types';
 
 /** 피부관리 고객 — 시술 예약 신청 */

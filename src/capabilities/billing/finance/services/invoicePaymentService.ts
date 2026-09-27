@@ -18,9 +18,9 @@ import {
   resolveIncludeExtras,
 } from '@/core/academy/utils/invoiceExtras';
 import { defaultDueDateForMonth } from '@/core/academy/components/tuition/tuitionUtils';
-import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
-import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
-import type { IncomeEntry } from '@/core/finance/types';
+import { listMonthlyTuitionMissingInvoices } from '@/capabilities/billing/finance/monthlyTuitionEnsure';
+import { findMonthlyTuitionInvoice } from '@/capabilities/billing/finance/monthlyTuitionStatus';
+import type { IncomeEntry } from '@/capabilities/billing/finance/types';
 
 type LinkedIncomeSource = 'tuition' | 'textbook' | 'booking' | 'retail';
 
@@ -147,7 +147,7 @@ export function createInvoicePaymentService(api: StorageApi) {
       });
 
       if (updated.status === 'paid' && (inv.linkedTextbookSaleIds || []).length > 0) {
-        void import('@/core/finance/linkedTextbookSettle')
+        void import('@/capabilities/billing/finance/linkedTextbookSettle')
           .then(({ settleLinkedTextbookSalesOnTuitionPaid }) =>
             settleLinkedTextbookSalesOnTuitionPaid({
               api,
@@ -184,7 +184,7 @@ export function createInvoicePaymentService(api: StorageApi) {
           console.error('[reversePayment] linked textbook reverse', err)
         );
       } else {
-        void import('@/core/finance/linkedTextbookSettle')
+        void import('@/capabilities/billing/finance/linkedTextbookSettle')
           .then(({ reverseLinkedTextbookPaymentsForTuition }) =>
             reverseLinkedTextbookPaymentsForTuition(api, paymentId)
           )

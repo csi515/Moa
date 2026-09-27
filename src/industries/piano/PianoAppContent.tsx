@@ -45,7 +45,7 @@ import {
   PIANO_SETTINGS_HUB_TABS,
 } from './config/hubRoutes';
 import { usePianoOnboardingUi } from './hooks/usePianoOnboardingUi';
-import { AvailabilitySettingsView } from '@/core/schedules/components/AvailabilitySettingsView';
+import { AvailabilitySettingsView } from '@/capabilities/scheduling/availability';
 
 const pianoSettingsHub = () => (
   <SettingsHubView extras={PIANO_SETTINGS_EXTRAS} workplaceLabel="학원" staffLabel="선생님" />

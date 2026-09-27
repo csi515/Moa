@@ -11,8 +11,8 @@
  * 여기는 ledger 최종 balance만 검사.
  */
 import assert from 'node:assert/strict';
-import { computeEarnPoints } from '@/core/loyalty/earnPolicy';
-import { planSaleReturnPointAdjustments } from '@/core/loyalty/saleReturnPointPlan';
+import { computeEarnPoints } from '@/capabilities/commerce/loyalty/earnPolicy';
+import { planSaleReturnPointAdjustments } from '@/capabilities/commerce/loyalty/saleReturnPointPlan';
 
 type Ledger = {
   balance: number;

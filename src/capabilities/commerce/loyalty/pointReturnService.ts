@@ -1,6 +1,6 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { saleService } from '@/core/sales';
-import { saleReturnService } from '@/core/sales';
+import { saleService } from '@/capabilities/commerce/saleLedger';
+import { saleReturnService } from '@/capabilities/commerce/saleLedger';
 import type { PointTransaction } from './types';
 import {
   POINT_RETURN_EARN_CLAWBACK_DESC_PREFIX,

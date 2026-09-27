@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { SALE_PAYMENT_METHODS } from '@/core/sales/types';
+import { SALE_PAYMENT_METHODS } from '@/capabilities/commerce/saleLedger/types';
 import { formatSaleNumber } from './sale/saleQuery';
 import { buildCommerceRevenueSummary } from './sale/revenueAggregate';
 

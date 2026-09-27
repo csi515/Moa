@@ -1,5 +1,5 @@
 import { StorageService } from '@/services/storage';
-import { findIncomeByPaymentSource } from '@/core/finance/billingIncomeLink';
+import { findIncomeByPaymentSource } from '@/capabilities/billing/finance/billingIncomeLink';
 
 export type BillingValidationResult = {
   id: string;

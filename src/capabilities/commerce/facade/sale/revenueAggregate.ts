@@ -2,7 +2,7 @@
  * 매출 Gross/Returns/Net 집계 (DB 없음).
  * Gross = completed 판매, Returns = 기간 반품, Net = Gross − Returns.
  */
-import type { SalePaymentMethod } from '@/core/sales';
+import type { SalePaymentMethod } from '@/capabilities/commerce/saleLedger';
 import type {
   CommerceRevenueSummary,
   RevenueDateRange,

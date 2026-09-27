@@ -6,4 +6,4 @@ export type {
   RevenuePaymentBreakdown,
   RevenuePeriodPreset,
   RevenueProductBreakdown,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';

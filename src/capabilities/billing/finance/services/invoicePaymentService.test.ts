@@ -13,10 +13,10 @@ import type {
   TuitionInvoice,
   TuitionPayment,
 } from '@/types';
-import type { IncomeEntry } from '@/core/finance/types';
+import type { IncomeEntry } from '@/capabilities/billing/finance/types';
 import { createInvoicePaymentService } from './invoicePaymentService';
 import type { StorageApi } from '@/services/storage/helpers';
-import { resolveLastTuitionPaymentDisplay } from '@/core/finance/latestTuitionPayment';
+import { resolveLastTuitionPaymentDisplay } from '@/capabilities/billing/finance/latestTuitionPayment';
 
 function student(partial: Partial<Student> & Pick<Student, 'id' | 'name'>): Student {
   return {

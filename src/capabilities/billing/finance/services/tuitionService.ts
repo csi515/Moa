@@ -11,17 +11,17 @@ import type {
   TuitionInvoice,
   TuitionPayment,
 } from '@/types';
-import { findExistingStudentMonthInvoice } from '@/core/finance/invoiceDedupe';
-import { filterMonthlyTuitionAutoGenerateStudents } from '@/core/finance/monthlyTuitionEligibility';
-import { listMonthlyTuitionMissingInvoices } from '@/core/finance/monthlyTuitionEnsure';
-import { findMonthlyTuitionInvoice } from '@/core/finance/monthlyTuitionStatus';
-import { recordCombinedPayment } from '@/core/finance/application/recordCombinedPayment';
+import { findExistingStudentMonthInvoice } from '@/capabilities/billing/finance/invoiceDedupe';
+import { filterMonthlyTuitionAutoGenerateStudents } from '@/capabilities/billing/finance/monthlyTuitionEligibility';
+import { listMonthlyTuitionMissingInvoices } from '@/capabilities/billing/finance/monthlyTuitionEnsure';
+import { findMonthlyTuitionInvoice } from '@/capabilities/billing/finance/monthlyTuitionStatus';
+import { recordCombinedPayment } from '@/capabilities/billing/finance/application/recordCombinedPayment';
 import {
   ensureMonthlyTuitionInvoiceAtomic,
   recordTuitionPaymentAtomic,
-} from '@/core/finance/tuitionPaymentAtomic';
-import { planInvoiceTextbookRelink } from '@/core/finance/invoiceTextbookLink';
-import { getLatestTuitionPaymentForInvoice as pickLatestTuitionPaymentForInvoice } from '@/core/finance/latestTuitionPayment';
+} from '@/capabilities/billing/finance/tuitionPaymentAtomic';
+import { planInvoiceTextbookRelink } from '@/capabilities/billing/finance/invoiceTextbookLink';
+import { getLatestTuitionPaymentForInvoice as pickLatestTuitionPaymentForInvoice } from '@/capabilities/billing/finance/latestTuitionPayment';
 import { yearMonthLocal } from '@/shared/utils/localDate';
 
 const ensureMonthInflight = new Map<string, Promise<{ created: number; existing: number }>>();

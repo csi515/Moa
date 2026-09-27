@@ -1,5 +1,5 @@
 import type { PaymentMethod } from '@/types';
-import type { SalePaymentMethod } from '@/core/sales';
+import type { SalePaymentMethod } from '@/capabilities/commerce';
 
 /**
  * TextbookSale ↔ Core Sale 연결 헬퍼.

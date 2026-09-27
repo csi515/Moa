@@ -148,6 +148,14 @@ function run(): void {
     routerKeys: ['piano'],
     routerComponents: ['piano'],
     loaderExports: ['piano'],
+    moduleApps: [
+      {
+        id: 'piano',
+        appExport: 'PianoAppContent',
+        loadAppSpec: '@/industries/piano/PianoAppContent',
+        file: 'industries/piano/PianoAppContent.tsx',
+      },
+    ],
     pluginRecords: [
       {
         file: 'industries/piano/plugin.ts',
@@ -216,6 +224,17 @@ function run(): void {
       aliases: { taekwondo: 'not_a_real_type' },
     }).join('\n'),
     /alias 대상이 catalog에 없음: "taekwondo" → "not_a_real_type"/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({ ...baseline, moduleApps: [] }).join('\n'),
+    /catalog에는 있는데 AppContent 등록이 없음: piano/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      moduleApps: [{ ...baseline.moduleApps[0], file: null }],
+    }).join('\n'),
+    /AppContent 파일 없음: piano/
   );
 
   console.log(`industryCatalog.test.ts OK (${INDUSTRY_IDS.length} industries)`);

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { PaymentMethod, TuitionInvoice } from '@/types';
 import { useApp } from '@/context/AppContext';
-import { TuitionService } from '@/core/finance/services/tuitionService';
+import { TuitionService } from '@/capabilities/billing/finance/services/tuitionService';
 import { runTuitionInvoicePayment } from './submitTuitionInvoicePayment';
 
 /** 단일 청구서 수납의 요청 상태와 toast만 담당한다. */

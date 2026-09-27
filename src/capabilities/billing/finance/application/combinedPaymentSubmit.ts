@@ -9,7 +9,7 @@ import {
   combinedPaymentFailureMessage,
   isCombinedPaymentFullyApplied,
   type CombinedPaymentAtomicResult,
-} from '@/core/finance/combinedPaymentCommand';
+} from '@/capabilities/billing/finance/combinedPaymentCommand';
 
 export const COMBINED_PAYMENT_EMPTY_SELECTION_MESSAGE =
   '납부할 항목을 1개 이상 선택하고 금액을 입력해주세요.';
@@ -67,7 +67,7 @@ export async function runCombinedPaymentSubmit(deps: CombinedPaymentSubmitDeps):
   deps.busy.current = true;
   try {
     const outcome = interpretCombinedPaymentResult(await deps.execute(deps.request));
-    if (!outcome.ok) {
+    if (outcome.ok === false) {
       deps.showToast(outcome.message, 'error');
       return;
     }

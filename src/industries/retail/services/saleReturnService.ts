@@ -1,6 +1,6 @@
-import { saleReturnService as commerceSaleReturnService } from '@/core/commerce/return';
-import type { SaleReturnCreateInput, SaleReturnWithItems } from '@/core/commerce/return';
-import { pointReturnService } from '@/core/loyalty';
+import { saleReturnService as commerceSaleReturnService } from '@/capabilities/commerce';
+import type { SaleReturnCreateInput, SaleReturnWithItems } from '@/capabilities/commerce';
+import { pointReturnService } from '@/capabilities/commerce';
 
 /**
  * Retail 반품 facade.

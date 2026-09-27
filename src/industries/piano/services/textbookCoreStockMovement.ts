@@ -1,4 +1,4 @@
-import type { StockMovement, StockMovementType } from '@/core/inventory';
+import type { StockMovement, StockMovementType } from '@/capabilities/commerce';
 import type { Textbook, TextbookInventoryTransaction } from '@/types';
 
 /** Core movement_type → 교재 이력 표시용 transactionType */

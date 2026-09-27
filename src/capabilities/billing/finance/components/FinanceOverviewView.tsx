@@ -4,7 +4,7 @@ import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { formatCurrency } from '@/utils/formatters';
-import { buildYearMonthOptions } from '@/core/finance/categories';
+import { buildYearMonthOptions } from '@/capabilities/billing/finance/categories';
 import {
   TrendingUp,
   TrendingDown,

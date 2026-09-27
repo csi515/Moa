@@ -10,9 +10,9 @@ import {
   aggregateSaleStockLines,
   findStockShortfalls,
   saleStockAggKey,
-} from '@/core/inventory/saleStockAggregate';
+} from '@/capabilities/commerce/stock/saleStockAggregate';
 import { mapCreateSaleRpcError } from './mapCreateSaleRpcError';
-import type { SaleStockDeductLine } from '@/core/inventory';
+import type { SaleStockDeductLine } from '@/capabilities/commerce/stock';
 
 function line(
   productId: string,

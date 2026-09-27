@@ -44,8 +44,9 @@ assert.doesNotMatch(retailSale, /pointRedeemService/);
 assert.doesNotMatch(retailSale, /redeemForSale/);
 assert.match(retailSale, /pointEarnService\.earnForSale/);
 assert.match(retailSale, /create_sale 내부에서 redeem/);
-assert.match(retailSale, /from '@\/core\/commerce\/sale'/);
+assert.match(retailSale, /from '@\/capabilities\/commerce'/);
 assert.doesNotMatch(retailSale, /from '@\/core\/sales'/);
+assert.doesNotMatch(retailSale, /from '@\/core\/commerce/);
 
 console.log('saleRedeemConsistency.test.ts: ok');
 console.log(

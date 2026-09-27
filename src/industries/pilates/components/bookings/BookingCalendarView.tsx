@@ -9,7 +9,8 @@ import { StorageService } from '@/services/storage';
 import type { Booking, BookingStatus } from '@/core/types/schedule';
 import { BOOKING_STATUS_LABEL } from '@/core/schedules/bookingStatusLabel';
 import { bookingChangeNotice } from '@/core/schedules/bookingChangeNotice';
-import { buildSlotOccupancyIndex, getSlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import { buildSlotOccupancyIndex, getSlotCapacityInfo } from '@/capabilities/scheduling/capacity';
+import { isOutsideStaffHours } from '@/capabilities/scheduling/availability/windows';
 import { confirmBookingDeposit } from '@/core/schedules/confirmBookingDeposit';
 import { PilatesSlotList } from './PilatesSlotList';
 import { BookingFormModal } from './BookingFormModal';
@@ -18,7 +19,6 @@ import {
   findStaffTimeConflict,
   findTreatmentRoomConflict,
 } from '@/industries/skin/bookingRooms';
-import { isOutsideStaffHours } from '@/core/availability/windows';
 import { notifyBookingChange } from '@/core/academy/services/academyAlertService';
 import { EmptyState, FilterTabs, Modal, PageHeader } from '@/shared/components';
 import { executeBookingCreate } from './executeBookingCreate';

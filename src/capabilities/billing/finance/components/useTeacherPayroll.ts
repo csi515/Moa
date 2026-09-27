@@ -5,7 +5,7 @@ import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { LessonService } from '@/core/lessons';
 import { formatCurrency } from '@/utils/formatters';
-import { buildYearMonthOptions, toLocalYearMonth } from '@/core/finance/categories';
+import { buildYearMonthOptions, toLocalYearMonth } from '@/capabilities/billing/finance/categories';
 import {
   buildPayrollExpenseDraft,
   buildTeacherPayrollRows,
@@ -17,7 +17,7 @@ import {
   summarizePayrollRows,
   type PayrollAdjustmentDraft,
   type TeacherPayrollRow,
-} from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/teacherPayroll';
 
 export function useTeacherPayroll() {
   const { showToast, openConfirmDialog, triggerRefresh, setActiveTab } = useApp();

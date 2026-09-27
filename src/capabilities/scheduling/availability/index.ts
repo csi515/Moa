@@ -1,5 +1,9 @@
 export { availabilityCapability } from './availabilityCapability';
 export type { AvailabilityCapability } from './availabilityCapability';
+export { availabilityService } from './availabilityService';
+export { materializeAvailabilitySlots } from './materializeAvailabilitySlots';
+export type { MaterializeResult } from './materializeAvailabilitySlots';
+export { AvailabilitySettingsView } from './AvailabilitySettingsView';
 export {
   AVAILABILITY_SOURCE,
   AVAILABILITY_WEEKDAY_LABELS,

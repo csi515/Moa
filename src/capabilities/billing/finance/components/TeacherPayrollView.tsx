@@ -1,6 +1,6 @@
 import React from 'react';
 import { Wallet } from 'lucide-react';
-import { formatPayrollPeriod, resolveEditableQuantity } from '@/core/finance/teacherPayroll';
+import { formatPayrollPeriod, resolveEditableQuantity } from '@/capabilities/billing/finance/teacherPayroll';
 import { PageHeader } from '@/shared/components';
 import { TeacherPayrollDetailModal } from './TeacherPayrollDetailModal';
 import { TeacherPayrollList } from './TeacherPayrollList';

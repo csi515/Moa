@@ -10,7 +10,7 @@ import {
   resolveDraftCalculated,
   settlementStatusLabel,
   type TeacherPayrollRow,
-} from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/teacherPayroll';
 import { Modal } from '@/shared/components/ui';
 
 interface TeacherPayrollDetailProps {

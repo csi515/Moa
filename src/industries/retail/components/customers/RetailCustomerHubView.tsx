@@ -5,7 +5,7 @@ import {
   customerLinkService,
   type CustomerSearchResult,
 } from '@/core/customer/services/customerLinkService';
-import { pointQueryService, type PointTransaction } from '@/core/loyalty';
+import { pointQueryService, type PointTransaction } from '@/capabilities/commerce';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { EmptyState } from '@/shared/components';

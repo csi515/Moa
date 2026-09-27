@@ -9,8 +9,8 @@ import {
   getExpenseCategories,
   getCategoryLabel,
   buildYearMonthOptions,
-} from '@/core/finance/categories';
-import { getTeacherPayrollSettlements } from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/categories';
+import { getTeacherPayrollSettlements } from '@/capabilities/billing/finance/teacherPayroll';
 import {
   Receipt,
   Plus,
@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import { CurrencyInput } from '@/shared/components/CurrencyInput';
-import type { FinanceExpense } from '@/core/finance/types';
+import type { FinanceExpense } from '@/capabilities/billing/finance/types';
 
 const PAYROLL_RELATED_CATEGORIES = new Set(['teacher_salary', 'instructor_fee', 'salary']);
 

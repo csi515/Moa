@@ -3,7 +3,7 @@ import { formatCurrency } from '@/utils/formatters';
 import {
   formatPerformanceSummary,
   type TeacherPayrollTotals,
-} from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/teacherPayroll';
 
 function SummaryCard({
   label,

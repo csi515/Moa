@@ -5,7 +5,7 @@ import type { CustomerProfile } from '@/core/customer/services/customerLinkServi
 import {
   POINT_TRANSACTION_TYPE_LABELS,
   type PointTransaction,
-} from '@/core/loyalty';
+} from '@/capabilities/commerce';
 import { PageHeader } from '@/shared/components';
 import { formatCurrency } from '@/utils/formatters';
 import {

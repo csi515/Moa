@@ -1,6 +1,6 @@
 import React from 'react';
 import type { ServiceOffering } from '@/core/types/schedule';
-import type { SlotCapacityInfo } from '@/core/schedules/bookingCapacity';
+import type { SlotCapacityInfo } from '@/capabilities/scheduling/capacity';
 import { Modal } from '@/shared/components';
 
 type Party = { id: string; name: string };

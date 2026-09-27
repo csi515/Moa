@@ -1,3 +1,11 @@
+export type { CapabilityId, IndustryCapabilityFlagMap, IndustryCapabilityId } from './industryCapabilityMap';
+export {
+  CAPABILITY_IMPLEMENTATION_TABS,
+  NAV_TAB_REQUIRED_CAPABILITY,
+  filterIndustryNavTabs,
+  filterTabsByIndustryCapabilities,
+  isNavTabAllowedForCapabilities,
+} from './capabilityNavigation';
 export { IndustryAppRouter } from './IndustryAppRouter';
 export { GenericIndustryShell } from './GenericIndustryShell';
 export { IndustryPicker } from './IndustryPicker';

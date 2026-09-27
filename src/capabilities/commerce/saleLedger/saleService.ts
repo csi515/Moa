@@ -1,5 +1,5 @@
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import { stockSaleOps, type SaleStockDeductLine, type StockShortfall } from '@/core/inventory';
+import { stockSaleOps, type SaleStockDeductLine, type StockShortfall } from '@/capabilities/commerce/stock';
 import { mapCreateSaleRpcError } from './mapCreateSaleRpcError';
 import {
   buildProductNameSnapshot,

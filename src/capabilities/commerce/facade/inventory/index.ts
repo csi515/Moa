@@ -1,5 +1,5 @@
 /**
- * Commerce Inventory — 구현은 src/core/inventory.
+ * Commerce Inventory. 구현 SoT는 `@/capabilities/commerce/stock`.
  * 잔량 변경은 core.apply_stock_movement 만 사용.
  */
 export type {
@@ -16,7 +16,7 @@ export type {
   StockSaleDeductInput,
   StockSaleReferenceType,
   StockShortfall,
-} from '@/core/inventory';
+} from '@/capabilities/commerce/stock';
 export {
   INVENTORY_LOW_STOCK_THRESHOLD,
   STOCK_ADJUSTMENT_REASONS,
@@ -30,4 +30,4 @@ export {
   aggregateSaleStockLines,
   findStockShortfalls,
   saleStockAggKey,
-} from '@/core/inventory';
+} from '@/capabilities/commerce/stock';

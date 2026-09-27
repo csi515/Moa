@@ -1,8 +1,8 @@
-import { productService } from '@/core/product';
-import { inventoryService, TEXTBOOK_SALE_MOVEMENT_REF } from '@/core/inventory';
-import type { StockMovement } from '@/core/inventory';
-import { saleService, saleReturnService } from '@/core/sales';
-import type { SalePaymentMethod, SaleReturnWithItems, SaleWithItems } from '@/core/sales';
+import { productService } from '@/capabilities/commerce';
+import { inventoryService, TEXTBOOK_SALE_MOVEMENT_REF } from '@/capabilities/commerce';
+import type { StockMovement } from '@/capabilities/commerce';
+import { saleService, saleReturnService } from '@/capabilities/commerce';
+import type { SalePaymentMethod, SaleReturnWithItems, SaleWithItems } from '@/capabilities/commerce';
 import { getOrganizationId } from '@/services/adapters/storageContext';
 import { isSupabaseConfigured } from '@/lib/supabase';
 import { STORAGE_KEYS } from '@/services/adapters';

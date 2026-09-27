@@ -1,7 +1,7 @@
 import {
   POINT_TRANSACTION_TYPE_LABELS,
   type PointTransactionType,
-} from '@/core/loyalty/types';
+} from '@/capabilities/commerce';
 
 /** Retail 사업자 고객·포인트 조회 문구 */
 export const RETAIL_CUSTOMER_COPY = {

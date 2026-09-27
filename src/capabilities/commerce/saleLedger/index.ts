@@ -32,4 +32,4 @@ export {
   aggregateSaleStockLines,
   findStockShortfalls,
   saleStockAggKey,
-} from '@/core/inventory/saleStockAggregate';
+} from '@/capabilities/commerce/stock/saleStockAggregate';

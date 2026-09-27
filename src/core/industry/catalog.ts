@@ -9,8 +9,8 @@ import {
   type IndustryType,
   type ModuleIndustryId,
 } from './definitions';
+import { applyInstalledCapabilityNavFilter } from './capabilityNavHost';
 import {
-  filterTabsByIndustryCapabilities,
   isIndustryCapabilityDefaultOn,
   isIndustryCapabilityEnabled,
   type IndustryCapabilityFlagMap,
@@ -101,5 +101,5 @@ export function filterIndustryNavTabs<T extends string>(
   tabs: readonly T[],
   industry: IndustryType | string | null | undefined
 ): T[] {
-  return filterTabsByIndustryCapabilities(tabs, getIndustryDefinition(industry)?.capabilities);
+  return applyInstalledCapabilityNavFilter(tabs, industry);
 }

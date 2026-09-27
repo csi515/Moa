@@ -6,7 +6,7 @@ import {
   POINTS_EARN_RATE_MAX as CORE_RATE_MAX,
   POINTS_EARN_RATE_MIN as CORE_RATE_MIN,
   POINTS_EARN_ROUNDING,
-} from '@/core/loyalty/earnPolicy';
+} from '@/capabilities/commerce';
 
 /** 1P = 1원 (고정, DB 저장 안 함) */
 export const POINT_WON_VALUE = CORE_POINT_WON;

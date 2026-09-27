@@ -9,26 +9,26 @@ export type {
   SalePaymentMethod,
   SaleStatus,
   SaleWithItems,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';
 export {
   SALE_PAYMENT_METHODS,
   SALE_PAYMENT_METHOD_LABELS,
   SALE_STATUSES,
   SALE_STATUS_LABELS,
   buildProductNameSnapshot,
-} from '@/core/commerce/sale';
-import type { SalePaymentMethod } from '@/core/commerce/payment';
+} from '@/capabilities/commerce';
+import type { SalePaymentMethod } from '@/capabilities/commerce';
 
 export {
   formatSaleNumber,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';
 export type {
   SaleCustomerFilter,
   SaleCustomerOption,
   SaleListItem,
   SaleListQuery,
   SalePaymentFilter,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';
 
 /** POS에서 노출하는 결제수단 */
 export const POS_PAYMENT_METHODS: readonly SalePaymentMethod[] = [

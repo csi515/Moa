@@ -1,6 +1,6 @@
-import { productService } from '@/core/product';
-import { inventoryService } from '@/core/inventory';
-import { saleService } from '@/core/sales';
+import { productService } from '@/capabilities/commerce';
+import { inventoryService } from '@/capabilities/commerce';
+import { saleService } from '@/capabilities/commerce';
 import { customerLinkService } from '@/core/customer/services/customerLinkService';
 import {
   PILATES_MERCHANDISE_DOMAIN,

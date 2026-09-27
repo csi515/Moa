@@ -8,7 +8,7 @@ import {
   quantityUnitLabel,
   type PayrollSettlementStatus,
   type TeacherPayrollRow,
-} from '@/core/finance/teacherPayroll';
+} from '@/capabilities/billing/finance/teacherPayroll';
 import { TeacherPayrollStatusBadge } from './TeacherPayrollStatusBadge';
 
 interface TeacherPayrollListProps {

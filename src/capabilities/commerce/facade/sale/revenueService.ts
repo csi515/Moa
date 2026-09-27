@@ -3,7 +3,7 @@
  * Finance·포인트 잔액과 무관.
  */
 import { getCoreClient, isSupabaseConfigured } from '@/lib/supabase';
-import type { SalePaymentMethod } from '@/core/sales';
+import type { SalePaymentMethod } from '@/capabilities/commerce/saleLedger';
 import type { CommerceRevenueSummary, RevenueDateRange, RevenuePeriodPreset } from './revenueTypes';
 import {
   buildCommerceRevenueSummary,

@@ -1,3 +1,4 @@
+/** Attendance 공식 public API. 외부는 `@/capabilities/attendance`만 사용한다. */
 export { attendanceCapability } from './manifest';
 
 export { AttendanceManagementView } from './ui/AttendanceManagementView';

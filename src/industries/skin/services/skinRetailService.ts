@@ -1,7 +1,7 @@
-import { productService } from '@/core/product';
-import { inventoryService } from '@/core/inventory';
-import { saleService, saleReturnService } from '@/core/sales';
-import type { SalePaymentMethod, SaleReturnWithItems } from '@/core/sales';
+import { productService } from '@/capabilities/commerce';
+import { inventoryService } from '@/capabilities/commerce';
+import { saleService, saleReturnService } from '@/capabilities/commerce';
+import type { SalePaymentMethod, SaleReturnWithItems } from '@/capabilities/commerce';
 import { customerLinkService } from '@/core/customer/services/customerLinkService';
 import type { CustomerSearchResult } from '@/core/customer/services/customerLinkService';
 import { recordRetailSaleReturnIncomeReversal } from '@/core/finance/billingIncomeLink';

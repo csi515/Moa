@@ -164,7 +164,7 @@ function run() {
   assert.match(capability, /claimVacancy/);
   assert.doesNotMatch(capability, /bath|sauna|piano|pilates|skin|retail|beauty/i);
 
-  const bookingCap = readFileSync(join(here, '../../../core/schedules/bookingCapacity.ts'), 'utf8');
+  const bookingCap = readFileSync(join(here, '../../scheduling/capacity/bookingCapacity.ts'), 'utf8');
   assert.match(bookingCap, /booking\.waitlist/);
 
   console.log('waitlistCapability.test.ts: ok');

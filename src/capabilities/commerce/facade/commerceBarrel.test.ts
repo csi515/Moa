@@ -1,5 +1,5 @@
 /**
- * Commerce 배럴이 Core 원장을 재export하고, Retail은 Commerce를 가리키는지 확인.
+ * Commerce 배럴이 capability SoT를 재export하고, Retail은 Commerce facade를 가리키는지 확인.
  * 실행: npm run test:commerce-barrel
  *
  * 서비스 모듈을 로드하지 않는다 (tsx에서 import.meta.env 미주입).
@@ -13,7 +13,7 @@ import {
   buildCommerceRevenueSummary,
   buildRetailRevenueSummary,
 } from './sale/revenueAggregate';
-import { SALE_PAYMENT_METHODS } from '@/core/sales/types';
+import { SALE_PAYMENT_METHODS } from '@/capabilities/commerce/saleLedger/types';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../../..');
 
@@ -22,29 +22,34 @@ function readSrc(rel: string): string {
 }
 
 const productBarrel = readSrc('src/capabilities/commerce/facade/product/index.ts');
-assert.match(productBarrel, /from '@\/core\/product'/);
+assert.match(productBarrel, /from '@\/capabilities\/commerce\/catalog'/);
+assert.doesNotMatch(productBarrel, /from '@\/core\/product'/);
 assert.doesNotMatch(productBarrel, /from '@\/modules\//);
 
 const inventoryBarrel = readSrc('src/capabilities/commerce/facade/inventory/index.ts');
-assert.match(inventoryBarrel, /from '@\/core\/inventory'/);
+assert.match(inventoryBarrel, /from '@\/capabilities\/commerce\/stock'/);
 assert.match(inventoryBarrel, /callApplyStockMovement/);
+assert.doesNotMatch(inventoryBarrel, /from '@\/core\/inventory'/);
 assert.doesNotMatch(inventoryBarrel, /from '@\/modules\//);
 
 const saleBarrel = readSrc('src/capabilities/commerce/facade/sale/index.ts');
-assert.match(saleBarrel, /from '@\/core\/sales'/);
+assert.match(saleBarrel, /from '@\/capabilities\/commerce\/saleLedger'/);
 assert.match(saleBarrel, /saleHistoryService/);
 assert.match(saleBarrel, /customerPurchaseService/);
 assert.match(saleBarrel, /revenueService/);
 assert.doesNotMatch(saleBarrel, /pointEarnService/);
+assert.doesNotMatch(saleBarrel, /from '@\/core\/sales'/);
 
 const returnBarrel = readSrc('src/capabilities/commerce/facade/return/index.ts');
-assert.match(returnBarrel, /from '@\/core\/sales'/);
+assert.match(returnBarrel, /from '@\/capabilities\/commerce\/saleLedger'/);
 assert.match(returnBarrel, /saleReturnService/);
 assert.doesNotMatch(returnBarrel, /pointReturnService/);
+assert.doesNotMatch(returnBarrel, /from '@\/core\/sales'/);
 
 const paymentBarrel = readSrc('src/capabilities/commerce/facade/payment/index.ts');
 assert.match(paymentBarrel, /SALE_PAYMENT_METHODS/);
-assert.match(paymentBarrel, /from '@\/core\/sales'/);
+assert.match(paymentBarrel, /from '@\/capabilities\/commerce\/saleLedger'/);
+assert.doesNotMatch(paymentBarrel, /from '@\/core\/sales'/);
 
 const commerceIndex = readSrc('src/capabilities/commerce/facade/index.ts');
 assert.match(commerceIndex, /productService/);
@@ -55,41 +60,50 @@ assert.match(commerceIndex, /SALE_PAYMENT_METHODS/);
 assert.match(commerceIndex, /storeCapability/);
 assert.doesNotMatch(commerceIndex, /from '@\/modules\//);
 
+const commerceRoot = readSrc('src/capabilities/commerce/index.ts');
+assert.match(commerceRoot, /commerceCapability/);
+assert.match(commerceRoot, /from '\.\/facade'/);
+assert.match(commerceRoot, /from '\.\/loyalty'/);
+assert.doesNotMatch(commerceRoot, /createCommerceCapabilityStorage/);
+assert.doesNotMatch(commerceRoot, /from '@\/modules\//);
+
 assert.match(
   readSrc('src/industries/retail/services/productService.ts'),
-  /from '@\/core\/commerce\/product'/
+  /from '@\/capabilities\/commerce'/
 );
 assert.match(
   readSrc('src/industries/retail/services/inventoryService.ts'),
-  /from '@\/core\/commerce\/inventory'/
+  /from '@\/capabilities\/commerce'/
 );
 assert.match(
   readSrc('src/industries/retail/services/saleHistoryService.ts'),
-  /from '@\/core\/commerce\/sale'/
+  /from '@\/capabilities\/commerce'/
 );
 assert.match(
   readSrc('src/industries/retail/services/customerPurchaseService.ts'),
-  /from '@\/core\/commerce\/sale'/
+  /from '@\/capabilities\/commerce'/
 );
 assert.match(
   readSrc('src/industries/retail/services/retailRevenueService.ts'),
-  /from '@\/core\/commerce\/sale'/
+  /from '@\/capabilities\/commerce'/
 );
 assert.match(
   readSrc('src/industries/retail/services/retailRevenueAggregate.ts'),
-  /from '@\/core\/commerce\/sale'/
+  /from '@\/capabilities\/commerce'/
 );
 
 const retailSale = readSrc('src/industries/retail/services/saleService.ts');
-assert.match(retailSale, /from '@\/core\/commerce\/sale'/);
+assert.match(retailSale, /from '@\/capabilities\/commerce'/);
 assert.match(retailSale, /pointEarnService\.earnForSale/);
 assert.doesNotMatch(retailSale, /from '@\/core\/sales'/);
+assert.doesNotMatch(retailSale, /from '@\/core\/commerce/);
 assert.doesNotMatch(retailSale, /pointRedeemService/);
 
 const retailReturn = readSrc('src/industries/retail/services/saleReturnService.ts');
-assert.match(retailReturn, /from '@\/core\/commerce\/return'/);
+assert.match(retailReturn, /from '@\/capabilities\/commerce'/);
 assert.match(retailReturn, /pointReturnService\.reverseForSaleReturn/);
 assert.doesNotMatch(retailReturn, /from '@\/core\/sales'/);
+assert.doesNotMatch(retailReturn, /from '@\/core\/commerce/);
 
 const retailServiceAndTypeFiles = [
   'src/industries/retail/services/productService.ts',
@@ -110,8 +124,13 @@ for (const rel of retailServiceAndTypeFiles) {
   const src = readSrc(rel);
   assert.doesNotMatch(
     src,
-    /from '@\/core\/(product|inventory|sales)(?:\/[^']*)?'/,
-    `${rel} must depend on Commerce, not Core product/inventory/sales`
+    /from '@\/core\/(product|inventory|sales|loyalty)(?:\/[^']*)?'/,
+    `${rel} must depend on @/capabilities/commerce, not Core product/inventory/sales/loyalty`
+  );
+  assert.doesNotMatch(
+    src,
+    /from '@\/core\/commerce(?:\/[^']*)?'/,
+    `${rel} must use @/capabilities/commerce, not @/core/commerce`
   );
 }
 

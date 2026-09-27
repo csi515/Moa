@@ -1,6 +1,6 @@
 import { normalizeIndustryType } from '@/core/industry/types';
-import { pointQueryService } from '@/core/loyalty/pointQueryService';
-import type { PointTransaction } from '@/core/loyalty/types';
+import { pointQueryService } from '@/core/loyalty';
+import type { PointTransaction } from '@/core/loyalty';
 import { customerLinkService } from './customerLinkService';
 
 export type MyRetailPointsSnapshot = {

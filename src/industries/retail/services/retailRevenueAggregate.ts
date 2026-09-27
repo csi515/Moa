@@ -7,9 +7,9 @@ export {
   filterCompletedSales,
   isCompletedSaleStatus,
   normalizeInclusiveRange,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';
 export type {
   RevenueReturnInput,
   RevenueSaleInput,
   RevenueSaleItemInput,
-} from '@/core/commerce/sale';
+} from '@/capabilities/commerce';

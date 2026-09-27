@@ -14,11 +14,17 @@ import {
 } from './attendanceFeatureFlag';
 
 function settings(enabled?: boolean): AcademySettings {
+  const base: AcademySettings = {
+    name: '테스트',
+    address: '',
+    phone: '',
+    defaultTuitionFee: 180000,
+  };
   if (typeof enabled !== 'boolean') {
-    return { name: '테스트' };
+    return base;
   }
   return {
-    name: '테스트',
+    ...base,
     features: { attendance: { enabled } },
   };
 }

@@ -1,4 +1,4 @@
-/** 하위 호환. 신규 코드는 `@/core/availability` 를 사용한다. */
+/** @deprecated 신규 코드는 `@/capabilities/scheduling`를 사용한다. */
 export {
   AVAILABILITY_SOURCE,
   AVAILABILITY_WEEKDAY_LABELS,

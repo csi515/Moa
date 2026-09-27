@@ -10,8 +10,8 @@ import { paymentRowToInvoice } from '@/services/adapters/sync/mappers/invoiceMap
 import { transactionRowToTuitionPayment } from '@/services/adapters/sync/financeEntityMappers';
 import type { PaymentMethod, TuitionInvoice } from '@/types';
 import type { Json } from '@/lib/supabase/database.types';
-import { upsertLinkedIncome } from '@/core/finance/billingIncomeLink';
-import { settleLinkedTextbookSalesOnTuitionPaid } from '@/core/finance/linkedTextbookSettle';
+import { upsertLinkedIncome } from '@/capabilities/billing/finance/billingIncomeLink';
+import { settleLinkedTextbookSalesOnTuitionPaid } from '@/capabilities/billing/finance/linkedTextbookSettle';
 import { StorageService } from '@/services/storage';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 import {

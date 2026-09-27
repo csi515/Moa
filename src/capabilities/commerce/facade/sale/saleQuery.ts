@@ -1,7 +1,7 @@
 /**
  * 판매 조회·표시 순수 헬퍼. organization 스코프는 호출부가 넣는다.
  */
-import type { Sale, SalePaymentMethod } from '@/core/sales';
+import type { Sale, SalePaymentMethod } from '@/capabilities/commerce/saleLedger';
 
 /** 판매번호 표시 (UUID 앞 8자) */
 export function formatSaleNumber(saleId: string): string {

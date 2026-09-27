@@ -14,20 +14,12 @@ import {
 import { defineIndustry } from '@/core/industry/definitions';
 import {
   assertIndustryRegistrationIntegrity,
+  collectIndustryRegistrationGaps,
+  parseIndustryModuleApps,
   readIndustryRegistrationSnapshot,
 } from '@/core/industry/industryRegistrationIntegrity';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-
-const EXPECTED_MODULE_IDS = [
-  'piano',
-  'pilates',
-  'gym',
-  'daycare',
-  'skin_clinic',
-  'retail',
-  'sauna_jjimjilbang',
-] as const;
 
 function run(): void {
   const srcRoot = join(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -36,10 +28,10 @@ function run(): void {
   const snap = readIndustryRegistrationSnapshot(srcRoot);
   const moduleIds = [...snap.moduleIds].sort();
   assert.deepEqual(moduleIds, [...MODULE_INDUSTRY_IDS].sort());
-  assert.deepEqual(moduleIds, [...EXPECTED_MODULE_IDS].sort());
   assert.deepEqual([...snap.registryPluginIds].sort(), moduleIds);
   assert.deepEqual([...snap.routerKeys].sort(), moduleIds);
   assert.deepEqual([...snap.pluginIds].sort(), moduleIds);
+  assert.deepEqual([...snap.moduleApps.map((app) => app.id)].sort(), moduleIds);
 
   const unique = new Set(INDUSTRY_IDS);
   assert.equal(unique.size, INDUSTRY_IDS.length, 'industry id must be unique');
@@ -57,7 +49,7 @@ function run(): void {
 
   const selectable = listIndustryDefinitions({ selectableOnly: true }).map((d) => d.id).sort();
   assert.deepEqual(selectable, [...PUBLIC_SELECTABLE_INDUSTRY_IDS].sort());
-  assert.deepEqual(selectable, [...EXPECTED_MODULE_IDS].sort());
+  assert.deepEqual(selectable, [...MODULE_INDUSTRY_IDS].sort());
 
   for (const id of PUBLIC_SELECTABLE_INDUSTRY_IDS) {
     assert.equal(getIndustryDefinition(id)?.selectable, true);
@@ -79,6 +71,42 @@ function run(): void {
   const piano = defineIndustry('piano', '피아노학원', 'test', 'education', 'piano');
   assert.equal(piano.id, 'piano');
   assert.equal(piano.moduleId, 'piano');
+
+  const parsedApps = parseIndustryModuleApps(`
+    defineIndustryModule({
+      id: 'temp_yoga',
+      plugin: tempYogaPluginManifest,
+      appExport: 'TempYogaAppContent',
+      loadApp: () => import('@/industries/temp_yoga/TempYogaAppContent'),
+      loadLabels: () => import('@/industries/temp_yoga/config/ModuleLabelsProvider'),
+    })
+  `);
+  assert.deepEqual(parsedApps, [
+    {
+      id: 'temp_yoga',
+      appExport: 'TempYogaAppContent',
+      loadAppSpec: '@/industries/temp_yoga/TempYogaAppContent',
+    },
+  ]);
+
+  const dropped = moduleIds[0];
+  assert.ok(dropped, 'live snapshot must have at least one module industry');
+  const omittedRegistryGaps = collectIndustryRegistrationGaps({
+    ...snap,
+    registryPluginIds: snap.registryPluginIds.filter((id) => id !== dropped),
+  });
+  assert.ok(
+    omittedRegistryGaps.some((gap) => gap.includes(dropped) && gap.includes('registry')),
+    `temporary fixture must detect missing registry for ${dropped}`
+  );
+  const omittedAppGaps = collectIndustryRegistrationGaps({
+    ...snap,
+    moduleApps: snap.moduleApps.filter((app) => app.id !== dropped),
+  });
+  assert.ok(
+    omittedAppGaps.some((gap) => gap.includes(dropped) && gap.includes('AppContent')),
+    `temporary fixture must detect missing AppContent for ${dropped}`
+  );
 
   console.log(`industryManifest.parity.test.ts OK (${moduleIds.length} modules)`);
 }

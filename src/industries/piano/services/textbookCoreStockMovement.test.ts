@@ -8,7 +8,7 @@ import {
   mapCoreMovementTypeToTextbookTx,
   mapMovementToTextbookTx,
 } from './textbookCoreStockMovement';
-import type { StockMovement } from '@/core/inventory';
+import type { StockMovement } from '@/capabilities/commerce';
 import type { Textbook } from '@/types';
 
 assert.equal(mapCoreMovementTypeToTextbookTx('inbound'), 'inbound');

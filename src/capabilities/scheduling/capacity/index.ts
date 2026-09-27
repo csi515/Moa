@@ -11,6 +11,18 @@ export {
 export { countResourceOccupancy, resourceCapacitySnapshot } from './resourceOccupancy';
 export type { ResourceOccupancyReservation } from './resourceOccupancy';
 export {
+  UNASSIGNED_STAFF_TOKEN,
+  normalizeStaffId,
+  buildSlotKey,
+  isActiveBookingStatus,
+  buildSlotOccupancyIndex,
+  groupBookingsIntoSlots,
+  findActiveMemberInSlot,
+  countSlotOccupancy,
+  getSlotCapacityInfo,
+} from './bookingCapacity';
+export type { SlotBookingGroup, SlotCapacityInfo } from './bookingCapacity';
+export {
   RESERVATION_CONFIRMED_STATUSES,
   RESERVATION_HOLDING_STATUSES,
   SCHEDULE_CONFIRMED_STATUSES,

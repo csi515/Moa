@@ -3,7 +3,7 @@
  * Invoice.paymentMethod / paidAt / paidDate 스냅샷은 읽지 않는다.
  */
 import type { PaymentMethod, TuitionPayment } from '@/types';
-import { formatPaymentMethodLabel } from '@/core/finance/paymentMethodLabels';
+import { formatPaymentMethodLabel } from '@/capabilities/billing/finance/paymentMethodLabels';
 
 export type LastTuitionPaymentDisplay = {
   paymentMethod: PaymentMethod;

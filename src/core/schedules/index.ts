@@ -1,13 +1,13 @@
 /**
- * Core Schedule / Reservation / Availability infrastructure
+ * Core Schedule / Reservation infrastructure
  *
  * 책임 경계:
  * - Schedule: core.schedules — 예약 가능 시간 또는 운영 슬롯
  * - Reservation: core.reservations — bookable 슬롯에 대한 고객 신청
  * - Booking: 고객 배정 schedules 행(필라테스/피부). 새 테이블 없음
  * - Session/Attendance: customer_sessions / attendance_sessions. 이 barrel이 원장이 아님
- * - Piano Module: 반복 수업 시간표·학원 캘린더 UX, 상담 Availability 라벨/진입점
- * - "피아노 상담" 비즈니스 문구·화면은 Core에 두지 않는다
+ * - Availability / slot capacity / settings UI: Scheduling Capability SoT.
+ *   이 barrel의 availability·bookingCapacity export는 deprecated shim
  */
 export {
   APPOINTMENT_BOOKING_LEDGER,

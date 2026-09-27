@@ -8,6 +8,8 @@ export {
   POINT_TRANSACTION_TYPE_LABELS,
 } from './types';
 export {
+  POINTS_EARN_RATE_MAX,
+  POINTS_EARN_RATE_MIN,
   POINTS_EARN_ROUNDING,
   POINT_WON_VALUE,
   computeEarnPoints,

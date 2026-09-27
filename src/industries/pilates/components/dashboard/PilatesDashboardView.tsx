@@ -8,7 +8,7 @@ import {
   buildSlotOccupancyIndex,
   getSlotCapacityInfo,
   groupBookingsIntoSlots,
-} from '@/core/schedules/bookingCapacity';
+} from '@/capabilities/scheduling/capacity';
 import { StorageService } from '@/services/storage';
 import { PageHeader, SummaryMetricCard, EmptyState } from '@/shared/components';
 import { formatKoreanDate } from '@/utils/formatters';

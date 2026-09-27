@@ -1,7 +1,7 @@
-import { saleService as commerceSaleService } from '@/core/commerce/sale';
-import type { SaleCreateInput, SaleWithItems } from '@/core/commerce/sale';
-import type { StockShortfall } from '@/core/commerce/inventory';
-import { pointEarnService } from '@/core/loyalty/pointEarnService';
+import { saleService as commerceSaleService } from '@/capabilities/commerce';
+import type { SaleCreateInput, SaleWithItems } from '@/capabilities/commerce';
+import type { StockShortfall } from '@/capabilities/commerce';
+import { pointEarnService } from '@/capabilities/commerce';
 
 /**
  * Retail 판매 facade.

@@ -24,7 +24,7 @@ import {
   shouldMirrorStatusAcrossLedgers,
   SLOT_RESERVATION_HOLDING_STATUSES,
 } from './domainRoles';
-import { CLASS_ATTENDANCE_LEDGER } from '@/capabilities/attendance/domain/classAttendanceLedger';
+import { CLASS_ATTENDANCE_LEDGER } from './classAttendanceLedger';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../..');
 

@@ -202,10 +202,14 @@ function run() {
   assert.match(cancelSql, /CREATE OR REPLACE FUNCTION core\.cancel_reservation/);
   assert.match(cancelSql, /status = 'cancelled'/);
 
-  const bookingCap = readSrc('src/core/schedules/bookingCapacity.ts');
+  const bookingCap = readSrc('src/capabilities/scheduling/capacity/bookingCapacity.ts');
   assert.match(bookingCap, /computeCapacitySnapshot/);
   assert.match(bookingCap, /maxCapacity/);
   assert.doesNotMatch(bookingCap, /bath|sauna|piano|gym/i);
+
+  const bookingCapShim = readSrc('src/core/schedules/bookingCapacity.ts');
+  assert.match(bookingCapShim, /@deprecated 신규 코드는/);
+  assert.match(bookingCapShim, /@\/capabilities\/scheduling/);
 
   const coreCapacity = walkTs(join(root, 'src/core/capacity'))
     .map((file) => readFileSync(file, 'utf8'))

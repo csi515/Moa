@@ -1,5 +1,5 @@
-import { productService } from '@/core/product';
-import { inventoryService } from '@/core/inventory';
+import { productService } from '@/capabilities/commerce';
+import { inventoryService } from '@/capabilities/commerce';
 import { StorageService } from '@/services/storage';
 import * as orgService from '@/core/organizations/services/organizationService';
 import type { AcademySettings, RetailProduct } from '@/types';

@@ -10,7 +10,7 @@ import type { CombinedPaymentRequest } from '@/types';
 import {
   CombinedPaymentCommandError,
   type CombinedPaymentAtomicResult,
-} from '@/core/finance/combinedPaymentCommand';
+} from '@/capabilities/billing/finance/combinedPaymentCommand';
 import {
   buildCombinedPaymentRequest,
   clampPayableAmount,
@@ -114,24 +114,23 @@ function run() {
     null
   );
 
-  const applied = interpretCombinedPaymentResult({
+  const applied: CombinedPaymentAtomicResult = {
     status: 'applied',
     textbookPayments: [],
     totalPaidAmount: 48000,
     appliedTuitionInvoiceIds: ['inv-1'],
     appliedTextbookSaleIds: ['sale-1'],
-  });
-  assert.deepEqual(applied, { ok: true, totalPaidAmount: 48000 });
-  assert.equal(
-    interpretCombinedPaymentResult({
-      status: 'other',
-      textbookPayments: [],
-      totalPaidAmount: 0,
-      appliedTuitionInvoiceIds: [],
-      appliedTextbookSaleIds: [],
-    } as CombinedPaymentAtomicResult).ok,
-    false
-  );
+  };
+  assert.deepEqual(interpretCombinedPaymentResult(applied), { ok: true, totalPaidAmount: 48000 });
+
+  const replayed: CombinedPaymentAtomicResult = {
+    status: 'replay',
+    textbookPayments: [],
+    totalPaidAmount: 0,
+    appliedTuitionInvoiceIds: [],
+    appliedTextbookSaleIds: [],
+  };
+  assert.deepEqual(interpretCombinedPaymentResult(replayed), { ok: true, totalPaidAmount: 0 });
   assert.equal(
     mapCombinedPaymentError(new CombinedPaymentCommandError({ message: 'x' })),
     COMBINED_PAYMENT_INCOMPLETE_MESSAGE
@@ -145,6 +144,9 @@ function run() {
     void runCombinedPaymentSubmit({
       busy,
       request: null,
+      execute: async () => {
+        throw new Error('execute should not run');
+      },
       showToast: (message, type) => toasts.push({ message, type }),
       triggerRefresh: () => {
         refreshCount += 1;

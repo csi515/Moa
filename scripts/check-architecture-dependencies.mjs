@@ -4,9 +4,12 @@
  * 허용: core→core, capability→core, industry→capability|core,
  *       composition→industry|capability|core
  * 금지: core→industry|modules|composition|capability,
- *       capability→industry|modules
+ *       capability→industry|modules,
+ *       capability→같은 capability의 Core compatibility shim
  *
  * 기존 위반은 LEGACY allowlist. 신규 위반은 즉시 실패.
+ * src/core/academy 는 legacy aggregation — 스냅샷 밖 신규 파일·
+ * capability/industry/composition import 는 즉시 실패.
  * 실행: npm run check:architecture
  */
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
@@ -127,6 +130,84 @@ export const LEGACY_ALLOWLIST = {
   },
 };
 
+/**
+ * src/core/academy 현재 파일 스냅샷. 신규 업무의 기본 위치가 아니다.
+ * 이미 있는 파일만 legacy로 인정한다. 새 파일을 여기 추가하지 않는다.
+ * 파일을 삭제한 뒤에만 이 목록에서 뺀다.
+ */
+export const ACADEMY_LEGACY_FILES = new Set([
+  'src/core/academy/academyStaffUi.tsx',
+  'src/core/academy/components/calendar/AcademyCalendarView.tsx',
+  'src/core/academy/components/calendar/visibleStaffCalendarEvents.ts',
+  'src/core/academy/components/classes/ClassManagementView.tsx',
+  'src/core/academy/components/consultations/ConsultationRecordsView.tsx',
+  'src/core/academy/components/customers/CustomerHubView.tsx',
+  'src/core/academy/components/enrollments/GuardianEnrollmentRequestCard.tsx',
+  'src/core/academy/components/enrollments/GuardianEnrollmentRequestsView.tsx',
+  'src/core/academy/components/enrollments/index.ts',
+  'src/core/academy/components/parents/ParentManagementView.tsx',
+  'src/core/academy/components/schedule/ClassScheduleHubView.tsx',
+  'src/core/academy/components/settings/AcademySettingsView.tsx',
+  'src/core/academy/components/settings/SettingsHubView.tsx',
+  'src/core/academy/components/students/detail/StudentDetailAttendanceTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailClassesTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailConsultationsTab.tsx',
+  'src/core/academy/components/students/detail/studentDetailExtensions.ts',
+  'src/core/academy/components/students/detail/StudentDetailInfoTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailMemoTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailPracticeTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailTextbooksTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailTuitionTab.tsx',
+  'src/core/academy/components/students/detail/StudentDetailVideosTab.tsx',
+  'src/core/academy/components/students/detail/studentManualAttendanceClass.test.ts',
+  'src/core/academy/components/students/detail/studentManualAttendanceClass.ts',
+  'src/core/academy/components/students/detail/types.ts',
+  'src/core/academy/components/students/form/GuardianSection.tsx',
+  'src/core/academy/components/students/form/StudentAdvancedSection.tsx',
+  'src/core/academy/components/students/form/StudentBasicInfoSection.tsx',
+  'src/core/academy/components/students/form/StudentFormPostSave.tsx',
+  'src/core/academy/components/students/form/studentFormTypes.ts',
+  'src/core/academy/components/students/form/studentFormValidation.test.ts',
+  'src/core/academy/components/students/form/studentFormValidation.ts',
+  'src/core/academy/components/students/form/StudentPickupSection.tsx',
+  'src/core/academy/components/students/form/StudentPinSection.tsx',
+  'src/core/academy/components/students/StudentBulkImportModal.tsx',
+  'src/core/academy/components/students/StudentDetailModal.tsx',
+  'src/core/academy/components/students/StudentFormModal.tsx',
+  'src/core/academy/components/students/studentListHelpers.ts',
+  'src/core/academy/components/students/StudentListView.tsx',
+  'src/core/academy/components/students/useStudentDetailModal.ts',
+  'src/core/academy/components/teachers/StaffGrantFields.tsx',
+  'src/core/academy/components/teachers/TeacherManagementView.tsx',
+  'src/core/academy/components/timetable/TimetableDayTimeline.tsx',
+  'src/core/academy/components/timetable/WeeklyTimetableView.tsx',
+  'src/core/academy/components/tuition/CombinedPaymentModal.tsx',
+  'src/core/academy/components/tuition/TuitionCombinedBillingView.tsx',
+  'src/core/academy/components/tuition/TuitionFilterBar.tsx',
+  'src/core/academy/components/tuition/TuitionInvoiceListView.tsx',
+  'src/core/academy/components/tuition/TuitionManagementView.tsx',
+  'src/core/academy/components/tuition/TuitionPaymentModal.tsx',
+  'src/core/academy/components/tuition/TuitionSummaryCards.tsx',
+  'src/core/academy/components/tuition/tuitionUtils.ts',
+  'src/core/academy/components/tuition/tuitionViewTypes.ts',
+  'src/core/academy/components/unpaid/UnpaidManagementView.tsx',
+  'src/core/academy/index.ts',
+  'src/core/academy/services/absenceNotifyPolicy.test.ts',
+  'src/core/academy/services/absenceNotifyPolicy.ts',
+  'src/core/academy/services/academyAlertService.ts',
+  'src/core/academy/utils/academyRooms.ts',
+  'src/core/academy/utils/billingMode.ts',
+  'src/core/academy/utils/classOccurrenceHelpers.ts',
+  'src/core/academy/utils/invoiceExtras.ts',
+  'src/core/academy/utils/scheduleConflicts.ts',
+  'src/core/academy/utils/weekDate.ts',
+  'src/core/academy/utils/weekdayKo.ts',
+]);
+
+function isAcademyRel(rel) {
+  return rel.startsWith('src/core/academy/');
+}
+
 const FORBIDDEN_FROM = {
   core: new Set(['industry', 'capability', 'composition']),
   capability: new Set(['industry', 'composition']),
@@ -191,6 +272,26 @@ function isCapabilityCompatShim(source) {
   return source.includes('@deprecated 신규 코드는') && /from ['"]@\/capabilities\//.test(source);
 }
 
+function capabilityIdFromRel(rel) {
+  const match = rel.match(/^src\/capabilities\/([^/]+)/);
+  return match?.[1] ?? null;
+}
+
+function resolveAliasFile(spec) {
+  if (!spec || !spec.startsWith('@/')) return null;
+  const rest = spec.slice(2);
+  const base = join(srcRoot, ...rest.split('/'));
+  const candidates = [`${base}.ts`, `${base}.tsx`, join(base, 'index.ts'), join(base, 'index.tsx')];
+  return candidates.find((file) => existsSync(file)) ?? null;
+}
+
+function shimCapabilityTarget(filePath) {
+  const source = readFileSync(filePath, 'utf8');
+  if (!isCapabilityCompatShim(source)) return null;
+  const match = source.match(/from ['"]@\/capabilities\/([^/'"]+)/);
+  return match?.[1] ?? null;
+}
+
 function isLegacyAttendanceSpec(spec) {
   return spec === '@/core/attendance' || (typeof spec === 'string' && spec.startsWith('@/core/attendance/'));
 }
@@ -206,11 +307,15 @@ function isTestFile(filePath) {
 function scanFile(filePath) {
   const kinds = new Set();
   const details = [];
+  const rel = toPosix(filePath);
+  if (isAcademyRel(rel) && !ACADEMY_LEGACY_FILES.has(rel)) {
+    kinds.add('academy_new_file');
+    details.push('core/academy is legacy aggregation — put new work in Core / Capability / Industry');
+  }
   if (isTestFile(filePath)) {
     return { kinds, details };
   }
 
-  const rel = toPosix(filePath);
   const fromLayer = layerOfRel(rel);
   const source = readFileSync(filePath, 'utf8');
 
@@ -240,7 +345,23 @@ function scanFile(filePath) {
       kinds.add('storage_service_import');
       details.push(`legacy StorageService (${spec})`);
     }
+    if (fromLayer === 'capability' && spec.startsWith('@/core/')) {
+      const fromCap = capabilityIdFromRel(rel);
+      const shimFile = resolveAliasFile(spec);
+      const toCap = shimFile ? shimCapabilityTarget(shimFile) : null;
+      if (fromCap && toCap && fromCap === toCap) {
+        kinds.add('capability_shim_cycle');
+        details.push(`shim cycle ${spec} → ${toCap}`);
+      }
+    }
     const toLayer = specifierLayer(spec) ?? relativeSpecifierLayer(rel, spec);
+    if (
+      isAcademyRel(rel) &&
+      (toLayer === 'capability' || toLayer === 'industry' || toLayer === 'composition')
+    ) {
+      kinds.add('academy_feature_import');
+      details.push(`academy must not import ${toLayer} (${spec})`);
+    }
     if (fromLayer && toLayer && FORBIDDEN_FROM[fromLayer]?.has(toLayer)) {
       if (fromLayer === 'core' && toLayer === 'capability' && isCapabilityCompatShim(source)) {
         continue;
@@ -300,6 +421,18 @@ function expectedLegacyKeys() {
     for (const kind of meta.kinds) keys.push(legacyKey(file, kind));
   }
   return keys.sort();
+}
+
+function assertAcademySnapshot() {
+  const files = [];
+  walk(join(srcRoot, 'core', 'academy'), files);
+  const actual = new Set(files.map((file) => toPosix(file)));
+  const missing = [...ACADEMY_LEGACY_FILES].filter((rel) => !actual.has(rel)).sort();
+  if (missing.length > 0) {
+    console.error('ACADEMY legacy 스냅샷에 있으나 파일이 없습니다. 삭제한 항목만 목록에서 제거하세요:');
+    for (const rel of missing) console.error(`  - ${rel}`);
+    process.exit(1);
+  }
 }
 
 function assertLegacyFrozen(known) {
@@ -369,6 +502,23 @@ function selfTest() {
     '_architecture_probe_storage.tmp.ts',
     "import { StorageService } from '@/services/storage';\n"
   );
+  const billingDir = join(srcRoot, 'capabilities', 'billing');
+  const shimCycleProbe = writeProbe(
+    billingDir,
+    '_architecture_probe_shim.tmp.ts',
+    "import { x } from '@/core/finance';\n"
+  );
+  const academyDir = join(srcRoot, 'core', 'academy');
+  const academyNewFileProbe = writeProbe(
+    academyDir,
+    '_architecture_probe.tmp.ts',
+    'export const academyProbe = true;\n'
+  );
+  const academyImportProbe = writeProbe(
+    academyDir,
+    '_architecture_probe_import.tmp.ts',
+    "import { x } from '@/capabilities/billing';\n"
+  );
   try {
     const { next } = collectViolations([
       coreProbe,
@@ -377,6 +527,9 @@ function selfTest() {
       legacyAttProbe,
       servicesProbe,
       capStorageProbe,
+      shimCycleProbe,
+      academyNewFileProbe,
+      academyImportProbe,
     ]);
     const coreHit = next.some(
       (row) =>
@@ -395,12 +548,34 @@ function selfTest() {
         row.details.some((line) => line.includes('@/industries/daycare'))
     );
     const storageHit = next.some((row) => row.kind === 'storage_service_import');
-    if (!coreHit || !capHit || !legacyAttHit || !servicesHit || !storageHit) {
+    const shimCycleHit = next.some((row) => row.kind === 'capability_shim_cycle');
+    const academyNewFileHit = next.some(
+      (row) => row.kind === 'academy_new_file' && row.file.includes('_architecture_probe.tmp.ts')
+    );
+    const academyImportHit = next.some(
+      (row) =>
+        row.kind === 'academy_feature_import' &&
+        row.details.some((line) => line.includes('@/capabilities/billing'))
+    );
+    const academyIndex = join(srcRoot, 'core', 'academy', 'index.ts');
+    const { next: snapshotScan } = collectViolations([academyIndex]);
+    const snapshotFalsePositive = snapshotScan.some((row) => row.kind === 'academy_new_file');
+    if (
+      !coreHit ||
+      !capHit ||
+      !legacyAttHit ||
+      !servicesHit ||
+      !storageHit ||
+      !shimCycleHit ||
+      !academyNewFileHit ||
+      !academyImportHit ||
+      snapshotFalsePositive
+    ) {
       console.error('architecture self-test: 계층 위반을 잡지 못했습니다.');
       process.exit(1);
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze 탐지 ok'
     );
   } finally {
     unlinkSync(coreProbe);
@@ -409,6 +584,9 @@ function selfTest() {
     unlinkSync(legacyAttProbe);
     unlinkSync(servicesProbe);
     unlinkSync(capStorageProbe);
+    unlinkSync(shimCycleProbe);
+    unlinkSync(academyNewFileProbe);
+    unlinkSync(academyImportProbe);
   }
 }
 
@@ -422,6 +600,7 @@ function main() {
   const { next, known } = collectViolations();
   printInventory(known);
   assertLegacyFrozen(known);
+  assertAcademySnapshot();
 
   if (next.length > 0) {
     console.error('\n새로운 계층 의존 위반이 있습니다:');

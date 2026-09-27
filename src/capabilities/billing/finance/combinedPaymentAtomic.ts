@@ -17,22 +17,22 @@ import type {
   TextbookSale,
   TuitionInvoice,
 } from '@/types';
-import { upsertLinkedIncome } from '@/core/finance/billingIncomeLink';
-import { settleLinkedTextbookSalesOnTuitionPaid } from '@/core/finance/linkedTextbookSettle';
+import { upsertLinkedIncome } from '@/capabilities/billing/finance/billingIncomeLink';
+import { settleLinkedTextbookSalesOnTuitionPaid } from '@/capabilities/billing/finance/linkedTextbookSettle';
 import {
   buildCombinedPaymentCommand,
   CombinedPaymentCommandError,
   type CombinedPaymentAtomicResult,
   type CombinedPaymentStatus,
-} from '@/core/finance/combinedPaymentCommand';
-import { recordCombinedPaymentLocal } from '@/core/finance/combinedPaymentLocal';
-import { createAdapterFinanceMirrorPort } from '@/core/finance/financePaymentMirrorAdapter';
+} from '@/capabilities/billing/finance/combinedPaymentCommand';
+import { recordCombinedPaymentLocal } from '@/capabilities/billing/finance/combinedPaymentLocal';
+import { createAdapterFinanceMirrorPort } from '@/capabilities/billing/finance/financePaymentMirrorAdapter';
 import {
   projectIfRemoteApplied,
   textbookPaymentMirrorJobs,
   tuitionPaymentMirrorJobs,
   type FinanceMirrorJob,
-} from '@/core/finance/financePaymentMirror';
+} from '@/capabilities/billing/finance/financePaymentMirror';
 import { StorageService } from '@/services/storage';
 import { todayIsoLocal } from '@/shared/utils/localDate';
 

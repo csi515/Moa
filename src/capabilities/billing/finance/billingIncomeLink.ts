@@ -1,5 +1,5 @@
 import type { PaymentMethod, TuitionPayment, TextbookPayment } from '@/types';
-import type { IncomeEntry } from '@/core/finance/types';
+import type { IncomeEntry } from '@/capabilities/billing/finance/types';
 import { STORAGE_KEYS } from '@/services/adapters/storageKeys';
 import { generateEntityId, getItem, setItem } from '@/services/storage/helpers';
 

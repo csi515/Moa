@@ -1,4 +1,4 @@
-import type { SalePaymentMethod } from '@/core/sales';
+import type { SalePaymentMethod } from '@/capabilities/commerce/saleLedger';
 
 export type RevenuePeriodPreset = 'today' | 'week' | 'month' | 'custom';
 

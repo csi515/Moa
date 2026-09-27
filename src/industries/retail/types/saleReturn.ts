@@ -7,5 +7,5 @@ export type {
   SaleReturnCreateInput,
   SaleReturnItem,
   SaleReturnWithItems,
-} from '@/core/commerce/return';
-export { computeReturnLineAmount } from '@/core/commerce/return';
+} from '@/capabilities/commerce';
+export { computeReturnLineAmount } from '@/capabilities/commerce';

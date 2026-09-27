@@ -8,7 +8,7 @@ import {
   getSlotCapacityInfo,
   groupBookingsIntoSlots,
   type SlotBookingGroup,
-} from '@/core/schedules/bookingCapacity';
+} from '@/capabilities/scheduling/capacity';
 
 interface PilatesSlotListProps {
   bookings: Booking[];
