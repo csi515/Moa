@@ -559,8 +559,7 @@ function selfTest() {
 
     const scannedRels = new Set(collectRoots().map((file) => toPosix(file)));
     if (!scannedRels.has(academyNewRel) || !scannedRels.has(academyExistingRel)) {
-      console.error('architecture self-test: 일반 검사 경로 집합에 academy 파일이 없습니다.');
-      process.exit(1);
+      throw new Error('architecture self-test: 일반 검사 경로 집합에 academy 파일이 없습니다.');
     }
 
     const { next } = collectViolations();
@@ -605,15 +604,14 @@ function selfTest() {
       !academyImportHit ||
       snapshotFalsePositive
     ) {
-      console.error('architecture self-test: 계층 위반을 잡지 못했습니다.');
-      process.exit(1);
+      throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
       'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) 탐지 ok'
     );
   } finally {
-    for (const probe of probes) removeIfExists(probe);
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
+    for (const probe of probes) removeIfExists(probe);
   }
 
   const { next: cleaned } = collectViolations();
@@ -621,15 +619,19 @@ function selfTest() {
     (row) => row.kind === 'academy_new_file' || row.kind === 'academy_feature_import'
   );
   if (leftoverAcademy) {
-    console.error('architecture self-test: probe 정리 후에도 academy 위반이 남았습니다.');
-    process.exit(1);
+    throw new Error('architecture self-test: probe 정리 후에도 academy 위반이 남았습니다.');
   }
 }
 
 function main() {
   const args = new Set(process.argv.slice(2));
   if (args.has('--self-test')) {
-    selfTest();
+    try {
+      selfTest();
+    } catch (error) {
+      console.error(error instanceof Error ? error.message : error);
+      process.exitCode = 1;
+    }
     return;
   }
 
