@@ -18,6 +18,8 @@ export type PluginRecord = {
   attendanceDefault: boolean | null;
   syncCapabilities: string[];
   aliases: string[];
+  /** plugin이 `./sync/register*` 를 static import 하는지. 픽스처는 생략 가능. */
+  eagerRegisterImport?: boolean;
 };
 
 export type IndustryModuleAppRecord = {
@@ -121,6 +123,7 @@ export function parsePluginRecord(src: string, file: string): PluginRecord {
     aliases: [...(src.match(/aliases:\s*\[([^\]]*)\]/)?.[1].matchAll(/'([a-z][a-z0-9_]*)'/g) ?? [])].map(
       (m) => m[1]
     ),
+    eagerRegisterImport: /import\s+['"]\.\/sync\/register/.test(src),
   };
 }
 
@@ -212,6 +215,11 @@ export function collectIndustryRegistrationGaps(snap: IndustryRegistrationSnapsh
     if (rec.attendanceDefault == null) {
       gaps.push(`업종 기본값 누락: ${rec.file} attendanceDefault`);
     }
+    if (rec.syncCapabilities.length > 0 && rec.eagerRegisterImport === false) {
+      gaps.push(
+        `capability 등록 경로 누락: plugin ${label} syncCapabilities 는 있는데 register*Sync 정적 import가 없음 (industryModules는 plugin을 eager import. AppContent lazy만으로는 등록되지 않음)`
+      );
+    }
     for (const cap of rec.syncCapabilities) {
       if (!snap.registeredCapabilities.includes(cap)) {
         gaps.push(
@@ -227,6 +235,13 @@ export function collectIndustryRegistrationGaps(snap: IndustryRegistrationSnapsh
       }
     }
   }
+
+  const declaredCapabilities = uniqueSorted(snap.pluginRecords.flatMap((rec) => rec.syncCapabilities));
+  pushMissing(
+    missing(snap.registeredCapabilities, declaredCapabilities),
+    (id) =>
+      `capability 등록 미사용: registerIndustrySyncCapability "${id}" 가 어떤 plugin syncCapabilities에도 없음`
+  );
 
   for (const [alias, target] of Object.entries(snap.aliases)) {
     if (!snap.catalogIds.includes(target)) {

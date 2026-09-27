@@ -219,6 +219,29 @@ LEGACY allowlist는 `scripts/check-architecture-dependencies.mjs`의 `LEGACY_ALL
 
 `INDUSTRY_PLUGINS` 손글씨 맵을 다시 만들지 않는다.
 
+### Industry sync (현재)
+
+```text
+industryModules.tsx  (plugin manifest eager import)
+  → industries/<id>/plugin.ts  (./sync/register*Sync static import)
+  → registerIndustrySyncCapability
+  → industrySyncRegistry (계약·Map만)
+
+hydrate:  supabaseAdapter → resolveIndustryHydrateCapabilities
+          = plugin.syncCapabilities ∩ 등록된 Map
+persist:  supabaseAdapter → persistRegisteredCapabilities
+          = 등록된 capability 중 persistKeys에 key가 있는 것만
+```
+
+- Adapter는 업종 이름을 직접 분기하지 않는다.
+- Registry는 concrete implementation을 소유하지 않는다. 업종별 import·register 호출 없음.
+- Industry가 자기 sync capability를 등록한다.
+- manifest가 사용 capability를 선언한다.
+- `industryModules`는 plugin을 eager import하므로 register side-effect가 App 로드 때 실행된다. AppContent `loadApp`은 lazy이며 등록 경로가 아니다.
+- 새 Industry 추가 시 중앙 sync registry(`industrySyncRegistry.ts`)를 수정하지 않는다. 필요한 것: `register*Sync.ts` + plugin `syncCapabilities`.
+
+현재 등록: piano(`piano`, `education`), daycare(`daycare`). bath(`sauna_jjimjilbang`)는 sync 없음.
+
 ### piano — `src/industries/piano`
 
 | | |

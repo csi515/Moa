@@ -162,6 +162,29 @@ Component
 
 예: 많은 academy / Industry 화면, `Header.tsx`.
 
+**Industry hydrate / persist (현재):**
+
+```text
+StorageHydrator
+  → supabaseAdapter.hydrate(organizationId, industryType)
+  → hydrateCoreEntities
+  → resolveIndustryHydrateCapabilities(industryType)
+      = plugin.syncCapabilities ∩ 등록된 Map
+  → capability.hydrate
+
+persist:
+  persistRegisteredCapabilities(key, …)
+  → 등록된 capability 중 persistKeys에 key가 있는 것만
+```
+
+등록: `industryModules`가 plugin manifest를 eager import → plugin이 `./sync/register*Sync`를 static import. AppContent는 lazy이며 등록 경로가 아니다.
+
+- Adapter는 업종 이름을 직접 분기하지 않는다.
+- Registry는 concrete implementation을 소유하지 않는다.
+- Industry가 자기 sync capability를 등록한다.
+- manifest가 사용 capability를 선언한다.
+- 새 Industry 추가 시 중앙 sync registry를 수정하지 않는다.
+
 **이행 중:**
 
 ```text

@@ -62,7 +62,7 @@ Industry 등록은 한 파일이 아니다. 현재 분산:
 | `src/core/industry/definitions.ts` | 카탈로그 id, `capabilities`/`defaults`/`selectable`/`moduleId` |
 | `src/core/industry/catalog.ts` | 조회·alias·generic-shell |
 | `src/core/industry/pluginHost.ts` + `registry.ts` | 설치된 plugin 조회 |
-| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities. sync 등록 모듈을 import |
+| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities. `./sync/register*Sync`를 **eager import** (AppContent lazy는 등록 경로가 아님) |
 | `src/app/industry/industryModules.tsx` | 모듈 등록. `APP_BY_INDUSTRY`는 이 목록에서 **파생** |
 | `src/app/industry/IndustryAppRouter.tsx` | 셸 선택 |
 | `src/app/industry/loadIndustryModules.ts` | plugin 설치 |
@@ -168,6 +168,13 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 5. Composition registration — `src/app/industry/industryModules.tsx`에 `defineIndustryModule` 한 줄
 6. Regression test — `test:business-invariants`, persist/hydrate
 
+(선택) Industry sync가 필요하면 plugin `syncCapabilities`를 선언하고 `src/industries/<id>/sync/register*Sync.ts`에서 `registerIndustrySyncCapability`로 등록한다. **새 Industry 추가 시 중앙 sync registry를 수정하지 않는다.**
+
+- Adapter(`supabaseAdapter`)는 업종 이름을 직접 분기하지 않는다.
+- Registry(`industrySyncRegistry.ts`)는 계약·조회·실행만. concrete implementation을 소유하지 않는다. 업종별 import·register 호출 없음.
+- Industry가 자기 sync capability를 등록한다.
+- manifest가 사용 capability를 선언한다.
+
 신규 기능 일반 순서: Requirement → Domain classification → Core / Capability / Industry / Composition 결정 → Authorization → Persistence → Service → UI → Test.
 
 금지:
@@ -179,7 +186,7 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 - 다른 Industry 화면을 복사해 새 업종을 만들기
 - 새 업종 때문에 기존 Core domain 이름을 업종에 맞게 바꾸기
 
-(선택) hydrate가 필요하면 plugin `syncCapabilities`를 선언하고 `src/industries/<id>/sync/register*Sync.ts`에서 `registerIndustrySyncCapability`로 등록한다. `industrySyncRegistry.ts`에 Industry 구현을 import하거나 중앙 등록하지 않는다. 기존 `services/adapters/sync/*EntitySync`는 legacy 구현이며 점진적으로 이 패턴으로 옮긴다. Core 도메인 구현은 수정하지 않는다.
+기존 `services/adapters/sync/*EntitySync`는 legacy 구현이며 점진적으로 Industry `register*Sync` 패턴으로 옮긴다. Core 도메인 구현은 수정하지 않는다. `industrySyncRegistry.ts`에 Industry 구현·schema·capability을 import하지 않는다.
 
 추후 목표 트리:
 
@@ -197,6 +204,7 @@ src/core/  src/capabilities/  src/industries/  src/app/  src/shared/
 - **신규 위반 = 즉시 실패.** Core→industry/modules/composition/capability(compat shim 제외), capability→industry/modules, services→industry, capability의 신규 `@/services/storage` import.
 - Compat shim만 Core→capability 허용: `@deprecated 신규 코드는` + `@/capabilities/`.
 - industry/app/capability는 `@/core/attendance` 대신 `@/capabilities/attendance`.
+- `industrySyncRegistry.ts` → `@/industries` / `@/modules` / `*EntitySync` / Industry schema·capability 구현 import는 `registry_impl_import`로 즉시 실패. allowlist로 우회하지 않는다.
 
 ## Scope
 

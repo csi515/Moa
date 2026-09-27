@@ -260,11 +260,22 @@ function isIndustrySyncRegistryRel(rel) {
   return rel === 'src/services/adapters/industrySyncRegistry.ts';
 }
 
-function isRegistryConcreteSpec(spec) {
+function isRegistryConcreteSpec(fromRel, spec) {
   if (!spec) return false;
   if (spec === '@/industries' || spec.startsWith('@/industries/')) return true;
   if (isModulesSpecifier(spec)) return true;
-  return /EntitySync/.test(spec);
+  if (spec === '@/capabilities' || spec.startsWith('@/capabilities/')) return true;
+  if (/EntitySync/.test(spec)) return true;
+  if (/(?:piano|daycare|education|bath|pilates|gym|skin|retail)(?:EntitySync|Client)/i.test(spec)) {
+    return true;
+  }
+  if (spec.startsWith('.')) {
+    const resolved = toPosix(join(dirname(join(root, fromRel)), spec));
+    if (resolved === 'src/industries' || resolved.startsWith('src/industries/')) return true;
+    if (resolved === 'src/modules' || resolved.startsWith('src/modules/')) return true;
+    if (resolved === 'src/capabilities' || resolved.startsWith('src/capabilities/')) return true;
+  }
+  return false;
 }
 
 function isAppUiRelative(fromRel, spec) {
@@ -433,7 +444,7 @@ function scanFile(filePath) {
       kinds.add('app_ui_import');
       details.push(`appUi ${spec}`);
     }
-    if (isIndustrySyncRegistryRel(rel) && isRegistryConcreteSpec(spec)) {
+    if (isIndustrySyncRegistryRel(rel) && isRegistryConcreteSpec(rel, spec)) {
       kinds.add('registry_impl_import');
       details.push(`registry impl ${spec}`);
     }
@@ -648,7 +659,7 @@ function selfTest() {
     );
     writeFileSync(
       registryFile,
-      `${registryOriginal}\nimport { x } from './sync/pianoEntitySync';\n`,
+      `${registryOriginal}\nimport { x } from './sync/pianoEntitySync';\nimport { y } from '@/industries/bath/plugin';\nimport { z } from '../../industries/daycare/plugin';\nimport { w } from '@/modules/piano/AppContent';\n`,
       'utf8'
     );
 

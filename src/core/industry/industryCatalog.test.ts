@@ -206,6 +206,20 @@ function run(): void {
   assert.match(
     collectIndustryRegistrationGaps({
       ...baseline,
+      registeredCapabilities: ['piano', 'bath'],
+    }).join('\n'),
+    /capability 등록 미사용: registerIndustrySyncCapability "bath"/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
+      pluginRecords: [{ ...baseline.pluginRecords[0], eagerRegisterImport: false }],
+    }).join('\n'),
+    /capability 등록 경로 누락: plugin piano syncCapabilities 는 있는데 register\*Sync 정적 import가 없음/
+  );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...baseline,
       pluginRecords: [{ ...baseline.pluginRecords[0], attendanceDefault: null }],
     }).join('\n'),
     /업종 기본값 누락/

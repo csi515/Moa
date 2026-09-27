@@ -26,6 +26,8 @@ function run(): void {
   assertIndustryRegistrationIntegrity(srcRoot);
 
   const snap = readIndustryRegistrationSnapshot(srcRoot);
+  const declaredSync = [...new Set(snap.pluginRecords.flatMap((rec) => rec.syncCapabilities))].sort();
+  assert.deepEqual([...snap.registeredCapabilities].sort(), declaredSync);
   const moduleIds = [...snap.moduleIds].sort();
   assert.deepEqual(moduleIds, [...MODULE_INDUSTRY_IDS].sort());
   assert.deepEqual([...snap.registryPluginIds].sort(), moduleIds);

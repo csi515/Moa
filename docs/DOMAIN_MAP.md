@@ -456,6 +456,8 @@ Main Tables: `core.care_journals`, `medication_requests`, `care_child_records`, 
 
 Main Services: `src/industries/daycare/care/careStorage.ts`
 
+Sync: plugin `syncCapabilities: ['daycare']`. 등록 `src/industries/daycare/sync/registerDaycareSync.ts`. 중앙 registry 수정 없음.
+
 Main UI: `src/industries/daycare/care/*`, parent care views
 
 Related Industry: daycare, parent
@@ -478,6 +480,8 @@ Main Tables: `piano.lesson_records`, `textbooks`, `textbook_sales`, `textbook_pa
 
 Main Services: `src/industries/piano/services/`
 
+Sync: plugin `syncCapabilities: ['piano', 'education']`. 등록 `src/industries/piano/sync/registerPianoSync.ts`, `registerEducationSync.ts`. education은 piano가 소유. 중앙 registry 수정 없음.
+
 Main UI: `src/industries/piano/components/lessons|textbooks|songProgress|recitals`
 
 Related Industry: piano, parent(progress)
@@ -498,6 +502,8 @@ Main Tables: `bath.rooms`, `visits`, `bookings`, `services`, `service_resources`
 
 Main Services: `src/industries/bath/services/`
 
+Sync: 현재 없음. 추가 시 plugin `syncCapabilities` + `src/industries/bath/sync/register*Sync.ts`만. Adapter·중앙 registry 수정 없음.
+
 Main UI: BathAppContent, placeholder view
 
 Related Industry: bath
@@ -513,6 +519,8 @@ Dependencies: Organization, (bath schema)
 Purpose: 업종 정의·선택 capability·라우팅.
 
 현재: `src/core/industry`의 `definitions`/catalog는 **Core foundation**. 같은 폴더의 pluginHost·Generic shell은 **Composition 잔여**. 라이브 라우터·모듈 등록은 `src/app/industry` (**Composition SoT**).
+
+Industry sync: Adapter는 업종 이름을 직접 분기하지 않는다. Registry는 concrete implementation을 소유하지 않는다. Industry가 `register*Sync`로 자기 capability를 등록하고, plugin manifest가 사용 id를 선언한다. 새 Industry 추가 시 중앙 sync registry를 수정하지 않는다.
 
 장기: 조립은 `src/app`. Core는 업종을 모르는 카탈로그 조회만. **Industry 구현이 아니다.**
 

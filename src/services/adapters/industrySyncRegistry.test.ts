@@ -3,7 +3,7 @@
  * 실행: npm run test:industry-sync-registry
  */
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { installIndustryPlugin } from '@/core/industry/pluginHost';
@@ -13,13 +13,20 @@ import {
 } from '@/core/industry/industryRegistrationIntegrity';
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import {
+  installVirtualBathSyncFixture,
+  uninstallVirtualBathSyncFixture,
+  VIRTUAL_BATH_INDUSTRY_TYPE,
+  VIRTUAL_BATH_PERSIST_KEY,
+  VIRTUAL_BATH_SYNC_ID,
+} from './industrySyncRegistry.bath.fixture';
+import {
   getIndustrySyncCapability,
   persistRegisteredCapabilities,
   registerIndustrySyncCapability,
   resolveIndustryHydrateCapabilities,
   unregisterIndustrySyncCapability,
 } from './industrySyncRegistry';
-import type { StorageKey } from './storageKeys';
+import { DAYCARE_SYNC_KEYS, PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from './storageKeys';
 import type { SyncCache } from './sync/syncTypes';
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -29,40 +36,54 @@ function readSrc(...parts: string[]) {
   return readFileSync(join(srcRoot, ...parts), 'utf8');
 }
 
+const emptyCache: SyncCache = {
+  get: () => undefined,
+  set: () => undefined,
+  delete: () => undefined,
+  has: () => false,
+};
+
+const probePlugin: IndustryPluginManifest = {
+  id: 'piano',
+  option: { value: 'piano', label: 'probe', description: 'probe' },
+  theme: 'indigo',
+  accent: { btn: '', btnHover: '', icon: '', hoverBg: '', ring: '' },
+  attendanceDefault: false,
+  usesClassBasedSchedule: true,
+  customerListTab: 'students',
+  showSchoolFields: true,
+  showPickupFields: false,
+  levelLabel: '레벨',
+  adminTabs: [],
+  staffTabs: [],
+  syncCapabilities: ['piano', 'education'],
+};
+
 async function run() {
   const adapter = readFileSync(join(here, 'supabaseAdapter.ts'), 'utf8');
   assert.match(adapter, /resolveIndustryHydrateCapabilities/);
   assert.match(adapter, /persistRegisteredCapabilities/);
-  assert.doesNotMatch(adapter, /hydratePianoEntities/);
-  assert.doesNotMatch(adapter, /hydrateEducationEntities/);
-  assert.doesNotMatch(adapter, /hydrateDaycareEntities/);
-  assert.doesNotMatch(adapter, /persistPianoEntity/);
-  assert.doesNotMatch(adapter, /persistDaycareEntity/);
-  assert.doesNotMatch(adapter, /modules\.piano/);
-  assert.doesNotMatch(adapter, /PIANO_SYNC_KEYS/);
-  assert.doesNotMatch(adapter, /DAYCARE_SYNC_KEYS/);
+  assert.doesNotMatch(adapter, /hydratePianoEntities|hydrateEducationEntities|hydrateDaycareEntities/);
+  assert.doesNotMatch(adapter, /persistPianoEntity|persistDaycareEntity/);
+  assert.doesNotMatch(adapter, /modules\.piano|PIANO_SYNC_KEYS|DAYCARE_SYNC_KEYS/);
   assert.doesNotMatch(adapter, /industry === ['"]piano['"]/);
+  assert.doesNotMatch(adapter, /case ['"](?:piano|daycare|bath)['"]/);
   assert.doesNotMatch(adapter, /bath/i);
 
   const registry = readFileSync(join(here, 'industrySyncRegistry.ts'), 'utf8');
-  assert.match(registry, /registerIndustrySyncCapability/);
-  assert.match(registry, /unregisterIndustrySyncCapability/);
-  assert.match(registry, /getIndustrySyncCapability/);
-  assert.match(registry, /listIndustrySyncCapabilities/);
-  assert.match(registry, /resolveIndustryHydrateCapabilities/);
-  assert.match(registry, /persistRegisteredCapabilities/);
-  assert.match(registry, /syncCapabilities/);
+  assert.match(registry, /registerIndustrySyncCapability|unregisterIndustrySyncCapability/);
+  assert.match(registry, /getIndustrySyncCapability|listIndustrySyncCapabilities/);
+  assert.match(registry, /resolveIndustryHydrateCapabilities|persistRegisteredCapabilities/);
   assert.match(registry, /getIndustryPlugin\(industryType\)\.syncCapabilities/);
   assert.match(registry, /persistKeys\.has\(key\)/);
-  assert.doesNotMatch(registry, /pianoEntitySync/);
-  assert.doesNotMatch(registry, /educationEntitySync/);
-  assert.doesNotMatch(registry, /daycareEntitySync/);
-  assert.doesNotMatch(registry, /PIANO_SYNC_KEYS/);
-  assert.doesNotMatch(registry, /DAYCARE_SYNC_KEYS/);
-  assert.doesNotMatch(registry, /@\/industries/);
+  assert.doesNotMatch(registry, /pianoEntitySync|educationEntitySync|daycareEntitySync/);
+  assert.doesNotMatch(registry, /PIANO_SYNC_KEYS|DAYCARE_SYNC_KEYS/);
+  assert.doesNotMatch(registry, /@\/industries|@\/modules|@\/capabilities\//);
+  assert.doesNotMatch(registry, /pianoClient|daycareClient|bathClient/);
   assert.doesNotMatch(registry, /registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'piano'/);
   assert.doesNotMatch(registry, /registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'education'/);
   assert.doesNotMatch(registry, /registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'daycare'/);
+  assert.doesNotMatch(registry, /registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'bath'/);
 
   assert.doesNotMatch(readSrc('services/adapters/sync/pianoEntitySync.ts'), /registerIndustrySyncCapability/);
   assert.doesNotMatch(readSrc('services/adapters/sync/educationEntitySync.ts'), /registerIndustrySyncCapability/);
@@ -70,71 +91,98 @@ async function run() {
 
   const pianoPlugin = readSrc('industries/piano/plugin.ts');
   assert.match(pianoPlugin, /syncCapabilities:\s*\[\s*'piano',\s*'education'\s*\]/);
-  assert.match(pianoPlugin, /registerPianoSync/);
-  assert.match(pianoPlugin, /registerEducationSync/);
+  assert.match(pianoPlugin, /import\s+['"]\.\/sync\/registerPianoSync['"]/);
+  assert.match(pianoPlugin, /import\s+['"]\.\/sync\/registerEducationSync['"]/);
 
   const daycarePlugin = readSrc('industries/daycare/plugin.ts');
   assert.match(daycarePlugin, /syncCapabilities:\s*\[\s*'daycare'\s*\]/);
-  assert.match(daycarePlugin, /registerDaycareSync/);
+  assert.match(daycarePlugin, /import\s+['"]\.\/sync\/registerDaycareSync['"]/);
 
-  const pilatesPlugin = readSrc('industries/pilates/plugin.ts');
-  assert.doesNotMatch(pilatesPlugin, /syncCapabilities/);
+  assert.doesNotMatch(readSrc('industries/pilates/plugin.ts'), /syncCapabilities/);
+  assert.doesNotMatch(readSrc('industries/bath/plugin.ts'), /syncCapabilities|registerBathSync/);
+  assert.equal(existsSync(join(srcRoot, 'industries/bath/sync/registerBathSync.ts')), false);
 
-  const pluginTypes = readSrc('core/industry/pluginTypes.ts');
-  assert.match(pluginTypes, /syncCapabilities\?:/);
+  assert.match(readSrc('core/industry/pluginTypes.ts'), /syncCapabilities\?:/);
 
   const pianoReg = readSrc('industries/piano/sync/registerPianoSync.ts');
-  assert.match(pianoReg, /registerIndustrySyncCapability/);
-  assert.match(pianoReg, /id:\s*'piano'/);
-  assert.match(pianoReg, /hydratePianoEntities/);
-  assert.match(pianoReg, /persistPianoEntity/);
-  assert.match(pianoReg, /PIANO_SYNC_KEYS/);
-
+  assert.match(pianoReg, /registerIndustrySyncCapability|id:\s*'piano'|hydratePianoEntities|persistPianoEntity|PIANO_SYNC_KEYS/);
   const educationReg = readSrc('industries/piano/sync/registerEducationSync.ts');
-  assert.match(educationReg, /registerIndustrySyncCapability/);
-  assert.match(educationReg, /id:\s*'education'/);
-  assert.match(educationReg, /hydrateEducationEntities/);
-  assert.match(educationReg, /persistEducationEntity/);
-  assert.match(educationReg, /PIANO_SYNC_KEYS/);
-
+  assert.match(educationReg, /registerIndustrySyncCapability|id:\s*'education'|hydrateEducationEntities|persistEducationEntity|PIANO_SYNC_KEYS/);
   const daycareReg = readSrc('industries/daycare/sync/registerDaycareSync.ts');
-  assert.match(daycareReg, /registerIndustrySyncCapability/);
-  assert.match(daycareReg, /id:\s*'daycare'/);
-  assert.match(daycareReg, /hydrateDaycareEntities/);
-  assert.match(daycareReg, /persistDaycareEntity/);
-  assert.match(daycareReg, /DAYCARE_SYNC_KEYS/);
+  assert.match(daycareReg, /registerIndustrySyncCapability|id:\s*'daycare'|hydrateDaycareEntities|persistDaycareEntity|DAYCARE_SYNC_KEYS/);
+
+  const modulesSrc = readSrc('app/industry/industryModules.tsx');
+  assert.match(modulesSrc, /import \{ pianoPluginManifest \}/);
+  assert.match(modulesSrc, /import \{ daycarePluginManifest \}/);
+  assert.match(modulesSrc, /import \{ bathPluginManifest \}/);
+  assert.match(modulesSrc, /loadApp:\s*\(\)\s*=>\s*import\(/);
+  assert.doesNotMatch(modulesSrc, /registerPianoSync|registerDaycareSync|registerBathSync/);
+  assert.doesNotMatch(readSrc('industries/piano/PianoAppContent.tsx'), /registerIndustrySyncCapability/);
+  assert.doesNotMatch(readSrc('industries/daycare/DaycareAppContent.tsx'), /registerIndustrySyncCapability/);
+  assert.doesNotMatch(readSrc('industries/bath/BathAppContent.tsx'), /registerIndustrySyncCapability/);
+
+  const expectedPianoKeys = [
+    STORAGE_KEYS.STUDENTS,
+    STORAGE_KEYS.ATTENDANCE,
+    STORAGE_KEYS.PRACTICE_RECORDS,
+    STORAGE_KEYS.LESSON_RECORDS,
+    STORAGE_KEYS.TEXTBOOKS,
+    STORAGE_KEYS.TEXTBOOK_INVENTORY_TRANSACTIONS,
+    STORAGE_KEYS.SONGS,
+    STORAGE_KEYS.EVENTS,
+    STORAGE_KEYS.PERFORMANCE_VIDEOS,
+    STORAGE_KEYS.CURRICULUM_LEVELS,
+    STORAGE_KEYS.CURRICULUM_ITEMS,
+    STORAGE_KEYS.CURRICULUM_PROGRESS,
+    STORAGE_KEYS.WEEKLY_ASSIGNMENTS,
+    STORAGE_KEYS.ACHIEVEMENTS,
+    STORAGE_KEYS.LEARNING_REPORTS,
+  ];
+  const expectedDaycareKeys = [
+    STORAGE_KEYS.CARE_JOURNALS,
+    STORAGE_KEYS.MEDICATION_REQUESTS,
+    STORAGE_KEYS.CARE_CHILD_RECORDS,
+    STORAGE_KEYS.CARE_INCIDENTS,
+    STORAGE_KEYS.CARE_STAFF_HEALTH_CERTS,
+    STORAGE_KEYS.CARE_SAFETY_LOGS,
+    STORAGE_KEYS.CARE_MEAL_SAMPLES,
+    STORAGE_KEYS.CARE_CCTV_REQUESTS,
+    STORAGE_KEYS.CARE_PICKUP_LOGS,
+  ];
+  assert.deepEqual([...PIANO_SYNC_KEYS].sort(), [...expectedPianoKeys].sort());
+  assert.deepEqual([...DAYCARE_SYNC_KEYS].sort(), [...expectedDaycareKeys].sort());
+  assert.equal(PIANO_SYNC_KEYS.size, 15);
+  assert.equal(DAYCARE_SYNC_KEYS.size, 9);
 
   const snap = readIndustryRegistrationSnapshot(srcRoot);
-  assert.ok(snap.registeredCapabilities.includes('piano'));
-  assert.ok(snap.registeredCapabilities.includes('education'));
-  assert.ok(snap.registeredCapabilities.includes('daycare'));
+  assert.deepEqual(snap.registeredCapabilities, ['daycare', 'education', 'piano']);
+  const declared = [...new Set(snap.pluginRecords.flatMap((rec) => rec.syncCapabilities))].sort();
+  assert.deepEqual(declared, ['daycare', 'education', 'piano']);
+  assert.equal(collectIndustryRegistrationGaps(snap).length, 0);
   assert.match(
     collectIndustryRegistrationGaps({
       ...snap,
       pluginRecords: snap.pluginRecords.map((rec) =>
-        rec.id === 'piano'
-          ? { ...rec, syncCapabilities: [...rec.syncCapabilities, 'bath'] }
-          : rec
+        rec.id === 'piano' ? { ...rec, syncCapabilities: [...rec.syncCapabilities, 'bath'] } : rec
       ),
     }).join('\n'),
     /capability 선언 누락: plugin piano syncCapabilities "bath"/
   );
+  assert.match(
+    collectIndustryRegistrationGaps({
+      ...snap,
+      registeredCapabilities: [...snap.registeredCapabilities, 'bath'],
+    }).join('\n'),
+    /capability 등록 미사용: registerIndustrySyncCapability "bath"/
+  );
 
-  const probePlugin: IndustryPluginManifest = {
-    id: 'piano',
-    option: { value: 'piano', label: 'probe', description: 'probe' },
-    theme: 'indigo',
-    accent: { btn: '', btnHover: '', icon: '', hoverBg: '', ring: '' },
-    attendanceDefault: false,
-    usesClassBasedSchedule: true,
-    customerListTab: 'students',
-    showSchoolFields: true,
-    showPickupFields: false,
-    levelLabel: '레벨',
-    adminTabs: [],
-    staffTabs: [],
-    syncCapabilities: ['piano', 'education'],
-  };
+  /**
+   * 신규 capability 추가에 필요한 것: register 모듈 + plugin.syncCapabilities.
+   * 필요하지 않은 것: industrySyncRegistry.ts / supabaseAdapter 업종 분기 / registry 업종 import.
+   */
+  assert.equal(adapter.includes('hydrateBath') || adapter.includes('modules.bath'), false);
+  assert.doesNotMatch(registry, /registerBathSync|id:\s*'bath'/);
+
   installIndustryPlugin(probePlugin);
   installIndustryPlugin({
     ...probePlugin,
@@ -157,24 +205,33 @@ async function run() {
   registerIndustrySyncCapability({ id: 'piano', ...stub });
   registerIndustrySyncCapability({ id: 'education', ...stub });
   registerIndustrySyncCapability({ id: 'daycare', ...stub });
-  assert.deepEqual(
-    resolveIndustryHydrateCapabilities('piano').map((cap) => cap.id),
-    ['piano', 'education']
-  );
-  assert.deepEqual(
-    resolveIndustryHydrateCapabilities('daycare').map((cap) => cap.id),
-    ['daycare']
-  );
+  assert.deepEqual(resolveIndustryHydrateCapabilities('piano').map((cap) => cap.id), ['piano', 'education']);
+  assert.deepEqual(resolveIndustryHydrateCapabilities('daycare').map((cap) => cap.id), ['daycare']);
   assert.deepEqual(resolveIndustryHydrateCapabilities('pilates').map((cap) => cap.id), []);
+
+  const bath = installVirtualBathSyncFixture();
+  assert.equal(getIndustrySyncCapability(VIRTUAL_BATH_SYNC_ID)?.id, VIRTUAL_BATH_SYNC_ID);
+  assert.deepEqual(
+    resolveIndustryHydrateCapabilities(VIRTUAL_BATH_INDUSTRY_TYPE).map((cap) => cap.id),
+    [VIRTUAL_BATH_SYNC_ID]
+  );
+  assert.deepEqual(resolveIndustryHydrateCapabilities('sauna_jjimjbang').map((cap) => cap.id), [
+    VIRTUAL_BATH_SYNC_ID,
+  ]);
+  const bathPersistOk = await persistRegisteredCapabilities(
+    VIRTUAL_BATH_PERSIST_KEY,
+    'org',
+    emptyCache,
+    () => false
+  );
+  assert.equal(bathPersistOk, true);
+  assert.equal(bath.persistCalls, 1);
+  uninstallVirtualBathSyncFixture();
+  assert.equal(getIndustrySyncCapability(VIRTUAL_BATH_SYNC_ID), undefined);
+  assert.deepEqual(resolveIndustryHydrateCapabilities(VIRTUAL_BATH_INDUSTRY_TYPE).map((cap) => cap.id), []);
 
   const probeId = '__industry_sync_probe__';
   const probeKey = '__probe_key__' as StorageKey;
-  const cache: SyncCache = {
-    get: () => undefined,
-    set: () => undefined,
-    delete: () => undefined,
-    has: () => false,
-  };
   let persistCalls = 0;
   registerIndustrySyncCapability({
     id: probeId,
@@ -195,27 +252,7 @@ async function run() {
     },
     persistKeys: new Set([probeKey]),
   });
-
-  /**
-   * Bath 추가 시 Adapter·registry 수정이 필요 없다.
-   * 필요한 것: plugin.syncCapabilities + industries/<id>/sync/register*Sync.ts
-   */
-  const bathWouldNeed = [
-    'industries/bath/plugin.ts (syncCapabilities: [\'bath\'])',
-    'industries/bath/sync/registerBathSync.ts → registerIndustrySyncCapability',
-  ];
-  assert.equal(
-    adapter.includes('hydrateBath') || adapter.includes('modules.bath'),
-    false,
-    `Bath를 Adapter에 넣으면 안 됩니다. 대신: ${bathWouldNeed.join(' / ')}`
-  );
-  assert.doesNotMatch(
-    registry,
-    /registerBathSync|id:\s*'bath'/,
-    '새 sync capability는 registry를 수정하지 않는다'
-  );
-
-  const persistOk = await persistRegisteredCapabilities(probeKey, 'org', cache, () => false);
+  const persistOk = await persistRegisteredCapabilities(probeKey, 'org', emptyCache, () => false);
   assert.equal(persistOk, true);
   assert.equal(persistCalls, 10);
   unregisterIndustrySyncCapability(probeId);
