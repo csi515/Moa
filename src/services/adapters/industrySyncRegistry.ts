@@ -2,7 +2,7 @@
  * 업종 sync capability 레지스트리.
  * 계약·조회·실행만 담당한다. 업종별 구현을 import하거나 직접 등록하지 않는다.
  *
- * 등록은 구현 모듈이 `registerIndustrySyncCapability`로 한다.
+ * 등록은 Industry bootstrap(`src/industries/<id>/sync/register*Sync.ts`)이 한다.
  * manifest `syncCapabilities`는 “이 업종이 어떤 id를 쓰는지”만 선언한다.
  */
 import { getIndustryPlugin } from '@/core/industry/registry';

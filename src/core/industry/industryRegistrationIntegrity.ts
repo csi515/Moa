@@ -128,14 +128,27 @@ export function parseRegisteredCapabilityIds(src: string): string[] {
   return [...src.matchAll(/registerIndustrySyncCapability\(\{[\s\S]*?id:\s*'([^']+)'/g)].map((m) => m[1]);
 }
 
-function collectRegisteredCapabilityIds(srcRoot: string): string[] {
-  const ids: string[] = [];
-  const syncDir = join(srcRoot, 'services/adapters/sync');
-  if (existsSync(syncDir)) {
-    for (const name of readdirSync(syncDir)) {
-      if (!name.endsWith('.ts') || name.endsWith('.test.ts')) continue;
-      ids.push(...parseRegisteredCapabilityIds(readFileSync(join(syncDir, name), 'utf8')));
+function walkTsFiles(dir, out = []) {
+  if (!existsSync(dir)) return out;
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const full = join(dir, entry.name);
+    if (entry.isDirectory()) {
+      walkTsFiles(full, out);
+      continue;
     }
+    if (/\.ts$/.test(entry.name) && !entry.name.endsWith('.test.ts')) out.push(full);
+  }
+  return out;
+}
+
+function collectRegisteredCapabilityIds(srcRoot: string): string[] {
+  const files = [
+    ...walkTsFiles(join(srcRoot, 'industries')),
+    ...walkTsFiles(join(srcRoot, 'services/adapters/sync')),
+  ];
+  const ids = [];
+  for (const file of files) {
+    ids.push(...parseRegisteredCapabilityIds(readFileSync(file, 'utf8')));
   }
   return uniqueSorted(ids);
 }

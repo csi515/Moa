@@ -14,7 +14,6 @@ import type {
 import { getPianoClient } from '../../../lib/supabase/pianoClient';
 import { readLocal, writeLocal } from '../localStorageEngine';
 import { applyDirtyListMerge } from '../pendingMutations';
-import { registerIndustrySyncCapability } from '../industrySyncRegistry';
 import { PIANO_SYNC_KEYS, STORAGE_KEYS, type StorageKey } from '../storageKeys';
 import type { PersistAbortGuard, SyncCache } from './syncTypes';
 import {
@@ -254,10 +253,3 @@ export async function persistPianoEntity(
       return true;
   }
 }
-
-registerIndustrySyncCapability({
-  id: 'piano',
-  hydrate: hydratePianoEntities,
-  persist: persistPianoEntity,
-  persistKeys: PIANO_SYNC_KEYS,
-});

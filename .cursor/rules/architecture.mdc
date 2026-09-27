@@ -62,7 +62,7 @@ Industry 등록은 한 파일이 아니다. 현재 분산:
 | `src/core/industry/definitions.ts` | 카탈로그 id, `capabilities`/`defaults`/`selectable`/`moduleId` |
 | `src/core/industry/catalog.ts` | 조회·alias·generic-shell |
 | `src/core/industry/pluginHost.ts` + `registry.ts` | 설치된 plugin 조회 |
-| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities |
+| `src/industries/<id>/plugin.ts` | 탭·테마·syncCapabilities. sync 등록 모듈을 import |
 | `src/app/industry/industryModules.tsx` | 모듈 등록. `APP_BY_INDUSTRY`는 이 목록에서 **파생** |
 | `src/app/industry/IndustryAppRouter.tsx` | 셸 선택 |
 | `src/app/industry/loadIndustryModules.ts` | plugin 설치 |
@@ -179,7 +179,7 @@ StorageService에 업종별 storage를 무조건 추가하지 않는다. 조직 
 - 다른 Industry 화면을 복사해 새 업종을 만들기
 - 새 업종 때문에 기존 Core domain 이름을 업종에 맞게 바꾸기
 
-(선택) hydrate가 필요하면 plugin `syncCapabilities`를 선언하고 구현 모듈에서 `registerIndustrySyncCapability`로 등록한다. Core 도메인 구현은 수정하지 않는다.
+(선택) hydrate가 필요하면 plugin `syncCapabilities`를 선언하고 `src/industries/<id>/sync/register*Sync.ts`에서 `registerIndustrySyncCapability`로 등록한다. `industrySyncRegistry.ts`에 Industry 구현을 import하거나 중앙 등록하지 않는다. 기존 `services/adapters/sync/*EntitySync`는 legacy 구현이며 점진적으로 이 패턴으로 옮긴다. Core 도메인 구현은 수정하지 않는다.
 
 추후 목표 트리:
 

@@ -84,7 +84,7 @@ export function defineIndustry<T extends string>(
  * 1. 여기 DEFINITION_LIST에 defineIndustry({ id, moduleId, selectable, capabilities, defaults })
  * 2. src/industries/<dir>/plugin.ts + AppContent
  * 3. src/app/industry/industryModules.tsx 에 defineIndustryModule 한 줄
- * 4. (선택) plugin.syncCapabilities 선언 + registerIndustrySyncCapability
+ * 4. (선택) plugin.syncCapabilities 선언 + `src/industries/<id>/sync/register*Sync.ts`
  * Core/Capability 파일을 수정하지 않는다. 누락은 industryContract.test에서 실패한다.
  */
 const DEFINITION_LIST = [

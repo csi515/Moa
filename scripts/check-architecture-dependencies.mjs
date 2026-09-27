@@ -256,6 +256,17 @@ function isAppUiSpecifier(spec) {
   return spec === '@/shared/app/appUi' || (typeof spec === 'string' && spec.startsWith('@/shared/app/appUi/'));
 }
 
+function isIndustrySyncRegistryRel(rel) {
+  return rel === 'src/services/adapters/industrySyncRegistry.ts';
+}
+
+function isRegistryConcreteSpec(spec) {
+  if (!spec) return false;
+  if (spec === '@/industries' || spec.startsWith('@/industries/')) return true;
+  if (isModulesSpecifier(spec)) return true;
+  return /EntitySync/.test(spec);
+}
+
 function isAppUiRelative(fromRel, spec) {
   if (!spec || !spec.startsWith('.')) return false;
   const resolved = toPosix(join(dirname(join(root, fromRel)), spec));
@@ -422,6 +433,10 @@ function scanFile(filePath) {
       kinds.add('app_ui_import');
       details.push(`appUi ${spec}`);
     }
+    if (isIndustrySyncRegistryRel(rel) && isRegistryConcreteSpec(spec)) {
+      kinds.add('registry_impl_import');
+      details.push(`registry impl ${spec}`);
+    }
     if (fromLayer === 'capability' && spec.startsWith('@/core/')) {
       const fromCap = capabilityIdFromRel(rel);
       const shimFile = resolveAliasFile(spec);
@@ -547,6 +562,9 @@ function selfTest() {
   const academyExistingRel = 'src/core/academy/utils/weekdayKo.ts';
   const academyExistingFile = join(root, academyExistingRel);
   const academyExistingOriginal = readFileSync(academyExistingFile, 'utf8');
+  const registryRel = 'src/services/adapters/industrySyncRegistry.ts';
+  const registryFile = join(root, registryRel);
+  const registryOriginal = readFileSync(registryFile, 'utf8');
   const academyNewRel = 'src/core/academy/_architecture_probe.tmp.ts';
 
   try {
@@ -626,6 +644,11 @@ function selfTest() {
     writeFileSync(
       academyExistingFile,
       `${academyExistingOriginal}\nimport { x } from '@/capabilities/billing';\n`,
+      'utf8'
+    );
+    writeFileSync(
+      registryFile,
+      `${registryOriginal}\nimport { x } from './sync/pianoEntitySync';\n`,
       'utf8'
     );
 
@@ -722,6 +745,12 @@ function selfTest() {
     if (!capRelativeContextHit) {
       throw new Error('architecture self-test: Capability → relative context 를 잡지 못했습니다.');
     }
+    const registryImplHit = next.some(
+      (row) => row.kind === 'registry_impl_import' && row.file === registryRel
+    );
+    if (!registryImplHit) {
+      throw new Error('architecture self-test: industrySyncRegistry → concrete sync 를 잡지 못했습니다.');
+    }
     if (
       !coreHit ||
       !capHit ||
@@ -737,15 +766,17 @@ function selfTest() {
       !coreAppUiHit ||
       !capContextHit ||
       !capAppUiHit ||
-      !capRelativeContextHit
+      !capRelativeContextHit ||
+      !registryImplHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
+    writeFileSync(registryFile, registryOriginal, 'utf8');
     for (const probe of probes) removeIfExists(probe);
   }
 
@@ -755,6 +786,10 @@ function selfTest() {
   );
   if (leftoverAcademy) {
     throw new Error('architecture self-test: probe 정리 후에도 academy 위반이 남았습니다.');
+  }
+  const leftoverRegistry = cleaned.some((row) => row.kind === 'registry_impl_import');
+  if (leftoverRegistry) {
+    throw new Error('architecture self-test: probe 정리 후에도 registry 구현 import 위반이 남았습니다.');
   }
 }
 

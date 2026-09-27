@@ -1,8 +1,8 @@
 import type { IndustryPluginManifest } from '@/core/industry/pluginTypes';
 import { withNoticesTabs } from '@/core/industry/pluginTypes';
 import { registerPinCheckInSideEffect } from '@/capabilities/attendance';
-import '@/services/adapters/sync/pianoEntitySync';
-import '@/services/adapters/sync/educationEntitySync';
+import './sync/registerPianoSync';
+import './sync/registerEducationSync';
 import { syncDayAttendanceFromPinCheckIn } from './services/pinDayAttendanceSync';
 import { registerPianoStudentDetailExtension } from './studentDetailExtension';
 

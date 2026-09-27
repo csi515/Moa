@@ -34,7 +34,7 @@ export interface IndustryPluginManifest {
   /**
    * 이 업종이 사용하는 hydrate/persist capability id 선언.
    * Adapter는 이 목록만 조회한다. 업종 이름을 Adapter에서 직접 분기하지 않는다.
-   * 실제 구현 등록은 `registerIndustrySyncCapability`의 책임이다.
+   * 실제 구현 등록은 Industry `sync/register*Sync.ts`가 `registerIndustrySyncCapability`로 한다.
    * registry는 구현의 소유자가 아니다.
    */
   syncCapabilities?: string[];
