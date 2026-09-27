@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useStaffScope } from '@/hooks';
 import { getPrimaryGuardian, studentMatchesGuardianQuery } from '@/core/parent/guardianHelpers';
 import { StorageService } from '@/services/storage';

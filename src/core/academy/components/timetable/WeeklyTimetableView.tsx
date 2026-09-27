@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useStaffScope, useIsDesktop, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';

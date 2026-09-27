@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStaffGrants, useStaffScope, useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';

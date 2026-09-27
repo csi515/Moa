@@ -1,4 +1,4 @@
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import type { IndustryType } from '@/core/industry/types';
 import { getOwnerLabel } from '@/core/industry/industryUi';
 import { getIndustryPlugin } from '@/core/industry/registry';

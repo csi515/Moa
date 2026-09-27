@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';

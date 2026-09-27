@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getIndustryPlugin } from '@/core/industry/registry';
 import { isSkinClinicIndustry } from '@/core/industry/industryUi';

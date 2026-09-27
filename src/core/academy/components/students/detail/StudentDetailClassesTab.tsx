@@ -1,6 +1,6 @@
 import React from 'react';
 import { ClassItem } from '@/types';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useModuleLabels } from '@/core/labels';
 
 interface StudentDetailClassesTabProps {

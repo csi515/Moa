@@ -340,7 +340,8 @@ Import: `@/shared/components` barrel 우선.
 | --- | --- |
 | `src/core/auth/AuthProvider.tsx` | Supabase session |
 | `src/core/organizations/OrganizationProvider.tsx` | membership, 선택 사업장, role, portalMode, location |
-| `src/context/AppContext.tsx` | 탭, 선택 학생, toast, confirm, workStatus, refreshKey |
+| `src/shared/navigation/navigationTypes.ts` | `NavTab` 계약. Core/Capability는 AppContext를 직접 import하지 않는다 |
+| `src/context/AppContext.tsx` | 탭, 선택 학생, toast, confirm, workStatus, refreshKey. `NavTab`은 navigation contract를 re-export |
 | `src/hooks/useStorageRefresh.ts` | Storage 키 구독 화면 갱신 |
 | `src/hooks/usePermissions.ts` (`core/auth`) | 탭/permission UX |
 | `src/hooks/useStaffScope.ts`, `useStaffGrants.ts` | 스태프 범위 |

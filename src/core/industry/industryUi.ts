@@ -1,4 +1,4 @@
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import type { ModuleTheme } from '@/shared/components/layout/moduleTheme';
 import { normalizeIndustryType, type IndustryType } from './types';
 import { getIndustryPlugin } from './registry';

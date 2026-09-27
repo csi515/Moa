@@ -1,4 +1,4 @@
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import type { IndustryPluginManifest } from './pluginTypes';
 import type { IndustryDefinition } from './catalog';
 import { withNoticesTabs } from './pluginTypes';

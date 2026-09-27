@@ -1,7 +1,7 @@
 import React, { useMemo, useRef, useState, type DragEvent } from 'react';
 import { Download, FileSpreadsheet, Loader2, Upload } from 'lucide-react';
 import { Modal } from '@/shared/components/ui';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { getPrimaryGuardian } from '@/core/parent/guardianHelpers';
 import { StudentService } from '@/core/students';

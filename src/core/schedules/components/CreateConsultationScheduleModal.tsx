@@ -1,6 +1,6 @@
 import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { Loader2 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { Modal } from '@/shared/components/ui/Modal';
 import { FormField, FORM_CONTROL_CLASS, FORM_CONTROL_ERROR_CLASS } from '@/shared/components/ui/FormField';

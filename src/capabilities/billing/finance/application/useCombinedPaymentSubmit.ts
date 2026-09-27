@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { CombinedPaymentRequest } from '@/types';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { recordCombinedPayment } from './recordCombinedPayment';
 import { runCombinedPaymentSubmit } from './combinedPaymentSubmit';
 

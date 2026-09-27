@@ -1,4 +1,4 @@
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 
 /** 모바일 하단 핵심 탭 권장 수 (더보기 제외) */
 export const MOBILE_MAIN_TAB_RECOMMENDED = 4;

@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { reservationService } from '@/core/schedules';
 import { Modal } from '@/shared/components/ui/Modal';

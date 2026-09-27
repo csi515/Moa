@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent, type FC, type FormEvent } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';

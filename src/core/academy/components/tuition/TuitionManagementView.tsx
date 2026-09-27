@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo, useEffect } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getCustomerLabel } from '@/core/industry/industryUi';
 import { useModuleLabels } from '@/core/labels';

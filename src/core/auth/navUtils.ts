@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 
 export const MORE_NAV_SECTION = {
   work: '업무',

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import type { IndustryType } from '@/core/industry/types';
 import { isAttendanceModuleEnabled } from '@/core/attendance/features';
 import { applyStaffGrantTabs, normalizeStaffGrants } from '@/core/staff/staffGrants';

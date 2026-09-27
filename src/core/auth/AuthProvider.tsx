@@ -4,7 +4,7 @@ import { StorageService } from '../../services/storage';
 import * as authService from './services/authService';
 import { clearLocalPushTokensForUser, resetAppPushRegistrationContext } from '@/core/push';
 import { ConfirmDialog } from '@/shared/components/ConfirmDialog';
-import type { ConfirmDialogOptions } from '@/context/AppContext';
+import type { ConfirmDialogOptions } from '@/shared/app/appUi';
 
 interface AuthContextType {
   session: Session | null;

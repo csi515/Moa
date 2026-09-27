@@ -15,6 +15,9 @@ import {
   type FeedbackTone,
   type WorkStatusMessage,
 } from '@/shared/feedback/feedbackPolicy';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
+
+export type { NavTab } from '@/shared/navigation/navigationTypes';
 
 /**
  * AppContext 역할:
@@ -24,51 +27,6 @@ import {
  *
  * Domain data(students/bookings/…)는 AppContext에 두지 않음 → useStorageRefresh(domain) 구독.
  */
-
-export type NavTab =
-  | 'dashboard'
-  | 'students'
-  | 'parents'
-  | 'enrollment-requests'
-  | 'classes'
-  | 'timetable'
-  | 'attendance'
-  | 'check-in'
-  | 'tuition'
-  | 'unpaid'
-  | 'textbooks'
-  | 'finance'
-  | 'income'
-  | 'expenses'
-  | 'payroll'
-  | 'makeups'
-  | 'practice-rooms'
-  | 'consultations'
-  | 'practice'
-  | 'lessons'
-  | 'resources'
-  | 'teachers'
-  | 'calendar'
-  | 'recitals'
-  | 'curriculum'
-  | 'assignments'
-  | 'achievements'
-  | 'song-stamps'
-  | 'reports'
-  | 'bookings'
-  | 'services'
-  | 'members'
-  | 'instructors'
-  | 'passes'
-  | 'retail'
-  | 'sales'
-  | 'inventory'
-  | 'shuttle'
-  | 'journals'
-  | 'medications'
-  | 'notices'
-  | 'settings'
-  | 'account';
 
 export type StudentDetailTab =
   | 'info'

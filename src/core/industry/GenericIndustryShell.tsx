@@ -1,6 +1,6 @@
 import { type FC, type ReactNode, useMemo } from 'react';
 import { Construction, Home, Settings, User } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useTabGuard } from '@/core/auth/useTabGuard';
 import { ModuleLabelsProvider } from '@/core/labels';

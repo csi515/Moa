@@ -1,6 +1,7 @@
 import { useMemo, type FC, type ReactNode } from 'react';
 import { BarChart3, ChevronRight, CreditCard, Landmark } from 'lucide-react';
-import { useApp, type NavTab } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { isAppointmentIndustry } from '@/core/industry/industryUi';
 import { PageHeader, SegmentedControl } from '@/shared/components';

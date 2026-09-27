@@ -1,6 +1,6 @@
 ﻿import { useMemo, useState, type FC, type FormEvent } from 'react';
 import { Bus, CheckCircle2, Plus, Save, Trash2 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useStaffScope, useStorageRefresh } from '@/hooks';
 import { useModuleLabels } from '@/core/labels';
 import { StorageService } from '@/services/storage';

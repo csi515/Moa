@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calendar, CheckCircle, Loader2, Mail, Phone, User, XCircle } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import type { GuardianEnrollmentRequest } from '@/core/parent/services/enrollmentRequestService';
 import { GUARDIAN_RELATIONSHIP_LABELS } from '@/core/parent/types';
 import { SHARED_CHILD_FIELD_LABELS, type SharedChildField } from '@/core/parent/services/parentChildService';

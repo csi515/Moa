@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOptionalOrganization } from '@/core/organizations/OrganizationProvider';
 import { StorageService } from '@/services/storage';
 import { isAttendanceModuleEnabled } from '../domain/features';

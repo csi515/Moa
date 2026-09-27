@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { useStorageRefresh } from '@/hooks';
 import { StorageService } from '@/services/storage';

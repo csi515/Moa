@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useMemo, useState, type FC } from 'react';
 import { CalendarOff, Clock, Loader2, Plus, RefreshCw, Trash2 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import { PageHeader, EmptyState } from '@/shared/components';
 import { availabilityCapability } from './availabilityCapability';

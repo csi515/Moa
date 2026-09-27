@@ -1,4 +1,4 @@
-import type { NavTab } from '@/context/AppContext';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 
 /** 원장이 강사마다 켜는 허용. 없으면 모두 꺼진 것으로 봅니다. */
 export interface StaffGrants {

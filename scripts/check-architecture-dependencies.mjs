@@ -242,6 +242,16 @@ function layerOfRel(rel) {
   return null;
 }
 
+function isContextSpecifier(spec) {
+  return spec === '@/context' || (typeof spec === 'string' && spec.startsWith('@/context/'));
+}
+
+function isContextRelative(fromRel, spec) {
+  if (!spec || !spec.startsWith('.')) return false;
+  const resolved = toPosix(join(dirname(join(root, fromRel)), spec));
+  return resolved === 'src/context' || resolved.startsWith('src/context/');
+}
+
 function isModulesSpecifier(spec) {
   if (!spec) return false;
   if (spec === '@/modules' || spec.startsWith('@/modules/')) return true;
@@ -383,6 +393,13 @@ function scanFile(filePath) {
     if (fromLayer === 'capability' && spec === '@/services/storage') {
       kinds.add('storage_service_import');
       details.push(`legacy StorageService (${spec})`);
+    }
+    if (
+      (fromLayer === 'core' || fromLayer === 'capability') &&
+      (isContextSpecifier(spec) || isContextRelative(rel, spec))
+    ) {
+      kinds.add('context_import');
+      details.push(`context ${spec}`);
     }
     if (fromLayer === 'capability' && spec.startsWith('@/core/')) {
       const fromCap = capabilityIdFromRel(rel);
@@ -550,6 +567,19 @@ function selfTest() {
         "import { x } from '@/core/finance';\n"
       )
     );
+    probes.push(
+      writeProbe(join(srcRoot, 'core'), '_architecture_probe_ctx.tmp.ts', "import { useApp } from '@/context/AppContext';\n")
+    );
+    probes.push(
+      writeProbe(capDir, '_architecture_probe_ctx.tmp.ts', "import { useApp } from '@/context/AppContext';\n")
+    );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'core', 'auth'),
+        '_architecture_probe_ctx_rel.tmp.ts',
+        "import { useApp } from '../../context/AppContext';\n"
+      )
+    );
     probes.push(writeProbe(join(srcRoot, 'core', 'academy'), '_architecture_probe.tmp.ts', 'export const academyProbe = true;\n'));
     writeFileSync(
       academyExistingFile,
@@ -593,6 +623,18 @@ function selfTest() {
     const snapshotFalsePositive = next.some(
       (row) => row.kind === 'academy_new_file' && row.file === 'src/core/academy/index.ts'
     );
+    const coreContextHit = next.some(
+      (row) =>
+        row.kind === 'context_import' &&
+        row.file.startsWith('src/core/') &&
+        row.details.some((line) => line.includes('context/AppContext'))
+    );
+    const capContextHit = next.some(
+      (row) =>
+        row.kind === 'context_import' &&
+        row.file.includes('capabilities') &&
+        row.details.some((line) => line.includes('@/context/AppContext'))
+    );
     if (
       !coreHit ||
       !capHit ||
@@ -602,12 +644,14 @@ function selfTest() {
       !shimCycleHit ||
       !academyNewFileHit ||
       !academyImportHit ||
-      snapshotFalsePositive
+      snapshotFalsePositive ||
+      !coreContextHit ||
+      !capContextHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService / legacy attendance / capability→shim cycle / academy freeze(full scan) / core·capability→context 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');

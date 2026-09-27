@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FC, type ReactNode } from 'react';
 import { Settings } from 'lucide-react';
-import { useApp, type NavTab } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
+import type { NavTab } from '@/shared/navigation/navigationTypes';
 import { PageHeader, SegmentedControl } from '@/shared/components';
 import { AcademySettingsView } from './AcademySettingsView';
 import { TeacherManagementView } from '../teachers/TeacherManagementView';

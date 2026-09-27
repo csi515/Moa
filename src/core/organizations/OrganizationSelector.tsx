@@ -15,7 +15,7 @@ import { getIndustryLabel, type IndustryType } from '../industry/types';
 import { CreateOrganizationWizard } from './CreateOrganizationWizard';
 import { TeacherJoinFlow } from './components/TeacherJoinFlow';
 import { useAuth } from '../auth/AuthProvider';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { switchErrorMessage } from './roleContextHelpers';
 
 export const OrganizationSelector: React.FC = () => {

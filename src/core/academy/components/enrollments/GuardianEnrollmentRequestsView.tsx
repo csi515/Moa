@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, User } from 'lucide-react';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import {
   getOrgEnrollmentRequests,
   approveEnrollmentRequest,

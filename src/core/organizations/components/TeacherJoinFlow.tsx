@@ -10,7 +10,7 @@ import {
   Send,
   ArrowLeft,
 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { getIndustryLabel } from '@/core/industry/types';
 import * as joinRequestService from '../services/joinRequestService';
 

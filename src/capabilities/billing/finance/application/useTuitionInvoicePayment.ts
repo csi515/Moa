@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { PaymentMethod, TuitionInvoice } from '@/types';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { TuitionService } from '@/capabilities/billing/finance/services/tuitionService';
 import { runTuitionInvoicePayment } from './submitTuitionInvoicePayment';
 

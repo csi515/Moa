@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
 import {
   getOrganizationJoinRequests,

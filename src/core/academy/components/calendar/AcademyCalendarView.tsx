@@ -1,5 +1,5 @@
 ﻿import React, { useState, useMemo } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { usePermissions } from '@/core/auth/usePermissions';
 import { getPlaceLabel } from '@/core/industry/industryUi';
 import { usePublicHolidays, holidaysOnDate, holidaysForMonth } from '@/core/calendar';

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { StorageService } from '@/services/storage';
 import { StudentService } from '@/core/students';
 import { TuitionService } from '@/core/finance';

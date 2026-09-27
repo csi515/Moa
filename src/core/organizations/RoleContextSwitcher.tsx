@@ -13,7 +13,7 @@ import {
   Loader2,
   MapPin,
 } from 'lucide-react';
-import { useApp } from '@/context/AppContext';
+import { useApp } from '@/shared/app/appUi';
 import { useOptionalAuth } from '../auth/AuthProvider';
 import { useOptionalOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
