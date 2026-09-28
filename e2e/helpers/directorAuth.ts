@@ -1,6 +1,7 @@
 import type { Page, Response } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { getE2ECredentials } from './env';
+import { seedE2eBlockingUiDismissed, suppressE2eBlockingUi } from './e2eUiState';
 
 /** 로그인 폼 표시 확인 (자격 증명 불필요) */
 export async function expectAuthPageVisible(page: Page) {
@@ -136,6 +137,7 @@ export async function loginAsDirector(page: Page) {
     );
   }
 
+  await suppressE2eBlockingUi(page);
   await page.goto('/');
   await expect(page.getByRole('button', { name: '로그인', exact: true }).first()).toBeVisible({
     timeout: 30_000,
@@ -173,5 +175,6 @@ export async function loginAsDirector(page: Page) {
   }
 
   await waitForDirectorHome(page);
+  await seedE2eBlockingUiDismissed(page);
   await muteMobileOverlayClicks(page);
 }

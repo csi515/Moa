@@ -7,6 +7,7 @@ import {
   openFinanceSegment,
   openNavTab,
 } from './helpers/directorNav';
+import { suppressE2eBlockingUi } from './helpers/e2eUiState';
 import { findStudentByName, snapshotAttendance } from './helpers/storageProbe';
 
 /**
@@ -39,6 +40,7 @@ test.describe('원장 핵심 운영 흐름 (인증 필요)', () => {
     );
     browser = b;
     page = await browser.newPage();
+    await suppressE2eBlockingUi(page);
     await loginAsDirector(page);
   });
 
@@ -215,6 +217,7 @@ test.describe('모바일 viewport', () => {
       return;
     }
 
+    await suppressE2eBlockingUi(page);
     await loginAsDirector(page);
     await expectHomeVisible(page);
     await openNavTab(page, '학생');

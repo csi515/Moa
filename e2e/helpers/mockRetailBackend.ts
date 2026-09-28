@@ -1151,12 +1151,21 @@ export async function mockRetailBackend(page: Page): Promise<MockRetailApi> {
   return api;
 }
 
-/** 공개 상담 목과 동일 — 세션 클리어 후 시작 */
+/** 공개 상담 목과 동일 — 세션 클리어 후 시작. PWA 설치 안내는 다시 심어 네비를 가리지 않게 한다. */
 export async function clearBrowserAuth(page: Page) {
   await page.addInitScript(() => {
     try {
       localStorage.clear();
       sessionStorage.clear();
+    } catch {
+      /* ignore */
+    }
+    try {
+      localStorage.setItem('moa.pwa.installed', '1');
+      localStorage.setItem(
+        'moa.pwa.dismissUntil',
+        String(Date.now() + 365 * 24 * 60 * 60 * 1000)
+      );
     } catch {
       /* ignore */
     }

@@ -13,6 +13,7 @@ import {
   visibleText,
 } from './helpers/retailAuth';
 import { expectAuthPageVisible } from './helpers/directorAuth';
+import { suppressE2eBlockingUi } from './helpers/e2eUiState';
 
 /**
  * Retail 핵심 운영 흐름 E2E
@@ -50,6 +51,7 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
     const context = await browser.newContext({ serviceWorkers: 'block' });
     page = await context.newPage();
     await clearBrowserAuth(page);
+    await suppressE2eBlockingUi(page);
     api = await mockRetailBackend(page);
     await loginAsRetailOwner(page);
   });

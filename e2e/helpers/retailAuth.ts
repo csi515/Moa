@@ -3,9 +3,11 @@ import { expect } from '@playwright/test';
 import { RETAIL_E2E } from './mockRetailBackend';
 import { openNavTab } from './directorNav';
 import { dismissPwaInstallPrompt, muteMobileOverlayClicks } from './directorAuth';
+import { seedE2eBlockingUiDismissed, suppressE2eBlockingUi } from './e2eUiState';
 
 /** Retail 사업장 소유자 로그인 (목 Auth) */
 export async function loginAsRetailOwner(page: Page) {
+  await suppressE2eBlockingUi(page);
   await page.goto('/');
   await expect(page.getByRole('button', { name: '로그인', exact: true }).first()).toBeVisible({
     timeout: 30_000,
@@ -44,11 +46,13 @@ export async function loginAsRetailOwner(page: Page) {
   await dismissPwaInstallPrompt(page);
   await expect(homeHeading).toBeVisible({ timeout: 60_000 });
   await dismissPwaInstallPrompt(page);
+  await seedE2eBlockingUiDismissed(page);
   await muteMobileOverlayClicks(page);
 }
 
 /** 일반 사용자(Customer) 로그인 — 고객 포털 */
 export async function loginAsRetailCustomerUser(page: Page) {
+  await suppressE2eBlockingUi(page);
   await page.goto('/');
   await expect(page.getByRole('button', { name: '로그인', exact: true }).first()).toBeVisible({
     timeout: 30_000,
