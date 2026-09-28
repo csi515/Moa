@@ -134,6 +134,9 @@ jobs:
       - name: Static security — guardian-redeem-new-parent
         run: npm run test:guardian-redeem-new-parent
 
+      - name: Static security — legacy-public-lockdown
+        run: npm run test:legacy-public-lockdown
+
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E
   # ─────────────────────────────────────────────
