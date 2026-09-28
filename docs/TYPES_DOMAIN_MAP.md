@@ -1,6 +1,6 @@
 # Types Domain Map
 
-P19-1: 소유권 조사. P19-2: 명확한 타입을 소유 계층으로 이동. barrel은 compatibility re-export.
+P19-1: 소유권 조사. P19-2: 명확한 타입을 소유 계층으로 이동. P19-3: `src/types/index.ts`를 **legacy compatibility barrel로 동결**.
 
 `Student` / `AcademySettings` 객체 분해와 `education.ts` 이동은 아직 하지 않는다.
 
@@ -29,7 +29,7 @@ P19-1: 소유권 조사. P19-2: 명확한 타입을 소유 계층으로 이동. 
 
 | 파일 | 역할 |
 | --- | --- |
-| `src/types/index.ts` | compatibility barrel. 출결·청구·예약·가입 등은 소유 파일 re-export. Student/Teacher/ClassItem은 아직 local |
+| `src/types/index.ts` | **동결된** compatibility barrel. 출결·청구·예약·행사·연습실 등은 소유 파일 re-export. Student/Teacher/ClassItem/Parent만 local snapshot |
 | `src/types/education.ts` | 피아노 커리큘럼·과제·학부모 포털 탭. barrel에 re-export되지 않음 |
 | `tsconfig.json` `paths` | `@/*` → `src/*`. 타입 전용 path 없음. `@/types` = 위 barrel |
 
@@ -326,11 +326,25 @@ Daycare care 타입은 **이미** `src/industries/daycare/care/types.ts` (`CareJ
 10. `Song`, `PracticeRecord`, `LessonRecord`, `PerformanceVideo*` → piano.
 11. `Textbook*` / `TextbookInventoryTransaction` → piano (commerce `Product`와 합치지 말 것).
 
-### 보류 (P19-3+)
+### P19-3 동결 분류 (`src/types/index.ts`)
+
+| 구분 | 타입 | 상태 |
+| --- | --- | --- |
+| **A. 계속 global compatibility** | `StudentLevel` (`string` alias), `Student`/`Parent`/`Teacher`/`ClassItem`/`StudentStatus` | local snapshot. 신규 값 union 금지 |
+| **B. 향후 이동 legacy** | A와 동일 객체 + `src/types/education.ts` | 호출 면이 넓어 객체 분해 보류 |
+| **C. 지금 삭제** | 없음 | persist 호출이 남아 있음 |
+| **D. 소유 계층 re-export** | Billing, Attendance, Schedules, Notices, Join, Public, Lessons, Commerce textbook, Consultation, PracticeRoomBooking (`@/core/resources`), AcademyEvent (`@/core/events`) | 정의는 owner. barrel은 `export type` |
+
+검사:
+
+* `scripts/types-barrel-freeze.mjs` — 신규 local 정의 / Industry import / StudentLevel union
+* `scripts/types-barrel-legacy-imports.mjs` — 기존 `@/types` caller inventory. 신규 계층 파일 import 금지
+* `src/types/typesOwnership.test.ts` — Billing/Attendance가 barrel에 정의되지 않음
+
+### 보류 (이후)
 
 * `Student`, `Parent`, `Teacher`, `ClassItem`, `AcademySettings` 분해
-* `AttendanceRecord` / `TuitionInvoice` 대량 이동 (import 면이 넓음)
-* `AcademyEvent` 달력 일반화
+* 기존 `@/types` inventory 점진 축소
 * persist 기본값 `'바이엘 상'` 의미 변경
 
 ### P19-2에서 하지 말 것
@@ -346,7 +360,7 @@ Daycare care 타입은 **이미** `src/industries/daycare/care/types.ts` (`CareJ
 
 | 규칙 | 내용 |
 | --- | --- |
-| Barrel ≠ SoT | `src/types/index.ts`에 새 domain type을 추가하지 않는다 |
+| Barrel ≠ SoT | **새로운 business/domain type은 `src/types/index.ts`에 추가하지 않는다** |
 | 소유 위치 | Core / Capability / Industry / Shared 중 실제 의미 있는 곳 |
 | Compatibility | 기존 import를 깨지 않으려면 소유 파일에서 export하고 barrel은 `export type { X } from '…'` |
 | Cross-industry union 금지 | 새 `StudentLevel` 패턴 금지. 저장은 `string`, 옵션은 Industry |

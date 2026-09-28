@@ -28,10 +28,14 @@ import {
 import {
   FROZEN_TYPES_INDEX_REL,
   isTypesBarrelIndustrySpec,
+  isTypesBarrelLayer,
+  isTypesBarrelRelative,
+  isTypesBarrelSpecifier,
   typesBarrelCapabilityImplSpecs,
   typesBarrelHasStudentLevelUnion,
   typesBarrelUnknownLocalDefs,
 } from './types-barrel-freeze.mjs';
+import { TYPES_BARREL_LEGACY_IMPORT_FILES } from './types-barrel-legacy-imports.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const root = join(here, '..');
@@ -211,10 +215,23 @@ function isContextSpecifier(spec) {
   return spec === '@/context' || (typeof spec === 'string' && spec.startsWith('@/context/'));
 }
 
+function resolveImportRel(fromRel, spec) {
+  return toPosix(join(dirname(join(root, fromRel)), spec)).replace(/\.(tsx?|jsx?)$/, '');
+}
+
 function isContextRelative(fromRel, spec) {
   if (!spec || !spec.startsWith('.')) return false;
-  const resolved = toPosix(join(dirname(join(root, fromRel)), spec));
+  const resolved = resolveImportRel(fromRel, spec);
   return resolved === 'src/context' || resolved.startsWith('src/context/');
+}
+
+function fileImportsTypesBarrel(rel, specs) {
+  for (const spec of specs) {
+    if (isTypesBarrelSpecifier(spec) || isTypesBarrelRelative(rel, spec, resolveImportRel)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function isAppUiSpecifier(spec) {
@@ -548,6 +565,41 @@ function collectRoots() {
   return files;
 }
 
+function collectTypesBarrelLayerFiles() {
+  const files = [];
+  walk(join(srcRoot, 'core'), files);
+  walk(join(srcRoot, 'capabilities'), files);
+  walk(join(srcRoot, 'industries'), files);
+  walk(join(srcRoot, 'app'), files);
+  walk(join(srcRoot, 'modules'), files);
+  return files;
+}
+
+function collectTypesBarrelImportHits() {
+  const current = new Set();
+  const next = [];
+  for (const file of collectTypesBarrelLayerFiles()) {
+    if (isTestFile(file)) continue;
+    const rel = toPosix(file);
+    if (rel === FROZEN_TYPES_INDEX_REL) continue;
+    const fromLayer = layerOfRel(rel);
+    if (!isTypesBarrelLayer(fromLayer)) continue;
+    const specs = collectImportSpecs(readFileSync(file, 'utf8'));
+    if (!fileImportsTypesBarrel(rel, specs)) continue;
+    current.add(rel);
+    if (!TYPES_BARREL_LEGACY_IMPORT_FILES.has(rel)) {
+      next.push({
+        file: rel,
+        kind: 'types_barrel_new_import',
+        details: ["new source file must not import '@/types' barrel — use owner types"],
+        legacy: false,
+      });
+    }
+  }
+  const stale = [...TYPES_BARREL_LEGACY_IMPORT_FILES].filter((rel) => !current.has(rel)).sort();
+  return { next, stale, current };
+}
+
 function collectViolations(files = collectRoots()) {
   const next = [];
   const known = [];
@@ -560,7 +612,9 @@ function collectViolations(files = collectRoots()) {
       else next.push(row);
     }
   }
-  return { next, known };
+  const typesImports = collectTypesBarrelImportHits();
+  next.push(...typesImports.next);
+  return { next, known, typesImportStale: typesImports.stale };
 }
 
 function legacyKey(file, kind) {
@@ -796,6 +850,13 @@ function selfTest() {
         "import { x } from '@/app/industry/industryCapabilityMap';\n"
       )
     );
+    probes.push(
+      writeProbe(
+        join(srcRoot, 'core'),
+        '_architecture_probe_types_import.tmp.ts',
+        "import type { Student } from '@/types';\n"
+      )
+    );
     writeFileSync(
       typesIndexFile,
       `${typesIndexOriginal}\nimport { x } from '@/industries/piano/plugin';\nimport { y } from '@/capabilities/billing/finance/services/tuitionService';\nexport interface ProbeDomainType { x: string }\nexport type StudentLevel = '바이엘 상' | '0세반';\n`,
@@ -983,6 +1044,14 @@ function selfTest() {
     if (!typesLevelUnionHit) {
       throw new Error('architecture self-test: StudentLevel global union 을 잡지 못했습니다.');
     }
+    const typesNewImportHit = next.some(
+      (row) =>
+        row.kind === 'types_barrel_new_import' &&
+        row.file.includes('_architecture_probe_types_import.tmp.ts')
+    );
+    if (!typesNewImportHit) {
+      throw new Error("architecture self-test: 신규 파일 → '@/types' 를 잡지 못했습니다.");
+    }
     if (!industryStorageHit) {
       throw new Error('architecture self-test: Industry → StorageService 를 잡지 못했습니다.');
     }
@@ -1021,12 +1090,13 @@ function selfTest() {
       !typesIndustryHit ||
       !typesCapImplHit ||
       !typesNewDefHit ||
-      !typesLevelUnionHit
+      !typesLevelUnionHit ||
+      !typesNewImportHit
     ) {
       throw new Error('architecture self-test: 계층 위반을 잡지 못했습니다.');
     }
     console.log(
-      'architecture self-test: core→industry / capability→industry / services→industry / StorageService (@/ + .ts + relative + industry + freeze) / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition / types barrel freeze 탐지 ok'
+      'architecture self-test: core→industry / capability→industry / services→industry / StorageService (@/ + .ts + relative + industry + freeze) / legacy attendance / capability→shim cycle / academy freeze(full scan) / Core·Capability→AppContext / appUi / relative context / registry→impl / catalog composition / Core·Capability→Composition / types barrel freeze / new @/types import 탐지 ok'
     );
   } finally {
     writeFileSync(academyExistingFile, academyExistingOriginal, 'utf8');
@@ -1068,7 +1138,8 @@ function selfTest() {
       row.kind === 'types_industry_import' ||
       row.kind === 'types_capability_impl_import' ||
       row.kind === 'types_barrel_new_def' ||
-      row.kind === 'types_student_level_union'
+      row.kind === 'types_student_level_union' ||
+      row.kind === 'types_barrel_new_import'
   );
   if (leftoverTypesFreeze) {
     throw new Error('architecture self-test: probe 정리 후에도 types barrel freeze 위반이 남았습니다.');
@@ -1087,11 +1158,16 @@ function main() {
     return;
   }
 
-  const { next, known } = collectViolations();
+  const { next, known, typesImportStale } = collectViolations();
   printInventory(known);
   assertLegacyFrozen(known);
   assertAcademySnapshot();
   assertStorageServiceIndustrySnapshot();
+  if (typesImportStale.length > 0) {
+    console.error("types barrel inventory에 있으나 '@/types' import가 없습니다. 이전한 항목만 목록에서 제거하세요:");
+    for (const rel of typesImportStale) console.error(`  - ${rel}`);
+    process.exit(1);
+  }
 
   if (next.length > 0) {
     console.error('\n새로운 계층 의존 위반이 있습니다:');

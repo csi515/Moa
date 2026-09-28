@@ -140,29 +140,8 @@ export type {
   UnpaidInvoiceItem,
 } from '@/capabilities/billing/finance/billingLedgerTypes';
 
-export type PracticeRoomBookingStatus =
-  | 'scheduled'
-  | 'cancelled'
-  | 'completed'
-  | 'pending'
-  | 'approved'
-  | 'rejected';
-
-export interface PracticeRoomBooking {
-  id: string;
-  studentId: string;
-  studentName: string;
-  room: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  teacherId?: string;
-  teacherName?: string;
-  memo?: string;
-  createdBy: string;
-  status: PracticeRoomBookingStatus;
-  createdAt?: string;
-}
+/** @deprecated 신규 코드는 `@/core/resources` */
+export type { PracticeRoomBooking, PracticeRoomBookingStatus } from '@/core/resources';
 
 /** @deprecated 신규 코드는 `@/capabilities/consultation` */
 export type { Consultation, ConsultationType } from '@/capabilities/consultation/types';
@@ -193,27 +172,8 @@ export type {
   NotificationType,
 } from '@/core/notices/notificationTypes';
 
-export interface AcademyEvent {
-  id: string;
-  title: string;
-  startDate: string;
-  endDate?: string;
-  type: 'concert' | 'competition' | 'special_lesson' | 'tuning' | 'vacation' | 'other';
-  description?: string;
-  color?: string;
-  participantIds?: string[];
-  participationFee?: number;
-}
-
-export interface EventParticipantSummary {
-  studentId: string;
-  studentName: string;
-  parentPhone: string;
-  level?: string;
-  hasVideo: boolean;
-  videoId?: string;
-  videoTitle?: string;
-}
+/** @deprecated 신규 코드는 `@/core/events` */
+export type { AcademyEvent, EventParticipantSummary } from '@/core/events';
 
 /** @deprecated 신규 코드는 `@/core/organizations/settingsTypes` */
 export type {

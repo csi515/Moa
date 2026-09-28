@@ -14,6 +14,8 @@ export type {
   ResourceKind,
   ResourceReservation,
   ResourceReservationStatus,
+  PracticeRoomBooking,
+  PracticeRoomBookingStatus,
   RoomReservationRow,
   UpsertBookableResourceInput,
 } from './types';

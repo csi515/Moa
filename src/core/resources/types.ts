@@ -137,3 +137,28 @@ export type ListResourceReservationsQuery = {
   limit?: number;
   order?: 'asc' | 'desc';
 };
+
+/** 로컬 연습실 예약 행. ResourceReservation(core.room_reservations)과 별도 persist. */
+export type PracticeRoomBookingStatus =
+  | 'scheduled'
+  | 'cancelled'
+  | 'completed'
+  | 'pending'
+  | 'approved'
+  | 'rejected';
+
+export interface PracticeRoomBooking {
+  id: string;
+  studentId: string;
+  studentName: string;
+  room: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  teacherId?: string;
+  teacherName?: string;
+  memo?: string;
+  createdBy: string;
+  status: PracticeRoomBookingStatus;
+  createdAt?: string;
+}

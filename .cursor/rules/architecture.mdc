@@ -162,13 +162,15 @@ Core가 composition을 import하게 만들지 않는다.
 
 ## Type ownership
 
-`src/types/index.ts`는 장기적으로 domain source of truth가 아니다. 전역 barrel은 compatibility re-export만 남길 수 있다.
+`src/types/index.ts`는 **legacy compatibility barrel**이다. domain source of truth가 아니다.
 
+- **새로운 business/domain type은 `src/types/index.ts`에 추가하지 않는다.** 검사(`types_barrel_new_def`)가 실패한다.
 - 새 domain type은 Core / Capability / Industry / Shared 중 실제 소유 영역에 둔다.
+- 기존 `@/types` 호출은 `scripts/types-barrel-legacy-imports.mjs` inventory. Core/Capability/Industry/App **신규 파일**은 `@/types` barrel을 import하면 실패한다.
 - 여러 곳에서 import된다는 이유만으로 Shared·Core로 올리지 않는다.
-- 새로운 `StudentLevel` 같은 cross-industry union을 추가하지 않는다. 저장은 문자열, 값 집합은 Industry.
+- 새로운 `StudentLevel` 같은 cross-industry union을 추가하지 않는다. 저장은 문자열, 값 집합은 Industry (`PianoStudentLevel`, `DaycareAgeClass`).
 - `src/types`가 Capability/Industry 구현을 import하지 않는다.
-- 분류·이동 대상: `docs/TYPES_DOMAIN_MAP.md`.
+- 분류·동결: `docs/TYPES_DOMAIN_MAP.md`.
 
 ## 새 Industry 추가
 

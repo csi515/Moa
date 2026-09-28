@@ -32,6 +32,7 @@
     "test:student-form-validation": "tsx src/core/academy/components/students/form/studentFormValidation.test.ts",
     "test:nav-utils": "tsx src/core/auth/navUtils.test.ts",
     "test:architecture": "node scripts/check-architecture-dependencies.mjs --self-test",
+    "test:types-ownership": "tsx src/types/typesOwnership.test.ts",
     "test:capability-contract": "tsx src/capabilities/capabilityContract.test.ts",
     "test:capability-public-api": "tsx src/capabilities/publicApi.test.ts",
     "test:request-context": "tsx src/core/application/requestContext.test.ts",

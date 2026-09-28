@@ -77,7 +77,7 @@ docs/
 | `src/modules` | `parent`는 라이브 포털. 업종 폴더는 Industry 복제(레거시) | parent만 유지. 업종 복제 제거 |
 | `src/shared` | UI / layout / utility | 유지 |
 | `src/services` | StorageService = **legacy compatibility facade** + adapters. 신규 SoT 아님 | capability `*Storage` 싱글톤 + adapter hydrate/sync |
-| `src/types` | 여러 도메인 타입 전역 barrel. **domain SoT 아님** | 소유 계층에 정의. barrel은 compatibility re-export. [TYPES_DOMAIN_MAP.md](./TYPES_DOMAIN_MAP.md) |
+| `src/types` | **legacy compatibility barrel**. 신규 정의·신규 `@/types` import 금지. [TYPES_DOMAIN_MAP.md](./TYPES_DOMAIN_MAP.md) | 소유 계층에 정의. barrel은 re-export만 |
 
 `src/modules/` 실제 디렉터리: `piano`, `pilates`, `gym`, `daycare`, `skin`, `retail`, `bath`, `parent`.  
 런타임 조립은 `src/industries/` + `src/app/industry`다. modules 업종 폴더를 라이브 SoT로 쓰지 않는다.

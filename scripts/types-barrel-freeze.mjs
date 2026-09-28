@@ -2,7 +2,7 @@
  * src/types/index.ts freeze.
  * 허용: 소유 계층 re-export, 남은 Student/Teacher 등 local snapshot.
  * 금지: Industry import, Capability 구현 import, 신규 local domain 정의,
- *       StudentLevel cross-industry union.
+ *       StudentLevel cross-industry union, 신규 계층 파일의 @/types barrel import.
  */
 export const FROZEN_TYPES_INDEX_REL = 'src/types/index.ts';
 
@@ -14,11 +14,24 @@ export const TYPES_BARREL_ALLOWED_LOCAL = new Set([
   'Parent',
   'Teacher',
   'ClassItem',
-  'PracticeRoomBookingStatus',
-  'PracticeRoomBooking',
-  'AcademyEvent',
-  'EventParticipantSummary',
 ]);
+
+const TYPES_BARREL_LAYERS = new Set(['core', 'capability', 'industry', 'composition']);
+
+export function isTypesBarrelLayer(layer) {
+  return TYPES_BARREL_LAYERS.has(layer);
+}
+
+export function isTypesBarrelSpecifier(spec) {
+  if (!spec) return false;
+  return spec === '@/types' || spec === '@/types/index' || spec === '@/types/index.ts';
+}
+
+export function isTypesBarrelRelative(fromRel, spec, resolveRel) {
+  if (!spec || !spec.startsWith('.')) return false;
+  const resolved = resolveRel(fromRel, spec);
+  return resolved === 'src/types' || resolved === 'src/types/index';
+}
 
 export function isTypesBarrelCapabilityTypeSpec(spec) {
   if (!spec) return false;
@@ -53,6 +66,13 @@ export function typesBarrelUnknownLocalDefs(source) {
 }
 
 export function typesBarrelHasStudentLevelUnion(source) {
+  const matches = [...source.matchAll(/export\s+type\s+StudentLevel\s*=\s*([^;]+)/g)];
+  for (const match of matches) {
+    const rhs = match[1].replace(/\s+/g, ' ').trim();
+    if (rhs === 'string') continue;
+    if (rhs.includes('|')) return true;
+    if (/바이엘|0세반|DaycareAgeClass|PianoStudentLevel|GymClassLevel/.test(rhs)) return true;
+  }
   return /export\s+type\s+StudentLevel[\s\S]{0,800}바이엘/.test(source) && /0세반/.test(source);
 }
 
