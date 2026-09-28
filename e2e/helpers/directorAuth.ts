@@ -3,6 +3,9 @@ import { expect } from '@playwright/test';
 import { getE2ECredentials } from './env';
 import { seedE2eBlockingUiDismissed, suppressE2eBlockingUi } from './e2eUiState';
 
+const ORG_PICKER_EXCLUDE = /뒤로|새 사업장|이용자로 가입|직원·강사|다시 시도/;
+const POST_LOGIN_TIMEOUT_MS = 30_000;
+
 /** 로그인 폼 표시 확인 (자격 증명 불필요) */
 export async function expectAuthPageVisible(page: Page) {
   await page.goto('/');
@@ -11,8 +14,6 @@ export async function expectAuthPageVisible(page: Page) {
   });
   await expect(page.getByPlaceholder('예: name@example.com')).toBeVisible();
 }
-
-const ORG_PICKER_EXCLUDE = /뒤로|새 사업장|이용자로 가입|직원·강사|다시 시도/;
 
 async function dismissCreateOrganizationWizard(page: Page) {
   const wizard = page.getByRole('heading', { name: '새 사업장 등록' });
@@ -39,32 +40,45 @@ export async function dismissPwaInstallPrompt(page: Page) {
   }
 }
 
-/** 피아노 온보딩 모달이 홈을 가리면 닫는다 (주소 구조화 이후에도 동일 헤딩) */
+/** 피아노 온보딩 모달이 홈을 가리면 닫는다 */
 async function dismissOnboardingOverlays(page: Page) {
-  const wizard = page.getByRole('heading', { name: '학원 초기 설정' });
-  if (await wizard.isVisible().catch(() => false)) {
-    const later = page.getByLabel('나중에 이어서');
-    if (await later.isVisible().catch(() => false)) {
-      await later.click();
+  const wizard = page.getByTestId('onboarding-wizard');
+  for (let i = 0; i < 6; i++) {
+    const skipConfirm = page.getByRole('button', { name: '건너뛰기', exact: true });
+    if (await skipConfirm.first().isVisible().catch(() => false)) {
+      await skipConfirm.first().click({ force: true });
+      await skipConfirm.first().waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => undefined);
     }
+
+    if (!(await wizard.isVisible().catch(() => false))) {
+      return;
+    }
+
+    const dismiss = page
+      .getByTestId('onboarding-dismiss')
+      .or(page.getByLabel('나중에 이어서'))
+      .or(wizard.getByRole('button', { name: /나중에|닫기/ }));
+    if (await dismiss.first().isVisible().catch(() => false)) {
+      await dismiss.first().click({ force: true });
+    }
+    await wizard.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => undefined);
   }
 
-  const skip = page.getByRole('button', { name: '건너뛰기' });
-  if (await skip.first().isVisible().catch(() => false)) {
-    await skip.first().click();
+  if (await wizard.isVisible().catch(() => false)) {
+    throw new Error('온보딩 오버레이(onboarding-wizard)를 닫지 못했습니다.');
   }
 }
 
 async function pickOrganizationFromSelector(page: Page, orgNameHint: string | null) {
-  const heading = page.getByRole('heading', { name: '사업장 선택' });
-  if (!(await heading.isVisible().catch(() => false))) return;
+  const selector = page.getByTestId('organization-selector');
+  if (!(await selector.isVisible().catch(() => false))) return;
 
   await dismissCreateOrganizationWizard(page);
 
   const retry = page.getByRole('button', { name: '다시 시도' });
   if (await retry.isVisible().catch(() => false)) {
     await retry.click();
-    await expect(heading).toBeVisible({ timeout: 30_000 });
+    await expect(selector).toBeVisible({ timeout: 30_000 });
   }
 
   const hinted = orgNameHint
@@ -75,7 +89,7 @@ async function pickOrganizationFromSelector(page: Page, orgNameHint: string | nu
     return;
   }
 
-  const orgCard = page
+  const orgCard = selector
     .getByRole('button')
     .filter({ hasNotText: ORG_PICKER_EXCLUDE })
     .filter({ hasText: /.+/ })
@@ -89,45 +103,105 @@ async function pickOrganizationFromSelector(page: Page, orgNameHint: string | nu
   await orgCard.click();
 }
 
-function directorHomeReady(page: Page) {
-  return page
-    .getByRole('heading', { name: /안녕하세요/ })
-    .or(page.getByRole('heading', { name: '오늘 일정', exact: true }))
-    .or(page.getByRole('heading', { name: '오늘 출결', exact: true }));
-}
-
-async function waitForDirectorHome(page: Page) {
-  await dismissPwaInstallPrompt(page);
-  await dismissOnboardingOverlays(page);
-  await expect(directorHomeReady(page).first()).toBeVisible({ timeout: 60_000 });
-  await dismissPwaInstallPrompt(page);
-  await dismissOnboardingOverlays(page);
-}
-
-/** FAB가 하단 결제/입고 버튼을 가로채지 않게 한다 */
-export async function muteMobileOverlayClicks(page: Page) {
-  await page.addStyleTag({
-    content:
-      'div.mobile-overlay-bottom.pointer-events-auto { pointer-events: none !important; }',
-  });
+function directorAppReady(page: Page) {
+  return page.getByTestId('director-home').or(page.getByTestId('staff-home'));
 }
 
 async function failIfLoginErrorVisible(page: Page) {
-  const banner = page.locator('.text-rose-700, .text-rose-800').filter({ visible: true }).first();
+  const banner = page.getByTestId('auth-login-error');
   if (!(await banner.isVisible().catch(() => false))) return;
   const text = ((await banner.textContent()) || '').trim();
-  if (!text) return;
-  throw new Error(`원장 로그인 실패: ${text}`);
+  throw new Error(`원장 로그인 실패: ${text || '알 수 없는 오류'}`);
+}
+
+async function failIfHydrateErrorVisible(page: Page) {
+  const hydrate = page.getByTestId('storage-hydrate-error');
+  if (!(await hydrate.isVisible().catch(() => false))) return;
+  const text = ((await hydrate.textContent()) || '').trim();
+  throw new Error(`원장 홈 hydrate 실패: ${text || '데이터를 불러오지 못했습니다'}`);
 }
 
 function isAuthTokenResponse(res: Response) {
   return res.url().includes('/auth/v1/token') && res.request().method() === 'POST';
 }
 
+async function waitForAuthTokenOrFailLogin(page: Page, tokenWait: Promise<Response>) {
+  let tokenRes: Response | null = null;
+  let tokenSettled = false;
+  const pending = tokenWait
+    .then((res) => {
+      tokenRes = res;
+      tokenSettled = true;
+      return res;
+    })
+    .catch(() => {
+      tokenSettled = true;
+      return null;
+    });
+
+  const deadline = Date.now() + 20_000;
+  while (!tokenSettled && Date.now() < deadline) {
+    await failIfLoginErrorVisible(page);
+    await Promise.race([pending, page.waitForTimeout(250)]);
+  }
+  await failIfLoginErrorVisible(page);
+  if (!tokenSettled) {
+    await pending;
+  }
+  return tokenRes;
+}
+
+async function waitForAuthSessionStored(page: Page) {
+  await page.waitForFunction(
+    () => {
+      try {
+        for (let i = 0; i < localStorage.length; i += 1) {
+          const key = localStorage.key(i) || '';
+          if (key.includes('-auth-token') || key.includes('supabase.auth')) {
+            const raw = localStorage.getItem(key) || '';
+            return raw.includes('access_token') || raw.includes('authenticated');
+          }
+        }
+      } catch {
+        return false;
+      }
+      return false;
+    },
+    null,
+    { timeout: 20_000 }
+  );
+}
+
+async function waitForDirectorHome(page: Page) {
+  await failIfLoginErrorVisible(page);
+  await failIfHydrateErrorVisible(page);
+  await dismissPwaInstallPrompt(page);
+  await dismissOnboardingOverlays(page);
+
+  if (await page.getByTestId('organization-selector').isVisible().catch(() => false)) {
+    throw new Error(
+      '사업장 선택 화면에서 홈으로 이동하지 못했습니다. (organization-selector)'
+    );
+  }
+
+  const home = directorAppReady(page);
+  const loading = page.getByTestId('app-loading');
+  await expect(home.or(loading).first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
+
+  if (await loading.isVisible().catch(() => false)) {
+    await expect(home.first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
+  }
+
+  await dismissPwaInstallPrompt(page);
+  await dismissOnboardingOverlays(page);
+  await failIfHydrateErrorVisible(page);
+  await expect(page.getByTestId('onboarding-wizard')).toBeHidden();
+  await expect(home.first()).toBeVisible({ timeout: 10_000 });
+}
+
 /**
  * 이메일/비밀번호로 로그인 후 원장 앱(조직 선택 또는 홈)까지 진입.
  * 자격 증명 없으면 throw — skip 처리하지 말고 호출부에서 hasE2ECredentials로 분기.
- * 실제 Supabase 세션을 쓰며, 토큰 응답/로그인 오류는 60초 대기 전에 실패한다.
  */
 export async function loginAsDirector(page: Page) {
   const creds = getE2ECredentials();
@@ -139,9 +213,8 @@ export async function loginAsDirector(page: Page) {
 
   await suppressE2eBlockingUi(page);
   await page.goto('/');
-  await expect(page.getByRole('button', { name: '로그인', exact: true }).first()).toBeVisible({
-    timeout: 30_000,
-  });
+  await expect(page.getByTestId('auth-page')).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByPlaceholder('예: name@example.com')).toBeVisible();
 
   await page.getByPlaceholder('예: name@example.com').fill(creds.email);
   await page.getByPlaceholder('비밀번호').fill(creds.password);
@@ -149,7 +222,7 @@ export async function loginAsDirector(page: Page) {
   const tokenWait = page.waitForResponse(isAuthTokenResponse, { timeout: 20_000 });
   await page.getByRole('button', { name: '이메일로 로그인' }).click();
 
-  const tokenRes = await tokenWait.catch(() => null);
+  const tokenRes = await waitForAuthTokenOrFailLogin(page, tokenWait);
   if (!tokenRes) {
     await failIfLoginErrorVisible(page);
     throw new Error(
@@ -163,18 +236,49 @@ export async function loginAsDirector(page: Page) {
     );
   }
 
-  const orgHeading = page.getByRole('heading', { name: '사업장 선택' });
-  const homeReady = directorHomeReady(page);
-  const onboarding = page.getByRole('heading', { name: '학원 초기 설정' });
-  await expect(orgHeading.or(homeReady).or(onboarding).first()).toBeVisible({ timeout: 60_000 });
   await failIfLoginErrorVisible(page);
-  await dismissPwaInstallPrompt(page);
+  await waitForAuthSessionStored(page);
 
-  if (await orgHeading.isVisible().catch(() => false)) {
+  // SPA는 path가 / 로 남을 수 있음 — 로그인 셸이 내려가는 것을 리다이렉션 대기로 본다
+  await page.waitForURL((url) => !url.pathname.includes('/login'), {
+    timeout: 15_000,
+    waitUntil: 'domcontentloaded',
+  });
+  await page.waitForLoadState('domcontentloaded');
+  await expect(page.getByTestId('auth-page')).toBeHidden({ timeout: POST_LOGIN_TIMEOUT_MS });
+  await failIfLoginErrorVisible(page);
+
+  const postLogin = page
+    .getByTestId('organization-selector')
+    .or(page.getByTestId('organization-selector-loading'))
+    .or(page.getByTestId('app-loading'))
+    .or(directorAppReady(page))
+    .or(page.getByTestId('onboarding-wizard'))
+    .or(page.getByTestId('storage-hydrate-error'));
+  await expect(postLogin.first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
+  await failIfLoginErrorVisible(page);
+  await failIfHydrateErrorVisible(page);
+  await dismissPwaInstallPrompt(page);
+  await dismissOnboardingOverlays(page);
+
+  const orgLoading = page.getByTestId('organization-selector-loading');
+  if (await orgLoading.isVisible().catch(() => false)) {
+    await orgLoading.waitFor({ state: 'hidden', timeout: POST_LOGIN_TIMEOUT_MS });
+  }
+
+  if (await page.getByTestId('organization-selector').isVisible().catch(() => false)) {
     await pickOrganizationFromSelector(page, creds.orgNameHint);
   }
 
   await waitForDirectorHome(page);
   await seedE2eBlockingUiDismissed(page);
   await muteMobileOverlayClicks(page);
+}
+
+/** FAB가 하단 결제/입고 버튼을 가로채지 않게 한다 */
+export async function muteMobileOverlayClicks(page: Page) {
+  await page.addStyleTag({
+    content:
+      'div.mobile-overlay-bottom.pointer-events-auto { pointer-events: none !important; }',
+  });
 }

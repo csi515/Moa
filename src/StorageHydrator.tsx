@@ -88,7 +88,10 @@ export const StorageHydrator: React.FC<StorageHydratorProps> = ({
 
   if (error) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 px-6 text-center">
+      <div
+        className="min-h-screen flex flex-col items-center justify-center bg-slate-50 gap-4 px-6 text-center"
+        data-testid="storage-hydrate-error"
+      >
         <p className="text-sm text-rose-600 max-w-sm">{error}</p>
         <button
           type="button"

@@ -387,7 +387,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   );
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      data-testid="onboarding-wizard"
+    >
       <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
         <div className="px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-indigo-50 to-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2 min-w-0">
@@ -405,6 +408,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             onClick={dismissForLater}
             className="text-slate-400 hover:text-slate-600 p-2 min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="나중에 이어서"
+            data-testid="onboarding-dismiss"
           >
             <X className="w-5 h-5" />
           </button>

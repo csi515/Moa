@@ -9,6 +9,18 @@ const BLOCKING_DISMISS_NAME = /^(나중에|닫기|확인했어요|건너뛰기)$
 export async function dismissBlockingOverlays(page: Page) {
   await dismissPwaInstallPrompt(page);
 
+  const wizard = page.getByTestId('onboarding-wizard');
+  if (await wizard.isVisible().catch(() => false)) {
+    const dismiss = page
+      .getByTestId('onboarding-dismiss')
+      .or(page.getByLabel('나중에 이어서'))
+      .or(wizard.getByRole('button', { name: BLOCKING_DISMISS_NAME }));
+    if (await dismiss.first().isVisible().catch(() => false)) {
+      await dismiss.first().click({ force: true });
+    }
+    await wizard.waitFor({ state: 'hidden', timeout: 3_000 }).catch(() => undefined);
+  }
+
   const overlay = page
     .locator('div.fixed.inset-0')
     .filter({ hasText: BLOCKING_OVERLAY_TEXT })
@@ -68,7 +80,9 @@ export async function openNavTab(page: Page, label: string) {
 }
 
 export async function expectHomeVisible(page: Page) {
-  await expect(page.getByRole('heading', { name: /안녕하세요/ })).toBeVisible({ timeout: 30_000 });
+  await expect(
+    page.getByTestId('director-home').or(page.getByTestId('staff-home')).first()
+  ).toBeVisible({ timeout: 30_000 });
 }
 
 export async function openFinanceArea(page: Page, area: '수납' | '재무 관리') {

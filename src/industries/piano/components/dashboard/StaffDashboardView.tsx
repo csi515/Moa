@@ -33,7 +33,7 @@ export const StaffDashboardView: React.FC = () => {
   } = useStaffDashboardData();
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="staff-home">
       <div className="bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-2xl px-4 py-3 text-white">
         <p className="text-indigo-200 text-[11px] font-semibold">선생님 홈</p>
         <div className="flex flex-wrap items-end justify-between gap-2">
