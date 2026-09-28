@@ -140,6 +140,7 @@ export const OrganizationSelector: React.FC = () => {
                     key={membership.id}
                     type="button"
                     disabled={Boolean(selectingId)}
+                    data-testid="organization-option"
                     onClick={() => void handleSelectOrganization(membership.organizationId)}
                     className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-left min-h-[44px] disabled:opacity-60"
                   >

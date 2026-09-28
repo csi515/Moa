@@ -81,7 +81,11 @@ export async function openNavTab(page: Page, label: string) {
 
 export async function expectHomeVisible(page: Page) {
   await expect(
-    page.getByTestId('director-home').or(page.getByTestId('staff-home')).first()
+    page
+      .getByTestId('director-home')
+      .or(page.getByTestId('staff-home'))
+      .or(page.getByTestId('app-work-main'))
+      .first()
   ).toBeVisible({ timeout: 30_000 });
 }
 

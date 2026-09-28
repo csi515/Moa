@@ -12,8 +12,16 @@ export const DashboardView: React.FC = () => {
   const { isStaff } = usePermissions();
 
   if (isStaff) {
-    return <StaffDashboardView />;
+    return (
+      <div data-testid="staff-home">
+        <StaffDashboardView />
+      </div>
+    );
   }
 
-  return <DirectorTodayHome />;
+  return (
+    <div data-testid="director-home">
+      <DirectorTodayHome />
+    </div>
+  );
 };

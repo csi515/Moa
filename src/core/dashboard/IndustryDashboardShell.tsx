@@ -73,7 +73,7 @@ export function IndustryDashboardShell({
     .slice(0, 6);
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="director-home">
       <PageHeader
         density="compact"
         icon={icon}

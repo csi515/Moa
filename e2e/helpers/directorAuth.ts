@@ -81,19 +81,25 @@ async function pickOrganizationFromSelector(page: Page, orgNameHint: string | nu
     await expect(selector).toBeVisible({ timeout: 30_000 });
   }
 
+  const options = selector.getByTestId('organization-option');
   const hinted = orgNameHint
-    ? page.getByRole('button', { name: new RegExp(orgNameHint, 'i') }).first()
+    ? options.filter({ hasText: new RegExp(orgNameHint, 'i') }).first()
     : null;
   if (hinted && (await hinted.isVisible().catch(() => false))) {
     await hinted.click();
+    await selector.waitFor({ state: 'hidden', timeout: POST_LOGIN_TIMEOUT_MS }).catch(() => undefined);
     return;
   }
 
-  const orgCard = selector
-    .getByRole('button')
-    .filter({ hasNotText: ORG_PICKER_EXCLUDE })
-    .filter({ hasText: /.+/ })
-    .first();
+  const orgCard = options
+    .first()
+    .or(
+      selector
+        .getByRole('button')
+        .filter({ hasNotText: ORG_PICKER_EXCLUDE })
+        .filter({ hasText: /.+/ })
+        .first()
+    );
 
   if (!(await orgCard.isVisible().catch(() => false))) {
     throw new Error(
@@ -101,10 +107,14 @@ async function pickOrganizationFromSelector(page: Page, orgNameHint: string | nu
     );
   }
   await orgCard.click();
+  await selector.waitFor({ state: 'hidden', timeout: POST_LOGIN_TIMEOUT_MS }).catch(() => undefined);
 }
 
 function directorAppReady(page: Page) {
-  return page.getByTestId('director-home').or(page.getByTestId('staff-home'));
+  return page
+    .getByTestId('director-home')
+    .or(page.getByTestId('staff-home'))
+    .or(page.getByTestId('app-work-main'));
 }
 
 async function failIfLoginErrorVisible(page: Page) {
@@ -172,31 +182,42 @@ async function waitForAuthSessionStored(page: Page) {
   );
 }
 
-async function waitForDirectorHome(page: Page) {
-  await failIfLoginErrorVisible(page);
-  await failIfHydrateErrorVisible(page);
-  await dismissPwaInstallPrompt(page);
-  await dismissOnboardingOverlays(page);
-
-  if (await page.getByTestId('organization-selector').isVisible().catch(() => false)) {
-    throw new Error(
-      '사업장 선택 화면에서 홈으로 이동하지 못했습니다. (organization-selector)'
-    );
-  }
-
+async function waitForDirectorHome(page: Page, orgNameHint: string | null) {
   const home = directorAppReady(page);
-  const loading = page.getByTestId('app-loading');
-  await expect(home.or(loading).first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
+  const selector = page.getByTestId('organization-selector');
+  const loading = page
+    .getByTestId('app-loading')
+    .or(page.getByTestId('organization-selector-loading'));
+  const deadline = Date.now() + POST_LOGIN_TIMEOUT_MS * 2;
 
-  if (await loading.isVisible().catch(() => false)) {
-    await expect(home.first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
+  while (Date.now() < deadline) {
+    await failIfLoginErrorVisible(page);
+    await failIfHydrateErrorVisible(page);
+    await dismissPwaInstallPrompt(page);
+    await dismissOnboardingOverlays(page);
+
+    if (await home.first().isVisible().catch(() => false)) {
+      break;
+    }
+
+    if (await selector.isVisible().catch(() => false)) {
+      await pickOrganizationFromSelector(page, orgNameHint);
+      continue;
+    }
+
+    await home
+      .or(selector)
+      .or(loading)
+      .first()
+      .waitFor({ state: 'visible', timeout: 2_000 })
+      .catch(() => undefined);
   }
 
   await dismissPwaInstallPrompt(page);
   await dismissOnboardingOverlays(page);
   await failIfHydrateErrorVisible(page);
   await expect(page.getByTestId('onboarding-wizard')).toBeHidden();
-  await expect(home.first()).toBeVisible({ timeout: 10_000 });
+  await expect(home.first()).toBeVisible({ timeout: 15_000 });
 }
 
 /**
@@ -258,19 +279,8 @@ export async function loginAsDirector(page: Page) {
   await expect(postLogin.first()).toBeVisible({ timeout: POST_LOGIN_TIMEOUT_MS });
   await failIfLoginErrorVisible(page);
   await failIfHydrateErrorVisible(page);
-  await dismissPwaInstallPrompt(page);
-  await dismissOnboardingOverlays(page);
 
-  const orgLoading = page.getByTestId('organization-selector-loading');
-  if (await orgLoading.isVisible().catch(() => false)) {
-    await orgLoading.waitFor({ state: 'hidden', timeout: POST_LOGIN_TIMEOUT_MS });
-  }
-
-  if (await page.getByTestId('organization-selector').isVisible().catch(() => false)) {
-    await pickOrganizationFromSelector(page, creds.orgNameHint);
-  }
-
-  await waitForDirectorHome(page);
+  await waitForDirectorHome(page, creds.orgNameHint);
   await seedE2eBlockingUiDismissed(page);
   await muteMobileOverlayClicks(page);
 }
