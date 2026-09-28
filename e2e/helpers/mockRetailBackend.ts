@@ -359,6 +359,12 @@ function handleRpc(store: Store, name: string, body: Row | null): unknown {
   if (name === 'create_sale_return') {
     return handleCreateSaleReturnRpc(store, body);
   }
+  if (name === 'apply_stock_movement') {
+    return handleApplyStockMovementRpc(store, body);
+  }
+  if (name === 'apply_point_earn_for_sale') {
+    return handleApplyPointEarnForSaleRpc(store, body);
+  }
   return null;
 }
 
@@ -677,6 +683,173 @@ function handleCreateSaleReturnRpc(store: Store, body: Row | null): unknown {
     reason: reason || null,
     created_at: createdAt,
     items: itemRows,
+  };
+}
+
+function findInventoryRow(
+  store: Store,
+  orgId: string,
+  productId: string,
+  variantId: string | null
+): Row | undefined {
+  return store.tables.inventory.find(
+    (r) =>
+      r.organization_id === orgId &&
+      r.product_id === productId &&
+      (variantId
+        ? r.variant_id === variantId
+        : r.variant_id == null || r.variant_id === '')
+  );
+}
+
+/** core.apply_stock_movement 목 — 입고/반품은 가산, 판매는 차감, 조정은 부호 유지 */
+function handleApplyStockMovementRpc(store: Store, body: Row | null): unknown {
+  const orgId = String(body?.p_organization_id ?? '');
+  const productId = String(body?.p_product_id ?? '');
+  const variantRaw = body?.p_variant_id;
+  const variantId =
+    variantRaw == null || variantRaw === '' || variantRaw === 'null'
+      ? null
+      : String(variantRaw);
+  const movementType = String(body?.p_movement_type ?? '');
+  const quantity = Number(body?.p_quantity);
+  if (!orgId || !productId) throw new Error('상품을 선택해 주세요.');
+  if (!Number.isFinite(quantity) || quantity === 0) {
+    throw new Error('수량이 올바르지 않습니다.');
+  }
+
+  const delta =
+    movementType === 'sale'
+      ? -Math.abs(quantity)
+      : movementType === 'adjustment'
+        ? quantity
+        : Math.abs(quantity);
+
+  let inv = findInventoryRow(store, orgId, productId, variantId);
+  const current = Number(inv?.quantity ?? 0);
+  const after = current + delta;
+  if (after < 0) throw new Error('재고가 부족합니다');
+
+  const ts = nowIso();
+  if (!inv) {
+    inv = {
+      id: uuid(),
+      organization_id: orgId,
+      product_id: productId,
+      variant_id: variantId,
+      quantity: after,
+      created_at: ts,
+      updated_at: ts,
+    };
+    store.tables.inventory.push(inv);
+  } else {
+    inv.quantity = after;
+    inv.updated_at = ts;
+  }
+
+  const movement = {
+    id: uuid(),
+    organization_id: orgId,
+    product_id: productId,
+    variant_id: variantId,
+    movement_type: movementType,
+    quantity: delta,
+    reference_type: body?.p_reference_type ? String(body.p_reference_type) : null,
+    reference_id: body?.p_reference_id ? String(body.p_reference_id) : null,
+    reason: body?.p_reason ? String(body.p_reason) : null,
+    created_at: ts,
+  };
+  store.tables.stock_movements.push(movement);
+  return { movement, quantity_after: after };
+}
+
+/** core.apply_point_earn_for_sale 목 */
+function handleApplyPointEarnForSaleRpc(store: Store, body: Row | null): unknown {
+  const orgId = String(body?.p_organization_id ?? '');
+  const customerId = body?.p_customer_id ? String(body.p_customer_id) : '';
+  const saleId = body?.p_sale_id ? String(body.p_sale_id) : '';
+  const pointsEarned = Math.floor(Math.max(Number(body?.p_points_earned) || 0, 0));
+  const rate = Number(body?.p_earn_rate_percent) || 0;
+  const baseAmount = Number(body?.p_base_amount) || 0;
+
+  if (!customerId) {
+    return {
+      skipped: true,
+      reason: 'no_customer',
+      points_earned: 0,
+      earn_rate_percent: rate,
+      base_amount: baseAmount,
+      transaction: null,
+    };
+  }
+  if (pointsEarned <= 0) {
+    return {
+      skipped: true,
+      reason: 'zero_points',
+      points_earned: 0,
+      earn_rate_percent: rate,
+      base_amount: baseAmount,
+      transaction: null,
+    };
+  }
+  const already = store.tables.point_transactions.some(
+    (t) =>
+      t.organization_id === orgId &&
+      t.reference_type === 'sale' &&
+      t.reference_id === saleId &&
+      t.type === 'earn'
+  );
+  if (already) {
+    return {
+      skipped: true,
+      reason: 'already_earned',
+      points_earned: 0,
+      earn_rate_percent: rate,
+      base_amount: baseAmount,
+      transaction: null,
+    };
+  }
+
+  const ts = nowIso();
+  let account = store.tables.point_accounts.find(
+    (a) => a.organization_id === orgId && a.customer_id === customerId
+  );
+  if (!account) {
+    account = {
+      id: uuid(),
+      organization_id: orgId,
+      customer_id: customerId,
+      balance: 0,
+      created_at: ts,
+      updated_at: ts,
+    };
+    store.tables.point_accounts.push(account);
+  }
+  const balanceAfter = Number(account.balance) + pointsEarned;
+  account.balance = balanceAfter;
+  account.updated_at = ts;
+
+  const transaction = {
+    id: uuid(),
+    organization_id: orgId,
+    customer_id: customerId,
+    type: 'earn',
+    amount: pointsEarned,
+    balance_after: balanceAfter,
+    earn_rate_percent: rate,
+    base_amount: baseAmount,
+    reference_type: 'sale',
+    reference_id: saleId,
+    description: null,
+    created_at: ts,
+  };
+  store.tables.point_transactions.push(transaction);
+  return {
+    skipped: false,
+    points_earned: pointsEarned,
+    earn_rate_percent: rate,
+    base_amount: baseAmount,
+    transaction,
   };
 }
 

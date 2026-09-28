@@ -2,6 +2,7 @@ import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { RETAIL_E2E } from './mockRetailBackend';
 import { openNavTab } from './directorNav';
+import { dismissPwaInstallPrompt, muteMobileOverlayClicks } from './directorAuth';
 
 /** Retail 사업장 소유자 로그인 (목 Auth) */
 export async function loginAsRetailOwner(page: Page) {
@@ -13,28 +14,37 @@ export async function loginAsRetailOwner(page: Page) {
   await page.getByPlaceholder('비밀번호').fill(RETAIL_E2E.owner.password);
   await page.getByRole('button', { name: '이메일로 로그인' }).click();
 
-  // 사업장 선택 또는 Retail 홈 (단일 멤버십은 자동 선택)
-  // heading 우선 — 홈 헤딩과 요약 문구가 동시에 존재해 .or() strict 위반 방지
-  const ready = page
-    .getByRole('heading', { name: '홈' })
-    .or(page.getByRole('heading', { name: '사업장 선택' }))
-    .or(page.getByRole('button', { name: '다시 시도' }))
-    .first();
-  await expect(ready).toBeVisible({ timeout: 60_000 });
+  const homeHeading = page.getByRole('heading', { name: '홈', exact: true });
+  const orgHeading = page.getByRole('heading', { name: '사업장 선택', exact: true });
+  const retry = page.getByRole('button', { name: '다시 시도' });
 
-  if (await page.getByRole('button', { name: '다시 시도' }).isVisible().catch(() => false)) {
+  await expect(homeHeading.or(orgHeading).or(retry).or(page.getByRole('dialog')).first()).toBeVisible({
+    timeout: 60_000,
+  });
+  await dismissPwaInstallPrompt(page);
+
+  if (await retry.isVisible().catch(() => false)) {
     throw new Error(
       'Storage hydrate 실패(Incomplete hydrate). mockRetailBackend REST 가로채기를 확인하세요.'
     );
   }
 
-  if (await page.getByRole('heading', { name: '사업장 선택' }).isVisible().catch(() => false)) {
-    await page.getByRole('button', { name: new RegExp(RETAIL_E2E.orgName, 'i') }).first().click();
+  const orgCard = page
+    .getByRole('button', { name: new RegExp(RETAIL_E2E.orgName, 'i') })
+    .filter({ hasNotText: /홈으로|뒤로/ })
+    .first();
+  if (
+    (await orgHeading.isVisible().catch(() => false)) &&
+    !(await homeHeading.isVisible().catch(() => false)) &&
+    (await orgCard.isVisible().catch(() => false))
+  ) {
+    await orgCard.click({ force: true });
   }
 
-  await expect(page.getByRole('heading', { name: '홈' }).first()).toBeVisible({
-    timeout: 60_000,
-  });
+  await dismissPwaInstallPrompt(page);
+  await expect(homeHeading).toBeVisible({ timeout: 60_000 });
+  await dismissPwaInstallPrompt(page);
+  await muteMobileOverlayClicks(page);
 }
 
 /** 일반 사용자(Customer) 로그인 — 고객 포털 */
@@ -47,9 +57,14 @@ export async function loginAsRetailCustomerUser(page: Page) {
   await page.getByPlaceholder('비밀번호').fill(RETAIL_E2E.customerUser.password);
   await page.getByRole('button', { name: '이메일로 로그인' }).click();
 
-  await expect(page.getByRole('heading', { name: '내 사업장' }).or(page.getByText('내 사업장'))).toBeVisible({
+  await dismissPwaInstallPrompt(page);
+  await expect(
+    page.getByRole('heading', { name: '내 사업장' }).or(page.getByText('내 사업장')).first()
+  ).toBeVisible({
     timeout: 60_000,
   });
+  await dismissPwaInstallPrompt(page);
+  await muteMobileOverlayClicks(page);
 }
 
 export async function openRetailTab(page: Page, label: string) {

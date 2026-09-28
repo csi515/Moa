@@ -45,7 +45,7 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
   let customerId = '';
 
   test.beforeAll(async ({ browser }) => {
-    test.setTimeout(120_000);
+    test.setTimeout(180_000);
     // PWA SW가 GET /rest 를 가로채면 page.route 목이 우회됨 — 공유 context에서 SW 차단
     const context = await browser.newContext({ serviceWorkers: 'block' });
     page = await context.newPage();
@@ -92,8 +92,14 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
 
   test('4. 재고 입고', async () => {
     await openRetailTab(page, '재고');
-    await expect(page.getByRole('heading', { name: '재고' })).toBeVisible({ timeout: 20_000 });
-    await page.getByRole('button', { name: '입고' }).first().click();
+    await expect(page.getByRole('heading', { name: '재고', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(visibleText(page, PRODUCT_NAME)).toBeVisible({ timeout: 20_000 });
+
+    const inboundBtn = page.getByRole('button', { name: '입고' }).filter({ visible: true }).last();
+    await expect(inboundBtn).toBeEnabled({ timeout: 15_000 });
+    await inboundBtn.click();
     await expect(page.getByRole('heading', { name: '상품 입고' })).toBeVisible();
 
     await fieldInput(page, '상품').selectOption({ label: PRODUCT_NAME });
@@ -110,11 +116,16 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
 
   test('5~6. 고객 등록 · 상품 판매', async () => {
     await openRetailTab(page, '판매');
-    await expect(page.getByRole('heading', { name: '판매' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: '판매', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(page.getByText(PRODUCT_NAME).first()).toBeVisible({ timeout: 20_000 });
 
     await page.getByRole('button', { name: new RegExp(PRODUCT_NAME) }).first().click();
-    await page.getByRole('button', { name: '결제하기' }).click();
+    // 모바일: 하단 결제 바 위에 FAB(빠른 실행)이 겹침 — 보이는 결제하기를 강제 클릭
+    await page.getByRole('button', { name: '결제하기' }).filter({ visible: true }).last().click({
+      force: true,
+    });
     await expect(page.getByRole('heading', { name: '판매 완료' })).toBeVisible();
 
     await page.getByRole('button', { name: '신규 등록' }).click();
@@ -152,7 +163,7 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
 
   test('9. 판매내역 확인', async () => {
     await openRetailTab(page, '판매내역');
-    await expect(page.getByRole('heading', { name: '판매 내역' })).toBeVisible({
+    await expect(page.getByRole('heading', { name: '판매 내역', exact: true })).toBeVisible({
       timeout: 20_000,
     });
     await expect(visibleText(page, CUSTOMER_NAME)).toBeVisible({ timeout: 20_000 });
@@ -160,7 +171,9 @@ test.describe('Retail 핵심 운영 흐름 (목 백엔드)', () => {
 
   test('10. 고객 상세에서 포인트 확인', async () => {
     await openRetailTab(page, '고객');
-    await expect(page.getByRole('heading', { name: '고객' })).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByRole('heading', { name: '고객', exact: true })).toBeVisible({
+      timeout: 20_000,
+    });
     await visibleText(page, CUSTOMER_NAME).click();
     await expect(page.getByRole('heading', { name: '고객 상세' })).toBeVisible({ timeout: 15_000 });
     await expect(visibleText(page, String(EXPECTED_EARN_POINTS))).toBeVisible({

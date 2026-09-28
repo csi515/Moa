@@ -49,7 +49,12 @@ test.describe('원장 핵심 운영 흐름 (인증 필요)', () => {
   test('1~2. 홈 진입', async () => {
     await openNavTab(page, '홈').catch(() => undefined);
     await expectHomeVisible(page);
-    await expect(page.getByText('오늘 일정').or(page.getByText('오늘 출결'))).toBeVisible();
+    await expect(
+      page
+        .getByRole('heading', { name: '오늘 일정', exact: true })
+        .or(page.getByRole('heading', { name: '오늘 출결', exact: true }))
+        .first()
+    ).toBeVisible();
   });
 
   test('3~4. 학생 등록 · 목록 · 자동 반 미배정', async () => {
@@ -211,8 +216,9 @@ test.describe('모바일 viewport', () => {
     }
 
     await loginAsDirector(page);
+    await expectHomeVisible(page);
     await openNavTab(page, '학생');
-    const addBtn = page.getByRole('button', { name: '학생 등록' }).first();
+    const addBtn = page.getByRole('button', { name: '학생 등록' }).filter({ visible: true }).first();
     await expect(addBtn).toBeVisible({ timeout: 20_000 });
     const box = await addBtn.boundingBox();
     expect(box).not.toBeNull();

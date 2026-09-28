@@ -1,8 +1,10 @@
 import type { Page } from '@playwright/test';
 import { expect } from '@playwright/test';
+import { dismissPwaInstallPrompt } from './directorAuth';
 
 /** 사이드바/하단 내비로 탭 이동 (데스크톱·모바일 겸용) */
 export async function openNavTab(page: Page, label: string) {
+  await dismissPwaInstallPrompt(page);
   // 데스크톱 사이드바
   const side = page.getByRole('button', { name: label, exact: true }).first();
   if (await side.isVisible().catch(() => false)) {
@@ -15,11 +17,18 @@ export async function openNavTab(page: Page, label: string) {
     await bottom.click();
     return;
   }
-  // 더보기
+  // 더보기 시트 (사이드바 동일 라벨은 뷰포트 밖일 수 있음)
   const more = page.getByRole('button', { name: /더보기/ }).first();
   if (await more.isVisible().catch(() => false)) {
-    await more.click();
-    await page.getByRole('button', { name: label, exact: true }).first().click();
+    await more.click({ force: true });
+    const sheetItem = page
+      .locator('div.fixed.inset-0')
+      .getByRole('button', { name: label, exact: true })
+      .filter({ visible: true })
+      .first();
+    await expect(sheetItem).toBeVisible({ timeout: 8_000 });
+    await sheetItem.scrollIntoViewIfNeeded();
+    await sheetItem.evaluate((el) => (el as HTMLButtonElement).click());
     return;
   }
   throw new Error(`내비에서 "${label}" 탭을 찾지 못함 (piano/config/nav.tsx)`);
