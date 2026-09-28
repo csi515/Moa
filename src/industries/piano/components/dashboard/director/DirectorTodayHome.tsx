@@ -118,7 +118,7 @@ export const DirectorTodayHome: FC = () => {
   const pendingTaskTotal = taskItems.reduce((sum, item) => sum + item.count, 0);
 
   return (
-    <div className="space-y-4 pb-4 max-w-5xl mx-auto w-full">
+    <div className="space-y-4 pb-4 max-w-5xl mx-auto w-full" data-testid="director-home">
       <section className="bg-gradient-to-br from-indigo-800 via-indigo-900 to-slate-900 rounded-2xl px-4 py-3.5 text-white">
         <p className="text-[11px] text-indigo-200 font-semibold">
           {formatKoreanDate(new Date().toISOString())}

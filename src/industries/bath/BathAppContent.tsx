@@ -16,11 +16,13 @@ const bathSettings = () => <AcademySettingsView />;
 
 const BATH_VIEW_MAP: Record<string, () => ReactNode> = {
   dashboard: () => (
-    <BathPlaceholderView
-      title="홈"
-      description="사우나·찜질방 운영 현황은 이후 단계에서 연결됩니다."
-      icon={LayoutDashboard}
-    />
+    <div data-testid="director-home">
+      <BathPlaceholderView
+        title="홈"
+        description="사우나·찜질방 운영 현황은 이후 단계에서 연결됩니다."
+        icon={LayoutDashboard}
+      />
+    </div>
   ),
   members: () => (
     <BathPlaceholderView

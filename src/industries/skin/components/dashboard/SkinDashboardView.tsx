@@ -46,7 +46,7 @@ const SkinStaffDashboard: React.FC = () => {
   ).length;
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="staff-home">
       <PageHeader
         density="compact"
         icon={<Sparkles className="w-5 h-5" />}
@@ -174,7 +174,7 @@ const SkinAdminDashboard: React.FC = () => {
   }, [services, today, refreshKey]);
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="director-home">
       <PageHeader
         density="compact"
         icon={<Sparkles className="w-5 h-5" />}
