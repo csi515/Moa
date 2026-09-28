@@ -68,6 +68,20 @@ export function resolveMembershipByOrganizationId(
   return { membership: null, storage: { action: 'clear' } };
 }
 
+/**
+ * 방금 생성한 사업장은 현재 렌더의 memberships에 없을 수 있다.
+ * refresh 직후 최신 목록에서 다시 찾는다.
+ */
+export function resolveMembershipAfterRefresh(
+  currentMemberships: OrganizationMembership[],
+  latestMemberships: OrganizationMembership[],
+  organizationId: string
+): MembershipSelectionResult {
+  const current = resolveMembershipByOrganizationId(currentMemberships, organizationId);
+  if (current.membership) return current;
+  return resolveMembershipByOrganizationId(latestMemberships, organizationId);
+}
+
 export type PortalAccessFlags = {
   canAccessParentPortal: boolean;
   canAccessCustomerPortal: boolean;

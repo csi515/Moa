@@ -138,6 +138,7 @@ BEGIN
     true,
     NULLIF(trim(COALESCE(p_postal, '')), ''),
     NULLIF(trim(COALESCE(p_sido, '')), ''),
+    NULLIF(trim(COALESCE(p_sigungu, '')), ''),
     NULLIF(trim(COALESCE(p_dong, '')), ''),
     NULLIF(trim(COALESCE(p_jibun, '')), ''),
     NULLIF(trim(COALESCE(p_road_address, '')), ''),
@@ -158,6 +159,11 @@ BEGIN
   RETURN v_org_id;
 END;
 $$;
+
+GRANT EXECUTE ON FUNCTION core.create_organization(
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB,
+  TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT
+) TO authenticated;
 
 COMMENT ON FUNCTION core.create_organization(
   TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, TEXT, JSONB,

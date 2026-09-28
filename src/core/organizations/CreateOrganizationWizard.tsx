@@ -117,7 +117,8 @@ export const CreateOrganizationWizard: React.FC<CreateOrganizationWizardProps> =
     setIsEntering(true);
     setError(null);
     try {
-      await org.refreshOrganizations({ quiet: true });
+      // refresh 먼저 하면 단일 사업장을 자동 선택하며 선택기가 언마운트된다.
+      // 생성 직후 목록에 없으므로 selectOrganization이 최신 membership을 다시 조회한다.
       await org.selectOrganization(createdOrgId);
       onComplete();
     } catch (err) {

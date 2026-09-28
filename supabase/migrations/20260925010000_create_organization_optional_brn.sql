@@ -135,6 +135,7 @@ BEGIN
     true,
     NULLIF(trim(COALESCE(p_postal, '')), ''),
     NULLIF(trim(COALESCE(p_sido, '')), ''),
+    NULLIF(trim(COALESCE(p_sigungu, '')), ''),
     NULLIF(trim(COALESCE(p_dong, '')), ''),
     NULLIF(trim(COALESCE(p_jibun, '')), ''),
     NULLIF(trim(COALESCE(p_road_address, '')), ''),

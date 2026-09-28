@@ -14,6 +14,7 @@ import {
   assertSelectionInvariant,
   deriveSelectionFields,
   nextOrganizationLocalStateAction,
+  resolveMembershipAfterRefresh,
   resolveMembershipByOrganizationId,
 } from './resolveOrganizationContext';
 
@@ -127,6 +128,15 @@ function run() {
   assert.match(providerSrc, /deriveSelectionFields\(selectedMembership\)/);
   assert.match(providerSrc, /nextOrganizationLocalStateAction/);
   assert.match(providerSrc, /clearStoredOrganizationId\(\)/);
+  assert.match(providerSrc, /resolveMembershipAfterRefresh/);
+  assert.match(providerSrc, /fetchUserMembershipsWithContext/);
+  const wizardSrc = readFileSync(join(here, 'CreateOrganizationWizard.tsx'), 'utf8');
+  assert.match(wizardSrc, /selectOrganization\(createdOrgId\)/);
+  assert.equal(
+    /refreshOrganizations[\s\S]*selectOrganization\(createdOrgId\)/.test(wizardSrc),
+    false,
+    '생성 직후 refresh→select 순서는 stale membership으로 실패한다'
+  );
 
   // 1. 피아노만 — 로그인 자동 진입
   {
@@ -310,6 +320,24 @@ function run() {
     const switched = selectOrg([unknown, piano], 'org-unknown');
     assertOrg(switched.membership, 'org-unknown', 'english_academy');
     assert.equal(switched.membership?.organizationId, 'org-unknown');
+  }
+
+  // 11. 신규 생성 직후 — 현재 목록에 없어도 최신 membership으로 진입
+  {
+    const created = mem({
+      id: 'm-new',
+      organizationId: 'org-new',
+      role: 'owner',
+      industry: 'piano',
+      name: '신규학원',
+    });
+    const stale = resolveMembershipByOrganizationId([], 'org-new');
+    assert.equal(stale.membership, null);
+    const afterRefresh = resolveMembershipAfterRefresh([], [created], 'org-new');
+    assertOrg(afterRefresh.membership, 'org-new', 'piano');
+    assert.equal(afterRefresh.storage.action, 'store');
+    const missing = resolveMembershipAfterRefresh([], [piano], 'org-new');
+    assert.equal(missing.membership, null);
   }
 
   // 같은 org를 다시 고르면 local state를 지우지 않음

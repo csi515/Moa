@@ -33,6 +33,7 @@ import {
   portalModeToFlags,
   resolveMembershipById,
   resolveMembershipByOrganizationId,
+  resolveMembershipAfterRefresh,
   applyBootstrapToSession,
   nextOrganizationLocalStateAction,
   STAFF_ROLES,
@@ -327,13 +328,41 @@ export const OrganizationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
   const selectOrganization = useCallback(
     async (organizationId: string) => {
-      const resolved = resolveMembershipByOrganizationId(memberships, organizationId);
+      let list = memberships;
+      let resolved = resolveMembershipByOrganizationId(list, organizationId);
+      if (!resolved.membership) {
+        list = await orgService.fetchUserMembershipsWithContext();
+        setMemberships(list);
+        resolved = resolveMembershipAfterRefresh(memberships, list, organizationId);
+      }
       if (!resolved.membership) {
         throw new Error('소속 정보를 찾을 수 없습니다.');
       }
-      await switchMembership(resolved.membership.id);
+
+      await orgService.setActiveMembership(resolved.membership.id);
+      if (
+        nextOrganizationLocalStateAction(currentOrganization?.id, resolved.membership.organizationId) ===
+        'clear'
+      ) {
+        StorageService.clearOrganization();
+      }
+      if (STAFF_ROLES.has(resolved.membership.role)) {
+        commitPortalMode('none');
+      }
+      applyMembershipSelection(list, resolved.membership.id);
+      setMemberships(
+        list.map((item) => ({
+          ...item,
+          isCurrentContext: item.id === resolved.membership?.id,
+        }))
+      );
     },
-    [memberships, switchMembership]
+    [
+      memberships,
+      currentOrganization?.id,
+      commitPortalMode,
+      applyMembershipSelection,
+    ]
   );
 
   const clearOrganization = useCallback(async () => {

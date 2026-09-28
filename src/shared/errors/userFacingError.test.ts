@@ -24,6 +24,15 @@ function run() {
   const fetchMsg = userFacingErrorMessage(new Error('failed to fetch'));
   assert.equal(fetchMsg.includes('failed to fetch'), false);
 
+  const phoneRequired = userFacingErrorMessage(
+    new Error('사업장 전화번호를 입력해 주세요.')
+  );
+  assert.equal(phoneRequired, '사업장 전화번호를 입력해 주세요.');
+  const wrappedKorean = userFacingErrorMessage(
+    new Error('ERROR: 사업장 주소를 입력해 주세요.')
+  );
+  assert.equal(wrappedKorean, '사업장 주소를 입력해 주세요.');
+
   console.log('userFacingError.test.ts: ok');
 }
 

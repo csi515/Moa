@@ -85,6 +85,26 @@ function run() {
   );
   assert.match(sql, /NULLIF\(trim\(COALESCE\(p_address_detail, ''\)\), ''\)/);
 
+  const insert = sql.match(
+    /INSERT INTO core\.organizations\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)\s*RETURNING/
+  );
+  assert.ok(insert, 'create_organization INSERT 본문이 없습니다');
+  const columns = insert[1]
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean);
+  let depth = 0;
+  let valueCount = 1;
+  for (const ch of insert[2]) {
+    if (ch === '(') depth += 1;
+    else if (ch === ')') depth -= 1;
+    else if (ch === ',' && depth === 0) valueCount += 1;
+  }
+  assert.equal(columns.length, 16);
+  assert.equal(valueCount, columns.length, 'INSERT 컬럼 수와 VALUES 수가 같아야 한다');
+  assert.match(insert[2], /p_sigungu/);
+  assert.equal(sql.includes("RAISE EXCEPTION '사업장 전화번호를 입력해 주세요.'"), false);
+
   console.log('createOrganizationPhone.test.ts: ok');
 }
 

@@ -48,6 +48,21 @@ export function classifyUserFacingError(error: unknown): UserFacingErrorKind {
   return 'temporary';
 }
 
+function localizedDomainMessage(raw: string): string | null {
+  const compact = raw.replace(/^[\s\S]*?:\s*/, '').split(/\r|\n/)[0]?.trim() ?? '';
+  const candidate = compact || raw.trim();
+  if (candidate.length === 0 || candidate.length > 160) return null;
+  if (/relation |column |syntax error|postgrest|permission denied|jwt/i.test(candidate)) {
+    return null;
+  }
+  if (/[가-힣]/.test(candidate) && /주세요|없습니다|초과|올바르지|실패했습니다/.test(candidate)) {
+    return candidate;
+  }
+  return null;
+}
+
 export function userFacingErrorMessage(error: unknown): string {
+  const localized = localizedDomainMessage(rawErrorText(error));
+  if (localized) return localized;
   return USER_FACING_ERROR_MESSAGES[classifyUserFacingError(error)];
 }
