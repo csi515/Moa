@@ -1,4 +1,5 @@
 import { getCoreClient } from '@/lib/supabase';
+import { getPublicAppBaseUrl } from '@/core/platform/appBaseUrl';
 
 export interface ParentInviteLinkCode {
   token: string;
@@ -25,12 +26,13 @@ export function parseInviteLinkCodesFromResult(data: unknown): ParentInviteLinkC
   return parseLinkCodes(root.link_codes ?? root.linkCodes);
 }
 
-/** 앱 공개 URL (QR·초대 링크). 브라우저에서는 현재 origin을 우선해 배포 호스트와 맞춤 */
+/**
+ * 앱 공개 URL (QR·초대 링크).
+ * 웹: 현재 origin 우선(배포 호스트와 맞춤). 네이티브(Capacitor): VITE_APP_URL
+ * (WebView origin 은 localhost 라 외부에서 열 수 없음).
+ */
 export function getAppBaseUrl(): string {
-  if (typeof window !== 'undefined' && window.location?.origin) {
-    return window.location.origin;
-  }
-  return (import.meta.env.VITE_APP_URL as string | undefined)?.replace(/\/$/, '') || '';
+  return getPublicAppBaseUrl();
 }
 
 export function buildParentInviteUrl(token: string): string {

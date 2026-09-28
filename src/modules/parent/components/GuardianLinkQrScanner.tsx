@@ -1,6 +1,7 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { Camera, Loader2, X } from 'lucide-react';
+import { parseGuardianLinkCode } from '@/core/platform/deepLinkParser';
 
 interface GuardianLinkQrScannerProps {
   isOpen: boolean;
@@ -8,7 +9,7 @@ interface GuardianLinkQrScannerProps {
   onScan: (token: string) => void;
 }
 
-/** QR/링크에서 8자리 연결 코드 추출 */
+/** QR/링크에서 연결 코드 추출 (20자리 신규 코드 + 만료 전 8자리 기존 코드) */
 export function extractGuardianLinkToken(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
@@ -16,17 +17,16 @@ export function extractGuardianLinkToken(raw: string): string | null {
   try {
     const url = new URL(trimmed);
     const link = url.searchParams.get('link');
-    if (link) return link.trim().toUpperCase();
+    if (link) return parseGuardianLinkCode(link);
   } catch {
     // not a URL
   }
 
-  const codeMatch = trimmed.match(/\b([A-Z0-9]{6,12})\b/i);
-  if (codeMatch) return codeMatch[1].toUpperCase();
+  const whole = parseGuardianLinkCode(trimmed);
+  if (whole) return whole;
 
-  if (/^[A-Z0-9]{6,12}$/i.test(trimmed)) {
-    return trimmed.toUpperCase();
-  }
+  const codeMatch = trimmed.match(/\b([A-Z0-9]{4}(?:-?[A-Z0-9]{4}){4}|[A-Z0-9]{8})\b/i);
+  if (codeMatch) return parseGuardianLinkCode(codeMatch[1]);
 
   return null;
 }

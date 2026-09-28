@@ -2090,6 +2090,31 @@ export interface Database {
         Update: Partial<Database['core']['Tables']['security_profile_email_snapshot']['Insert']>;
         Relationships: [];
       };
+      /** 보호자 연결 코드 preview/redeem 시도 기록 (클라이언트 접근 불가, RPC 내부 전용) */
+      guardian_link_attempts: {
+        Row: {
+          id: string;
+          user_id: string;
+          action: 'preview' | 'redeem';
+          token_hash: string | null;
+          success: boolean;
+          reason: string | null;
+          organization_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          action: 'preview' | 'redeem';
+          token_hash?: string | null;
+          success?: boolean;
+          reason?: string | null;
+          organization_id?: string | null;
+          created_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['guardian_link_attempts']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -2484,6 +2509,14 @@ export interface Database {
       redeem_guardian_link_token: {
         Args: { p_token: string; p_shared_fields?: Json };
         Returns: Json;
+      };
+      preview_guardian_link_token: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      max_linked_guardians_per_student: {
+        Args: Record<string, never>;
+        Returns: number;
       };
       parent_register_child: {
         Args: {

@@ -18,7 +18,11 @@ import { ParentChildPinSection } from './components/ParentChildPinSection';
 import { useGuardianLinkRedeem } from './hooks/useGuardianLinkRedeem';
 import { resolvePushOrganizationId } from './utils/resolvePushOrganizationId';
 import { registerAppPush } from '@/core/push';
-import { isNativeApp } from '@/core/platform';
+import {
+  isNativeApp,
+  isValidGuardianLinkCode,
+  normalizeGuardianLinkCode,
+} from '@/core/platform';
 import { getCustomerLabel, getPlaceLabel } from '@/core/industry/industryUi';
 import { isSupabaseConfigured } from '@/lib/supabase';
 
@@ -155,7 +159,7 @@ function ParentShellContent() {
                     연결 코드 입력
                   </button>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    사업장에서 받은 QR 또는 8자리 연결 코드로 바로 연결합니다. 공개코드·이름 검색은
+                    사업장에서 받은 QR 또는 연결 코드로 바로 연결합니다. 공개코드·이름 검색은
                     아래 「학원 연결하기」에서 진행합니다.
                   </p>
                 </div>
@@ -166,15 +170,18 @@ function ParentShellContent() {
                       type="text"
                       value={linkInput}
                       onChange={(e) => setLinkInput(e.target.value.toUpperCase())}
-                      placeholder="예: ABC12345"
-                      maxLength={8}
+                      placeholder="예: 7K3M-9QZX-2B4D-6F8H-1JNP"
+                      maxLength={29}
+                      autoCapitalize="characters"
+                      autoCorrect="off"
+                      spellCheck={false}
                       className="flex-1 px-3 py-2.5 text-sm font-mono uppercase border-2 border-slate-300 rounded-xl tracking-widest focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={handleManualRedeem}
-                      disabled={redeeming || linkInput.length < 6}
+                      disabled={redeeming || !isValidGuardianLinkCode(normalizeGuardianLinkCode(linkInput))}
                       className="px-4 py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed hover:bg-indigo-700 transition-colors"
                     >
                       {redeeming ? (
@@ -188,7 +195,8 @@ function ParentShellContent() {
                     </button>
                   </div>
                   <p className="text-xs text-slate-500 leading-relaxed">
-                    8자리 연결 코드만 입력하세요. 사업장 공개코드는 「학원 연결하기」에서 사용합니다.
+                    사업장에서 받은 20자리 연결 코드(이전에 받은 8자리 코드도 가능)를 입력하세요. 사업장
+                    공개코드는 「학원 연결하기」에서 사용합니다.
                   </p>
                   <button
                     type="button"

@@ -1,7 +1,13 @@
-import React, { useState } from 'react';
-import { Copy, Link2, Loader2, X, Check } from 'lucide-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { Copy, Link2, Loader2, X, Check, RefreshCw, Ban } from 'lucide-react';
 import { useOrganization } from '@/core/organizations/OrganizationProvider';
-import { createGuardianLinkToken } from '@/core/parent/services/guardianLinkService';
+import {
+  createGuardianLinkToken,
+  listGuardianLinkTokens,
+  revokeGuardianLinkToken,
+  type GuardianLinkTokenItem,
+} from '@/core/parent/services/guardianLinkService';
+import { formatGuardianLinkCode } from '@/core/platform/deepLinkParser';
 import { buildParentInviteUrl } from '@/core/parent/services/parentInviteService';
 import { GuardianLinkQrDisplay } from '@/modules/parent/components/GuardianLinkQrDisplay';
 import { useModuleLabels } from '@/core/labels';
@@ -30,21 +36,62 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTokens, setActiveTokens] = useState<GuardianLinkTokenItem[]>([]);
+  const [tokensLoading, setTokensLoading] = useState(false);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
+  const orgId = currentOrganization?.id;
+
+  /** 이 학생의 활성(미사용·미만료) 연결 코드 목록. 코드 원문은 발급 직후에만 볼 수 있음 */
+  const loadActiveTokens = useCallback(async () => {
+    if (!orgId || !studentId) return;
+    setTokensLoading(true);
+    try {
+      const rows = await listGuardianLinkTokens(orgId);
+      setActiveTokens(rows.filter((r) => String(r.metadata?.customer_id ?? '') === studentId));
+    } catch {
+      setActiveTokens([]);
+    } finally {
+      setTokensLoading(false);
+    }
+  }, [orgId, studentId]);
+
+  useEffect(() => {
+    if (isOpen) void loadActiveTokens();
+  }, [isOpen, loadActiveTokens]);
 
   if (!isOpen) return null;
 
+  const genericActiveCount = activeTokens.filter((t) => !t.metadata?.parent_customer_id).length;
+
   const handleGenerate = async () => {
-    if (!currentOrganization?.id) return;
+    if (!orgId) return;
     setLoading(true);
     setError(null);
     try {
-      const result = await createGuardianLinkToken(currentOrganization.id, studentId, 7, 1);
+      // 서버가 1회용·최대 7일로 강제하고, 같은 학생의 이전 활성 코드는 자동 폐기
+      const result = await createGuardianLinkToken(orgId, studentId, 7, 1);
       setToken(result.token);
       setExpiresAt(result.expiresAt);
+      void loadActiveTokens();
     } catch (err) {
       setError(err instanceof Error ? err.message : '코드 생성에 실패했습니다.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRevoke = async (tokenId: string) => {
+    if (!orgId) return;
+    setRevokingId(tokenId);
+    setError(null);
+    try {
+      await revokeGuardianLinkToken(orgId, tokenId);
+      await loadActiveTokens();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      setError(msg.includes('Permission denied') ? '코드 폐기는 관리자만 할 수 있습니다.' : msg || '코드 폐기에 실패했습니다.');
+    } finally {
+      setRevokingId(null);
     }
   };
 
@@ -58,7 +105,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
 
   const handleCopyCode = async () => {
     if (!token) return;
-    await navigator.clipboard.writeText(token);
+    await navigator.clipboard.writeText(formatGuardianLinkCode(token));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -94,6 +141,41 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
           </div>
         )}
 
+        {(tokensLoading || activeTokens.length > 0) && (
+          <div className="mb-3 p-3 rounded-xl bg-slate-50 border border-slate-200">
+            <p className="text-xs font-bold text-slate-700 mb-2">
+              사용 대기 중인 연결 코드 {tokensLoading ? '' : `${activeTokens.length}개`}
+            </p>
+            {tokensLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-slate-400" />
+            ) : (
+              <ul className="space-y-1.5">
+                {activeTokens.map((t) => (
+                  <li key={t.id} className="flex items-center justify-between gap-2 text-[11px] text-slate-600">
+                    <span className="min-w-0">
+                      {t.metadata?.parent_customer_id ? '학부모 초대' : 'QR·코드'} ·{' '}
+                      {new Date(t.createdAt).toLocaleDateString('ko-KR')} 발급
+                      {t.expiresAt ? ` · ${new Date(t.expiresAt).toLocaleDateString('ko-KR')}까지` : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => void handleRevoke(t.id)}
+                      disabled={revokingId === t.id}
+                      className="shrink-0 inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-rose-200 text-rose-600 font-bold hover:bg-rose-50 disabled:opacity-50 min-h-[32px]"
+                    >
+                      {revokingId === t.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3 h-3" />}
+                      폐기
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <p className="text-[10px] text-slate-500 mt-2">
+              코드는 발급 직후에만 확인할 수 있습니다. 분실 시 재발급하면 이전 코드는 자동 폐기됩니다.
+            </p>
+          </div>
+        )}
+
         {!token ? (
           <div className="space-y-3">
             <div className="p-3 bg-indigo-50 rounded-xl border border-indigo-100">
@@ -104,7 +186,7 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
                 <br />
                 2. {contactLabel}님이 MOA에서 QR 스캔 또는 코드 입력
                 <br />
-                3. 승인 없이 바로 학생과 연결됩니다
+                3. 코드는 1회용이며 7일간 유효합니다 (학생당 보호자 계정 최대 2명)
               </p>
             </div>
             <button
@@ -113,8 +195,18 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
               disabled={loading}
               className="w-full py-2.5 bg-indigo-600 text-white text-sm font-bold rounded-xl flex items-center justify-center gap-2 min-h-[44px] disabled:opacity-50 hover:bg-indigo-700 active:scale-[0.98] transition-all"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-              {loading ? '생성 중...' : '학부모 연결 QR 만들기'}
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : genericActiveCount > 0 ? (
+                <RefreshCw className="w-4 h-4" />
+              ) : (
+                <Link2 className="w-4 h-4" />
+              )}
+              {loading
+                ? '생성 중...'
+                : genericActiveCount > 0
+                  ? '새 코드 재발급 (이전 코드 폐기)'
+                  : '학부모 연결 QR 만들기'}
             </button>
           </div>
         ) : (
@@ -122,12 +214,12 @@ export const GuardianLinkInviteModal: React.FC<GuardianLinkInviteModalProps> = (
             <GuardianLinkQrDisplay url={buildParentInviteUrl(token)} />
             <div className="text-center p-4 bg-indigo-50 rounded-xl border border-indigo-100">
               <p className="text-[10px] text-indigo-600 font-bold uppercase mb-1">연결 코드</p>
-              <p className="text-3xl font-black font-mono tracking-[0.3em] text-indigo-900">
-                {token}
+              <p className="text-xl font-black font-mono tracking-wider text-indigo-900 break-all">
+                {formatGuardianLinkCode(token)}
               </p>
               {expiresAt && (
                 <p className="text-[10px] text-slate-500 mt-2">
-                  {new Date(expiresAt).toLocaleDateString('ko-KR')}까지 유효
+                  {new Date(expiresAt).toLocaleDateString('ko-KR')}까지 유효 · 1회용
                 </p>
               )}
             </div>

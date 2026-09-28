@@ -3,6 +3,7 @@ import { Check, Copy, Link2, Mail, X } from 'lucide-react';
 import type { ParentInviteLinkCode } from '@/core/parent/services/parentInviteService';
 import { buildParentInviteUrl } from '@/core/parent/services/parentInviteService';
 import { GuardianLinkQrDisplay } from '@/modules/parent/components/GuardianLinkQrDisplay';
+import { formatGuardianLinkCode } from '@/core/platform/deepLinkParser';
 
 interface ParentInviteResultModalProps {
   parentName: string;
@@ -112,13 +113,13 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
               >
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-slate-800 truncate">{code.studentName}</p>
-                  <p className="text-lg font-black font-mono tracking-widest text-indigo-700">
-                    {code.token}
+                  <p className="text-base font-black font-mono tracking-wide text-indigo-700 break-all">
+                    {formatGuardianLinkCode(code.token)}
                   </p>
                 </div>
                 <button
                   type="button"
-                  onClick={() => void handleCopy(code.token, code.token)}
+                  onClick={() => void handleCopy(code.token, formatGuardianLinkCode(code.token))}
                   className="p-2 rounded-lg bg-white border border-slate-200 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label={`${code.studentName} 코드 복사`}
                 >

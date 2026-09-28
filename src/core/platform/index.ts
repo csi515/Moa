@@ -5,7 +5,16 @@ export {
   isAndroidApp,
   getCapacitorPlatform,
 } from './capacitorPlatform';
-export { parseDeepLinksFromUrl, parseDeepLinksFromHref } from './deepLinkParser';
+export {
+  parseDeepLinksFromUrl,
+  parseDeepLinksFromHref,
+  normalizeGuardianLinkCode,
+  isValidGuardianLinkCode,
+  parseGuardianLinkCode,
+  formatGuardianLinkCode,
+  parseStaffLinkCode,
+} from './deepLinkParser';
+export { getPublicAppBaseUrl, resolveAppBaseUrl } from './appBaseUrl';
 export {
   applyDeepLinkFromString,
   bootstrapWebDeepLinks,
