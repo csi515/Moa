@@ -1,23 +1,19 @@
-# Moa Academy — CI/CD
+# Moa Academy — CI/CD (단일 workflow)
 # Node.js 22 (.nvmrc / package.json engines) · Vite · React · TypeScript · npm
 # 트리거: main push, pull_request
 #
-# Dependency (quality 실패 시 하위 job은 skip — 의도):
-#   quality (lint + unit + static security)
-#     ├─ build-e2e
-#     └─ security-db   (ENABLE_SECURITY_AUDIT=true — real RLS/auth DB audits)
+#   quality (lint + business-invariants + BI 밖 extras)
+#     ├─ build-e2e          production Vite + Playwright
+#     └─ security-db        ENABLE_SECURITY_AUDIT=true — live RLS/auth/DB
 #   deploy ← needs quality + build-e2e + security-db
-#            (main + ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT)
-#            security-db 실패/누락 secret(main) → deploy 차단
+#            main + ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT
+#            security-db 실패/main secret 누락 → deploy 차단
 #
-# Security layers:
-#   1) Static (secrets 불필요) — quality job에서 실제 실행, 실패 시 CI FAIL
-#   2) DB audits (Supabase JWT/시드) — security-db, continue-on-error 없음
-#      PR + secret 없음: 감사 미실행 (job 성공 ≠ DB audit PASS)
-#      main push + secret 없음: security-db FAIL → deploy 불가
-#   3) Production gate — deploy는 security-db success 필수
+# Quality는 Vite build를 하지 않는다. production build는 build-e2e.
+# BI catalog에 있는 script는 quality에서 다시 개별 실행하지 않는다.
+# continue-on-error 없음.
 #
-# 비밀값은 절대 워크플로우에 하드코딩하지 않습니다.
+# 비밀값은 워크플로우에 하드코딩하지 않는다.
 # GitHub → Settings → Secrets and variables → Actions
 
 name: CI/CD
@@ -40,12 +36,13 @@ env:
 
 jobs:
   # ─────────────────────────────────────────────
-  # 1) 품질 + Static security (비밀값 불필요)
+  # Quality: static + P20 BI runner + catalog 밖 extras
+  # Vite build 없음. finance/commerce/attendance 등은 BI가 실행.
   # ─────────────────────────────────────────────
   quality:
-    name: Lint & Unit & Static Security
+    name: Quality
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,116 +56,70 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck (lint)
+      - name: CI structure
+        run: node scripts/check-ci-workflow-structure.mjs --self-test
+
+      - name: Static — lint
         run: npm run lint
 
-      # ── 도메인 unit ──────────────────────────────────────────────
-      - name: Unit — bulk-import
+      - name: Business invariants
+        run: npm run test:business-invariants
+
+      # ── BI catalog에 없는 extras (coverage 유지) ─────────────────
+      - name: Extra — bulk-import
         run: npm run test:bulk-import
 
-      - name: Unit — deeplink
+      - name: Extra — deeplink
         run: npm run test:deeplink
 
-      - name: Unit — finance suite
-        run: npm run test:finance
-
-      - name: Unit — timetable-placement
+      - name: Extra — timetable-placement
         run: npm run test:timetable-placement
 
-      - name: Unit — today-lesson-teacher
+      - name: Extra — today-lesson-teacher
         run: npm run test:today-lesson-teacher
 
-      - name: Unit — manual-attendance-class
+      - name: Extra — manual-attendance-class
         run: npm run test:manual-attendance-class
 
-      # commerce suite 1회 (DB 없으면 dry-run/정적 — secrets 불필요)
-      - name: Unit — commerce suite
-        run: npm run test:commerce-unit
-
-      - name: Unit — sale-return-points
-        run: npm run test:sale-return-points
-
-      - name: Unit — textbook-core-sale-link
+      - name: Extra — textbook-core-sale-link
         run: npm run test:textbook-core-sale-link
 
-      - name: Unit — skin-retail-migrate
+      - name: Extra — skin-retail-migrate
         run: npm run test:skin-retail-migrate
 
-      # ── Static security (secrets 불필요, 실패 시 CI FAIL) ────────
-      - name: Static security — rls-membership-policy
-        run: npm run test:rls-membership-policy
+      - name: Extra — local-date
+        run: npm run test:local-date
 
+      - name: Extra — consultation-today
+        run: npm run test:consultation-today
+
+      - name: Extra — piano-expected-attendance
+        run: npm run test:piano-expected-attendance
+
+      - name: Extra — lesson-homework-sync
+        run: npm run test:lesson-homework-sync
+
+      - name: Extra — sync-persist-helpers
+        run: npm run test:sync-persist-helpers
+
+      - name: Extra — commerce-barrel
+        run: npm run test:commerce-barrel
+
+      - name: Extra — commerce-revenue
+        run: npm run test:commerce-revenue
+
+      - name: Extra — commerce-store-capability
+        run: npm run test:commerce-store-capability
+
+      - name: Extra — retail-revenue
+        run: npm run test:retail-revenue
+
+      # ── BI에 없는 static security (secrets 불필요) ───────────────
       - name: Static security — rls-member-scope-harden
         run: npm run test:rls-member-scope-harden
 
-      - name: Static security — session-pass-org-integrity
-        run: npm run test:session-pass-org-integrity
-
-      - name: Static security — booking-pass-atomic-contract
-        run: npm run test:booking-pass-atomic-contract
-
-      - name: Static security — persist-policy
-        run: npm run test:persist-policy
-
-      - name: Unit — persist-schedules
-        run: npm run test:persist-schedules
-
-      - name: Unit — attendance-pass-atomic
-        run: npm run test:attendance-pass-atomic
-
-      - name: Unit — attendance-class-key
-        run: npm run test:attendance-class-key
-
-      - name: Unit — attendance-features
-        run: npm run test:attendance-features
-
-      - name: Unit — absence-notify
-        run: npm run test:absence-notify
-
-      - name: Unit — makeup-schedule-atomic
-        run: npm run test:makeup-schedule-atomic
-
-      - name: Unit — local-date
-        run: npm run test:local-date
-
-      - name: Unit — consultation-today
-        run: npm run test:consultation-today
-
-      - name: Unit — piano-expected-attendance
-        run: npm run test:piano-expected-attendance
-
-      - name: Unit — lesson-homework-sync
-        run: npm run test:lesson-homework-sync
-
-      - name: Unit — pending-mutations
-        run: npm run test:pending-mutations
-
-      - name: Unit — sync-persist-helpers
-        run: npm run test:sync-persist-helpers
-
-      - name: Unit — commerce barrel
-        run: npm run test:commerce-barrel
-
-      - name: Unit — commerce revenue
-        run: npm run test:commerce-revenue
-
-      - name: Unit — commerce store capability
-        run: npm run test:commerce-store-capability
-
-      - name: Unit — retail revenue facade
-        run: npm run test:retail-revenue
-
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
-
-      - name: Static security — permissions-invariant
-        run: npm run test:permissions-invariant
-
-      - name: Static security — authorization foundation
-        run: npm run test:authorization
-
-      - name: Static security — org-access-invariant
-        run: npm run test:org-access-invariant
 
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E

@@ -226,6 +226,23 @@ src/core/  src/capabilities/  src/industries/  src/app/  src/shared/
 - `definitions.ts`의 runtime capability composition과 `@/capabilities`·`@/app/industry`·`@/industries` 구현 import는 `catalog_runtime_composition` / `definitions_runtime_import` / `layer_import`로 즉시 실패. allowlist로 우회하지 않는다. `import type` metadata는 막지 않는다.
 - Capability → Composition(`@/app/*`)은 `layer_import`로 즉시 실패. Composition → Capability는 허용.
 
+## CI
+
+단일 workflow: `.github/workflows/ci-cd.yml`.
+
+```text
+quality (lint + test:business-invariants + extras)
+  ├─ build-e2e     production build + Playwright
+  └─ security-db   ENABLE_SECURITY_AUDIT — live RLS/auth/DB
+       └─ deploy   main + ENABLE_VERCEL_DEPLOY + ENABLE_SECURITY_AUDIT
+                   needs quality + build-e2e + security-db
+```
+
+- Quality는 `npm run build`를 하지 않는다. production build는 build-e2e.
+- BI catalog script는 Quality extras에서 다시 실행하지 않는다. runner: `scripts/run-business-invariant-tests.mjs`.
+- live DB audit는 Quality로 옮기지 않는다. `continue-on-error` 금지.
+- 새 workflow / 중복 quality command는 `npm run check:ci-structure`가 실패한다. 상세: `docs/CI_WORKFLOW_MAP.md`.
+
 ## Scope
 
 - 테넌트: 모든 업무 데이터에 `organization_id`. RLS가 있어도 앱에서 org context 유지.

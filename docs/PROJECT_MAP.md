@@ -1,6 +1,6 @@
 # Moa Project Map
 
-Cursor가 파일 위치를 빠르게 찾기 위한 지도다. 업무 개념은 [DOMAIN_MAP.md](./DOMAIN_MAP.md), 데이터 이동은 [DATA_FLOW.md](./DATA_FLOW.md), 개발 규칙은 [MOA_DEVELOPMENT_STANDARD.md](./MOA_DEVELOPMENT_STANDARD.md), 계층은 [ARCHITECTURE.md](./ARCHITECTURE.md).
+Cursor가 파일 위치를 빠르게 찾기 위한 지도다. 업무 개념은 [DOMAIN_MAP.md](./DOMAIN_MAP.md), 데이터 이동은 [DATA_FLOW.md](./DATA_FLOW.md), 개발 규칙은 [MOA_DEVELOPMENT_STANDARD.md](./MOA_DEVELOPMENT_STANDARD.md), 계층은 [ARCHITECTURE.md](./ARCHITECTURE.md), GitHub Actions는 [CI_WORKFLOW_MAP.md](./CI_WORKFLOW_MAP.md).
 
 용어는 네 문서와 같다.
 
@@ -29,6 +29,7 @@ Cursor가 파일 위치를 빠르게 찾기 위한 지도다. 업무 개념은 [
 | 타입 검사 | `tsc --noEmit` + `scripts/check-architecture-dependencies.mjs` + `scripts/check-database-types.mjs` |
 | 단위 테스트 | `tsx path/to/file.test.ts` (`package.json` `test:*`) |
 | E2E | Playwright (`e2e/`, `playwright.config.ts`) |
+| CI | 단일 `.github/workflows/ci-cd.yml`. `check:ci-structure`. [CI_WORKFLOW_MAP.md](./CI_WORKFLOW_MAP.md) |
 
 업종 앱 7개 + 학부모 포털 1개. 전용 모듈이 없는 업종은 `GenericIndustryShell`.
 

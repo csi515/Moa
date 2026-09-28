@@ -15,7 +15,7 @@ CI는 `.nvmrc`를 읽어 Node를 설치한다. 로컬도 같은 파일을 따른
 ## Dependency
 
 ```
-quality (lint + unit + static security)
+quality (lint + business-invariants + extras)
   ├─ build-e2e          # needs: quality  → quality 실패 시 skip
   └─ security-db        # needs: quality  → quality 실패 시 skip
                         # if ENABLE_SECURITY_AUDIT=true
@@ -24,11 +24,13 @@ deploy ← needs quality + build-e2e + security-db
          # security-db 실패면 deploy 실행 안 됨
 ```
 
+단일 파일: `.github/workflows/ci-cd.yml`. Job graph: [CI_WORKFLOW_MAP.md](../CI_WORKFLOW_MAP.md). 회귀 검사: `npm run check:ci-structure`.
+
 ## Layers
 
 | Layer | Job | Secrets | Fail → |
 |-------|-----|---------|--------|
-| Static | `quality` | 불필요 | CI FAIL (PR/main). 아래 static step이 실제로 실행됨 |
+| Static + BI | `quality` | 불필요 | CI FAIL (PR/main). `lint` + `test:business-invariants` + extras |
 | DB audit | `security-db` | RLS_AUDIT_* / AUTH_HIJACK_* | job FAIL → deploy 스킵 |
 | Deploy gate | `deploy` | Vercel | `security-db` success 필수 |
 

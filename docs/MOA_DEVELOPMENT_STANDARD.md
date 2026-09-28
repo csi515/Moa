@@ -388,7 +388,11 @@ TypeScript: 신규 `any` 금지. Props는 `interface`가 흔함. union은 `type`
 | Industry contract | 카탈로그·모듈·capability 정합 | `test:industry-contract` |
 | E2E | 원장/카운터 한 줄이 깨지면 사업 정지 | `e2e/*.spec.ts` 4개 |
 
-실행: `package.json` `test:*`. 묶음: `test:business-invariants`.
+실행: `package.json` `test:*`. 묶음: `test:business-invariants` (`scripts/run-business-invariant-tests.mjs`).
+
+CI는 `.github/workflows/ci-cd.yml` 하나다. Quality → Build & E2E / Security DB → Deploy. Quality는 lint + business-invariants + catalog 밖 extras. production build와 Playwright는 build-e2e. live RLS/DB는 security-db (`ENABLE_SECURITY_AUDIT`). Deploy는 security-db를 우회하지 않는다. 구조 회귀: `npm run check:ci-structure`. 지도: `docs/CI_WORKFLOW_MAP.md`.
+
+새 workflow를 추가하거나 Quality에서 BI 테스트를 다시 나열하지 않는다.
 
 E2E 파일: `director-ops-flow`, `retail-ops-flow`, `public-consultation`, `deeplink-pwa`.
 
