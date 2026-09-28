@@ -136,6 +136,8 @@ jobs:
 
       - name: Static security — legacy-public-lockdown
         run: npm run test:legacy-public-lockdown
+      - name: Static security — legacy-booking-cleanup
+        run: npm run test:legacy-booking-cleanup
 
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E
