@@ -17,6 +17,8 @@ export default defineConfig({
     // PWA SW가 /rest·/auth GET을 가로채면 page.route 목이 우회됨
     serviceWorkers: 'block',
   },
+  // CI: npx playwright install --with-deps chromium webkit
+  // (mobile-safari = WebKit. Firefox 프로젝트 없음)
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
     { name: 'mobile-chrome', use: { ...devices['Pixel 5'] } },

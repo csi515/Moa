@@ -95,7 +95,8 @@ Job 수: **4**. `continue-on-error` 없음.
 1. `npm ci`
 2. `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` / `VITE_APP_URL` 존재 검사
 3. `npm run build`
-4. `npx playwright install --with-deps chromium`
+4. `npx playwright install --with-deps chromium webkit`
+   (`playwright.config.ts` 프로젝트: chromium / mobile-chrome → Chromium, mobile-safari → WebKit. Firefox는 설치하지 않음)
 5. `npm run test:e2e` (`E2E_EMAIL` / `E2E_PASSWORD` / `E2E_ORG_NAME`)
 6. 실패 시 Playwright report artifact 7일
 
