@@ -48,15 +48,35 @@ async function clickNavControl(page: Page, locator: ReturnType<Page['locator']>)
 
 /** 사이드바/하단 내비로 탭 이동 (데스크톱·모바일 겸용) */
 export async function openNavTab(page: Page, label: string) {
+  let lastError: unknown;
+  // 더보기 시트가 닫히는 애니메이션 중엔 시트 안 버튼이 잠깐 "보이는" 상태라
+  // 사이드바로 오인해 클릭이 실패할 수 있다 → 실패 시 재시도.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      await openNavTabOnce(page, label);
+      return;
+    } catch (error) {
+      lastError = error;
+      await page.waitForTimeout(500);
+    }
+  }
+  throw lastError;
+}
+
+async function openNavTabOnce(page: Page, label: string) {
   await dismissBlockingOverlays(page);
   // 데스크톱 사이드바
-  const side = page.getByRole('button', { name: label, exact: true }).first();
+  const side = page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).first();
   if (await side.isVisible().catch(() => false)) {
     await clickNavControl(page, side);
     return;
   }
   // 모바일 하단
-  const bottom = page.locator('nav, [role="navigation"]').getByText(label, { exact: true }).first();
+  const bottom = page
+    .locator('nav, [role="navigation"]')
+    .getByText(label, { exact: true })
+    .filter({ visible: true })
+    .first();
   if (await bottom.isVisible().catch(() => false)) {
     await clickNavControl(page, bottom);
     return;
@@ -74,6 +94,8 @@ export async function openNavTab(page: Page, label: string) {
     await dismissBlockingOverlays(page);
     await sheetItem.scrollIntoViewIfNeeded();
     await sheetItem.evaluate((el) => (el as HTMLButtonElement).click());
+    // 시트가 완전히 닫힐 때까지 대기 (다음 내비 호출이 닫히는 시트의 버튼을 잡지 않도록)
+    await sheetItem.waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => undefined);
     return;
   }
   throw new Error(`내비에서 "${label}" 탭을 찾지 못함 (piano/config/nav.tsx)`);
@@ -93,7 +115,11 @@ export async function openFinanceArea(page: Page, area: '수납' | '재무 관�
   await openNavTab(page, '수납·재무');
   await dismissBlockingOverlays(page);
   await expect(page.getByRole('heading', { name: '수납·재무' })).toBeVisible({ timeout: 15_000 });
-  await page.getByRole('tab', { name: new RegExp(area) }).click();
+  // 영역 탭("수납 청구 · 미납")과 하위 세그먼트 탭("수납")이 둘 다 /수납/ 에 걸리므로 영역 tablist 로 한정
+  await page
+    .getByRole('tablist', { name: '수납·재무 영역' })
+    .getByRole('tab', { name: new RegExp(`^${area}`) })
+    .click();
 }
 
 export async function openFinanceSegment(page: Page, segment: '수납' | '미납' | '수입' | '지출' | '정산') {
