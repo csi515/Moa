@@ -259,8 +259,7 @@ export async function createOrganization(
   const parts = options.addressParts;
   const { data, error } = await getCoreClient().rpc('create_organization', {
     p_name: prepared.name,
-    p_business_registration_number:
-      prepared.businessRegistrationNumber ?? (null as unknown as string),
+    p_business_registration_number: prepared.businessRegistrationNumber ?? null,
     p_representative_name: prepared.representativeName,
     p_business_phone: prepared.businessPhone,
     p_business_address: prepared.businessAddress,

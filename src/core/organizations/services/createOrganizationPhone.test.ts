@@ -105,6 +105,18 @@ function run() {
   assert.match(insert[2], /p_sigungu/);
   assert.equal(sql.includes("RAISE EXCEPTION '사업장 전화번호를 입력해 주세요.'"), false);
 
+  const service = readFileSync(join(here, 'organizationService.ts'), 'utf8');
+  assert.match(service, /p_sido: parts\?\.sido/);
+  assert.match(service, /p_sigungu: parts\?\.sigungu/);
+  assert.match(service, /p_dong: parts\?\.dong/);
+  assert.match(service, /p_address_detail: parts\?\.addressDetail/);
+  assert.equal(service.includes('detail_address'), false);
+  assert.match(service, /p_business_registration_number: prepared\.businessRegistrationNumber \?\? null/);
+
+  const wizard = readFileSync(join(here, '../CreateOrganizationWizard.tsx'), 'utf8');
+  assert.match(wizard, /addressParts/);
+  assert.equal(wizard.includes('detail_address'), false);
+
   console.log('createOrganizationPhone.test.ts: ok');
 }
 

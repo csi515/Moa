@@ -103,10 +103,10 @@ function run() {
   assert.match(scheduleService, /appointment Booking/);
   assert.match(scheduleService, /core\.reservations/);
 
-  const attendanceTypes = readRel('src/capabilities/attendance/domain/types.ts');
+  const attendanceTypes = readRel('src/capabilities/attendance/domain/types.ts').replace(/\r/g, '');
   assert.match(attendanceTypes, /AttendanceCheckIn/);
   assert.match(attendanceTypes, /core\.attendance_sessions/);
-  assert.doesNotMatch(attendanceTypes.slice(0, 200), /customer_sessions/);
+  assert.doesNotMatch(attendanceTypes, /customer_sessions/);
 
   const sessionTypes = readRel('src/core/sessions/types.ts');
   assert.match(sessionTypes, /core\.customer_sessions/);

@@ -2079,7 +2079,7 @@ export interface Database {
       create_organization: {
         Args: {
           p_name: string;
-          p_business_registration_number: string;
+          p_business_registration_number?: string | null;
           p_representative_name: string;
           p_business_phone?: string | null;
           p_business_address: string;
