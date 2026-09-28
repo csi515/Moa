@@ -1,3 +1,5 @@
+import { parseStaffLinkCode } from './deepLinkParser';
+
 const PENDING_STAFF_LINK_KEY = 'moa_pending_staff_link';
 
 export function storePendingStaffLink(token: string): void {
@@ -38,11 +40,11 @@ export function consumePendingStaffLink(): string | null {
 export function parseStaffLinkFromUrl(): string | null {
   if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  const link = params.get('staff_link')?.trim().toUpperCase();
-  if (link) {
+  const raw = params.get('staff_link');
+  if (raw !== null) {
     const url = new URL(window.location.href);
     url.searchParams.delete('staff_link');
     window.history.replaceState({}, '', url.pathname + url.search);
   }
-  return link || null;
+  return parseStaffLinkCode(raw);
 }

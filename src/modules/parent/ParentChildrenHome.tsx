@@ -210,7 +210,7 @@ export const ParentChildrenHome: React.FC<{ addRequest?: number }> = ({ addReque
             <p className="text-xs font-bold text-indigo-900 mb-2">학원 연결 방법</p>
             <ul className="text-xs text-indigo-700 space-y-1">
               <li>1. 학원 QR을 스캔합니다 (가장 빠름)</li>
-              <li>2. 또는 8자리 연결 코드를 입력합니다</li>
+              <li>2. 또는 사업장에서 받은 연결 코드를 입력합니다</li>
               <li>3. QR·코드가 없으면 학원 이름·공개코드로 연결 요청합니다</li>
             </ul>
           </div>

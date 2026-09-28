@@ -218,6 +218,7 @@ export const INVENTORY_CANDIDATES = {
   'test:rls-member-scope-harden': 'authorization. ci-cd에 있음',
   'test:parent-link-hotfix': 'authorization(parent/staff link). ci-cd static security에 있음',
   'test:staff-invite-token': 'authorization(staff invite token). ci-cd static security에 있음',
+  'test:guardian-link-hardening': 'authorization(guardian link token/rate limit). ci-cd static security에 있음',
 };
 
 export function loadPackageScripts() {

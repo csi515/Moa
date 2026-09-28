@@ -1,3 +1,4 @@
+import { getPublicAppBaseUrl } from '@/core/platform/appBaseUrl';
 import { getCoreClient } from '../../../lib/supabase';
 
 export type StaffAccountStatus = 'none' | 'invited' | 'connected';
@@ -52,11 +53,8 @@ export function formatStaffInviteCode(code: string): string {
 
 /** 교직원 초대 링크 (기존 staff_link 딥링크 처리 재사용) */
 export function buildStaffInviteUrl(token: string, baseUrl?: string): string {
-  const base =
-    baseUrl ??
-    (typeof window !== 'undefined' && window.location?.origin
-      ? window.location.origin
-      : ((import.meta.env.VITE_APP_URL as string | undefined) ?? ''));
+  // 네이티브 앱에서는 VITE_APP_URL (WebView origin 은 localhost)
+  const base = baseUrl ?? getPublicAppBaseUrl();
   return `${base.replace(/\/$/, '')}/?staff_link=${encodeURIComponent(normalizeStaffInviteCode(token))}`;
 }
 
