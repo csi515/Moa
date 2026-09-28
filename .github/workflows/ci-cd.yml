@@ -130,8 +130,8 @@ jobs:
     timeout-minutes: 30
     needs: quality
     env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
       VITE_APP_URL: ${{ secrets.VITE_APP_URL }}
       VITE_APP_NAME: ${{ vars.VITE_APP_NAME }}
       VITE_APP_SHORT_NAME: ${{ vars.VITE_APP_SHORT_NAME }}
@@ -161,7 +161,7 @@ jobs:
             fi
           done
           if [ "$missing" -ne 0 ]; then
-            echo "Register secrets in GitHub → Settings → Secrets and variables → Actions"
+            echo "Register VITE_SUPABASE_URL (or SUPABASE_URL), VITE_SUPABASE_ANON_KEY (or SUPABASE_ANON_KEY), VITE_APP_URL"
             exit 1
           fi
           echo "Required VITE_* secrets are present (values not logged)."
@@ -203,10 +203,10 @@ jobs:
     needs: quality
     if: vars.ENABLE_SECURITY_AUDIT == 'true'
     env:
-      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-      SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-      SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+      VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL || secrets.VITE_SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY || secrets.VITE_SUPABASE_ANON_KEY }}
       RLS_AUDIT_ORG_A_ID: ${{ secrets.RLS_AUDIT_ORG_A_ID }}
       RLS_AUDIT_ORG_B_ID: ${{ secrets.RLS_AUDIT_ORG_B_ID }}
       RLS_AUDIT_STAFF_A_JWT: ${{ secrets.RLS_AUDIT_STAFF_A_JWT }}
