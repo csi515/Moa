@@ -2394,6 +2394,14 @@ export interface Database {
         Args: { p_org_id: string };
         Returns: Json;
       };
+      preview_staff_invite: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
+      accept_staff_invite: {
+        Args: { p_token: string };
+        Returns: Json;
+      };
       connect_parent_on_login: {
         Args: Record<string, never>;
         Returns: Json;

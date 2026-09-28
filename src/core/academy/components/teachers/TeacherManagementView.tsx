@@ -13,6 +13,7 @@ import {
   type StaffAccountStatusItem,
 } from '@/core/staff/services/staffAccountService';
 import { AccountStatusBadge } from '@/core/accounts/AccountStatusBadge';
+import { StaffInviteResultModal } from '@/core/staff/components/StaffInviteResultModal';
 import { JoinRequestsPanel } from '@/core/organizations/components/JoinRequestsPanel';
 import { StorageService } from '@/services/storage';
 import { PageHeader } from '@/shared/components';
@@ -57,6 +58,12 @@ export const TeacherManagementView: React.FC = () => {
   const [accountStatuses, setAccountStatuses] = useState<StaffAccountStatusItem[]>([]);
   const [statusLoading, setStatusLoading] = useState(false);
   const [invitingStaffId, setInvitingStaffId] = useState<string | null>(null);
+  const [inviteResult, setInviteResult] = useState<{
+    staffName: string;
+    token: string;
+    expiresAt?: string;
+    organizationName?: string;
+  } | null>(null);
 
   const statusMap = useMemo(
     () => new Map(accountStatuses.map((s) => [s.staffId, s])),
@@ -199,11 +206,19 @@ export const TeacherManagementView: React.FC = () => {
     try {
       const result = await inviteStaffMember(currentOrganization.id, teacher.id, email);
       if (result.status === 'connected') {
-        showToast(`${teacher.name} ${labels.staff.singular} 계정이 연결되었습니다.`, 'success');
+        showToast(`${teacher.name} ${labels.staff.singular} 계정은 이미 연결되어 있습니다.`, 'info');
+      } else if (result.token) {
+        // 2026-09-28 hotfix: 이메일 일치 자동 연결 없음 — 1회용 초대 코드를 전달해 직접 수락
+        setInviteResult({
+          staffName: teacher.name,
+          token: result.token,
+          expiresAt: result.expiresAt,
+          organizationName: result.organizationName || currentOrganization.name,
+        });
       } else {
         showToast(
-          `${teacher.name} ${labels.staff.singular} 초대가 등록되었습니다. ${email}로 먼저 가입하도록 안내한 뒤 다시 초대하면 연결됩니다.`,
-          'success'
+          `${teacher.name} ${labels.staff.singular} 초대가 등록되었습니다. 초대 코드를 받으려면 재발급해 주세요.`,
+          'warning'
         );
       }
       await loadAccountStatuses();
@@ -220,7 +235,7 @@ export const TeacherManagementView: React.FC = () => {
 
     openConfirmDialog({
       title: '초대 취소',
-      message: `${teacher.name} ${labels.staff.singular}의 계정 초대를 취소하시겠습니까?`,
+      message: `${teacher.name} ${labels.staff.singular}의 계정 초대를 취소하시겠습니까? 전달한 초대 코드는 즉시 사용할 수 없게 됩니다.`,
       isDestructive: true,
       confirmText: '초대 취소',
       onConfirm: async () => {
@@ -363,18 +378,44 @@ export const TeacherManagementView: React.FC = () => {
                         로그인 계정 연결됨
                       </div>
                     ) : accountStatus === 'invited' ? (
-                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-1.5 text-[11px] text-amber-700 font-semibold flex-1">
-                          <Clock className="w-3.5 h-3.5" />
-                          가입 대기 중
-                        </div>
-                        <button
-                          onClick={() => handleRevokeInvite(t)}
-                          className="text-[10px] font-bold text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-slate-100"
-                        >
-                          취소
-                        </button>
-                      </div>
+                      (() => {
+                        const info = statusMap.get(t.id);
+                        const needsReissue = Boolean(info?.inviteExpired) || info?.inviteHasCode === false;
+                        const expiresLabel = info?.inviteExpiresAt
+                          ? new Date(info.inviteExpiresAt).toLocaleDateString('ko-KR', {
+                              month: 'numeric',
+                              day: 'numeric',
+                            })
+                          : null;
+                        return (
+                          <div className="flex items-center gap-2">
+                            <div
+                              className={`flex items-center gap-1.5 text-[11px] font-semibold flex-1 ${
+                                needsReissue ? 'text-rose-600' : 'text-amber-700'
+                              }`}
+                            >
+                              <Clock className="w-3.5 h-3.5" />
+                              {needsReissue
+                                ? '초대 코드 만료 · 재발급 필요'
+                                : `수락 대기 중${expiresLabel ? ` (~${expiresLabel})` : ''}`}
+                            </div>
+                            <button
+                              onClick={() => handleInvite(t)}
+                              disabled={isInviting}
+                              className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded-lg hover:bg-slate-100 disabled:opacity-60"
+                              title="새 코드를 발급하면 이전 코드는 즉시 무효가 됩니다"
+                            >
+                              재발급
+                            </button>
+                            <button
+                              onClick={() => handleRevokeInvite(t)}
+                              className="text-[10px] font-bold text-slate-500 hover:text-rose-600 px-2 py-1 rounded-lg hover:bg-slate-100"
+                            >
+                              취소
+                            </button>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <button
                         onClick={() => handleInvite(t)}
@@ -396,6 +437,17 @@ export const TeacherManagementView: React.FC = () => {
           );
         })}
       </div>
+
+      {inviteResult && (
+        <StaffInviteResultModal
+          staffName={inviteResult.staffName}
+          organizationName={inviteResult.organizationName}
+          token={inviteResult.token}
+          expiresAt={inviteResult.expiresAt}
+          staffLabel={labels.staff.singular}
+          onClose={() => setInviteResult(null)}
+        />
+      )}
 
       {/* Teacher Form Modal */}
       {isModalOpen && (
@@ -454,7 +506,7 @@ export const TeacherManagementView: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  이메일 {canManageAccounts && <span className="text-slate-400 font-normal">(계정 초대용)</span>}
+                  이메일 {canManageAccounts && <span className="text-slate-400 font-normal">(연락용 · 계정 연결은 초대 코드로)</span>}
                 </label>
                 <input
                   type="email"

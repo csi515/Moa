@@ -8,6 +8,7 @@ import {
   GraduationCap,
   ArrowLeft,
   UserPlus,
+  KeyRound,
 } from 'lucide-react';
 import { useOrganization } from './OrganizationProvider';
 import { getRoleLabel } from './services/organizationService';
@@ -17,6 +18,7 @@ import { TeacherJoinFlow } from './components/TeacherJoinFlow';
 import { useAuth } from '../auth/AuthProvider';
 import { useWorkUi as useApp } from '@/shared/navigation/useWorkUi';
 import { switchErrorMessage } from './roleContextHelpers';
+import { StaffInviteAcceptModal } from '../staff/components/StaffInviteAcceptModal';
 
 export const OrganizationSelector: React.FC = () => {
   const {
@@ -35,6 +37,7 @@ export const OrganizationSelector: React.FC = () => {
   const navigate = useNavigate();
   const [showWizard, setShowWizard] = useState(false);
   const [showTeacherFlow, setShowTeacherFlow] = useState(false);
+  const [showStaffInviteAccept, setShowStaffInviteAccept] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const missingEmail = !user?.email?.trim();
 
@@ -196,6 +199,15 @@ export const OrganizationSelector: React.FC = () => {
             다른 사업장에 이용자로 가입
           </button>
 
+          <button
+            type="button"
+            onClick={() => setShowStaffInviteAccept(true)}
+            className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-dashed border-emerald-200 rounded-2xl text-emerald-700 font-bold hover:bg-emerald-50 hover:border-emerald-300 transition-colors min-h-[44px]"
+          >
+            <KeyRound className="w-5 h-5" />
+            초대 코드로 직원·강사 합류
+          </button>
+
           {organizations.length === 0 && (
             <button
               type="button"
@@ -208,6 +220,20 @@ export const OrganizationSelector: React.FC = () => {
           )}
         </div>
       </div>
+
+      {showStaffInviteAccept && (
+        <StaffInviteAcceptModal
+          onClose={() => setShowStaffInviteAccept(false)}
+          onAccepted={async (result) => {
+            setShowStaffInviteAccept(false);
+            showToast(`${result.organizationName}에 직원으로 연결되었습니다.`, 'success');
+            await refreshOrganizations();
+            if (result.organizationId) {
+              await handleSelectOrganization(result.organizationId);
+            }
+          }}
+        />
+      )}
 
       {showWizard && (
         <CreateOrganizationWizard

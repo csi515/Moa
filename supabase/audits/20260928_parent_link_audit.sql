@@ -4,7 +4,7 @@
 -- 목적: 핫픽스 이전에 "이메일 일치 자동 연결" 취약점으로 잘못 연결되었을 수 있는
 --       계정을 찾기 위한 조회 전용 스크립트. 데이터는 전혀 변경하지 않는다.
 --
--- 실행 방법 (핫픽스 마이그레이션 적용 후, 관리자 권한):
+-- 실행 방법 (핫픽스 마이그레이션 20260928130000 + 20260928140000 적용 후, 관리자 권한):
 --   Supabase Dashboard > SQL Editor 에 붙여넣어 실행하거나
 --   psql "$DATABASE_URL" -f supabase/audits/20260928_parent_link_audit.sql
 --
@@ -106,11 +106,13 @@ WHERE par.user_id IS NOT NULL
 ORDER BY psg.created_at DESC NULLS LAST;
 
 -- (7) 'accepted' 상태의 교직원 초대 (connect_staff_on_login / invite_staff_member 이메일 일치 연결)
+--     accepted_by 가 NULL 이면 토큰 수락(accept_staff_invite) 이전 방식으로 연결된 것 → 우선 확인 대상
 SELECT '7_accepted_staff_invitations' AS check_name,
        si.id AS invitation_id, si.organization_id, o.name AS organization_name,
        si.staff_id, st.name AS staff_name, si.email AS invited_email, si.role,
        st.user_id AS linked_user_id, u.email AS linked_auth_email,
        u.created_at AS linked_user_created_at, si.created_at AS invited_at, si.accepted_at,
+       (si.accepted_by IS NULL) AS accepted_without_token,
        EXISTS (SELECT 1 FROM core.security_profile_email_snapshot s WHERE s.user_id = st.user_id)
          AS had_email_mismatch
 FROM core.staff_invitations si
@@ -119,6 +121,34 @@ LEFT JOIN core.staff st ON st.id = si.staff_id
 LEFT JOIN auth.users u ON u.id = st.user_id
 WHERE si.status = 'accepted'
 ORDER BY si.accepted_at DESC NULLS LAST;
+
+-- (7b) 토큰 없는 레거시 pending 교직원 초대 — 더 이상 수락 불가, 관리자가 '재발급' 필요
+SELECT '7b_legacy_pending_staff_invites_without_code' AS check_name,
+       si.id AS invitation_id, si.organization_id, o.name AS organization_name,
+       si.staff_id, st.name AS staff_name, si.email AS invited_email, si.created_at
+FROM core.staff_invitations si
+LEFT JOIN core.organizations o ON o.id = si.organization_id
+LEFT JOIN core.staff st ON st.id = si.staff_id
+WHERE si.status = 'pending' AND si.token_hash IS NULL
+ORDER BY si.created_at DESC;
+
+-- (7c) 교직원 계정 연결(staff.user_id) 중 토큰 수락 기록이 없는 경우 (가입 신청 승인 경로는 정상일 수 있음)
+SELECT '7c_staff_linked_without_token_accept' AS check_name,
+       st.id AS staff_id, st.organization_id, o.name AS organization_name, st.name AS staff_name,
+       st.user_id, u.email AS auth_email, u.created_at AS user_created_at, st.updated_at,
+       EXISTS (SELECT 1 FROM core.organization_join_requests jr
+               WHERE jr.organization_id = st.organization_id AND jr.user_id = st.user_id
+                 AND jr.status = 'approved') AS has_approved_join_request
+FROM core.staff st
+LEFT JOIN core.organizations o ON o.id = st.organization_id
+LEFT JOIN auth.users u ON u.id = st.user_id
+WHERE st.user_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM core.staff_invitations si
+                  WHERE si.staff_id = st.id AND si.status = 'accepted' AND si.accepted_by = st.user_id)
+  AND NOT EXISTS (SELECT 1 FROM core.organization_members om
+                  WHERE om.organization_id = st.organization_id AND om.user_id = st.user_id
+                    AND om.role IN ('owner', 'admin'))
+ORDER BY st.updated_at DESC NULLS LAST;
 
 -- (8) 교직원 레코드 이메일과 연결된 계정의 auth 이메일이 다른 경우
 SELECT '8_staff_email_mismatch' AS check_name,
@@ -138,6 +168,10 @@ SELECT '9_summary' AS check_name,
     WHERE lower(coalesce(p.email,'')) IS DISTINCT FROM lower(coalesce(u.email,''))) AS live_email_mismatch,
   (SELECT count(*) FROM core.security_profile_email_snapshot) AS pre_hotfix_email_mismatch,
   (SELECT count(*) FROM core.parent_invitations WHERE status = 'accepted') AS accepted_parent_invitations,
-  (SELECT count(*) FROM core.staff_invitations WHERE status = 'accepted') AS accepted_staff_invitations;
+  (SELECT count(*) FROM core.staff_invitations WHERE status = 'accepted') AS accepted_staff_invitations,
+  (SELECT count(*) FROM core.staff_invitations WHERE status = 'accepted' AND accepted_by IS NULL)
+    AS staff_accepted_without_token,
+  (SELECT count(*) FROM core.staff_invitations WHERE status = 'pending' AND token_hash IS NULL)
+    AS legacy_pending_staff_invites;
 
 ROLLBACK;
