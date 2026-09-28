@@ -221,6 +221,7 @@ export const INVENTORY_CANDIDATES = {
   'test:guardian-link-hardening': 'authorization(guardian link token/rate limit). ci-cd static security에 있음',
   'test:guardian-redeem-new-parent': 'authorization(guardian redeem new parent / re-point). ci-cd static security에 있음',
   'test:legacy-public-lockdown': 'authorization(legacy public tables drop / anon exposure). ci-cd static security에 있음',
+  'test:legacy-booking-cleanup': 'authorization(legacy booking-app public objects drop / anon exposure). ci-cd static security에 있음',
 };
 
 export function loadPackageScripts() {
