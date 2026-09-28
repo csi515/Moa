@@ -6,6 +6,7 @@ import { daycarePluginManifest } from '@/industries/daycare/plugin';
 import { skinPluginManifest } from '@/industries/skin/plugin';
 import { retailPluginManifest } from '@/industries/retail/plugin';
 import { bathPluginManifest } from '@/industries/bath/plugin';
+import { isStaleChunkError, reloadOnceForStaleAssets } from '@/shared/pwa/reloadOnStaleChunk';
 import {
   defineIndustryModule,
   type IndustryAppComponent,
@@ -14,17 +15,24 @@ import {
 
 function wrapIndustryApp(module: IndustryModuleDefinition): IndustryAppComponent {
   return lazy(async () => {
-    const [appMod, labelsMod] = await Promise.all([module.loadApp(), module.loadLabels()]);
-    const App = appMod[module.appExport];
-    const { ModuleLabelsProvider } = labelsMod;
-    function IndustryApp() {
-      return (
-        <ModuleLabelsProvider>
-          <App />
-        </ModuleLabelsProvider>
-      );
+    try {
+      const [appMod, labelsMod] = await Promise.all([module.loadApp(), module.loadLabels()]);
+      const App = appMod[module.appExport];
+      const { ModuleLabelsProvider } = labelsMod;
+      function IndustryApp() {
+        return (
+          <ModuleLabelsProvider>
+            <App />
+          </ModuleLabelsProvider>
+        );
+      }
+      return { default: IndustryApp };
+    } catch (error) {
+      if (isStaleChunkError(error)) {
+        reloadOnceForStaleAssets();
+      }
+      throw error;
     }
-    return { default: IndustryApp };
   });
 }
 

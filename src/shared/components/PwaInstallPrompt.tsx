@@ -98,8 +98,8 @@ export const PwaInstallPrompt: React.FC = () => {
     };
 
     const onBeforeInstall = (e: Event) => {
-      e.preventDefault();
       if (!canOffer()) return;
+      e.preventDefault();
       setDeferredPrompt(e as BeforeInstallPromptEvent);
       scheduleShow();
     };

@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { userFacingErrorMessage } from '@/shared/errors/userFacingError';
+import { isStaleChunkError, reloadOnceForStaleAssets } from '@/shared/pwa/reloadOnStaleChunk';
 
 interface Props {
   children: ReactNode;
@@ -34,6 +35,9 @@ export class AppErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error('App work screen error:', error, info.componentStack);
+    if (isStaleChunkError(error)) {
+      reloadOnceForStaleAssets();
+    }
   }
 
   handleRetry = () => {

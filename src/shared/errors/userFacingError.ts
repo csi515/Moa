@@ -28,6 +28,13 @@ export function classifyUserFacingError(error: unknown): UserFacingErrorKind {
   const text = rawErrorText(error).toLowerCase();
 
   if (
+    /failed to fetch dynamically imported module|importing a module script failed|loading chunk \d+ failed|chunkloaderror/.test(
+      text
+    )
+  ) {
+    return 'load_failed';
+  }
+  if (
     /failed to fetch|network|offline|timeout|econnreset|load failed|net::|dns/.test(text)
   ) {
     return 'network';

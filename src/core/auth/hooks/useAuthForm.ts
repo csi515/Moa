@@ -1,6 +1,7 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useAuth } from '../AuthProvider';
 import * as authService from '../services/authService';
+import { consumeOAuthCallbackError } from '../oauthCallbackError';
 import { saveOAuthSignupIntent } from '../utils/oauthSignupIntent';
 
 export type AuthMode = 'login' | 'signup' | 'forgot';
@@ -16,6 +17,12 @@ export function useAuthForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  useEffect(() => {
+    const oauthError = consumeOAuthCallbackError();
+    if (!oauthError) return;
+    setError(oauthError);
+  }, []);
 
   const switchMode = (next: AuthMode) => {
     setMode(next);

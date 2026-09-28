@@ -7,6 +7,12 @@ import { classifyUserFacingError, userFacingErrorMessage } from './userFacingErr
 
 function run() {
   assert.equal(classifyUserFacingError(new Error('failed to fetch')), 'network');
+  assert.equal(
+    classifyUserFacingError(
+      new Error('Failed to fetch dynamically imported module: https://example.com/assets/x.js')
+    ),
+    'load_failed'
+  );
   assert.equal(classifyUserFacingError(new Error('permission denied')), 'permission');
   assert.equal(classifyUserFacingError(new Error('duplicate key')), 'conflict');
   assert.equal(
