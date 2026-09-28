@@ -41,6 +41,7 @@ export type GuardianLinkStatus =
   | 'invalid_or_expired'
   | 'rate_limited'
   | 'guardian_limit_reached'
+  | 'parent_already_linked'
   | 'unknown';
 
 export interface RedeemLinkResult {
@@ -65,6 +66,7 @@ function toStatus(raw: unknown, fallback: GuardianLinkStatus): GuardianLinkStatu
     'invalid_or_expired',
     'rate_limited',
     'guardian_limit_reached',
+    'parent_already_linked',
   ];
   return (known as string[]).includes(s) ? (s as GuardianLinkStatus) : fallback;
 }
@@ -81,6 +83,8 @@ export function guardianLinkErrorMessage(
     }
     case 'guardian_limit_reached':
       return '이 학생에게 연결할 수 있는 보호자 계정 수를 초과했습니다. 사업장에 문의해 주세요.';
+    case 'parent_already_linked':
+      return '이 초대 코드의 학부모 정보는 이미 다른 계정에 연결되어 있습니다. 사업장에 문의해 주세요.';
     case 'invalid_or_expired':
     default:
       return '연결 코드가 유효하지 않거나 만료되었습니다. 사업장에 새 코드를 요청해 주세요.';

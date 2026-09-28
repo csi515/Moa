@@ -219,6 +219,7 @@ export const INVENTORY_CANDIDATES = {
   'test:parent-link-hotfix': 'authorization(parent/staff link). ci-cd static security에 있음',
   'test:staff-invite-token': 'authorization(staff invite token). ci-cd static security에 있음',
   'test:guardian-link-hardening': 'authorization(guardian link token/rate limit). ci-cd static security에 있음',
+  'test:guardian-redeem-new-parent': 'authorization(guardian redeem new parent / re-point). ci-cd static security에 있음',
 };
 
 export function loadPackageScripts() {

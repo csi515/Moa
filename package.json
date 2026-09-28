@@ -48,6 +48,7 @@
     "test:parent-link-hotfix": "tsx scripts/parent-link-hotfix.test.ts",
     "test:staff-invite-token": "tsx scripts/staff-invite-token.test.ts",
     "test:guardian-link-hardening": "tsx scripts/guardian-link-hardening.test.ts",
+    "test:guardian-redeem-new-parent": "tsx scripts/guardian-redeem-new-parent.test.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
     "test:mobile-lifecycle": "tsx src/core/platform/mobileLifecycle.test.ts",
