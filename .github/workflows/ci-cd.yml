@@ -131,6 +131,9 @@ jobs:
       - name: Static security — guardian-link-hardening
         run: npm run test:guardian-link-hardening
 
+      - name: Static security — guardian-redeem-new-parent
+        run: npm run test:guardian-redeem-new-parent
+
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E
   # ─────────────────────────────────────────────

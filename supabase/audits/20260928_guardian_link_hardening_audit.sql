@@ -65,4 +65,16 @@ SELECT '6_attempts_table_size' AS check_name,
        count(*) FILTER (WHERE created_at < now() - interval '30 days') AS older_than_30d
 FROM core.guardian_link_attempts;
 
+-- (7) [20260928160000] 계정(user_id)이 다른 전역 parents 행에 있는데 그 보호자에 매핑되지 않은 조직 학부모 고객
+--     (수정 이전 데이터 후보). 직원 연결이 계정 보호자에 반영되지 않을 수 있음 → 브리지 동기화 또는 수동 확인.
+SELECT '7_parent_customer_unmapped_account' AS check_name,
+       c.id AS customer_id, c.organization_id, c.user_id, p.id AS account_parent_id, o.parent_id AS mapped_parent_id
+FROM core.customers c
+JOIN core.parents p ON p.user_id = c.user_id AND p.id <> c.id
+LEFT JOIN core.org_parent_profiles o ON o.customer_id = c.id
+WHERE c.metadata->>'entityType' = 'parent'
+  AND c.user_id IS NOT NULL
+  AND o.parent_id IS DISTINCT FROM p.id
+ORDER BY c.organization_id;
+
 COMMIT;

@@ -44,8 +44,8 @@ INSERT INTO core.customers (id, organization_id, name, metadata) VALUES
   (current_setting('t.s3')::uuid, current_setting('t.org')::uuid, '다학생', '{"entityType":"student"}'),
   (current_setting('t.pc')::uuid, current_setting('t.org')::uuid, '다학부모', '{"entityType":"parent"}');
 
--- 이 조직에 이미 학부모 고객으로 연결된 계정(p1~p4) — 첫 연결(고객 미존재) 경로의 기존
--- 동기화 트리거 이슈(parents_user_id_key 충돌)는 이번 범위 밖이므로 기존 계정 경로로 검증.
+-- 이 조직에 이미 학부모 고객으로 연결된 계정(p1~p4).
+-- 고객이 없는 신규 계정 경로는 supabase/tests/guardian_redeem_new_parent.sql (20260928160000) 에서 검증.
 INSERT INTO core.customers (organization_id, name, email, user_id, metadata)
 SELECT current_setting('t.org')::uuid, v.n, v.e, current_setting(v.k)::uuid, '{"entityType":"parent"}'
 FROM (VALUES ('t.p1', '일학부모', 'p1@glh.test'), ('t.p2', '이학부모', 'p2@glh.test'),
