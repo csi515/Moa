@@ -2,6 +2,7 @@ import type { Page, Response } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { getE2ECredentials } from './env';
 import { seedE2eBlockingUiDismissed, suppressE2eBlockingUi } from './e2eUiState';
+import { mockDirectorHydrate } from './mockDirectorHydrate';
 
 const ORG_PICKER_EXCLUDE = /뒤로|새 사업장|이용자로 가입|직원·강사|다시 시도/;
 const POST_LOGIN_TIMEOUT_MS = 30_000;
@@ -233,6 +234,7 @@ export async function loginAsDirector(page: Page) {
   }
 
   await suppressE2eBlockingUi(page);
+  await mockDirectorHydrate(page);
   await page.goto('/');
   await expect(page.getByTestId('auth-page')).toBeVisible({ timeout: 30_000 });
   await expect(page.getByPlaceholder('예: name@example.com')).toBeVisible();
