@@ -51,6 +51,7 @@
     "test:guardian-redeem-new-parent": "tsx scripts/guardian-redeem-new-parent.test.ts",
     "test:legacy-public-lockdown": "tsx scripts/legacy-public-lockdown.test.ts",
     "test:legacy-booking-cleanup": "tsx scripts/legacy-booking-cleanup.test.ts",
+    "test:grant-authenticated-payroll-join-requests": "tsx scripts/grant-authenticated-payroll-join-requests.test.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
     "test:mobile-lifecycle": "tsx src/core/platform/mobileLifecycle.test.ts",
