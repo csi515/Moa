@@ -45,6 +45,7 @@
     "test:rls-membership-escalation": "tsx scripts/rls-membership-escalation-audit.ts",
     "test:multi-role-helpers": "tsx scripts/multiRolePermissionHelpers.test.ts",
     "test:auth-hijack-audit": "tsx scripts/auth-providers-hijack-audit.ts",
+    "test:parent-link-hotfix": "tsx scripts/parent-link-hotfix.test.ts",
     "test:e2e": "playwright test",
     "test:deeplink": "tsx src/core/platform/deepLinkParser.test.ts",
     "test:mobile-lifecycle": "tsx src/core/platform/mobileLifecycle.test.ts",

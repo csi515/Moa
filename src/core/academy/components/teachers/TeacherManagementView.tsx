@@ -202,7 +202,7 @@ export const TeacherManagementView: React.FC = () => {
         showToast(`${teacher.name} ${labels.staff.singular} 계정이 연결되었습니다.`, 'success');
       } else {
         showToast(
-          `${teacher.name} ${labels.staff.singular}에게 초대가 등록되었습니다. (${email}로 가입 시 자동 연결)`,
+          `${teacher.name} ${labels.staff.singular} 초대가 등록되었습니다. ${email}로 먼저 가입하도록 안내한 뒤 다시 초대하면 연결됩니다.`,
           'success'
         );
       }

@@ -2073,6 +2073,23 @@ export interface Database {
           },
         ];
       };
+      /** 20260928 parent-link hotfix 감사 스냅샷. service_role 전용 (anon/authenticated 권한 없음). */
+      security_profile_email_snapshot: {
+        Row: {
+          user_id: string;
+          profile_email: string | null;
+          auth_email: string | null;
+          captured_at: string;
+        };
+        Insert: {
+          user_id: string;
+          profile_email?: string | null;
+          auth_email?: string | null;
+          captured_at?: string;
+        };
+        Update: Partial<Database['core']['Tables']['security_profile_email_snapshot']['Insert']>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

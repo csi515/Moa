@@ -119,17 +119,15 @@ export const ParentManagementView: React.FC = () => {
       let emailSent = false;
       let emailMessage: string | undefined;
 
-      if (result.status === 'invited' && result.linkCodes.length > 0) {
+      // 2026-09-28 hotfix: 이메일 일치 자동 연결 제거 — 항상 'invited' + 연결 코드
+      if (result.linkCodes.length > 0) {
         const emailResult = await sendParentInvitationEmail({
-          organizationName: result.organizationName || currentOrganization.name,
-          parentName,
-          email: inviteEmail.trim(),
+          organizationId: currentOrganization.id,
+          parentCustomerId: inviteTarget.id,
           linkCodes: result.linkCodes,
         });
         emailSent = emailResult.emailSent;
         emailMessage = emailResult.message;
-      } else if (result.status === 'connected') {
-        showToast(`${parentName} ${contactLabel} 계정이 연결되었습니다.`, 'success');
       }
 
       setInviteResult(result);
@@ -138,14 +136,12 @@ export const ParentManagementView: React.FC = () => {
       setInviteTarget(null);
       setInviteEmail('');
 
-      if (result.status === 'invited') {
-        showToast(
-          emailSent
-            ? `${parentName} ${contactLabel}에게 초대 이메일을 보냈습니다.`
-            : `${parentName} ${contactLabel} 초대가 등록되었습니다. 연결 코드를 전달해 주세요.`,
-          'success'
-        );
-      }
+      showToast(
+        emailSent
+          ? `${parentName} ${contactLabel}에게 초대 이메일을 보냈습니다.`
+          : `${parentName} ${contactLabel} 초대가 등록되었습니다. 연결 코드를 전달해 주세요.`,
+        'success'
+      );
 
       await loadStatuses();
     } catch (e: any) {
@@ -319,8 +315,8 @@ export const ParentManagementView: React.FC = () => {
         {inviteTarget && (
           <div className="p-6">
             <p className="text-sm text-slate-600 mb-3">
-              {inviteTarget.name} — 같은 이메일로 가입하면 자동 연결되며, 연결 코드도 함께
-              생성됩니다.
+              {inviteTarget.name} — 연결 코드(링크·QR)가 생성됩니다. 받는 분이 로그인한 뒤
+              코드로 직접 수락해야 연결됩니다.
             </p>
             <label className="text-xs font-semibold text-slate-700">이메일</label>
             <input

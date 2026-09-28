@@ -121,6 +121,9 @@ jobs:
       - name: Static security — retail-staff-sale-perm
         run: npm run test:retail-staff-sale-perm
 
+      - name: Static security — parent-link-hotfix
+        run: npm run test:parent-link-hotfix
+
   # ─────────────────────────────────────────────
   # 빌드 + Playwright E2E
   # ─────────────────────────────────────────────
