@@ -20,6 +20,9 @@ export {
 export {
   storePendingStaffLink,
   consumePendingStaffLink,
+  peekPendingStaffLink,
+  clearPendingStaffLink,
+  STAFF_LINK_PENDING_EVENT,
   parseStaffLinkFromUrl,
 } from './pendingStaffLink';
 export { shareLink, type ShareLinkResult } from './shareLink';

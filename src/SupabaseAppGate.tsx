@@ -12,6 +12,7 @@ import { LoadingScreen } from './shared/components/LoadingScreen';
 import { AppErrorBoundary } from './shared/components/AppErrorBoundary';
 import { PwaInstallPrompt } from './shared/components/PwaInstallPrompt';
 import { StorageHydrator } from './StorageHydrator';
+import { PendingStaffInviteGate } from './core/staff/components/PendingStaffInviteGate';
 
 export const SupabaseAppGate: React.FC = () => {
   const { session, loading: authLoading } = useAuth();
@@ -90,6 +91,7 @@ export const SupabaseAppGate: React.FC = () => {
     <>
       <AppErrorBoundary>{content}</AppErrorBoundary>
       <PwaInstallPrompt />
+      {session && <PendingStaffInviteGate />}
     </>
   );
 };

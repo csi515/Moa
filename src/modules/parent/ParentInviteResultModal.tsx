@@ -47,8 +47,12 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
           </button>
         </div>
 
-        <p className="text-sm text-slate-600 mb-4">
+        <p className="text-sm text-slate-600 mb-2">
           <strong>{parentName}</strong> ({email}) · {organizationName}
+        </p>
+        <p className="text-xs text-slate-500 mb-4">
+          {contactLabel}님이 로그인한 뒤 아래 링크나 연결 코드로 직접 수락해야 연결됩니다. 같은 이메일로
+          가입해도 자동으로 연결되지 않습니다.
         </p>
 
         <div
@@ -69,7 +73,7 @@ export const ParentInviteResultModal: React.FC<ParentInviteResultModalProps> = (
               <>
                 <p className="font-bold">이메일 미발송</p>
                 <p className="text-xs mt-0.5">
-                  이메일 자동 발송이 설정되지 않았습니다. 아래 연결 코드나 링크를 {contactLabel}님께 직접 전달해 주세요.
+                  초대 이메일을 보내지 못했습니다. 아래 연결 코드나 링크를 {contactLabel}님께 직접 전달해 주세요.
                   {emailMessage ? (
                     <span className="block mt-1 opacity-80">{emailMessage}</span>
                   ) : null}

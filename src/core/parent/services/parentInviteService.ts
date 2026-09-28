@@ -37,29 +37,35 @@ export function buildParentInviteUrl(token: string): string {
   return `${getAppBaseUrl()}/?link=${encodeURIComponent(token)}`;
 }
 
+/**
+ * 초대 메일 발송 요청 (Edge Function: send-parent-invitation)
+ *
+ * 보안: 수신자 이메일·이름·앱 URL 은 서버가 DB/환경변수에서 결정한다.
+ * 클라이언트는 방금 발급된 연결 코드(token)와 교차검증용 ID 만 보낸다.
+ */
 export async function sendParentInvitationEmail(params: {
-  organizationName: string;
-  parentName: string;
-  email: string;
+  organizationId: string;
+  parentCustomerId: string;
   linkCodes: ParentInviteLinkCode[];
 }): Promise<{ emailSent: boolean; message?: string }> {
+  const tokens = params.linkCodes.map((c) => c.token).filter((t) => t.length > 0);
+  if (tokens.length === 0) {
+    return { emailSent: false };
+  }
+
   const { data, error } = await getCoreClient().functions.invoke('send-parent-invitation', {
     body: {
-      organizationName: params.organizationName,
-      parentName: params.parentName,
-      email: params.email,
-      linkCodes: params.linkCodes.map((c) => ({
-        token: c.token,
-        student_name: c.studentName,
-        customer_id: c.customerId,
-        expires_at: c.expiresAt,
-      })),
-      appUrl: getAppBaseUrl() || undefined,
+      organizationId: params.organizationId,
+      parentCustomerId: params.parentCustomerId,
+      linkCodes: tokens,
     },
   });
 
   if (error) {
-    return { emailSent: false, message: error.message };
+    return {
+      emailSent: false,
+      message: '초대 메일을 보내지 못했습니다. 연결 코드나 QR을 직접 전달해 주세요.',
+    };
   }
 
   const result = (data ?? {}) as { email_sent?: boolean; message?: string };

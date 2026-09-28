@@ -96,13 +96,10 @@ export async function registerStudentWithParent(
         let emailSent = false;
         let emailMessage: string | undefined;
 
-        if (inviteResult.status === 'invited' && inviteResult.linkCodes.length > 0) {
-          const orgName =
-            inviteResult.organizationName || StorageService.getSettings().name || '사업장';
+        if (inviteResult.linkCodes.length > 0) {
           const emailResult = await sendParentInvitationEmail({
-            organizationName: orgName,
-            parentName: parent.name,
-            email: guardian.email.trim(),
+            organizationId,
+            parentCustomerId: parent.id,
             linkCodes: inviteResult.linkCodes,
           });
           emailSent = emailResult.emailSent;
