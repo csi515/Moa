@@ -67,7 +67,9 @@ export const PwaInstallPrompt: React.FC = () => {
   const canNativeInstall = Boolean(deferredPrompt);
 
   const canOffer = useCallback(() => {
-    return isWebApp() && !isStandaloneDisplay() && !isDismissed();
+    if (!isWebApp() || isStandaloneDisplay() || isDismissed()) return false;
+    /** 데스크탑 Chrome 등: 지연 설치 안내 모달을 띄우지 않음 */
+    return detectWebInstallPlatform() !== 'other';
   }, []);
 
   useEffect(() => {

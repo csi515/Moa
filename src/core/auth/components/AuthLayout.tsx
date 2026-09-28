@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Layers } from 'lucide-react';
-import { appAcronymLine, appBrand } from '@/core/brand';
+import { appBrand } from '@/core/brand';
 import { LegalLinks } from '@/core/legal';
 import type { AuthMode } from '../hooks/useAuthForm';
 
@@ -28,9 +28,6 @@ export function AuthLayout({ mode, children }: AuthLayoutProps) {
             <Layers className="w-7 h-7" />
           </div>
           <h1 className="text-2xl font-bold text-slate-900">{appBrand.fullName}</h1>
-          <p className="text-[11px] font-semibold tracking-wide text-indigo-600 mt-1.5">
-            {appAcronymLine()}
-          </p>
           <p className="text-sm text-slate-500 mt-2">{subtitle}</p>
         </div>
 
