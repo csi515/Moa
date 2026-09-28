@@ -157,7 +157,10 @@ export function AuthFormCard({
         <div className="mb-5 space-y-3">
           <NaverAuthButton mode="login" loading={loading} onClick={onNaver} />
           {error && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700">
+            <div
+              className="p-3 rounded-xl bg-rose-50 border border-rose-100 text-sm text-rose-700"
+              data-testid="auth-login-error"
+            >
               {error}
             </div>
           )}

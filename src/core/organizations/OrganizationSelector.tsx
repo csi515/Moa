@@ -66,7 +66,10 @@ export const OrganizationSelector: React.FC = () => {
 
   if (loading || signingOut || retrying) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div
+        className="min-h-screen flex items-center justify-center bg-slate-50"
+        data-testid="organization-selector-loading"
+      >
         <Loader2 className="w-8 h-8 text-indigo-600 animate-spin" />
       </div>
     );
@@ -77,7 +80,10 @@ export const OrganizationSelector: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-slate-50 flex items-center justify-center p-4"
+      data-testid="organization-selector"
+    >
       <div className="w-full max-w-lg">
         <div className="mb-4">
           <button
@@ -137,6 +143,7 @@ export const OrganizationSelector: React.FC = () => {
                     key={membership.id}
                     type="button"
                     disabled={Boolean(selectingId)}
+                    data-testid="organization-option"
                     onClick={() => void handleSelectOrganization(membership.organizationId)}
                     className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 hover:border-indigo-300 hover:bg-indigo-50/50 transition-colors text-left min-h-[44px] disabled:opacity-60"
                   >

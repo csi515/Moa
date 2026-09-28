@@ -44,7 +44,7 @@ function GenericHomeView() {
   const label = getIndustryLabel(currentOrganization?.industry_type);
 
   return (
-    <div className="max-w-lg mx-auto pt-4 sm:pt-8">
+    <div className="max-w-lg mx-auto pt-4 sm:pt-8" data-testid="director-home">
       <EmptyState
         icon={<Construction className="w-12 h-12" />}
         title={`${label} 전용 기능 준비 중`}

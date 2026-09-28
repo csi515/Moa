@@ -119,7 +119,7 @@ export const RetailHomeView: FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 space-y-4 pb-8">
+    <div className="p-4 sm:p-6 space-y-4 pb-8" data-testid="director-home">
       <PageHeader
         icon={<LayoutDashboard className="w-5 h-5" />}
         iconClassName="text-teal-600"

@@ -35,6 +35,7 @@ export function ModuleAppShell({
         {sidebar}
         <main
           data-work-scroll-root
+          data-testid="app-work-main"
           className="flex-1 p-3 sm:p-4 lg:p-5 main-with-bottom-nav max-w-full overflow-x-hidden"
         >
           {children}

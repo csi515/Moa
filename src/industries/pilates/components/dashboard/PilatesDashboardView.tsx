@@ -48,7 +48,7 @@ const PilatesStaffDashboard: React.FC = () => {
   ).length;
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="staff-home">
       <PageHeader
         density="compact"
         icon={<Activity className="w-5 h-5" />}
@@ -228,7 +228,7 @@ const PilatesAdminDashboard: React.FC = () => {
   const confirmedToday = todayBookings.filter((b) => b.status === 'confirmed' || b.status === 'scheduled').length;
 
   return (
-    <div className="space-y-4 pb-4">
+    <div className="space-y-4 pb-4" data-testid="director-home">
       <PageHeader
         density="compact"
         icon={<Activity className="w-5 h-5" />}
