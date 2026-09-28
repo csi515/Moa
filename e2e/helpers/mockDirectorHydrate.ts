@@ -69,18 +69,33 @@ async function fulfillEmptyList(route: Route) {
   await fulfillJson(route, 200, [], { 'Content-Range': '*/0' });
 }
 
+/** 이미 처리됐거나 페이지가 닫혀 응답할 수 없는 route 오류만 무시한다 (그 외 오류는 그대로 던짐) */
+async function settleRoute(fn: () => Promise<void>) {
+  try {
+    await fn();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/already handled|has been closed|Target closed|has been disposed/i.test(msg)) return;
+    throw err;
+  }
+}
+
 function isRestUrl(url: URL) {
   return url.pathname.includes('/rest/v1/');
 }
 
+const mockedPages = new WeakSet<Page>();
+
 /**
- * 로그인 전 page.route 등록. 같은 page에 두 번 호출해도 핸들러가 겹쳐 이행한다.
+ * 로그인 전 page.route 등록. 같은 page에 여러 번 호출해도(스펙 + loginAsDirector) 한 번만 등록한다.
  */
 export async function mockDirectorHydrate(page: Page) {
+  if (mockedPages.has(page)) return;
+  mockedPages.add(page);
   await page.route(isRestUrl, async (route) => {
     const req = route.request();
     if (req.method() === 'OPTIONS') {
-      await route.fulfill({ status: 204, headers: CORS });
+      await settleRoute(() => route.fulfill({ status: 204, headers: CORS }));
       return;
     }
 
@@ -90,40 +105,35 @@ export async function mockDirectorHydrate(page: Page) {
     const resource = restResource(url);
 
     if (resource === 'rpc') {
-      await route.continue();
+      await settleRoute(() => route.continue());
       return;
     }
 
     // piano 스키마(원장 hydrate + education) GET은 항상 빈 목록 성공
     if (req.method() === 'GET' && (profile === 'piano' || profile === 'education')) {
-      await fulfillEmptyList(route);
+      await settleRoute(() => fulfillEmptyList(route));
       return;
     }
 
     if (req.method() !== 'GET') {
-      await route.continue();
+      await settleRoute(() => route.continue());
       return;
     }
 
+    // route.fetch 실패(네트워크)만 대체 응답으로 처리한다. fulfill 도중 예외(페이지 종료 등)를
+    // catch 에서 다시 continue 하면 "Route is already handled!" 로 테스트가 실패하므로 분리한다.
+    let response: Awaited<ReturnType<Route['fetch']>> | null = null;
     try {
-      const response = await route.fetch();
-      if (response.ok()) {
+      response = await route.fetch();
+    } catch {
+      response = null;
+    }
+
+    await settleRoute(async () => {
+      if (response?.ok()) {
         await route.fulfill({ response });
         return;
       }
-
-      if (CORE_HYDRATE_LISTS.has(resource) && !wantsSingle(headers)) {
-        await fulfillEmptyList(route);
-        return;
-      }
-
-      if (resource === 'organizations' && wantsSingle(headers)) {
-        await fulfillJson(route, 200, FALLBACK_ORG, { 'Content-Range': '0-0/1' });
-        return;
-      }
-
-      await route.fulfill({ response });
-    } catch {
       if (CORE_HYDRATE_LISTS.has(resource) && !wantsSingle(headers)) {
         await fulfillEmptyList(route);
         return;
@@ -132,7 +142,8 @@ export async function mockDirectorHydrate(page: Page) {
         await fulfillJson(route, 200, FALLBACK_ORG, { 'Content-Range': '0-0/1' });
         return;
       }
-      await route.continue();
-    }
+      if (response) await route.fulfill({ response });
+      else await route.continue();
+    });
   });
 }
